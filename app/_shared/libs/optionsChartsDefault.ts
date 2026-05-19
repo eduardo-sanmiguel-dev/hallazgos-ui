@@ -13,7 +13,7 @@ export const optionsChartDefault = {
     downloadSVG: "Descargar imagen SVG",
   },
   credits: {
-    enabled: true,
+    enabled: false,
     text: "Cosmeticos trujillo",
     href: 'javascript:window.open("https://cosmeticostrujillo.com", "_blank")',
   },
