@@ -21,8 +21,11 @@ const paramsFilter = (params: FiltersEvidences) => {
     ...(params.secondaryTypeIds.length > 0 && {
       secondaryTypeIds: params.secondaryTypeIds.join(","),
     }),
-    ...(params.processIds.length > 0 && {
-      processIds: params.processIds.join(","),
+    ...(params.areaIds.length > 0 && {
+      areaIds: params.areaIds.join(","),
+    }),
+    ...(params.responsibleIds.length > 0 && {
+      responsibleIds: params.responsibleIds.join(","),
     }),
     ...(params.zoneIds.length > 0 && {
       zoneIds: params.zoneIds.join(","),

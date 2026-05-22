@@ -12,8 +12,9 @@ const query = gql`
     $manufacturingPlantId: Float
     $mainTypeIds: [Int!]
     $secondaryTypeIds: [Int!]
+    $areaIds: [Int!]
     $zoneIds: [Int!]
-    $processIds: [Int!]
+    $responsibleIds: [Int!]
     $statuses: [String!]
     $startDate: String
     $endDate: String
@@ -24,8 +25,9 @@ const query = gql`
       manufacturingPlantId: $manufacturingPlantId
       mainTypeIds: $mainTypeIds
       secondaryTypeIds: $secondaryTypeIds
+      areaIds: $areaIds
       zoneIds: $zoneIds
-      processIds: $processIds
+      responsibleIds: $responsibleIds
       statuses: $statuses
       startDate: $startDate
       endDate: $endDate
@@ -66,6 +68,9 @@ const query = gql`
         }
         zone {
           name
+          area {
+            name
+          }
         }
         process {
           name
@@ -120,7 +125,10 @@ export interface EvidenceGraphql {
   supervisors: { id: number; name: string }[];
   responsibles: { id: number; name: string }[];
   comments: CommentEvidenceGraphql[];
-  zone: OnlyName;
+  zone: {
+    name: string;
+    area?: OnlyName | null;
+  };
   process: OnlyName | null;
   description?: string;
   descriptionSolution?: string;
@@ -150,11 +158,14 @@ export const useEvidences = () => {
       ...(filters.secondaryTypeIds.length > 0 && {
         secondaryTypeIds: filters.secondaryTypeIds.map((id) => Number(id)),
       }),
+      ...(filters.areaIds.length > 0 && {
+        areaIds: filters.areaIds.map((id) => Number(id)),
+      }),
       ...(filters.zoneIds.length > 0 && {
         zoneIds: filters.zoneIds.map((id) => Number(id)),
       }),
-      ...(filters.processIds.length > 0 && {
-        processIds: filters.processIds.map((id) => Number(id)),
+      ...(filters.responsibleIds.length > 0 && {
+        responsibleIds: filters.responsibleIds.map((id) => Number(id)),
       }),
       ...(filters.states.length > 0 && {
         statuses: filters.states,

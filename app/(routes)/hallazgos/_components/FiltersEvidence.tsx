@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { Dayjs } from "dayjs";
 
@@ -16,14 +16,16 @@ import "dayjs/locale/es";
 
 import { useCategoriesStore, useUserSessionStore } from "@store";
 import SelectDefault from "@components/SelectDefault";
-import { SecondaryType } from "@interfaces";
+import { SecondaryType, User } from "@interfaces";
+import { UsersService } from "@services";
 
 export interface FiltersEvidences {
   manufacturingPlantId: string;
   mainTypeIds: string[];
   secondaryTypeIds: string[];
+  areaIds: string[];
   zoneIds: string[];
-  processIds: string[];
+  responsibleIds: string[];
   states: string[];
   startDate: string;
   endDate: string;
@@ -31,7 +33,7 @@ export interface FiltersEvidences {
 
 interface Props {
   filters: FiltersEvidences;
-  setFilters: (filters: FiltersEvidences) => void;
+  setFilters: Dispatch<SetStateAction<FiltersEvidences>>;
   count: number;
 }
 
@@ -44,6 +46,7 @@ const STATUS_OPTIONS = [
 
 const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
   const [secondaryTypes, setSecondaryTypes] = useState<SecondaryType[]>([]);
+  const [responsibles, setResponsibles] = useState<User[]>([]);
 
   const parseDate = (value: string): Dayjs | null => {
     if (!value) return null;
@@ -60,7 +63,68 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
     (state) => state.manufacturingPlants,
   );
 
-  const { mainTypes, zones, processes } = useCategoriesStore();
+  const { mainTypes, zones } = useCategoriesStore();
+
+  const areaOptions = useMemo(() => {
+    const selectedPlantId = Number(filters.manufacturingPlantId);
+
+    const filteredZones = filters.manufacturingPlantId
+      ? zones.filter(
+          (zone) => Number(zone.manufacturingPlant.id) === selectedPlantId,
+        )
+      : zones;
+
+    const areasMap = new Map<string, { id: number; name: string }>();
+
+    filteredZones.forEach((zone) => {
+      if (!zone.area) {
+        return;
+      }
+
+      const areaId = Number(zone.area.id);
+
+      if (!areasMap.has(String(areaId))) {
+        areasMap.set(String(areaId), {
+          id: areaId,
+          name: zone.area.name,
+        });
+      }
+    });
+
+    return Array.from(areasMap.values());
+  }, [filters.manufacturingPlantId, zones]);
+
+  const filteredZones = useMemo(() => {
+    const selectedPlantId = Number(filters.manufacturingPlantId);
+    const selectedAreaIds = new Set(filters.areaIds.map(Number));
+
+    return zones.filter((zone) => {
+      const belongsToPlant =
+        Number(zone.manufacturingPlant.id) === selectedPlantId;
+
+      if (!belongsToPlant) {
+        return false;
+      }
+
+      if (!selectedAreaIds.size) {
+        return true;
+      }
+
+      return zone.area ? selectedAreaIds.has(Number(zone.area.id)) : false;
+    });
+  }, [filters.areaIds, filters.manufacturingPlantId, zones]);
+
+  const filteredResponsibles = useMemo(() => {
+    if (!filters.zoneIds.length) {
+      return responsibles;
+    }
+
+    const selectedZoneIds = new Set(filters.zoneIds.map(Number));
+
+    return responsibles.filter((user) =>
+      (user.zones || []).some((zone) => selectedZoneIds.has(Number(zone.id))),
+    );
+  }, [filters.zoneIds, responsibles]);
 
   useEffect(() => {
     if (!filters.mainTypeIds.length) {
@@ -86,6 +150,17 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
   }, [filters.mainTypeIds, mainTypes]);
 
   useEffect(() => {
+    if (!filters.manufacturingPlantId) {
+      setResponsibles([]);
+      return;
+    }
+
+    UsersService.findAll({
+      manufacturingPlantId: filters.manufacturingPlantId,
+    }).then(setResponsibles);
+  }, [filters.manufacturingPlantId]);
+
+  useEffect(() => {
     if (!filters.secondaryTypeIds.length) {
       return;
     }
@@ -104,6 +179,27 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
       });
     }
   }, [filters, secondaryTypes, setFilters]);
+
+  useEffect(() => {
+    if (!filters.responsibleIds.length) {
+      return;
+    }
+
+    const allowedResponsibleIds = new Set(
+      filteredResponsibles.map((responsible) => String(responsible.id)),
+    );
+
+    const scopedResponsibleIds = filters.responsibleIds.filter((id) =>
+      allowedResponsibleIds.has(id),
+    );
+
+    if (scopedResponsibleIds.length !== filters.responsibleIds.length) {
+      setFilters({
+        ...filters,
+        responsibleIds: scopedResponsibleIds,
+      });
+    }
+  }, [filteredResponsibles, filters, setFilters]);
 
   const selectedFilterChips = useMemo(() => {
     const getNamesByIds = (
@@ -152,16 +248,24 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
       });
     }
 
-    const zoneNames = getNamesByIds(filters.zoneIds, zones);
+    const areaNames = getNamesByIds(filters.areaIds, areaOptions);
+    if (areaNames.length) {
+      chips.push({ key: "areas", label: `Zonas: ${formatValues(areaNames)}` });
+    }
+
+    const zoneNames = getNamesByIds(filters.zoneIds, filteredZones);
     if (zoneNames.length) {
       chips.push({ key: "zones", label: `Lugar: ${formatValues(zoneNames)}` });
     }
 
-    const processNames = getNamesByIds(filters.processIds, processes);
-    if (processNames.length) {
+    const responsibleNames = getNamesByIds(
+      filters.responsibleIds,
+      filteredResponsibles,
+    );
+    if (responsibleNames.length) {
       chips.push({
-        key: "processes",
-        label: `Administrador: ${formatValues(processNames)}`,
+        key: "responsibles",
+        label: `Responsables: ${formatValues(responsibleNames)}`,
       });
     }
 
@@ -184,11 +288,12 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
     return chips;
   }, [
     filters,
+    areaOptions,
+    filteredZones,
+    filteredResponsibles,
     mainTypes,
     manufacturingPlants,
-    processes,
     secondaryTypes,
-    zones,
   ]);
 
   return (
@@ -254,7 +359,9 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
             setFilters({
               ...filters,
               manufacturingPlantId: e.target.value,
+              areaIds: [],
               zoneIds: [],
+              responsibleIds: [],
             });
           }}
         />
@@ -317,21 +424,19 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
         }}
       >
         <SelectDefault
-          data={zones.filter(
-            (data) =>
-              data.manufacturingPlant.id ===
-              Number(filters.manufacturingPlantId),
-          )}
-          label="Lugar"
+          data={areaOptions}
+          label="Zonas"
           multiple={true}
           isFilter={true}
-          value={filters.zoneIds}
+          value={filters.areaIds}
           onChange={(_, newValue) =>
             setFilters({
               ...filters,
-              zoneIds: Array.isArray(newValue)
+              areaIds: Array.isArray(newValue)
                 ? newValue.map((item) => String(item.id))
                 : [],
+              zoneIds: [],
+              responsibleIds: [],
             })
           }
           helperText={
@@ -347,18 +452,48 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
         }}
       >
         <SelectDefault
-          data={processes}
-          label="Administrador"
+          data={filteredZones}
+          label="Lugar"
           multiple={true}
           isFilter={true}
-          value={filters.processIds}
+          value={filters.zoneIds}
+          onChange={(_, newValue) =>
+            setFilters((prev) => ({
+              ...prev,
+              zoneIds: Array.isArray(newValue)
+                ? newValue.map((item) => String(item.id))
+                : [],
+              responsibleIds: [],
+            }))
+          }
+          helperText={
+            !filters.manufacturingPlantId ? "Seleccione una planta" : ""
+          }
+        />
+      </Grid>
+      <Grid
+        size={{
+          xs: 12,
+          sm: 3,
+          md: 2,
+        }}
+      >
+        <SelectDefault
+          data={filteredResponsibles}
+          label="Responsables"
+          multiple={true}
+          isFilter={true}
+          value={filters.responsibleIds}
           onChange={(_, newValue) =>
             setFilters({
               ...filters,
-              processIds: Array.isArray(newValue)
+              responsibleIds: Array.isArray(newValue)
                 ? newValue.map((item) => String(item.id))
                 : [],
             })
+          }
+          helperText={
+            !filters.manufacturingPlantId ? "Seleccione una planta" : ""
           }
         />
       </Grid>

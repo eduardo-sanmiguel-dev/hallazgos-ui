@@ -56,13 +56,13 @@ const TableDefaultServer = ({
 
   const handleChangePage = (
     _: MouseEvent<HTMLButtonElement> | null,
-    newPage: number
+    newPage: number,
   ) => {
     setPage(newPage);
   };
 
   const handleChangeRowsPerPage = (
-    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
@@ -74,7 +74,15 @@ const TableDefaultServer = ({
         <TableHead>
           <StyledTableRow>
             {columns.map((column) => (
-              <StyledTableCell key={column}>{column}</StyledTableCell>
+              <StyledTableCell
+                key={column}
+                sx={{
+                  whiteSpace: "pre-line",
+                  lineHeight: 1.35,
+                }}
+              >
+                {column}
+              </StyledTableCell>
             ))}
           </StyledTableRow>
         </TableHead>

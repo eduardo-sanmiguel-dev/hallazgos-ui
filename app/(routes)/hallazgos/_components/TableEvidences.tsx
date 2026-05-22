@@ -41,19 +41,16 @@ import {
 const columns = [
   "ID",
   "Planta",
-  "Grupo",
+  "Clasificación",
   "Tipo",
+  "Zona",
   "Lugar",
   "Processo",
   "Creado por",
-  "Supervisores",
   "Responsables",
   "Estatus",
-  "Prioridad",
-  "Tiempo restante (días)",
-  "Creación",
-  "Ultima actualización",
-  "Fecha de cierre",
+  "Prioridad y \nTiempo restante (días)",
+  "FR: fecha de registro\nFA: fecha de actualización\nFC: fecha de cierre",
   "Acciones",
 ];
 
@@ -202,9 +199,9 @@ export default function TableEvidences({
             </StyledTableCell>
             <StyledTableCell
               sx={{
-                width: 100,
-                minWidth: 100,
-                maxWidth: 100,
+                width: 120,
+                minWidth: 120,
+                maxWidth: 120,
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -213,33 +210,98 @@ export default function TableEvidences({
             >
               {row.manufacturingPlant.name}
             </StyledTableCell>
-            <StyledTableCell>{row.mainType.name}</StyledTableCell>
-            <StyledTableCell>{row.secondaryType.name}</StyledTableCell>
-            <StyledTableCell>{row.zone.name}</StyledTableCell>
             <StyledTableCell
               sx={{
-                width: 100,
-                minWidth: 100,
-                maxWidth: 100,
+                width: 120,
+                minWidth: 120,
+                maxWidth: 120,
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
               }}
+              title={row.mainType.name}
+            >
+              {row.mainType.name}
+            </StyledTableCell>
+            <StyledTableCell
+              sx={{
+                width: 120,
+                minWidth: 120,
+                maxWidth: 120,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+              title={row.secondaryType.name}
+            >
+              {row.secondaryType.name}
+            </StyledTableCell>
+            <StyledTableCell
+              sx={{
+                width: 120,
+                minWidth: 120,
+                maxWidth: 120,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+              title={row.zone.area?.name || "Sin zona"}
+            >
+              {row.zone.area?.name || "Sin zona"}
+            </StyledTableCell>
+            <StyledTableCell
+              sx={{
+                width: 120,
+                minWidth: 120,
+                maxWidth: 120,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+              title={row.zone.name}
+            >
+              {row.zone.name}
+            </StyledTableCell>
+            <StyledTableCell
+              sx={{
+                width: 120,
+                minWidth: 120,
+                maxWidth: 120,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+              title={row.process?.name}
             >
               {row.process?.name}
             </StyledTableCell>
             <StyledTableCell>{row.user.name}</StyledTableCell>
-            <StyledTableCell>
-              {row.supervisors
-                .map((supervisor) => supervisor.name)
-                .join(", ")
-                .substring(0, 50)}
-              ...
-            </StyledTableCell>
-            <StyledTableCell>
-              {row.responsibles
-                .map((responsible) => responsible.name)
-                .join(", ")}
+            <StyledTableCell
+              sx={{
+                width: 120,
+                minWidth: 120,
+                maxWidth: 120,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+              title={
+                row.responsibles.length > 0
+                  ? row.responsibles
+                      .map((responsible) => responsible.name)
+                      .join(", ")
+                  : row.supervisors
+                      .map((supervisor) => supervisor.name)
+                      .join(", ")
+              }
+            >
+              {row.responsibles.length > 0
+                ? row.responsibles
+                    .map((responsible) => responsible.name)
+                    .join(", ")
+                : row.supervisors
+                    .map((supervisor) => supervisor.name)
+                    .join(", ")}
             </StyledTableCell>
             <StyledTableCell>
               <Chip
@@ -266,53 +328,126 @@ export default function TableEvidences({
                 }
               />
             </StyledTableCell>
-            <StyledTableCell>
-              {getPriorityLabel(row.priorityDays)}
-            </StyledTableCell>
-            <StyledTableCell>
-              {(() => {
-                if (row.status === STATUS_CLOSED) {
-                  return "";
-                }
+            <StyledTableCell
+              sx={{
+                minWidth: 180,
+                width: 180,
+                maxWidth: 220,
+              }}
+            >
+              <Stack
+                spacing={0.4}
+                sx={{
+                  alignItems: "flex-start",
+                  "& > span": {
+                    whiteSpace: "nowrap",
+                    lineHeight: 1.35,
+                  },
+                }}
+              >
+                {(() => {
+                  const priorityLabel = getPriorityLabel(row.priorityDays);
 
-                const remainingDays = getRemainingDays(
-                  row.createdAt,
-                  row.priorityDays,
-                );
-                const remainingDaysNumber = Number(remainingDays);
+                  if (priorityLabel === "Sin prioridad") {
+                    return null;
+                  }
 
-                if (
-                  remainingDays !== "N/A" &&
-                  !Number.isNaN(remainingDaysNumber) &&
-                  remainingDaysNumber < 0
-                ) {
                   return (
-                    <Chip
-                      label={formatDayLabel(remainingDaysNumber)}
-                      color="error"
-                      size="small"
-                    />
+                    <span>
+                      <b>Prioridad:</b> {priorityLabel}
+                    </span>
                   );
-                }
+                })()}
+                {(() => {
+                  if (row.status === STATUS_CLOSED) {
+                    return null;
+                  }
 
-                if (
-                  remainingDays !== "N/A" &&
-                  !Number.isNaN(remainingDaysNumber)
-                ) {
-                  return formatDayLabel(remainingDaysNumber);
-                }
+                  const remainingDays = getRemainingDays(
+                    row.createdAt,
+                    row.priorityDays,
+                  );
+                  const remainingDaysNumber = Number(remainingDays);
 
-                return remainingDays;
-              })()}
+                  if (remainingDays === "N/A") {
+                    return null;
+                  }
+
+                  if (!Number.isNaN(remainingDaysNumber)) {
+                    return (
+                      <span>
+                        <b>Tiempo restante:</b>{" "}
+                        {formatDayLabel(remainingDaysNumber)}
+                      </span>
+                    );
+                  }
+
+                  return (
+                    <span>
+                      <b>Tiempo restante:</b> {remainingDays}
+                    </span>
+                  );
+                })()}
+                {(() => {
+                  if (row.status === STATUS_CLOSED) {
+                    return null;
+                  }
+
+                  const remainingDays = getRemainingDays(
+                    row.createdAt,
+                    row.priorityDays,
+                  );
+                  const remainingDaysNumber = Number(remainingDays);
+
+                  if (
+                    remainingDays !== "N/A" &&
+                    !Number.isNaN(remainingDaysNumber) &&
+                    remainingDaysNumber < 0
+                  ) {
+                    return (
+                      <Chip
+                        label="Vencido"
+                        color="error"
+                        size="small"
+                        sx={{ mt: 0.25 }}
+                      />
+                    );
+                  }
+
+                  return null;
+                })()}
+              </Stack>
             </StyledTableCell>
-            <StyledTableCell>
-              {stringToDateWithTime(row.createdAt)}
-            </StyledTableCell>
-            <StyledTableCell>
-              {stringToDateWithTime(row.updatedAt)}
-            </StyledTableCell>
-            <StyledTableCell>
-              {row.solutionDate && stringToDateWithTime(row.solutionDate)}
+            <StyledTableCell
+              sx={{
+                minWidth: 260,
+                width: 260,
+                maxWidth: 300,
+              }}
+            >
+              <Stack
+                spacing={0.25}
+                sx={{
+                  alignItems: "flex-start",
+                  "& > span": {
+                    whiteSpace: "nowrap",
+                    lineHeight: 1.35,
+                  },
+                }}
+              >
+                <span>
+                  <b>FR:</b> {stringToDateWithTime(row.createdAt)}
+                </span>
+                <span>
+                  <b>FA:</b> {stringToDateWithTime(row.updatedAt)}
+                </span>
+                <span>
+                  <b>FC:</b>{" "}
+                  {row.solutionDate
+                    ? stringToDateWithTime(row.solutionDate)
+                    : "-"}
+                </span>
+              </Stack>
             </StyledTableCell>
             <StyledTableCell>
               <Stack
