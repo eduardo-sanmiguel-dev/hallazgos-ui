@@ -16,6 +16,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { esES } from "@mui/x-date-pickers/locales";
 import "dayjs/locale/es";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { useCategoriesStore, useUserSessionStore } from "@store";
 import SelectDefault from "@components/SelectDefault";
@@ -49,6 +50,10 @@ const STATUS_OPTIONS = [
 ];
 
 const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [secondaryTypes, setSecondaryTypes] = useState<SecondaryType[]>([]);
   const [responsibles, setResponsibles] = useState<User[]>([]);
   const [localEvidenceId, setLocalEvidenceId] = useState(filters.evidenceId);
@@ -84,6 +89,10 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
       startDate: "",
       endDate: "",
     });
+
+    if (searchParams.toString()) {
+      router.replace(pathname);
+    }
   };
 
   const areaOptions = useMemo(() => {

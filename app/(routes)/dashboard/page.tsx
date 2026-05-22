@@ -8,9 +8,11 @@ import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import WhatshotOutlinedIcon from "@mui/icons-material/WhatshotOutlined";
 import {
   Button,
+  CircularProgress,
   Fab,
   Grid,
   IconButton,
@@ -26,6 +28,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { esES } from "@mui/x-date-pickers/locales";
 import "dayjs/locale/es";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
@@ -89,6 +92,7 @@ const DashboardPage = () => {
   const [isHistoricalView, setIsHistoricalView] = useState(false);
   const [isHeatmapView, setIsHeatmapView] = useState(false);
   const [isHeatmapLoading, setIsHeatmapLoading] = useState(false);
+  const [isDownloadingPdfReport, setIsDownloadingPdfReport] = useState(false);
   const [heatmapData, setHeatmapData] =
     useState<ResponseDashboardHeatmapByFilters | null>(null);
   const sortedResponsibles = useMemo(
@@ -328,6 +332,130 @@ const DashboardPage = () => {
     router.push(queryString ? `/hallazgos?${queryString}` : "/hallazgos");
   };
 
+  const handleDownloadDashboardPdf = async () => {
+    if (!filters.manufacturingPlantId || isDownloadingPdfReport) {
+      return;
+    }
+
+    setIsDownloadingPdfReport(true);
+
+    try {
+      const visibleCharts = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          "[data-dashboard-export='chart']",
+        ),
+      ).filter((element) => {
+        const rect = element.getBoundingClientRect();
+        return (
+          rect.width > 0 && rect.height > 0 && element.offsetParent !== null
+        );
+      });
+
+      if (!visibleCharts.length) {
+        toast.error("No hay gráficas visibles para exportar");
+        return;
+      }
+
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+
+      const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const maxWidth = pageWidth - margin * 2;
+      const title = "Informe de Dashboard de Hallazgos";
+      const generatedAt = `Generado: ${dayjs().format("DD/MM/YYYY HH:mm")}`;
+      const plantLabel = filters.manufacturingPlantName
+        ? `Planta: ${filters.manufacturingPlantName}`
+        : "Planta: Sin especificar";
+
+      pdf.setFontSize(16);
+      pdf.text(title, margin, margin + 2);
+
+      pdf.setFontSize(10);
+      pdf.text(generatedAt, margin, margin + 10);
+      pdf.text(plantLabel, margin, margin + 16);
+
+      const summaryLines = pdf.splitTextToSize(
+        `Filtros: ${heatmapFiltersTitle || "Sin filtros adicionales"}`,
+        maxWidth,
+      );
+      pdf.text(summaryLines, margin, margin + 22);
+
+      let currentY = margin + 22 + summaryLines.length * 4 + 4;
+      const sectionGap = 6;
+      const maxChartsPerPage = 2;
+      let chartsInCurrentPage = 0;
+
+      for (let index = 0; index < visibleCharts.length; index += 1) {
+        if (chartsInCurrentPage >= maxChartsPerPage) {
+          pdf.addPage();
+          currentY = margin;
+          chartsInCurrentPage = 0;
+        }
+
+        const chartElement = visibleCharts[index];
+        const canvas = await html2canvas(chartElement, {
+          backgroundColor: "#ffffff",
+          scale: 2,
+          useCORS: true,
+        });
+
+        const imageData = canvas.toDataURL("image/png");
+
+        let renderWidth = maxWidth;
+        let renderHeight = (canvas.height * renderWidth) / canvas.width;
+        const availableHeight = pageHeight - margin - currentY;
+
+        if (renderHeight > availableHeight) {
+          if (availableHeight < 40) {
+            pdf.addPage();
+            currentY = margin;
+            chartsInCurrentPage = 0;
+            renderHeight = (canvas.height * renderWidth) / canvas.width;
+          }
+
+          const refreshedAvailableHeight = pageHeight - margin - currentY;
+          if (renderHeight > refreshedAvailableHeight) {
+            renderHeight = refreshedAvailableHeight;
+            renderWidth = (canvas.width * renderHeight) / canvas.height;
+          }
+        }
+
+        if (renderHeight <= 0) {
+          pdf.addPage();
+          currentY = margin;
+          chartsInCurrentPage = 0;
+          renderWidth = maxWidth;
+          renderHeight = (canvas.height * renderWidth) / canvas.width;
+        }
+
+        const x = (pageWidth - renderWidth) / 2;
+        pdf.addImage(imageData, "PNG", x, currentY, renderWidth, renderHeight);
+        currentY += renderHeight + sectionGap;
+        chartsInCurrentPage += 1;
+
+        if (
+          index < visibleCharts.length - 1 &&
+          currentY >= pageHeight - margin
+        ) {
+          pdf.addPage();
+          currentY = margin;
+          chartsInCurrentPage = 0;
+        }
+      }
+
+      pdf.save(`Informe_Dashboard_${dayjs().format("YYYYMMDD_HHmm")}.pdf`);
+    } catch {
+      toast.error("No se pudo generar el informe PDF");
+    } finally {
+      setIsDownloadingPdfReport(false);
+    }
+  };
+
   if (email === "cosmeticostrujillo0023@gmail.com") {
     return window.location.replace("/hds");
   }
@@ -521,6 +649,30 @@ const DashboardPage = () => {
                       </IconButton>
                     </Tooltip>
 
+                    {!!filters.manufacturingPlantId && (
+                      <Tooltip
+                        title={
+                          isDownloadingPdfReport
+                            ? "Generando informe..."
+                            : "Descargar informe PDF"
+                        }
+                        arrow
+                      >
+                        <IconButton
+                          color="primary"
+                          aria-label="Descargar informe PDF"
+                          onClick={handleDownloadDashboardPdf}
+                          disabled={isDownloadingPdfReport}
+                        >
+                          {isDownloadingPdfReport ? (
+                            <CircularProgress size={22} color="inherit" />
+                          ) : (
+                            <PictureAsPdfOutlinedIcon />
+                          )}
+                        </IconButton>
+                      </Tooltip>
+                    )}
+
                     <Tooltip title="Histórico" arrow>
                       <IconButton
                         color="primary"
@@ -669,6 +821,7 @@ const DashboardPage = () => {
                 sm: 12,
                 md: 12,
               }}
+              data-dashboard-export="chart"
             >
               <AreaImageCoordinateSelector
                 imageSrc="/images/planos.png"
@@ -687,6 +840,7 @@ const DashboardPage = () => {
                 sm: 12,
                 md: 6,
               }}
+              data-dashboard-export="chart"
             >
               <Paper sx={{ p: 2 }}>
                 <StatusChart filters={filters} />
@@ -701,6 +855,7 @@ const DashboardPage = () => {
                 sm: 12,
                 md: 6,
               }}
+              data-dashboard-export="chart"
             >
               <Paper sx={{ p: 2 }}>
                 <AreasChart filters={filters} />
@@ -713,8 +868,9 @@ const DashboardPage = () => {
               size={{
                 xs: 12,
                 sm: 12,
-                md: 4,
+                md: shouldHideProjectionCharts ? 12 : 4,
               }}
+              data-dashboard-export="chart"
             >
               <Paper sx={{ minHeight: 470, p: 2 }}>
                 <MainTypesChart filters={filters} />
@@ -729,6 +885,7 @@ const DashboardPage = () => {
                 sm: 12,
                 md: 8,
               }}
+              data-dashboard-export="chart"
             >
               <Paper sx={{ minHeight: 470, p: 2 }}>
                 <SolidGaugeMultiKpiChart filters={filters} />
@@ -743,6 +900,7 @@ const DashboardPage = () => {
                 sm: 6,
                 md: 6,
               }}
+              data-dashboard-export="chart"
             >
               <PriorityInterventionChart filters={filters} />
             </Grid>
@@ -755,6 +913,7 @@ const DashboardPage = () => {
                 sm: 6,
                 md: 6,
               }}
+              data-dashboard-export="chart"
             >
               <RiskLevelChart filters={filters} />
             </Grid>
@@ -767,6 +926,7 @@ const DashboardPage = () => {
                 sm: 12,
                 md: 12,
               }}
+              data-dashboard-export="chart"
             >
               <Paper sx={{ minHeight: 470, p: 2 }}>
                 <AreaRangeLineChart filters={filters} />
@@ -781,6 +941,7 @@ const DashboardPage = () => {
                 sm: 12,
                 md: 6,
               }}
+              data-dashboard-export="chart"
             >
               <Paper sx={{ minHeight: 560, p: 2 }}>
                 <PackedBubbleChart filters={filters} />
@@ -795,6 +956,7 @@ const DashboardPage = () => {
                 sm: 12,
                 md: 6,
               }}
+              data-dashboard-export="chart"
             >
               <Paper sx={{ minHeight: 560, p: 2 }}>
                 <SankeyDiagramChart filters={filters} />
@@ -809,6 +971,7 @@ const DashboardPage = () => {
                 sm: 12,
                 md: 12,
               }}
+              data-dashboard-export="chart"
             >
               <Paper sx={{ minHeight: 400, p: 2 }}>
                 <AssignedResponsibleChart filters={filters} />
