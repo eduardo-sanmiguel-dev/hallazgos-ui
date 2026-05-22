@@ -9,6 +9,8 @@ const query = gql`
   query Evidences(
     $page: Int!
     $limit: Int!
+    $id: Int
+    $ids: [Int!]
     $manufacturingPlantId: Float
     $mainTypeIds: [Int!]
     $secondaryTypeIds: [Int!]
@@ -22,6 +24,8 @@ const query = gql`
     evidences(
       page: $page
       limit: $limit
+      id: $id
+      ids: $ids
       manufacturingPlantId: $manufacturingPlantId
       mainTypeIds: $mainTypeIds
       secondaryTypeIds: $secondaryTypeIds
@@ -148,7 +152,18 @@ export const useEvidences = () => {
     useLazyQuery<ResponseEvidences>(query, { fetchPolicy: "no-cache" });
 
   const handleFindEvidences = (filters: FiltersEvidences) => {
+    const evidenceIds = filters.evidenceId
+      .split(",")
+      .map((value) => Number(value.trim()))
+      .filter((value) => Number.isInteger(value) && value > 0);
+
     const variables = {
+      ...(evidenceIds.length === 1 && {
+        id: evidenceIds[0],
+      }),
+      ...(evidenceIds.length > 1 && {
+        ids: evidenceIds,
+      }),
       ...(filters.manufacturingPlantId && {
         manufacturingPlantId: Number(filters.manufacturingPlantId),
       }),

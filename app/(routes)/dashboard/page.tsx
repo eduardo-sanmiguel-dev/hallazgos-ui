@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dayjs, { Dayjs } from "dayjs";
 
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
@@ -24,6 +25,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { esES } from "@mui/x-date-pickers/locales";
 import "dayjs/locale/es";
+import { useRouter } from "next/navigation";
 
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
@@ -59,6 +61,8 @@ interface DashboardFilters {
 const restrictedDashboardEmail = "glora@hadainternational.com";
 
 const DashboardPage = () => {
+  const router = useRouter();
+
   const manufacturingPlants = useUserSessionStore(
     (state) => state.manufacturingPlants || [],
   );
@@ -66,7 +70,7 @@ const DashboardPage = () => {
   const email = useUserSessionStore((state) => state.email);
 
   const currentMonthStart = dayjs().startOf("month").format("DD/MM/YYYY");
-  const currentMonthEnd = dayjs().endOf("month").format("DD/MM/YYYY");
+  const currentMonthEnd = dayjs().format("DD/MM/YYYY");
 
   const [filters, setFilters] = useState<DashboardFilters>({
     manufacturingPlantId: "",
@@ -87,6 +91,13 @@ const DashboardPage = () => {
   const [isHeatmapLoading, setIsHeatmapLoading] = useState(false);
   const [heatmapData, setHeatmapData] =
     useState<ResponseDashboardHeatmapByFilters | null>(null);
+  const sortedResponsibles = useMemo(
+    () =>
+      [...responsibles].sort((a, b) =>
+        a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
+      ),
+    [responsibles],
+  );
   const shouldHideProjectionCharts =
     filters.areaIds.length > 1 || filters.responsibleIds.length > 1;
 
@@ -245,8 +256,8 @@ const DashboardPage = () => {
     (areas.length > 0 && filters.areaIds.length === areas.length);
   const areAllResponsiblesSelected =
     filters.responsibleIds.length === 0 ||
-    (responsibles.length > 0 &&
-      filters.responsibleIds.length === responsibles.length);
+    (sortedResponsibles.length > 0 &&
+      filters.responsibleIds.length === sortedResponsibles.length);
 
   const heatmapFiltersTitle = [
     filters.manufacturingPlantName
@@ -284,6 +295,37 @@ const DashboardPage = () => {
     setIsHeatmapView(false);
     setHeatmapData(null);
     setIsHeatmapLoading(false);
+  };
+
+  const handleGoToHallazgos = () => {
+    const params = new URLSearchParams();
+
+    if (filters.manufacturingPlantId) {
+      params.set("manufacturingPlantId", filters.manufacturingPlantId);
+    }
+
+    if (filters.startDate) {
+      params.set("startDate", filters.startDate);
+    }
+
+    if (filters.endDate) {
+      params.set("endDate", filters.endDate);
+    }
+
+    if (filters.mainTypeIds.length > 0) {
+      params.set("mainTypeIds", filters.mainTypeIds.join(","));
+    }
+
+    if (filters.areaIds.length > 0) {
+      params.set("areaIds", filters.areaIds.join(","));
+    }
+
+    if (filters.responsibleIds.length > 0) {
+      params.set("responsibleIds", filters.responsibleIds.join(","));
+    }
+
+    const queryString = params.toString();
+    router.push(queryString ? `/hallazgos?${queryString}` : "/hallazgos");
   };
 
   if (email === "cosmeticostrujillo0023@gmail.com") {
@@ -425,7 +467,7 @@ const DashboardPage = () => {
                         format="DD/MM/YYYY"
                         value={parseDate(filters.endDate)}
                         minDate={parseDate(filters.startDate) || undefined}
-                        maxDate={dayjs().endOf("month")}
+                        maxDate={dayjs()}
                         onChange={(newValue: Dayjs | null) =>
                           setFilters((prev) => ({
                             ...prev,
@@ -469,6 +511,16 @@ const DashboardPage = () => {
                     spacing={1}
                     sx={{ justifyContent: "flex-end" }}
                   >
+                    <Tooltip title="Ir a Hallazgos" arrow>
+                      <IconButton
+                        color="primary"
+                        aria-label="Ir a Hallazgos"
+                        onClick={handleGoToHallazgos}
+                      >
+                        <AssignmentOutlinedIcon />
+                      </IconButton>
+                    </Tooltip>
+
                     <Tooltip title="Histórico" arrow>
                       <IconButton
                         color="primary"
@@ -554,7 +606,7 @@ const DashboardPage = () => {
                       }}
                     >
                       <SelectDefault
-                        data={responsibles}
+                        data={sortedResponsibles}
                         label="Responsables"
                         multiple={true}
                         isFilter={true}

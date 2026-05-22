@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { Toolbar } from "@mui/material";
 import { Box } from "@mui/material";
@@ -27,8 +27,10 @@ import { EvidencesService } from "@services";
 export default function HallazgosPage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const searchParams = useSearchParams();
 
   const [filters, setFilters] = useState<FiltersEvidences>({
+    evidenceId: "",
     manufacturingPlantId: "",
     mainTypeIds: [],
     secondaryTypeIds: [],
@@ -75,6 +77,47 @@ export default function HallazgosPage() {
 
     EvidencesService.downloadPdf(filters).finally(() => setIsLoadingPdf(false));
   };
+
+  useEffect(() => {
+    const parseIds = (value: string | null) =>
+      (value || "")
+        .split(",")
+        .map((item) => item.trim())
+        .filter((item) => /^\d+$/.test(item));
+
+    const manufacturingPlantId = searchParams.get("manufacturingPlantId") || "";
+    const mainTypeIds = parseIds(searchParams.get("mainTypeIds"));
+    const areaIds = parseIds(searchParams.get("areaIds"));
+    const responsibleIds = parseIds(searchParams.get("responsibleIds"));
+    const startDate = searchParams.get("startDate") || "";
+    const endDate = searchParams.get("endDate") || "";
+
+    const hasAnyDashboardFilter =
+      !!manufacturingPlantId ||
+      !!startDate ||
+      !!endDate ||
+      mainTypeIds.length > 0 ||
+      areaIds.length > 0 ||
+      responsibleIds.length > 0;
+
+    if (!hasAnyDashboardFilter) {
+      return;
+    }
+
+    setFilters((prev) => ({
+      ...prev,
+      manufacturingPlantId,
+      mainTypeIds,
+      areaIds,
+      responsibleIds,
+      startDate,
+      endDate,
+      secondaryTypeIds: [],
+      zoneIds: [],
+      states: [],
+      evidenceId: "",
+    }));
+  }, [searchParams]);
 
   useEffect(() => {
     getData();

@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useTheme } from "@mui/material/styles";
 import { Typography } from "@mui/material";
 import { Grid } from "@mui/material";
-import { ListItemText } from "@mui/material";
-import { ListItem } from "@mui/material";
-import { ListItemButton } from "@mui/material";
-import { List } from "@mui/material";
 import { Divider } from "@mui/material";
+import { Stack } from "@mui/material";
+import { Paper } from "@mui/material";
+import { Chip } from "@mui/material";
+import { Box } from "@mui/material";
 
 import { durantionToTime, stringToDateWithTime } from "@shared/utils";
 import {
@@ -47,12 +47,47 @@ export default function DetailsTabs({
   useEffect(() => {
     if (!evidenceCurrent) return;
     const { name } = evidenceCurrent.mainType;
-    if (!name.toLocaleLowerCase().includes("comportamiento inseguro")) return;
-    setIsUnsafeBehavior(true);
+    setIsUnsafeBehavior(
+      name.toLocaleLowerCase().includes("comportamiento inseguro"),
+    );
   }, [evidenceCurrent]);
 
+  const statusColor = useMemo(() => {
+    if (evidenceCurrent.status === STATUS_OPEN) return "warning" as const;
+    if (evidenceCurrent.status === STATUS_CLOSED) return "success" as const;
+    if (evidenceCurrent.status === STATUS_IN_PROGRESS) return "info" as const;
+    return "error" as const;
+  }, [evidenceCurrent.status]);
+
+  const priorityLabel = getPriorityLabel(evidenceCurrent.priorityDays);
+  const remainingDays = getRemainingDays(
+    evidenceCurrent.createdAt,
+    evidenceCurrent.priorityDays,
+  );
+
+  const responsiblesLabel =
+    evidenceCurrent.responsibles.length > 0
+      ? evidenceCurrent.responsibles
+          .map((responsible) => responsible.name)
+          .join(" / ")
+      : evidenceCurrent.supervisors
+          .map((supervisor) => supervisor.name)
+          .join(" / ");
+
+  const sectionTitleSx = {
+    fontWeight: 700,
+    color: "text.secondary",
+    letterSpacing: 0.4,
+  };
+
+  const rowLabelSx = {
+    color: "text.secondary",
+    fontSize: 12,
+    letterSpacing: 0.2,
+  };
+
   return (
-    <Grid container sx={{ p: 2 }}>
+    <Grid container spacing={2} sx={{ p: 2 }}>
       <Grid
         size={{
           xs: 12,
@@ -60,225 +95,176 @@ export default function DetailsTabs({
           md: 4,
         }}
       >
-        <List dense={true}>
-          <ListItem>
-            <ListItemButton>
-              <ListItemText
-                primary={evidenceCurrent.manufacturingPlant.name}
-                secondary="Planta"
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 2,
+            borderRadius: 2,
+            borderColor: theme.palette.divider,
+          }}
+        >
+          <Stack spacing={1.5}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{ alignItems: "center", flexWrap: "wrap" }}
+            >
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                Detalle del hallazgo
+              </Typography>
+              <Chip
+                label={evidenceCurrent.status}
+                color={statusColor}
+                size="small"
               />
-            </ListItemButton>
-          </ListItem>
-          <Divider />
-          <ListItem>
-            <ListItemButton>
-              <ListItemText
-                primary={evidenceCurrent.mainType.name}
-                secondary="Hallazgo"
-              />
-            </ListItemButton>
-          </ListItem>
-          <Divider />
-          <ListItem>
-            <ListItemButton>
-              <ListItemText
-                primary={evidenceCurrent.secondaryType.name}
-                secondary="Tipo de hallazgo"
-              />
-            </ListItemButton>
-          </ListItem>
-          <Divider />
-          <ListItem>
-            <ListItemButton>
-              <ListItemText
-                primary={evidenceCurrent.zone.name}
-                secondary="Zona"
-              />
-            </ListItemButton>
-          </ListItem>
-          <Divider />
-          <ListItem>
-            <ListItemButton>
-              <ListItemText
-                primary={evidenceCurrent.process?.name}
-                secondary="Proceso"
-              />
-            </ListItemButton>
-          </ListItem>
-          <Divider />
-          <ListItem>
-            <ListItemButton>
-              <ListItemText
-                primary={getPriorityLabel(evidenceCurrent.priorityDays)}
-                secondary="Prioridad"
-              />
-            </ListItemButton>
-          </ListItem>
-          <Divider />
-          {evidenceCurrent.status !== STATUS_CLOSED && (
-            <>
-              <ListItem>
-                <ListItemButton>
-                  <ListItemText
-                    primary={getRemainingDays(
-                      evidenceCurrent.createdAt,
-                      evidenceCurrent.priorityDays,
-                    )}
-                    secondary="Tiempo restante (dias)"
-                  />
-                </ListItemButton>
-              </ListItem>
-              <Divider />
-            </>
-          )}
+              {!withImages && (
+                <Chip
+                  label="Sin evidencia fotográfica"
+                  color="warning"
+                  size="small"
+                  variant="outlined"
+                />
+              )}
+            </Stack>
 
-          <ListItem>
-            <ListItemButton>
-              <ListItemText
-                primary={
-                  <Typography
-                    variant="subtitle1"
-                    style={{
-                      color:
-                        evidenceCurrent.status === STATUS_OPEN
-                          ? theme.palette.warning.main
-                          : evidenceCurrent.status === STATUS_CLOSED
-                            ? theme.palette.success.main
-                            : evidenceCurrent.status === STATUS_IN_PROGRESS
-                              ? theme.palette.info.main
-                              : theme.palette.error.main,
-                      textDecoration: "underline",
-                    }}
-                  >
-                    {evidenceCurrent.status}
+            <Divider />
+
+            <Typography variant="caption" sx={sectionTitleSx}>
+              CLASIFICACIÓN
+            </Typography>
+            <Box>
+              <Typography sx={rowLabelSx}>Planta</Typography>
+              <Typography variant="body2">
+                {evidenceCurrent.manufacturingPlant.name}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography sx={rowLabelSx}>Hallazgo</Typography>
+              <Typography variant="body2">
+                {evidenceCurrent.mainType.name}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography sx={rowLabelSx}>Tipo de hallazgo</Typography>
+              <Typography variant="body2">
+                {evidenceCurrent.secondaryType.name}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography sx={rowLabelSx}>Zona</Typography>
+              <Typography variant="body2">
+                {evidenceCurrent.zone.area?.name || "Sin zona"}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography sx={rowLabelSx}>Lugar</Typography>
+              <Typography variant="body2">
+                {evidenceCurrent.zone.name}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography sx={rowLabelSx}>Proceso</Typography>
+              <Typography variant="body2">
+                {evidenceCurrent.process?.name || "-"}
+              </Typography>
+            </Box>
+
+            <Divider />
+
+            <Typography variant="caption" sx={sectionTitleSx}>
+              ASIGNACIÓN
+            </Typography>
+            <Box>
+              <Typography sx={rowLabelSx}>Usuario que reporta</Typography>
+              <Typography variant="body2">
+                {evidenceCurrent.user.name}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography sx={rowLabelSx}>Responsables asignados</Typography>
+              <Typography variant="body2">
+                {responsiblesLabel || "-"}
+              </Typography>
+            </Box>
+
+            <Divider />
+
+            <Typography variant="caption" sx={sectionTitleSx}>
+              PRIORIDAD Y TIEMPOS
+            </Typography>
+            {priorityLabel !== "Sin prioridad" && (
+              <Box>
+                <Typography sx={rowLabelSx}>Prioridad</Typography>
+                <Typography variant="body2">{priorityLabel}</Typography>
+              </Box>
+            )}
+            {evidenceCurrent.status !== STATUS_CLOSED &&
+              remainingDays !== "N/A" && (
+                <Box>
+                  <Typography sx={rowLabelSx}>
+                    Tiempo restante (días)
                   </Typography>
-                }
-                secondary="Estatus"
-              />
-            </ListItemButton>
-          </ListItem>
-          <Divider />
-          {!withImages && (
-            <>
-              <ListItem>
-                <ListItemButton>
-                  <ListItemText
-                    primary={
-                      <Typography
-                        variant="subtitle1"
-                        style={{
-                          color: theme.palette.warning.main,
-                        }}
-                      >
-                        * Sin evidencia fotográfica
-                      </Typography>
-                    }
-                  />
-                </ListItemButton>
-              </ListItem>
-              <Divider />
-            </>
-          )}
+                  <Typography variant="body2">{remainingDays}</Typography>
+                </Box>
+              )}
+            <Box>
+              <Typography sx={rowLabelSx}>Fecha de registro</Typography>
+              <Typography variant="body2">
+                {stringToDateWithTime(evidenceCurrent.createdAt)}
+              </Typography>
+            </Box>
+            {evidenceCurrent.startProcessDate && (
+              <Box>
+                <Typography sx={rowLabelSx}>
+                  Fecha de inicio de proceso
+                </Typography>
+                <Typography variant="body2">
+                  {stringToDateWithTime(evidenceCurrent.startProcessDate)}
+                </Typography>
+              </Box>
+            )}
+            {evidenceCurrent.solutionDate && (
+              <Box>
+                <Typography sx={rowLabelSx}>Fecha de cierre</Typography>
+                <Typography variant="body2">
+                  {stringToDateWithTime(evidenceCurrent.solutionDate)} (
+                  {durantionToTime(evidenceCurrent)})
+                </Typography>
+              </Box>
+            )}
+            <Box>
+              <Typography sx={rowLabelSx}>Última actualización</Typography>
+              <Typography variant="body2">
+                {stringToDateWithTime(evidenceCurrent.updatedAt)}
+              </Typography>
+            </Box>
 
-          <ListItem>
-            <ListItemButton>
-              <ListItemText
-                primary={evidenceCurrent.description}
-                secondary="Descripción del comportamiento inseguro"
-              />
-            </ListItemButton>
-          </ListItem>
-          <Divider />
+            <Divider />
 
-          {isUnsafeBehavior && evidenceCurrent.descriptionSolution && (
-            <>
-              <ListItem>
-                <ListItemButton>
-                  <ListItemText
-                    primary={evidenceCurrent.descriptionSolution}
-                    secondary="Descripción de la solución del comportamiento inseguro"
-                  />
-                </ListItemButton>
-              </ListItem>
-              <Divider />
-            </>
-          )}
+            <Typography variant="caption" sx={sectionTitleSx}>
+              DESCRIPCIÓN
+            </Typography>
+            <Box>
+              <Typography sx={rowLabelSx}>
+                Descripción del comportamiento inseguro
+              </Typography>
+              <Typography variant="body2">
+                {evidenceCurrent.description || "-"}
+              </Typography>
+            </Box>
 
-          <ListItem>
-            <ListItemButton>
-              <ListItemText
-                primary={evidenceCurrent.user.name}
-                secondary="Usuario que reporta"
-              />
-            </ListItemButton>
-          </ListItem>
-          <Divider />
-          <ListItem>
-            <ListItemButton>
-              <ListItemText
-                primary={evidenceCurrent.supervisors
-                  .map((supervisor) => supervisor.name)
-                  .join(" / ")}
-                secondary="Supervisores asignados"
-              />
-            </ListItemButton>
-          </ListItem>
-          <Divider />
-          <ListItem>
-            <ListItemButton>
-              <ListItemText
-                primary={evidenceCurrent.responsibles
-                  .map((responsible) => responsible.name)
-                  .join(" / ")}
-                secondary="Responsables asignados"
-              />
-            </ListItemButton>
-          </ListItem>
-          <Divider />
-          <ListItem>
-            <ListItemButton>
-              <ListItemText
-                primary={stringToDateWithTime(evidenceCurrent.createdAt)}
-                secondary="Fecha de creación"
-              />
-            </ListItemButton>
-          </ListItem>
-          <Divider />
-          {evidenceCurrent.startProcessDate && (
-            <ListItem>
-              <ListItemButton>
-                <ListItemText
-                  primary={stringToDateWithTime(
-                    evidenceCurrent.startProcessDate,
-                  )}
-                  secondary="Fecha de inicio de proceso"
-                />
-              </ListItemButton>
-            </ListItem>
-          )}
-          <Divider />
-          {evidenceCurrent.solutionDate && (
-            <ListItem sx={{ backgroundColor: theme.palette.primary.main }}>
-              <ListItemButton>
-                <ListItemText
-                  primary={stringToDateWithTime(evidenceCurrent.solutionDate)}
-                  secondary={`Fecha de cierre, tiempo de solución ${durantionToTime(
-                    evidenceCurrent,
-                  )}`}
-                />
-              </ListItemButton>
-            </ListItem>
-          )}
-          <Divider />
-          <ListItem>
-            <ListItemButton>
-              <ListItemText
-                primary={stringToDateWithTime(evidenceCurrent.updatedAt)}
-                secondary="Ultima actualización"
-              />
-            </ListItemButton>
-          </ListItem>
-        </List>
+            {isUnsafeBehavior && evidenceCurrent.descriptionSolution && (
+              <Box>
+                <Typography sx={rowLabelSx}>
+                  Descripción de la solución del comportamiento inseguro
+                </Typography>
+                <Typography variant="body2">
+                  {evidenceCurrent.descriptionSolution}
+                </Typography>
+              </Box>
+            )}
+          </Stack>
+        </Paper>
       </Grid>
       <Grid
         size={{
@@ -287,11 +273,21 @@ export default function DetailsTabs({
           md: 8,
         }}
       >
-        <TabsImageAndLogs
-          evidenceCurrent={evidenceCurrent}
-          setRefreshData={setRefreshData}
-          withImages={withImages}
-        />
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 1,
+            borderRadius: 2,
+            borderColor: theme.palette.divider,
+            minHeight: "100%",
+          }}
+        >
+          <TabsImageAndLogs
+            evidenceCurrent={evidenceCurrent}
+            setRefreshData={setRefreshData}
+            withImages={withImages}
+          />
+        </Paper>
       </Grid>
     </Grid>
   );

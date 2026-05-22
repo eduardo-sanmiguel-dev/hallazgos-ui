@@ -11,7 +11,18 @@ const api = axiosWrapper({
 });
 
 const paramsFilter = (params: FiltersEvidences) => {
+  const evidenceIds = params.evidenceId
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value) => /^\d+$/.test(value));
+
   return {
+    ...(evidenceIds.length === 1 && {
+      id: evidenceIds[0],
+    }),
+    ...(evidenceIds.length > 1 && {
+      ids: evidenceIds.join(","),
+    }),
     ...(params.manufacturingPlantId && {
       manufacturingPlantId: params.manufacturingPlantId,
     }),

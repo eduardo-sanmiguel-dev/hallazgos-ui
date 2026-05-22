@@ -3,11 +3,14 @@ import dayjs from "dayjs";
 import { Dayjs } from "dayjs";
 
 import FilterListIcon from "@mui/icons-material/FilterList";
+import ClearAllIcon from "@mui/icons-material/ClearAll";
 import { Box } from "@mui/material";
 import { Chip } from "@mui/material";
 import { Typography } from "@mui/material";
 import { Grid } from "@mui/material";
 import { Paper } from "@mui/material";
+import { TextField } from "@mui/material";
+import { Button } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -20,6 +23,7 @@ import { SecondaryType, User } from "@interfaces";
 import { UsersService } from "@services";
 
 export interface FiltersEvidences {
+  evidenceId: string;
   manufacturingPlantId: string;
   mainTypeIds: string[];
   secondaryTypeIds: string[];
@@ -47,6 +51,7 @@ const STATUS_OPTIONS = [
 const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
   const [secondaryTypes, setSecondaryTypes] = useState<SecondaryType[]>([]);
   const [responsibles, setResponsibles] = useState<User[]>([]);
+  const [localEvidenceId, setLocalEvidenceId] = useState(filters.evidenceId);
 
   const parseDate = (value: string): Dayjs | null => {
     if (!value) return null;
@@ -64,6 +69,22 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
   );
 
   const { mainTypes, zones } = useCategoriesStore();
+
+  const clearAllFilters = () => {
+    setLocalEvidenceId("");
+    setFilters({
+      evidenceId: "",
+      manufacturingPlantId: "",
+      mainTypeIds: [],
+      secondaryTypeIds: [],
+      areaIds: [],
+      zoneIds: [],
+      responsibleIds: [],
+      states: [],
+      startDate: "",
+      endDate: "",
+    });
+  };
 
   const areaOptions = useMemo(() => {
     const selectedPlantId = Number(filters.manufacturingPlantId);
@@ -115,14 +136,18 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
   }, [filters.areaIds, filters.manufacturingPlantId, zones]);
 
   const filteredResponsibles = useMemo(() => {
-    if (!filters.zoneIds.length) {
-      return responsibles;
-    }
-
     const selectedZoneIds = new Set(filters.zoneIds.map(Number));
 
-    return responsibles.filter((user) =>
-      (user.zones || []).some((zone) => selectedZoneIds.has(Number(zone.id))),
+    const scopedResponsibles = !filters.zoneIds.length
+      ? responsibles
+      : responsibles.filter((user) => {
+          return (user.zones || []).some((zone) =>
+            selectedZoneIds.has(Number(zone.id)),
+          );
+        });
+
+    return [...scopedResponsibles].sort((a, b) =>
+      a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
     );
   }, [filters.zoneIds, responsibles]);
 
@@ -185,6 +210,11 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
       return;
     }
 
+    // Evita limpiar IDs al llegar desde Dashboard mientras el catálogo aún carga.
+    if (!filteredResponsibles.length) {
+      return;
+    }
+
     const allowedResponsibleIds = new Set(
       filteredResponsibles.map((responsible) => String(responsible.id)),
     );
@@ -200,6 +230,31 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
       });
     }
   }, [filteredResponsibles, filters, setFilters]);
+
+  useEffect(() => {
+    setLocalEvidenceId(filters.evidenceId);
+  }, [filters.evidenceId]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const normalizedEvidenceId = localEvidenceId
+        .replace(/,{2,}/g, ",")
+        .replace(/^,|,$/g, "");
+
+      setFilters((prev) => {
+        if (prev.evidenceId === normalizedEvidenceId) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          evidenceId: normalizedEvidenceId,
+        };
+      });
+    }, 1000);
+
+    return () => clearTimeout(timeoutId);
+  }, [localEvidenceId, setFilters]);
 
   const selectedFilterChips = useMemo(() => {
     const getNamesByIds = (
@@ -218,6 +273,14 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
     };
 
     const chips: Array<{ key: string; label: string }> = [];
+
+    if (filters.evidenceId) {
+      const labelPrefix = filters.evidenceId.includes(",") ? "IDs" : "ID";
+      chips.push({
+        key: "evidenceId",
+        label: `${labelPrefix}: ${filters.evidenceId}`,
+      });
+    }
 
     if (filters.manufacturingPlantId) {
       const plant = manufacturingPlants.find(
@@ -296,6 +359,34 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
     secondaryTypes,
   ]);
 
+  const hasFiltersToClear = useMemo(
+    () =>
+      !!filters.evidenceId ||
+      !!filters.manufacturingPlantId ||
+      filters.mainTypeIds.length > 0 ||
+      filters.secondaryTypeIds.length > 0 ||
+      filters.areaIds.length > 0 ||
+      filters.zoneIds.length > 0 ||
+      filters.responsibleIds.length > 0 ||
+      filters.states.length > 0 ||
+      !!filters.startDate ||
+      !!filters.endDate ||
+      !!localEvidenceId,
+    [
+      filters.evidenceId,
+      filters.manufacturingPlantId,
+      filters.mainTypeIds.length,
+      filters.secondaryTypeIds.length,
+      filters.areaIds.length,
+      filters.zoneIds.length,
+      filters.responsibleIds.length,
+      filters.states.length,
+      filters.startDate,
+      filters.endDate,
+      localEvidenceId,
+    ],
+  );
+
   return (
     <Grid container spacing={2} sx={{ mb: 2 }}>
       <Grid
@@ -341,7 +432,46 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
               variant="filled"
             />
           )}
+
+          {hasFiltersToClear && (
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<ClearAllIcon />}
+              onClick={clearAllFilters}
+              color="secondary"
+            >
+              Limpiar filtros
+            </Button>
+          )}
         </Box>
+      </Grid>
+      <Grid
+        size={{
+          xs: 12,
+          sm: 3,
+          md: 2,
+        }}
+      >
+        <Paper>
+          <TextField
+            label="ID(s)"
+            fullWidth
+            value={localEvidenceId}
+            autoComplete="off"
+            onChange={(event) =>
+              setLocalEvidenceId(
+                event.target.value
+                  .replace(/[^\d,]/g, "")
+                  .replace(/,{2,}/g, ","),
+              )
+            }
+            placeholder="IDs separadas por coma"
+            slotProps={{
+              htmlInput: { inputMode: "text", pattern: "[0-9,]*" },
+            }}
+          />
+        </Paper>
       </Grid>
       <Grid
         size={{
