@@ -64,13 +64,5 @@
     "eslint": "^9.0.0",
     "eslint-config-next": "^16.1.6",
     "typescript": "^5.8.0"
-  },
-  "pnpm": {
-    "overrides": {
-      "react-is": "^19.0.0"
-    },
-    "onlyBuiltDependencies": [
-      "sharp"
-    ]
   }
 }
