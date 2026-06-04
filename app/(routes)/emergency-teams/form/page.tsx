@@ -10,7 +10,6 @@ import { useSearchParams } from "next/navigation";
 import Grid from "@mui/material/Grid";
 import TextField from "@mui/material/TextField";
 import Paper from "@mui/material/Paper";
-import LoadingButton from "@mui/lab/LoadingButton";
 import SaveIcon from "@mui/icons-material/Save";
 import Button from "@mui/material/Button";
 import CloseIcon from "@mui/icons-material/Close";
@@ -273,7 +272,7 @@ const EmergencyTeamsFormPage = () => {
           md: 3,
         }}
       >
-        <LoadingButton
+        <Button
           loading={isLoading}
           loadingPosition="start"
           startIcon={<SaveIcon />}
@@ -284,10 +283,11 @@ const EmergencyTeamsFormPage = () => {
           disabled={isValidateForm || isLoading}
         >
           Guardar
-        </LoadingButton>
+        </Button>
       </Grid>
     </Grid>
   );
 };
 
 export default EmergencyTeamsFormPage;
+

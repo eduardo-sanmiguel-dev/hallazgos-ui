@@ -14,7 +14,6 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import SimCardDownloadIcon from "@mui/icons-material/SimCardDownload";
 import { toast } from "sonner";
-import LoadingButton from "@mui/lab/LoadingButton";
 
 import TableEvidences from "./_components/TableEvidences";
 import LoadingLinear from "@shared/components/LoadingLinear";
@@ -173,7 +172,7 @@ export default function HallazgosPage() {
             >
               Refrescar
             </Button>
-            <LoadingButton
+            <Button
               variant="contained"
               startIcon={<SimCardDownloadIcon />}
               onClick={() => {
@@ -185,15 +184,15 @@ export default function HallazgosPage() {
               loading={isLoadingExcel}
             >
               EXCEL
-            </LoadingButton>
-            <LoadingButton
+            </Button>
+            <Button
               variant="contained"
               startIcon={<SimCardDownloadIcon />}
               onClick={() => createPdf()}
               loading={isLoadingPdf}
             >
               PDF
-            </LoadingButton>
+            </Button>
           </Box>
         </Toolbar>
       </Grid>

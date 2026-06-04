@@ -122,6 +122,13 @@ const getPermissionsConfig = async () => {
   return data;
 };
 
+const reassignResponsibles = async (id: number, responsibleIds: number[]) => {
+  const { data } = await api.patch<Evidence>(`/reassign/${id}`, {
+    responsibleIds,
+  });
+  return data;
+};
+
 const downloadExcel = async (filters: FiltersEvidences) => {
   const { data } = await api.get(`/download/xlsx`, {
     responseType: "blob",
@@ -168,6 +175,7 @@ export const EvidencesService = {
   processStart,
   addComment,
   getPermissionsConfig,
+  reassignResponsibles,
   downloadExcel,
   downloadPdf,
 };

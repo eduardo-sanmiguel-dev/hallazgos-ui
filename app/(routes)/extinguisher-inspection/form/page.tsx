@@ -9,7 +9,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Grid from "@mui/material/Grid";
 import TextField from "@mui/material/TextField";
 import Paper from "@mui/material/Paper";
-import LoadingButton from "@mui/lab/LoadingButton";
 import SaveIcon from "@mui/icons-material/Save";
 import Button from "@mui/material/Button";
 import CloseIcon from "@mui/icons-material/Close";
@@ -776,7 +775,7 @@ const ExtinguisherInspectionFormPage = () => {
             md: 2,
           }}
         >
-          <LoadingButton
+          <Button
             loading={isLoading}
             loadingPosition="start"
             startIcon={<SaveIcon />}
@@ -789,7 +788,7 @@ const ExtinguisherInspectionFormPage = () => {
             sx={{ mt: 1, minHeight: 40 }}
           >
             Guardar
-          </LoadingButton>
+          </Button>
         </Grid>
 
         <Grid
@@ -1076,3 +1075,4 @@ const ExtinguisherInspectionFormPage = () => {
 };
 
 export default ExtinguisherInspectionFormPage;
+

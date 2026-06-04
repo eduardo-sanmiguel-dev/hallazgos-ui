@@ -10,7 +10,6 @@ import DialogCreateCiael from "./components/DialogCreateCiael";
 import TableCiaels from "./components/TableCiaels";
 import { Ciael } from "@interfaces";
 import { CiaelsService } from "@services";
-import LoadingButton from "@mui/lab/LoadingButton";
 import { Toolbar, Box, ButtonGroup } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SimCardDownloadIcon from "@mui/icons-material/SimCardDownload";
@@ -63,7 +62,7 @@ const CiaelPage = () => {
                 startIcon={<RefreshIcon />}
                 onClick={() => getData()}
               />
-              <LoadingButton
+              <Button
                 variant="contained"
                 startIcon={<SimCardDownloadIcon />}
                 onClick={() => {
@@ -75,7 +74,7 @@ const CiaelPage = () => {
                 loading={isLoadingExcel}
               >
                 EXCEL
-              </LoadingButton>
+              </Button>
             </ButtonGroup>
           </Toolbar>
         </Grid>
@@ -93,3 +92,4 @@ const CiaelPage = () => {
 };
 
 export default CiaelPage;
+

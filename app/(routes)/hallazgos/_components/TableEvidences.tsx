@@ -2,16 +2,22 @@ import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Chip } from "@mui/material";
+import { Menu } from "@mui/material";
+import { MenuItem } from "@mui/material";
+import { ListItemIcon } from "@mui/material";
+import { ListItemText } from "@mui/material";
 import InfoIcon from "@mui/icons-material/Info";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import { Stack } from "@mui/material";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutlineOutlined";
+import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import IconButton from "@mui/material/IconButton";
 
 import { durantionToTime, notify, stringToDateWithTime } from "@shared/utils";
 import {
@@ -28,10 +34,12 @@ import {
 import EvidencePreview from "./EvidencePreview";
 import CloseEvidence from "./CloseEvidence";
 import StartProcessEvidence from "./StartProcessEvidence";
+import ReassignResponsiblesEvidence from "./ReassignResponsiblesEvidence";
 import { useUserSessionStore } from "@store";
 import { EvidencesService } from "@services";
 import { EvidenceGraphql } from "@hooks";
 import TableDefaultServer from "@shared/components/TableDefaultServer";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import {
   formatDayLabel,
   getPriorityLabel,
@@ -84,6 +92,10 @@ export default function TableEvidences({
   const [cancelEvidenceEmails, setCancelEvidenceEmails] = useState<string[]>(
     [],
   );
+  const [evidenceReassignCurrent, setEvidenceReassignCurrent] =
+    useState<EvidenceGraphql | null>(null);
+  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [menuRowId, setMenuRowId] = useState<number | null>(null);
   const { id: userId, role, email } = useUserSessionStore();
 
   useEffect(() => {
@@ -140,6 +152,39 @@ export default function TableEvidences({
     );
   };
 
+  const openActionsMenu = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    rowId: number,
+  ) => {
+    setMenuAnchorEl(event.currentTarget);
+    setMenuRowId(rowId);
+  };
+
+  const closeActionsMenu = () => {
+    setMenuAnchorEl(null);
+    setMenuRowId(null);
+  };
+
+  const canReassignEvidence = (row: EvidenceGraphql) => {
+    if (role === ROLE_ADMINISTRADOR) {
+      return true;
+    }
+
+    if (supervisorOverrideEmails.includes(email)) {
+      return true;
+    }
+
+    const isSupervisorAssigned = row.supervisors.some(
+      (supervisor) => Number(supervisor.id) === Number(userId),
+    );
+
+    const isResponsibleAssigned = row.responsibles.some(
+      (responsible) => Number(responsible.id) === Number(userId),
+    );
+
+    return isSupervisorAssigned || isResponsibleAssigned;
+  };
+
   return (
     <>
       {idRow ? (
@@ -175,6 +220,17 @@ export default function TableEvidences({
             getData();
           }
           setIdRowProcess(0);
+        }}
+      />
+
+      <ReassignResponsiblesEvidence
+        isOpen={!!evidenceReassignCurrent}
+        evidenceCurrent={evidenceReassignCurrent}
+        handleClose={(refresh) => {
+          if (refresh) {
+            getData();
+          }
+          setEvidenceReassignCurrent(null);
         }}
       />
 
@@ -326,6 +382,8 @@ export default function TableEvidences({
                         ? "info"
                         : "error"
                 }
+                onClick={() => setEvidenceCurrent(row)}
+                clickable
               />
             </StyledTableCell>
             <StyledTableCell
@@ -450,62 +508,102 @@ export default function TableEvidences({
               </Stack>
             </StyledTableCell>
             <StyledTableCell>
-              <Stack
-                direction="column"
-                spacing={1}
-                sx={{ alignItems: "flex-start" }}
+              <IconButton
+                size="small"
+                onClick={(event) => openActionsMenu(event, row.id)}
               >
-                <Chip
-                  icon={
-                    row.status === STATUS_CLOSED ? (
-                      <AccessTimeIcon />
+                <MoreVertIcon />
+              </IconButton>
+
+              <Menu
+                anchorEl={menuAnchorEl}
+                open={menuRowId === row.id && Boolean(menuAnchorEl)}
+                onClose={closeActionsMenu}
+                anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+                transformOrigin={{ vertical: "top", horizontal: "left" }}
+              >
+                <MenuItem
+                  onClick={() => {
+                    closeActionsMenu();
+                    setEvidenceCurrent(row);
+                  }}
+                >
+                  <ListItemIcon sx={{ color: "primary.main" }}>
+                    {row.status === STATUS_CLOSED ? (
+                      <AccessTimeIcon fontSize="small" />
                     ) : (
-                      <InfoIcon />
-                    )
-                  }
-                  label={
-                    row.status === STATUS_CLOSED
+                      <InfoIcon fontSize="small" />
+                    )}
+                  </ListItemIcon>
+                  <ListItemText>
+                    {row.status === STATUS_CLOSED
                       ? `${durantionToTime(row)}`
-                      : "Ver detalles"
-                  }
-                  color="secondary"
-                  onClick={() => setEvidenceCurrent(row)}
-                />
+                      : "Ver detalles"}
+                  </ListItemText>
+                </MenuItem>
+
                 {(role === ROLE_ADMINISTRADOR || validateSupervisor(row)) &&
                   row.status === STATUS_OPEN &&
                   !row.imgProcess && (
-                    <Chip
-                      icon={<PlayCircleOutlineIcon />}
-                      label="En progreso"
-                      color="info"
-                      onClick={() => setIdRowProcess(row.id)}
-                    />
+                    <MenuItem
+                      onClick={() => {
+                        closeActionsMenu();
+                        setIdRowProcess(row.id);
+                      }}
+                    >
+                      <ListItemIcon sx={{ color: "info.main" }}>
+                        <PlayCircleOutlineIcon fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>En progreso</ListItemText>
+                    </MenuItem>
                   )}
+
                 {validateSupervisor(row) && row.status !== STATUS_CLOSED && (
-                  <Chip
-                    icon={<AddAPhotoIcon />}
-                    label="Cerrar hallazgo"
-                    color="warning"
+                  <MenuItem
                     onClick={() => {
+                      closeActionsMenu();
                       setIdRow(row.id);
                       setEvidenceCurrent(row);
                     }}
-                  />
+                  >
+                    <ListItemIcon sx={{ color: "warning.main" }}>
+                      <AddAPhotoIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>Cerrar hallazgo</ListItemText>
+                  </MenuItem>
+                )}
+
+                {canReassignEvidence(row) && row.status !== STATUS_CLOSED && (
+                  <MenuItem
+                    onClick={() => {
+                      closeActionsMenu();
+                      setEvidenceReassignCurrent(row);
+                    }}
+                  >
+                    <ListItemIcon sx={{ color: "success.main" }}>
+                      <PersonAddAlt1Icon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>Reasignar</ListItemText>
+                  </MenuItem>
                 )}
 
                 {row.status === STATUS_OPEN &&
                   (role === ROLE_ADMINISTRADOR ||
                     cancelEvidenceEmails.includes(email)) && (
-                    //&& role === ROLE_ADMINISTRADOR
-                    <Chip
-                      icon={<DeleteIcon />}
-                      label="Cancelar"
-                      color="error"
-                      onClick={() => confirmRemoveEvidence(row)}
+                    <MenuItem
+                      onClick={() => {
+                        closeActionsMenu();
+                        confirmRemoveEvidence(row);
+                      }}
                       disabled={isLoading}
-                    />
+                    >
+                      <ListItemIcon sx={{ color: "error.main" }}>
+                        <DeleteIcon fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>Cancelar</ListItemText>
+                    </MenuItem>
                   )}
-              </Stack>
+              </Menu>
             </StyledTableCell>
           </StyledTableRow>
         )}

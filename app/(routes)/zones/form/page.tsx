@@ -10,7 +10,6 @@ import { useSearchParams } from "next/navigation";
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 import { Paper } from "@mui/material";
-import LoadingButton from "@mui/lab/LoadingButton";
 import SaveIcon from "@mui/icons-material/Save";
 import { Button } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
@@ -199,7 +198,7 @@ const ZonesFormPage = () => {
             Cancelar
           </Button>
 
-          <LoadingButton
+          <Button
             loading={isLoading}
             loadingPosition="start"
             startIcon={<SaveIcon />}
@@ -210,7 +209,7 @@ const ZonesFormPage = () => {
             fullWidth
           >
             Guardar
-          </LoadingButton>
+          </Button>
         </Box>
       </Grid>
     </Grid>
@@ -218,3 +217,4 @@ const ZonesFormPage = () => {
 };
 
 export default ZonesFormPage;
+

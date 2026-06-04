@@ -51,6 +51,7 @@ const query = gql`
         description
         descriptionSolution
         manufacturingPlant {
+          id
           name
         }
         user {
@@ -122,7 +123,7 @@ export interface EvidenceGraphql {
   imgEvidence: string;
   imgProcess: string;
   imgSolution: string;
-  manufacturingPlant: OnlyName;
+  manufacturingPlant: IdAndName;
   user: OnlyName;
   mainType: OnlyName;
   secondaryType: OnlyName;
@@ -139,6 +140,11 @@ export interface EvidenceGraphql {
 }
 
 interface OnlyName {
+  name: string;
+}
+
+interface IdAndName {
+  id: number;
   name: string;
 }
 
