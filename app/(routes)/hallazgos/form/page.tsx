@@ -112,10 +112,12 @@ export default function HallazgosFormPage() {
       !secondaryType ||
       !zone ||
       !process ||
-      !currentDescription;
+      !currentDescription ||
+      !supervisor;
 
+    // Cuando no es un comportamiento inseguro, se valida que haya imagen o archivo adjunto
     if (!isUnsafeBehavior) {
-      validate = image || attachedFile ? false : true;
+      validate = validate || (!image && !attachedFile);
     }
 
     return !validate || isLoading;
@@ -130,6 +132,7 @@ export default function HallazgosFormPage() {
     process,
     isUnsafeBehavior,
     currentDescription,
+    supervisor,
   ]);
 
   const saveEvidence = async () => {
@@ -290,13 +293,11 @@ export default function HallazgosFormPage() {
           value={supervisor}
           onChange={(e) => setSupervisor(e.target.value)}
           helperText={
-            !manufacturingPlantId || !zone ? "Seleccione una planta y zona" : ""
-          }
-          attention={
-            manufacturingPlantId && zone && !supervisor
-              ? "* Nota: Si no selecciona ningun supervisor, el hallazgo se asignará a todos los supervisores de la planta y zona seleccionada"
+            !manufacturingPlantId || !zone
+              ? "Seleccione una planta y lugar"
               : ""
           }
+          validationEmpty
         />
       </Grid>
       <Grid
