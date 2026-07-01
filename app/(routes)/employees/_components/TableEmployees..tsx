@@ -3,6 +3,8 @@ import { useRouter } from "next/navigation";
 
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
+import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import { Stack } from "@mui/material";
 import { Chip } from "@mui/material";
 
@@ -24,6 +26,7 @@ const columns = [
   "Nombre",
   "Fecha de admisión",
   "Fecha de nacimiento",
+  "Estado",
   "Área",
   "Puesto",
   "Genero",
@@ -40,7 +43,7 @@ export default function TableEmployees({ rows, getData }: Props) {
     setIsLoading(true);
     EmployeesService.remove(id)
       .then(() => {
-        notify("Colaborador eliminado correctamente", true);
+        notify("Colaborador desactivado correctamente", true);
         getData();
       })
       .finally(() => setIsLoading(false));
@@ -63,6 +66,20 @@ export default function TableEmployees({ rows, getData }: Props) {
             <StyledTableCell style={{ minWidth: 180 }}>
               {row.birthdate ? stringToDate(row.birthdate) : ""}
             </StyledTableCell>
+            <StyledTableCell>
+              <Chip
+                icon={
+                  row.isActive ? (
+                    <CheckCircleOutlineIcon />
+                  ) : (
+                    <HighlightOffIcon />
+                  )
+                }
+                label={row.isActive ? "Activo" : "Inactivo"}
+                color={row.isActive ? "success" : "error"}
+                size="small"
+              />
+            </StyledTableCell>
             <StyledTableCell>{row.area?.name || ""}</StyledTableCell>
             <StyledTableCell>{row.position?.name || ""}</StyledTableCell>
             <StyledTableCell>{row.gender?.name || ""}</StyledTableCell>
@@ -77,13 +94,15 @@ export default function TableEmployees({ rows, getData }: Props) {
                   color="warning"
                   onClick={() => router.push("/employees/form?id=" + row.id)}
                 />
-                <Chip
-                  icon={<DeleteIcon />}
-                  label="Eliminar"
-                  color="error"
-                  onClick={() => remove(row.id)}
-                  disabled={isLoading}
-                />
+                {row.isActive && (
+                  <Chip
+                    icon={<DeleteIcon />}
+                    label="Desactivar"
+                    color="error"
+                    onClick={() => remove(row.id)}
+                    disabled={isLoading}
+                  />
+                )}
               </Stack>
             </StyledTableCell>
           </StyledTableRow>

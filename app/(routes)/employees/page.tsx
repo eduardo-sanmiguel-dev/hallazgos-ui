@@ -28,6 +28,7 @@ const EmployeesPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [filters, setFilters] = useState<IFiltersEmployees>({
     name: "",
+    isActive: "true",
   });
 
   const router = useRouter();
@@ -50,8 +51,9 @@ const EmployeesPage = () => {
         size={{
           xs: 12,
           sm: 12,
-          md: 12
-        }}>
+          md: 12,
+        }}
+      >
         <Typography
           variant="h4"
           gutterBottom
@@ -68,8 +70,9 @@ const EmployeesPage = () => {
         size={{
           xs: 12,
           sm: 12,
-          md: 12
-        }}>
+          md: 12,
+        }}
+      >
         <Toolbar>
           <Box sx={{ flexGrow: 1 }}>
             <Button
@@ -97,8 +100,9 @@ const EmployeesPage = () => {
         size={{
           xs: 12,
           sm: 12,
-          md: 12
-        }}>
+          md: 12,
+        }}
+      >
         <FiltersEmployees
           filters={filters}
           setFilters={setFilters}
@@ -109,8 +113,9 @@ const EmployeesPage = () => {
         size={{
           xs: 12,
           sm: 12,
-          md: 12
-        }}>
+          md: 12,
+        }}
+      >
         {isLoading ? (
           <LoadingLinear />
         ) : (

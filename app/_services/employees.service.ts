@@ -14,15 +14,19 @@ interface Payload {
 const findAll = async ({
   manufacturingPlantId,
   positionId,
+  areaId,
   name,
   assignedUserId,
+  isActive,
 }: IFiltersEmployees) => {
   const { data } = await api.get<Employee[]>("", {
     params: {
       ...(manufacturingPlantId && { manufacturingPlantId }),
       ...(name && { name }),
       ...(positionId && { positionId }),
+      ...(areaId && { areaId }),
       ...(assignedUserId && { assignedUserId }),
+      ...(isActive !== undefined && isActive !== "" && { isActive }),
     },
   });
   return data;
