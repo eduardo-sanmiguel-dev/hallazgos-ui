@@ -62,9 +62,15 @@ const validateDeliveryFrequency = async ({
   return data;
 };
 
+const removeHistory = async (equipmentHistoryId: number) => {
+  const { data } = await api.delete(`/history/${equipmentHistoryId}`);
+  return data;
+};
+
 export const EppService = {
   validateDeliveryFrequency,
   create,
   findAll,
   downloadFile,
+  removeHistory,
 };

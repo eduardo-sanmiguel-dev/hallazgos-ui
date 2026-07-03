@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import Image from "next/image";
 
@@ -17,6 +18,7 @@ import { Paper } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import SimCardDownloadIcon from "@mui/icons-material/SimCardDownload";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 import { stringYYYYMMDDToDDMMYYYY } from "@shared/utils";
 import { resolveTriStateSort } from "@shared/utils";
@@ -24,11 +26,38 @@ import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
+import { useUserSessionStore } from "@store";
 import { EppService } from "@services";
 import { Epp } from "@interfaces";
 
-function Row({ epp }: { epp: Epp }) {
+function Row({
+  epp,
+  currentUserId,
+  onHistoryDeleted,
+}: {
+  epp: Epp;
+  currentUserId: number;
+  onHistoryDeleted: () => void;
+}) {
   const [open, setOpen] = useState(false);
+
+  const confirmRemoveHistory = (equipmentHistoryId: number) => {
+    toast.warning("Confirmar eliminación", {
+      description: "¿Desea eliminar este registro del historial?",
+      duration: 10000,
+      cancel: {
+        label: "Cancelar",
+        onClick: () => undefined,
+      },
+      action: {
+        label: "Eliminar",
+        onClick: async () => {
+          await EppService.removeHistory(equipmentHistoryId);
+          onHistoryDeleted();
+        },
+      },
+    });
+  };
 
   return (
     <>
@@ -65,7 +94,7 @@ function Row({ epp }: { epp: Epp }) {
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ margin: 1 }}>
               <Typography variant="h6" gutterBottom component="div">
-                Historial
+                Historial de entrega
               </Typography>
               <Table size="small" aria-label="purchases">
                 <TableHead>
@@ -76,6 +105,7 @@ function Row({ epp }: { epp: Epp }) {
                     <StyledTableCell>Observaciones</StyledTableCell>
                     <StyledTableCell>Firma</StyledTableCell>
                     <StyledTableCell>Entregado por</StyledTableCell>
+                    <StyledTableCell align="center">Acciones</StyledTableCell>
                   </StyledTableRow>
                 </TableHead>
                 <TableBody>
@@ -111,6 +141,18 @@ function Row({ epp }: { epp: Epp }) {
                         <StyledTableCell>
                           {equipment.createBy.name}
                         </StyledTableCell>
+                        <StyledTableCell align="center">
+                          {equipment.createBy?.id === currentUserId && (
+                            <IconButton
+                              aria-label="borrar registro"
+                              size="small"
+                              color="error"
+                              onClick={() => confirmRemoveHistory(equipment.id)}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          )}
+                        </StyledTableCell>
                       </StyledTableRow>
                     ))}
                 </TableBody>
@@ -125,17 +167,19 @@ function Row({ epp }: { epp: Epp }) {
 
 interface Props {
   data: Epp[];
+  onHistoryDeleted: () => void;
 }
 
 type Order = "asc" | "desc";
 type SortableColumn = "name" | "code" | "position" | "area";
 
-export default function TableEpps({ data }: Props) {
+export default function TableEpps({ data, onHistoryDeleted }: Props) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [order, setOrder] = useState<Order>("asc");
   const [orderBy, setOrderBy] = useState<SortableColumn | null>(null);
+  const currentUserId = useUserSessionStore((state) => state.id);
 
   useEffect(() => {
     setPage(0);
@@ -309,7 +353,12 @@ export default function TableEpps({ data }: Props) {
             )}
 
             {paginatedData.map((epp) => (
-              <Row key={epp.id} epp={epp} />
+              <Row
+                key={epp.id}
+                epp={epp}
+                currentUserId={currentUserId}
+                onHistoryDeleted={onHistoryDeleted}
+              />
             ))}
           </TableBody>
         </Table>

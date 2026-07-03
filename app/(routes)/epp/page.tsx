@@ -112,7 +112,16 @@ export default function EppPage() {
             md: 12,
           }}
         >
-          {isLoading ? <LoadingLinear /> : <TableEpps data={data} />}
+          {isLoading ? (
+            <LoadingLinear />
+          ) : (
+            <TableEpps
+              data={data}
+              onHistoryDeleted={() =>
+                manufacturingPlantId && getData(manufacturingPlantId)
+              }
+            />
+          )}
         </Grid>
       </Grid>
     </>
