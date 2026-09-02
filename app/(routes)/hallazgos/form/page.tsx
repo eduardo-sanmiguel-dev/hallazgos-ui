@@ -19,10 +19,10 @@ import ImageORCamera from "@shared/components/ImageORCamera";
 import { dataURLtoFile, notify } from "@shared/utils";
 import SelectDefault from "@components/SelectDefault";
 import { SecondaryType, User } from "@interfaces";
-import {
+/* import {
   formatDayLabel,
   priorityOptions,
-} from "@routes/hallazgos/_constants/priorityOptions";
+} from "@routes/hallazgos/_constants/priorityOptions"; */
 
 import "./form.css";
 
@@ -41,7 +41,7 @@ export default function HallazgosFormPage() {
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [isUnsafeBehavior, setIsUnsafeBehavior] = useState<boolean>(false);
   const [description, setDescription] = useState<string>("");
-  const [priorityDays, setPriorityDays] = useState<string>("");
+  const [priorityDays] = useState<string>("");
 
   const { mainTypes, zones, processes } = useCategoriesStore();
 

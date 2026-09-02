@@ -11,7 +11,7 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import { Stack } from "@mui/material";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import DeleteIcon from "@mui/icons-material/Delete";
-import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutlineOutlined";
+//import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutlineOutlined";
 import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
@@ -40,11 +40,11 @@ import { EvidencesService } from "@services";
 import { EvidenceGraphql } from "@hooks";
 import TableDefaultServer from "@shared/components/TableDefaultServer";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import {
+/* import {
   formatDayLabel,
   getPriorityLabel,
   getRemainingDays,
-} from "@routes/hallazgos/_constants/priorityOptions";
+} from "@routes/hallazgos/_constants/priorityOptions"; */
 
 const columns = [
   "ID",

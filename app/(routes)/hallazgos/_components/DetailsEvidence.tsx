@@ -15,10 +15,10 @@ import {
   STATUS_IN_PROGRESS,
   STATUS_OPEN,
 } from "@shared/constants";
-import {
+/* import {
   getPriorityLabel,
   getRemainingDays,
-} from "@routes/hallazgos/_constants/priorityOptions";
+} from "@routes/hallazgos/_constants/priorityOptions"; */
 import TabsImageAndLogs from "./TabsImageAndLogs";
 import { EvidenceGraphql } from "@hooks";
 
@@ -59,11 +59,11 @@ export default function DetailsTabs({
     return "error" as const;
   }, [evidenceCurrent.status]);
 
-  const priorityLabel = getPriorityLabel(evidenceCurrent.priorityDays);
+  /* const priorityLabel = getPriorityLabel(evidenceCurrent.priorityDays);
   const remainingDays = getRemainingDays(
     evidenceCurrent.createdAt,
     evidenceCurrent.priorityDays,
-  );
+  ); */
 
   const responsiblesLabel =
     evidenceCurrent.responsibles.length > 0
