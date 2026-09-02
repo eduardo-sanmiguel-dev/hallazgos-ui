@@ -300,7 +300,7 @@ export default function HallazgosFormPage() {
           validationEmpty
         />
       </Grid>
-      <Grid
+      {/* <Grid
         size={{
           xs: 12,
           sm: 6,
@@ -317,7 +317,7 @@ export default function HallazgosFormPage() {
           onChange={(e) => setPriorityDays(e.target.value)}
           isFilter={true}
         />
-      </Grid>
+      </Grid> */}
       <Grid
         size={{
           xs: 12,

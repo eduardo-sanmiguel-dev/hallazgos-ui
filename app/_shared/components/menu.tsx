@@ -322,13 +322,13 @@ export const MainListItems = ({ expanded = true }: { expanded?: boolean }) => {
                 icon={<SettingsSuggestIcon />}
                 expanded={expanded}
               />
-              <CreateLink
+              {/* <CreateLink
                 nested
                 url="/equipments"
                 title="Equipo de protección"
                 icon={<HealthAndSafetyIcon />}
                 expanded={expanded}
-              />
+              /> */}
               <CreateLink
                 nested
                 url="/emergency-teams"

@@ -57,7 +57,7 @@ const columns = [
   "Creado por",
   "Responsables",
   "Estatus",
-  "Prioridad y \nTiempo restante (días)",
+  //"Prioridad y \nTiempo restante (días)",
   "FR: fecha de registro\nFA: fecha de actualización\nFC: fecha de cierre",
   "Acciones",
 ];
@@ -386,7 +386,7 @@ export default function TableEvidences({
                 clickable
               />
             </StyledTableCell>
-            <StyledTableCell
+            {/* <StyledTableCell
               sx={{
                 minWidth: 180,
                 width: 180,
@@ -475,7 +475,7 @@ export default function TableEvidences({
                   return null;
                 })()}
               </Stack>
-            </StyledTableCell>
+            </StyledTableCell> */}
             <StyledTableCell
               sx={{
                 minWidth: 260,
@@ -542,7 +542,7 @@ export default function TableEvidences({
                   </ListItemText>
                 </MenuItem>
 
-                {(role === ROLE_ADMINISTRADOR || validateSupervisor(row)) &&
+                {/*  {(role === ROLE_ADMINISTRADOR || validateSupervisor(row)) &&
                   row.status === STATUS_OPEN &&
                   !row.imgProcess && (
                     <MenuItem
@@ -556,7 +556,7 @@ export default function TableEvidences({
                       </ListItemIcon>
                       <ListItemText>En progreso</ListItemText>
                     </MenuItem>
-                  )}
+                  )} */}
 
                 {validateSupervisor(row) && row.status !== STATUS_CLOSED && (
                   <MenuItem
