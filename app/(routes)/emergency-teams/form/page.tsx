@@ -24,6 +24,8 @@ const extinguisherTypes = [
   ExtinguisherType.PQS,
   ExtinguisherType.CO2,
   ExtinguisherType.AFFF,
+  ExtinguisherType.EXTINTOR_TIPO_D,
+  ExtinguisherType.EXTINTOR_DE_SOLKAFLAN,
 ];
 
 const EmergencyTeamsFormPage = () => {
@@ -74,7 +76,7 @@ const EmergencyTeamsFormPage = () => {
 
     const payload = {
       location: locationClean,
-      extinguisherNumber: Number(extinguisherNumberClean),
+      extinguisherNumber: extinguisherNumberClean,
       typeOfExtinguisher: form.typeOfExtinguisher as ExtinguisherType,
       capacity: Number(capacityClean),
       manufacturingPlantId: Number(form.manufacturingPlantId),
@@ -171,12 +173,7 @@ const EmergencyTeamsFormPage = () => {
       >
         <Paper>
           <TextField
-            type="number"
-            onKeyDown={(evt) => {
-              const forbidden = ["e", "E", "-", "+", "."];
-              if (forbidden.includes(evt.key)) evt.preventDefault();
-            }}
-            label="N. Extintor"
+            label="Núm. Extintor"
             variant="outlined"
             fullWidth
             autoComplete="off"
@@ -185,7 +182,7 @@ const EmergencyTeamsFormPage = () => {
             onChange={(e) =>
               setForm({
                 ...form,
-                extinguisherNumber: e.target.value,
+                extinguisherNumber: e.target.value.replace(/[^a-zA-Z0-9]/g, ""),
               })
             }
           />
@@ -290,4 +287,3 @@ const EmergencyTeamsFormPage = () => {
 };
 
 export default EmergencyTeamsFormPage;
-

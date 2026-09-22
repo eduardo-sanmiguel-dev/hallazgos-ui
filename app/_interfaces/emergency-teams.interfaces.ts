@@ -2,12 +2,14 @@ export enum ExtinguisherType {
   PQS = "PQS",
   CO2 = "CO2",
   AFFF = "AFFF",
+  EXTINTOR_TIPO_D = "Extintor tipo D",
+  EXTINTOR_DE_SOLKAFLAN = "Extintor de Solkaflan",
 }
 
 export interface EmergencyTeam {
   id: number;
   location: string;
-  extinguisherNumber: number;
+  extinguisherNumber: string;
   typeOfExtinguisher: ExtinguisherType;
   capacity: number;
   manufacturingPlant: EmergencyTeamManufacturingPlant;

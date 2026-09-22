@@ -3,7 +3,7 @@ import { EmergencyTeam, ExtinguisherType } from "@interfaces";
 
 interface Payload {
   location: string;
-  extinguisherNumber: number;
+  extinguisherNumber: string;
   typeOfExtinguisher: ExtinguisherType;
   capacity: number;
   manufacturingPlantId: number;

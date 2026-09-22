@@ -1,13 +1,3 @@
-packages:
-  - "**"
-
-overrides:
-  react-is: ^19.0.0
-
-onlyBuiltDependencies:
-  - sharp
-
 allowBuilds:
   core-js: true
-  sharp: true
   unrs-resolver: true
