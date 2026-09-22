@@ -190,10 +190,9 @@ export default function DetailsTabs({
             <Divider />
 
             <Typography variant="caption" sx={sectionTitleSx}>
-              {/* PRIORIDAD Y TIEMPOS */}
-              TIEMPOS
+              PRIORIDAD Y TIEMPOS TIEMPOS
             </Typography>
-            {/* {priorityLabel !== "Sin prioridad" && (
+            {priorityLabel !== "Sin prioridad" && (
               <Box>
                 <Typography sx={rowLabelSx}>Prioridad</Typography>
                 <Typography variant="body2">{priorityLabel}</Typography>
@@ -207,7 +206,7 @@ export default function DetailsTabs({
                   </Typography>
                   <Typography variant="body2">{remainingDays}</Typography>
                 </Box>
-              )} */}
+              )}
             <Box>
               <Typography sx={rowLabelSx}>Fecha de registro</Typography>
               <Typography variant="body2">
