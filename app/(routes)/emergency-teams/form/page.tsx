@@ -182,7 +182,10 @@ const EmergencyTeamsFormPage = () => {
             onChange={(e) =>
               setForm({
                 ...form,
-                extinguisherNumber: e.target.value.replace(/[^a-zA-Z0-9]/g, ""),
+                extinguisherNumber: e.target.value.replace(
+                  /[^a-zA-Z0-9-]/g,
+                  "",
+                ),
               })
             }
           />
