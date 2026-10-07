@@ -68,6 +68,8 @@ const Drawer = styled(MuiDrawer, {
     position: "relative",
     whiteSpace: "nowrap",
     width: drawerWidth,
+    height: "100%",
+    overflowY: "auto",
     transition: theme.transitions.create("width", {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.enteringScreen,
@@ -244,7 +246,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
   return (
     <ColorModeContext.Provider value={colorMode}>
       <ThemeProvider theme={theme}>
-        <Box sx={{ display: "flex" }}>
+        <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
           <CssBaseline />
           <AppBar position="absolute" open={open}>
             <Toolbar

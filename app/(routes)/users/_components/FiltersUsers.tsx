@@ -39,11 +39,12 @@ const FiltersUsers = ({ filters, setFilters, count }: Props) => {
         <Typography
           variant="subtitle1"
           gutterBottom
-          color={
-            theme.palette.mode === "light"
-              ? theme.palette.common.black
-              : theme.palette.common.white
-          }
+          sx={{
+            color: (theme) =>
+              theme.palette.mode === "light"
+                ? theme.palette.common.black
+                : theme.palette.common.white,
+          }}
         >
           <FilterListIcon sx={{ pt: 1 }} /> Filtros ({count})
         </Typography>

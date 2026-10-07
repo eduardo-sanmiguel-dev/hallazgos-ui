@@ -171,6 +171,7 @@ const ExtinguisherInspectionFormPage = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanningRef = useRef<boolean>(false);
+  const scanSessionRef = useRef<number>(0);
   const lastScannedValueRef = useRef<string>("");
   const lastScannedAtRef = useRef<number>(0);
   const evaluationsRef = useRef<LocalEvaluation[]>([]);
@@ -221,11 +222,38 @@ const ExtinguisherInspectionFormPage = () => {
 
   const stopScanner = () => {
     scanningRef.current = false;
+    // Invalidate any getUserMedia request still pending.
+    scanSessionRef.current += 1;
 
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  };
+
+  const attachStreamToVideo = () => {
+    const video = videoRef.current;
+    const stream = streamRef.current;
+
+    if (!video || !stream || video.srcObject === stream) {
+      return;
+    }
+
+    video.srcObject = stream;
+    video.play().catch(() => {
+      // autoPlay will retry; ignore interrupted play() calls.
+    });
+  };
+
+  // The Dialog mounts its content after the effect that requests the camera,
+  // so attach the stream whenever the <video> element becomes available.
+  const setVideoRef = (node: HTMLVideoElement | null) => {
+    videoRef.current = node;
+    attachStreamToVideo();
   };
 
   const detectWithJsQr = () => {
@@ -339,21 +367,37 @@ const ExtinguisherInspectionFormPage = () => {
     lastScannedValueRef.current = "";
     lastScannedAtRef.current = 0;
 
+    const session = scanSessionRef.current;
+
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setScannerError(
+          "El navegador no permite usar la cámara en este sitio. Use HTTPS o localhost.",
+        );
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: "environment" } },
       });
 
-      streamRef.current = stream;
-      scanningRef.current = true;
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+      // The scanner was closed (or restarted) while waiting for the camera.
+      if (session !== scanSessionRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
       }
 
+      streamRef.current = stream;
+      scanningRef.current = true;
+      attachStreamToVideo();
+
       const scanFrame = async () => {
-        if (!scanningRef.current || !videoRef.current) {
+        if (!scanningRef.current) {
+          return;
+        }
+
+        if (!videoRef.current) {
+          requestAnimationFrame(scanFrame);
           return;
         }
 
@@ -385,10 +429,28 @@ const ExtinguisherInspectionFormPage = () => {
       };
 
       requestAnimationFrame(scanFrame);
-    } catch {
-      setScannerError(
-        "No se pudo acceder a la cámara. Verifique permisos del navegador.",
-      );
+    } catch (error) {
+      if (session !== scanSessionRef.current) {
+        return;
+      }
+
+      const name = error instanceof DOMException ? error.name : "";
+
+      if (name === "NotAllowedError") {
+        setScannerError(
+          "Permiso de cámara denegado. Habilítelo en la configuración del navegador.",
+        );
+      } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+        setScannerError("No se encontró ninguna cámara conectada.");
+      } else if (name === "NotReadableError") {
+        setScannerError(
+          "La cámara está en uso por otra aplicación. Ciérrela e intente de nuevo.",
+        );
+      } else {
+        setScannerError(
+          "No se pudo acceder a la cámara. Verifique permisos del navegador.",
+        );
+      }
     }
   };
 
@@ -619,7 +681,7 @@ const ExtinguisherInspectionFormPage = () => {
 
         return {
           location: evaluation.location.trim(),
-          extinguisherNumber: Number(evaluation.extinguisherNumber),
+          extinguisherNumber: evaluation.extinguisherNumber.trim(),
           typeOfExtinguisher: evaluation.typeOfExtinguisher,
           capacity: Number(evaluation.capacity),
           pressureManometer: conceptStatuses.pressureManometer,
@@ -799,7 +861,17 @@ const ExtinguisherInspectionFormPage = () => {
           }}
         >
           <Divider sx={{ my: 1 }} />
-          <Typography variant="h6">Evaluaciones</Typography>
+          <Typography
+            variant="h6"
+            sx={{
+              color: (theme) =>
+                theme.palette.mode === "light"
+                  ? theme.palette.common.black
+                  : theme.palette.common.white,
+            }}
+          >
+            Evaluaciones
+          </Typography>
         </Grid>
 
         {form.evaluations.map((evaluation, index) => (
@@ -1051,7 +1123,7 @@ const ExtinguisherInspectionFormPage = () => {
           ) : (
             <Box sx={{ width: "100%", mt: 1 }}>
               <video
-                ref={videoRef}
+                ref={setVideoRef}
                 autoPlay
                 muted
                 playsInline
@@ -1075,4 +1147,3 @@ const ExtinguisherInspectionFormPage = () => {
 };
 
 export default ExtinguisherInspectionFormPage;
-

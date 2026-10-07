@@ -13,7 +13,6 @@ import Add from "@mui/icons-material/Add";
 import ButtonGroup from "@mui/material/ButtonGroup";
 import { useDebouncedCallback } from "use-debounce";
 import Typography from "@mui/material/Typography";
-import { useTheme } from "@mui/material/styles";
 
 import LoadingLinear from "@shared/components/LoadingLinear";
 import { ExtinguisherInspectionsService } from "@services";
@@ -32,7 +31,6 @@ const ExtinguisherInspectionPage = () => {
   });
 
   const router = useRouter();
-  const theme = useTheme();
 
   const getData = useDebouncedCallback(() => {
     setIsLoading(true);
@@ -57,11 +55,12 @@ const ExtinguisherInspectionPage = () => {
         <Typography
           variant="h4"
           gutterBottom
-          color={
-            theme.palette.mode === "light"
-              ? theme.palette.common.black
-              : theme.palette.common.white
-          }
+          sx={{
+            color: (theme) =>
+              theme.palette.mode === "light"
+                ? theme.palette.common.black
+                : theme.palette.common.white,
+          }}
         >
           Inspecciones de extintores
         </Typography>

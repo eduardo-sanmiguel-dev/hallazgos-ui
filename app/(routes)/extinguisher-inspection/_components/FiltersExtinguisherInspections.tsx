@@ -3,7 +3,6 @@ import Typography from "@mui/material/Typography";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import TextField from "@mui/material/TextField";
 import Paper from "@mui/material/Paper";
-import { useTheme } from "@mui/material/styles";
 
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 
@@ -23,8 +22,6 @@ const FiltersExtinguisherInspections = ({
   setFilters,
   count,
 }: Props) => {
-  const theme = useTheme();
-
   return (
     <Grid container spacing={2} sx={{ mb: 2 }}>
       <Grid
@@ -37,11 +34,12 @@ const FiltersExtinguisherInspections = ({
         <Typography
           variant="subtitle1"
           gutterBottom
-          color={
-            theme.palette.mode === "light"
-              ? theme.palette.common.black
-              : theme.palette.common.white
-          }
+          sx={{
+            color: (theme) =>
+              theme.palette.mode === "light"
+                ? theme.palette.common.black
+                : theme.palette.common.white,
+          }}
         >
           <FilterListIcon sx={{ pt: 1 }} /> Filtros ({count})
         </Typography>

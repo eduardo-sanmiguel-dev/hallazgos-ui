@@ -57,11 +57,12 @@ const EmployeesPage = () => {
         <Typography
           variant="h4"
           gutterBottom
-          color={
-            theme.palette.mode === "light"
-              ? theme.palette.common.black
-              : theme.palette.common.white
-          }
+          sx={{
+            color: (theme) =>
+              theme.palette.mode === "light"
+                ? theme.palette.common.black
+                : theme.palette.common.white,
+          }}
         >
           Colaboradores
         </Typography>

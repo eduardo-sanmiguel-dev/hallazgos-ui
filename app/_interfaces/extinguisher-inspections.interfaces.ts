@@ -9,7 +9,7 @@ export enum EvaluationValues {
 export interface ExtinguisherInspectionEvaluation {
   id: number;
   location: string;
-  extinguisherNumber: number;
+  extinguisherNumber: string;
   typeOfExtinguisher: ExtinguisherType;
   capacity: number;
   pressureManometer: EvaluationValues;

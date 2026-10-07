@@ -5,7 +5,6 @@ import { Typography } from "@mui/material";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import { TextField } from "@mui/material";
 import { Paper } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import SelectDefault from "@components/SelectDefault";
 import { EmployeesService } from "@services";
 import { CatalogEmployee } from "@interfaces";
@@ -31,7 +30,6 @@ interface Props {
 }
 
 const FiltersEmployees = ({ filters, setFilters, count }: Props) => {
-  const theme = useTheme();
   const [catalogs, setCatalogs] = useState<CatalogEmployee | null>(null);
 
   useEffect(() => {
@@ -68,11 +66,12 @@ const FiltersEmployees = ({ filters, setFilters, count }: Props) => {
         <Typography
           variant="subtitle1"
           gutterBottom
-          color={
-            theme.palette.mode === "light"
-              ? theme.palette.common.black
-              : theme.palette.common.white
-          }
+          sx={{
+            color: (theme) =>
+              theme.palette.mode === "light"
+                ? theme.palette.common.black
+                : theme.palette.common.white,
+          }}
         >
           <FilterListIcon sx={{ pt: 1 }} /> Filtros ({count})
         </Typography>
@@ -87,7 +86,7 @@ const FiltersEmployees = ({ filters, setFilters, count }: Props) => {
         <Paper>
           <TextField
             fullWidth
-            label="Nombre"
+            label="Nombre o código"
             variant="outlined"
             value={filters.name}
             autoComplete="off"

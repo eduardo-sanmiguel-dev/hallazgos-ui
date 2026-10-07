@@ -7,7 +7,7 @@ import {
 
 interface EvaluationPayload {
   location: string;
-  extinguisherNumber: number;
+  extinguisherNumber: string;
   typeOfExtinguisher: ExtinguisherType;
   capacity: number;
   pressureManometer: EvaluationValues;

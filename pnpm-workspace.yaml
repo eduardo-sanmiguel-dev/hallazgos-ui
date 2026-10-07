@@ -3,3 +3,5 @@ packages:
 allowBuilds:
   core-js: true
   unrs-resolver: true
+patchedDependencies:
+  react-html5-camera-photo@1.5.11: patches/react-html5-camera-photo@1.5.11.patch

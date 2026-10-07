@@ -162,6 +162,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  react-html5-camera-photo@1.5.11: 837e170a2f88d7b25b84fa686622d7f831b2dd619e2714ac3287366b4d91b66e
+
 importers:
 
   .:
@@ -255,7 +258,7 @@ importers:
         version: 19.3.0(react@19.3.0)
       react-html5-camera-photo:
         specifier: ^1.5.11
-        version: 1.5.11(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 1.5.11(patch_hash=837e170a2f88d7b25b84fa686622d7f831b2dd619e2714ac3287366b4d91b66e)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react-is:
         specifier: ^19.2.6
         version: 19.3.0
@@ -5357,7 +5360,7 @@ snapshots:
       react: 19.3.0
       scheduler: 0.28.0
 
-  react-html5-camera-photo@1.5.11(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+  react-html5-camera-photo@1.5.11(patch_hash=837e170a2f88d7b25b84fa686622d7f831b2dd619e2714ac3287366b4d91b66e)(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
       jslib-html5-camera-photo: 3.3.4
       react: 19.3.0

@@ -5,9 +5,15 @@ export default function Copyright(props: any) {
   return (
     <Typography
       variant="body2"
-      color="text.secondary"
       align="center"
       {...props}
+      sx={{
+        color: (theme) =>
+          theme.palette.mode === "light"
+            ? theme.palette.common.black
+            : theme.palette.common.white,
+        mt: 2,
+      }}
     >
       {"Copyright © "}
       <Link
