@@ -44,6 +44,7 @@ import {
   formatDayLabel,
   getPriorityLabel,
   getRemainingDays,
+  getResolutionDays,
 } from "@routes/hallazgos/_constants/priorityOptions";
 
 const columns = [
@@ -57,7 +58,7 @@ const columns = [
   "Creado por",
   "Responsables",
   "Estatus",
-  "Prioridad y \nTiempo restante (días)",
+  "Prioridad y \nTiempo restante / resolución (días)",
   "FR: fecha de registro\nFA: fecha de actualización\nFC: fecha de cierre",
   "Acciones",
 ];
@@ -473,6 +474,41 @@ export default function TableEvidences({
                   }
 
                   return null;
+                })()}
+                {(() => {
+                  if (row.status !== STATUS_CLOSED) {
+                    return null;
+                  }
+
+                  const resolution = getResolutionDays(
+                    row.createdAt,
+                    row.solutionDate,
+                    row.priorityDays,
+                  );
+
+                  if (!resolution) {
+                    return null;
+                  }
+
+                  return (
+                    <>
+                      <span>
+                        <b>Resuelto en:</b> {formatDayLabel(resolution.days)}
+                      </span>
+                      {resolution.isOnTime !== null && (
+                        <Chip
+                          label={
+                            resolution.isOnTime
+                              ? "En tiempo"
+                              : `Fuera de tiempo (${formatDayLabel(resolution.daysLate)})`
+                          }
+                          color={resolution.isOnTime ? "success" : "error"}
+                          size="small"
+                          sx={{ mt: 0.25 }}
+                        />
+                      )}
+                    </>
+                  );
                 })()}
               </Stack>
             </StyledTableCell>

@@ -34,3 +34,26 @@ export const getRemainingDays = (
 
   return `${diffDays}`;
 };
+
+// Days it took to close (partial days count as a full day) and whether it
+// was closed within the priority deadline (createdAt + priorityDays).
+export const getResolutionDays = (
+  createdAt?: Date | string | null,
+  solutionDate?: Date | string | null,
+  priorityDays?: number | null,
+) => {
+  if (!createdAt || !solutionDate) return null;
+
+  const diffMs =
+    new Date(solutionDate).getTime() - new Date(createdAt).getTime();
+
+  if (Number.isNaN(diffMs)) return null;
+
+  const days = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+
+  return {
+    days,
+    isOnTime: priorityDays ? days <= priorityDays : null,
+    daysLate: priorityDays ? Math.max(0, days - priorityDays) : 0,
+  };
+};

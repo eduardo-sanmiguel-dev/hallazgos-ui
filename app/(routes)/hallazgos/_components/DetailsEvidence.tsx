@@ -16,8 +16,10 @@ import {
   STATUS_OPEN,
 } from "@shared/constants";
 import {
+  formatDayLabel,
   getPriorityLabel,
   getRemainingDays,
+  getResolutionDays,
 } from "@routes/hallazgos/_constants/priorityOptions";
 import TabsImageAndLogs from "./TabsImageAndLogs";
 import { EvidenceGraphql } from "@hooks";
@@ -64,6 +66,14 @@ export default function DetailsTabs({
     evidenceCurrent.createdAt,
     evidenceCurrent.priorityDays,
   );
+  const resolution =
+    evidenceCurrent.status === STATUS_CLOSED
+      ? getResolutionDays(
+          evidenceCurrent.createdAt,
+          evidenceCurrent.solutionDate,
+          evidenceCurrent.priorityDays,
+        )
+      : null;
 
   const responsiblesLabel =
     evidenceCurrent.responsibles.length > 0
@@ -190,7 +200,7 @@ export default function DetailsTabs({
             <Divider />
 
             <Typography variant="caption" sx={sectionTitleSx}>
-              PRIORIDAD Y TIEMPOS TIEMPOS
+              PRIORIDAD Y TIEMPOS
             </Typography>
             {priorityLabel !== "Sin prioridad" && (
               <Box>
@@ -207,6 +217,31 @@ export default function DetailsTabs({
                   <Typography variant="body2">{remainingDays}</Typography>
                 </Box>
               )}
+            {resolution && (
+              <Box>
+                <Typography sx={rowLabelSx}>Resuelto en</Typography>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ alignItems: "center", flexWrap: "wrap" }}
+                >
+                  <Typography variant="body2">
+                    {formatDayLabel(resolution.days)}
+                  </Typography>
+                  {resolution.isOnTime !== null && (
+                    <Chip
+                      label={
+                        resolution.isOnTime
+                          ? "En tiempo"
+                          : `Fuera de tiempo (${formatDayLabel(resolution.daysLate)})`
+                      }
+                      color={resolution.isOnTime ? "success" : "error"}
+                      size="small"
+                    />
+                  )}
+                </Stack>
+              </Box>
+            )}
             <Box>
               <Typography sx={rowLabelSx}>Fecha de registro</Typography>
               <Typography variant="body2">
