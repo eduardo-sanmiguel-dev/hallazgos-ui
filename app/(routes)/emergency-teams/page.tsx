@@ -14,7 +14,6 @@ import PrintIcon from "@mui/icons-material/Print";
 import ButtonGroup from "@mui/material/ButtonGroup";
 import { useDebouncedCallback } from "use-debounce";
 import Typography from "@mui/material/Typography";
-import { useTheme } from "@mui/material/styles";
 import QRCode from "qrcode";
 
 import LoadingLinear from "@shared/components/LoadingLinear";
@@ -35,7 +34,6 @@ const EmergencyTeamsPage = () => {
     manufacturingPlantId: "",
   });
 
-  const theme = useTheme();
   const router = useRouter();
 
   const getData = useDebouncedCallback(() => {

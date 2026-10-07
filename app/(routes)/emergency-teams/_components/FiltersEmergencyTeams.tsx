@@ -3,7 +3,6 @@ import Typography from "@mui/material/Typography";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import TextField from "@mui/material/TextField";
 import Paper from "@mui/material/Paper";
-import { useTheme } from "@mui/material/styles";
 
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 
@@ -19,8 +18,6 @@ interface Props {
 }
 
 const FiltersEmergencyTeams = ({ filters, setFilters, count }: Props) => {
-  const theme = useTheme();
-
   return (
     <Grid container spacing={2} sx={{ mb: 2 }}>
       <Grid

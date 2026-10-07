@@ -3,7 +3,6 @@ import { Typography } from "@mui/material";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import { TextField } from "@mui/material";
 import { Paper } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 
 export interface IFiltersIcs {
   manufacturingPlantId?: number;
@@ -17,8 +16,6 @@ interface Props {
 }
 
 const FiltersIcs = ({ filters, setFilters, count }: Props) => {
-  const theme = useTheme();
-
   return (
     <Grid container spacing={2} sx={{ mb: 2 }}>
       <Grid
