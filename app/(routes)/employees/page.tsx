@@ -20,7 +20,6 @@ import { Employee } from "@interfaces";
 import FiltersEmployees, {
   type IFiltersEmployees,
 } from "./_components/FiltersEmployees";
-import { useTheme } from "@mui/material/styles";
 import TableEmployees from "./_components/TableEmployees.";
 
 const EmployeesPage = () => {
@@ -32,7 +31,6 @@ const EmployeesPage = () => {
   });
 
   const router = useRouter();
-  const theme = useTheme();
 
   const getData = useDebouncedCallback(() => {
     setIsLoading(true);

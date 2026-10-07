@@ -17,7 +17,6 @@ import { Typography } from "@mui/material";
 import LoadingLinear from "@shared/components/LoadingLinear";
 import { ICSData } from "@interfaces";
 import FiltersIcs, { type IFiltersIcs } from "./_components/FiltersIcs";
-import { useTheme } from "@mui/material/styles";
 import TableIcs from "./_components/TableIcs";
 import { IcsService } from "@services";
 
@@ -29,7 +28,6 @@ const IcsPage = () => {
   });
 
   const router = useRouter();
-  const theme = useTheme();
 
   const getData = useDebouncedCallback(() => {
     setIsLoading(true);
