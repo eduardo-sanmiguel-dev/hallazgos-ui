@@ -129,17 +129,44 @@ const reassignResponsibles = async (id: number, responsibleIds: number[]) => {
   return data;
 };
 
+const getFileNameFromContentDisposition = (
+  contentDisposition: string | undefined,
+  fallback: string,
+) => {
+  if (!contentDisposition) return fallback;
+
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition);
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded[1].trim());
+    } catch {
+      // Si viene mal codificado se usa filename=
+    }
+  }
+
+  const plain = /filename="?([^";]+)"?/i.exec(contentDisposition);
+  return plain ? plain[1].trim() : fallback;
+};
+
 const downloadExcel = async (filters: FiltersEvidences) => {
-  const { data } = await api.get(`/download/xlsx`, {
+  const { data, headers } = await api.get(`/download/xlsx`, {
     responseType: "blob",
-    params: paramsFilter(filters),
+    params: {
+      ...paramsFilter(filters),
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    },
   });
+
+  const fileName = getFileNameFromContentDisposition(
+    headers["content-disposition"],
+    "Hallazgos.xlsx",
+  );
 
   const url = window.URL.createObjectURL(new Blob([data]));
 
   const link = document.createElement("a");
   link.href = url;
-  link.setAttribute("download", "Hallazgos.xlsx");
+  link.setAttribute("download", fileName);
   document.body.appendChild(link);
   link.click();
 
