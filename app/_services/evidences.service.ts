@@ -129,17 +129,60 @@ const reassignResponsibles = async (id: number, responsibleIds: number[]) => {
   return data;
 };
 
+// Nombre de respaldo armado en el navegador:
+// Hallazgos_AAAA-MM-DD_HHmm_UTC±HH.xlsx en la hora local del usuario.
+const buildFallbackExcelName = (date = new Date()) => {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const offsetMinutes = -date.getTimezoneOffset();
+  const offsetAbs = Math.abs(offsetMinutes);
+  const offset = `UTC${offsetMinutes < 0 ? "-" : "+"}${pad(
+    Math.floor(offsetAbs / 60),
+  )}${offsetAbs % 60 ? pad(offsetAbs % 60) : ""}`;
+
+  return `Hallazgos_${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate(),
+  )}_${pad(date.getHours())}${pad(date.getMinutes())}_${offset}.xlsx`;
+};
+
+const getFileNameFromContentDisposition = (
+  contentDisposition: string | undefined,
+) => {
+  if (!contentDisposition) return "";
+
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition);
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded[1].trim());
+    } catch {
+      // Si viene mal codificado se usa filename=
+    }
+  }
+
+  const plain = /filename="?([^";]+)"?/i.exec(contentDisposition);
+  return plain ? plain[1].trim() : "";
+};
+
 const downloadExcel = async (filters: FiltersEvidences) => {
-  const { data } = await api.get(`/download/xlsx`, {
+  const { data, headers } = await api.get(`/download/xlsx`, {
     responseType: "blob",
-    params: paramsFilter(filters),
+    params: {
+      ...paramsFilter(filters),
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    },
   });
+
+  const headerFileName = getFileNameFromContentDisposition(
+    headers["content-disposition"],
+  );
+  const fileName = /\.xlsx$/i.test(headerFileName)
+    ? headerFileName
+    : buildFallbackExcelName();
 
   const url = window.URL.createObjectURL(new Blob([data]));
 
   const link = document.createElement("a");
   link.href = url;
-  link.setAttribute("download", "Hallazgos.xlsx");
+  link.setAttribute("download", fileName);
   document.body.appendChild(link);
   link.click();
 
