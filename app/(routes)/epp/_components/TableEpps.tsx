@@ -82,7 +82,7 @@ function Row({
             color="primary"
             fontSize="large"
             style={{ cursor: "pointer" }}
-            onClick={() => EppService.downloadFile(epp.id)}
+            onClick={() => EppService.downloadFile(epp.id, epp.code)}
           />
         </StyledTableCell>
       </StyledTableRow>
