@@ -1,5 +1,10 @@
 import { Epp, PayloadCreateEpp } from "@interfaces";
 import axiosWrapper from "./axiosWrapper";
+import {
+  buildLocalFileNameTimestamp,
+  getBrowserTimeZone,
+  resolveDownloadFileName,
+} from "@shared/utils/downloadFileName";
 
 const api = axiosWrapper({
   baseURL: "/epps",
@@ -23,16 +28,26 @@ const findAll = async ({
   return data;
 };
 
-const downloadFile = async (employeeId: number) => {
-  const { data } = await api.get(`/download/file/${employeeId}`, {
+const downloadFile = async (employeeId: number, employeeCode?: number) => {
+  const { data, headers } = await api.get(`/download/file/${employeeId}`, {
     responseType: "blob",
+    params: { timeZone: getBrowserTimeZone() },
   });
+
+  // Respaldo: EPP_{NumEmpleado}_AAAA-MM-DD_HHmm_UTC±HH.xlsx con los datos de la fila.
+  const fileName = resolveDownloadFileName(
+    headers["content-disposition"],
+    () =>
+      `${["EPP", employeeCode, buildLocalFileNameTimestamp()]
+        .filter((part) => part !== undefined && part !== null && part !== "")
+        .join("_")}.xlsx`,
+  );
 
   const url = window.URL.createObjectURL(new Blob([data]));
 
   const link = document.createElement("a");
   link.href = url;
-  link.setAttribute("download", "formatoEPP.xlsx");
+  link.setAttribute("download", fileName);
   document.body.appendChild(link);
   link.click();
 
