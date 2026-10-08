@@ -1,4 +1,4 @@
-import { Epp, PayloadCreateEpp } from "@interfaces";
+import { EppsPage, PayloadCreateEpp, QueryEpps } from "@interfaces";
 import axiosWrapper from "./axiosWrapper";
 import {
   buildLocalFileNameTimestamp,
@@ -15,14 +15,11 @@ const create = async (payload: PayloadCreateEpp) => {
   return data;
 };
 
-const findAll = async ({
-  manufacturingPlantId,
-}: {
-  manufacturingPlantId: string;
-}) => {
-  const { data } = await api.get<Epp[]>("", {
+const findPaginated = async ({ search, ...query }: QueryEpps) => {
+  const { data } = await api.get<EppsPage>("", {
     params: {
-      manufacturingPlantId,
+      ...query,
+      ...(search?.trim() && { search: search.trim() }),
     },
   });
   return data;
@@ -85,7 +82,7 @@ const removeHistory = async (equipmentHistoryId: number) => {
 export const EppService = {
   validateDeliveryFrequency,
   create,
-  findAll,
+  findPaginated,
   downloadFile,
   removeHistory,
 };
