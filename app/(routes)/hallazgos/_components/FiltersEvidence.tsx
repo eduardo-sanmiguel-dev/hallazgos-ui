@@ -408,14 +408,23 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
         <Typography
           variant="subtitle1"
           gutterBottom
-          sx={(theme) => ({
-            color:
-              theme.palette.mode === "dark"
-                ? theme.palette.primary.light
-                : theme.palette.primary.dark,
-          })}
+          sx={{
+            color: (theme) =>
+              theme.palette.mode === "light"
+                ? theme.palette.common.black
+                : theme.palette.common.white,
+          }}
         >
-          <FilterListIcon sx={{ pt: 1 }} /> Filtros ({count})
+          <FilterListIcon
+            sx={{
+              pt: 1,
+              color: (theme) =>
+                theme.palette.mode === "light"
+                  ? theme.palette.common.black
+                  : theme.palette.common.white,
+            }}
+          />{" "}
+          Filtros ({count})
         </Typography>
         <Box
           sx={{

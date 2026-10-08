@@ -1173,11 +1173,12 @@ const TrainingGuidePage = () => {
           <Typography
             variant="h4"
             gutterBottom
-            color={
-              theme.palette.mode === "light"
-                ? theme.palette.common.black
-                : theme.palette.common.white
-            }
+            sx={{
+              color: (theme) =>
+                theme.palette.mode === "light"
+                  ? theme.palette.common.black
+                  : theme.palette.common.white,
+            }}
           >
             Guías de entrenamiento
           </Typography>
@@ -1201,11 +1202,12 @@ const TrainingGuidePage = () => {
               <Typography
                 variant="subtitle1"
                 gutterBottom
-                color={
-                  theme.palette.mode === "light"
-                    ? theme.palette.common.black
-                    : theme.palette.common.white
-                }
+                sx={{
+                  color: (theme) =>
+                    theme.palette.mode === "light"
+                      ? theme.palette.common.black
+                      : theme.palette.common.white,
+                }}
               >
                 <FilterListIcon sx={{ pt: 1 }} /> Filtros ({employees.length})
               </Typography>
