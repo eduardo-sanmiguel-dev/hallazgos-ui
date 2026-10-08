@@ -1,4 +1,5 @@
 import axiosWrapper from "./axiosWrapper";
+import { resolveDownloadFileName } from "@shared/utils/downloadFileName";
 import {
   EvaluationValues,
   ExtinguisherInspection,
@@ -68,15 +69,21 @@ const findAll = async (filters: Filters) => {
 };
 
 const downloadFile = async (id: number) => {
-  const { data } = await api.get(`/download/file/${id}`, {
+  const { data, headers } = await api.get(`/download/file/${id}`, {
     responseType: "blob",
   });
+
+  // El back arma el nombre con la fecha de creación; respaldo: RGOSGSST49_{ID}.xlsx
+  const fileName = resolveDownloadFileName(
+    headers["content-disposition"],
+    () => `RGOSGSST49_${id}.xlsx`,
+  );
 
   const url = window.URL.createObjectURL(new Blob([data]));
 
   const link = document.createElement("a");
   link.href = url;
-  link.setAttribute("download", `RGOSGSST49_Inspeccion_${id}.xlsx`);
+  link.setAttribute("download", fileName);
   document.body.appendChild(link);
   link.click();
 
