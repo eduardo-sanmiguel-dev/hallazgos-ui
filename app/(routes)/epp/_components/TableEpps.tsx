@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import Image from "next/image";
@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Box } from "@mui/material";
 import { Collapse } from "@mui/material";
 import { IconButton } from "@mui/material";
+import { LinearProgress } from "@mui/material";
 import { Table } from "@mui/material";
 import { TableBody } from "@mui/material";
 import { TableContainer } from "@mui/material";
@@ -21,14 +22,14 @@ import SimCardDownloadIcon from "@mui/icons-material/SimCardDownload";
 import DeleteIcon from "@mui/icons-material/Delete";
 
 import { stringYYYYMMDDToDDMMYYYY } from "@shared/utils";
-import { resolveTriStateSort } from "@shared/utils";
+import { resolveTriStateSort, SortOrder } from "@shared/utils";
 import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
 import { useUserSessionStore } from "@store";
 import { EppService } from "@services";
-import { Epp } from "@interfaces";
+import { Epp, EppSortableColumn } from "@interfaces";
 
 function Row({
   epp,
@@ -166,104 +167,57 @@ function Row({
 }
 
 interface Props {
-  data: Epp[];
+  rows: Epp[];
+  count: number;
+  isLoading: boolean;
+  /** 0-based */
+  page: number;
+  rowsPerPage: number;
+  search: string;
+  order: SortOrder;
+  orderBy: EppSortableColumn | null;
+  onPageChange: (page: number) => void;
+  onRowsPerPageChange: (rowsPerPage: number) => void;
+  onSearchChange: (search: string) => void;
+  onSortChange: (order: SortOrder, orderBy: EppSortableColumn | null) => void;
   onHistoryDeleted: () => void;
 }
 
-type Order = "asc" | "desc";
-type SortableColumn = "name" | "code" | "position" | "area";
+const SORTABLE_HEADERS: Array<{ column: EppSortableColumn; label: string }> = [
+  { column: "name", label: "Empleado" },
+  { column: "code", label: "Cédula" },
+  { column: "position", label: "Cargo" },
+  { column: "area", label: "Área" },
+];
 
-export default function TableEpps({ data, onHistoryDeleted }: Props) {
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [order, setOrder] = useState<Order>("asc");
-  const [orderBy, setOrderBy] = useState<SortableColumn | null>(null);
+// Tabla controlada: la búsqueda, el orden y la paginación los resuelve la API;
+// aquí solo se muestra la página recibida.
+export default function TableEpps({
+  rows,
+  count,
+  isLoading,
+  page,
+  rowsPerPage,
+  search,
+  order,
+  orderBy,
+  onPageChange,
+  onRowsPerPageChange,
+  onSearchChange,
+  onSortChange,
+  onHistoryDeleted,
+}: Props) {
   const currentUserId = useUserSessionStore((state) => state.id);
 
-  useEffect(() => {
-    setPage(0);
-  }, [searchTerm]);
-
-  const handleRequestSort = (property: SortableColumn) => {
+  const handleRequestSort = (property: EppSortableColumn) => {
     const { nextOrder, nextOrderBy } = resolveTriStateSort(
       order,
       orderBy,
       property,
     );
 
-    setOrder(nextOrder);
-    setOrderBy(nextOrderBy);
-    setPage(0);
+    onSortChange(nextOrder, nextOrderBy);
   };
-
-  const handleChangePage = (_: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  const filteredData = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-
-    if (!term) return data;
-
-    return data.filter((epp) => {
-      const searchableValues = [
-        epp.name,
-        String(epp.code),
-        epp.position?.name,
-        epp.area?.name,
-      ];
-
-      return searchableValues.some((value) =>
-        String(value ?? "")
-          .toLowerCase()
-          .includes(term),
-      );
-    });
-  }, [data, searchTerm]);
-
-  const sortedData = useMemo(() => {
-    const getSortValue = (epp: Epp, column: SortableColumn) => {
-      switch (column) {
-        case "code":
-          return Number(epp.code);
-        case "position":
-          return String(epp.position?.name ?? "").toLowerCase();
-        case "area":
-          return String(epp.area?.name ?? "").toLowerCase();
-        case "name":
-        default:
-          return String(epp.name ?? "").toLowerCase();
-      }
-    };
-
-    if (!orderBy) return filteredData;
-
-    return [...filteredData]
-      .map((epp, index) => ({ epp, index }))
-      .sort((a, b) => {
-        const valueA = getSortValue(a.epp, orderBy);
-        const valueB = getSortValue(b.epp, orderBy);
-
-        if (valueA < valueB) return order === "asc" ? -1 : 1;
-        if (valueA > valueB) return order === "asc" ? 1 : -1;
-
-        return a.index - b.index;
-      })
-      .map(({ epp }) => epp);
-  }, [filteredData, order, orderBy]);
-
-  const paginatedData = sortedData.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage,
-  );
 
   return (
     <Paper>
@@ -280,79 +234,52 @@ export default function TableEpps({ data, onHistoryDeleted }: Props) {
           variant="filled"
           label="Buscar"
           placeholder="Empleado, cédula, cargo o área"
-          value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
+          value={search}
+          onChange={(event) => onSearchChange(event.target.value)}
         />
       </Box>
+      <Box sx={{ height: 4 }}>{isLoading && <LinearProgress />}</Box>
       <TableContainer>
         <Table aria-label="collapsible table" size="small">
           <TableHead>
             <StyledTableRow>
               <StyledTableCell />
-              <StyledTableCell
-                sortDirection={orderBy === "name" ? order : false}
-              >
-                <TableSortLabel
-                  active={orderBy === "name"}
-                  direction={orderBy === "name" ? order : "asc"}
-                  onClick={() => handleRequestSort("name")}
+              {SORTABLE_HEADERS.map(({ column, label }) => (
+                <StyledTableCell
+                  key={column}
+                  sortDirection={orderBy === column ? order : false}
                 >
-                  Empleado
-                </TableSortLabel>
-              </StyledTableCell>
-              <StyledTableCell
-                sortDirection={orderBy === "code" ? order : false}
-              >
-                <TableSortLabel
-                  active={orderBy === "code"}
-                  direction={orderBy === "code" ? order : "asc"}
-                  onClick={() => handleRequestSort("code")}
-                >
-                  Cédula
-                </TableSortLabel>
-              </StyledTableCell>
-              <StyledTableCell
-                sortDirection={orderBy === "position" ? order : false}
-              >
-                <TableSortLabel
-                  active={orderBy === "position"}
-                  direction={orderBy === "position" ? order : "asc"}
-                  onClick={() => handleRequestSort("position")}
-                >
-                  Cargo
-                </TableSortLabel>
-              </StyledTableCell>
-              <StyledTableCell
-                sortDirection={orderBy === "area" ? order : false}
-              >
-                <TableSortLabel
-                  active={orderBy === "area"}
-                  direction={orderBy === "area" ? order : "asc"}
-                  onClick={() => handleRequestSort("area")}
-                >
-                  Área
-                </TableSortLabel>
-              </StyledTableCell>
+                  <TableSortLabel
+                    active={orderBy === column}
+                    direction={orderBy === column ? order : "asc"}
+                    onClick={() => handleRequestSort(column)}
+                  >
+                    {label}
+                  </TableSortLabel>
+                </StyledTableCell>
+              ))}
               <StyledTableCell align="center">
                 Descargar archivo
               </StyledTableCell>
             </StyledTableRow>
           </TableHead>
           <TableBody>
-            {!filteredData.length && (
+            {!rows.length && !isLoading && (
               <StyledTableRow>
                 <StyledTableCell
                   colSpan={6}
                   sx={{ py: 2, textAlign: "center" }}
                 >
                   <Typography variant="body2" color="text.secondary">
-                    No se encontraron resultados con la búsqueda actual.
+                    {search.trim()
+                      ? "No se encontraron resultados con la búsqueda actual."
+                      : "No hay registros de EPP para esta planta."}
                   </Typography>
                 </StyledTableCell>
               </StyledTableRow>
             )}
 
-            {paginatedData.map((epp) => (
+            {rows.map((epp) => (
               <Row
                 key={epp.id}
                 epp={epp}
@@ -365,13 +292,18 @@ export default function TableEpps({ data, onHistoryDeleted }: Props) {
       </TableContainer>
       <TablePagination
         component="div"
-        count={filteredData.length}
+        count={count}
         page={page}
-        onPageChange={handleChangePage}
+        onPageChange={(_, newPage) => onPageChange(newPage)}
         rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
+        onRowsPerPageChange={(event) =>
+          onRowsPerPageChange(parseInt(event.target.value, 10))
+        }
         rowsPerPageOptions={[5, 10, 25]}
         labelRowsPerPage="Filas por página"
+        labelDisplayedRows={({ from, to, count }) =>
+          `${from}–${to} de ${count}`
+        }
         showFirstButton
         showLastButton
       />

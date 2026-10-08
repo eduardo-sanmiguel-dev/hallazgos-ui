@@ -1,40 +1,93 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useDebounce } from "use-debounce";
 
 import { Button, ButtonGroup, Grid } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import AddIcon from "@mui/icons-material/Add";
 
-import LoadingLinear from "@shared/components/LoadingLinear";
 import DialogCreateEpp from "./_components/DialogCreateEpp";
 import SelectDefault from "@components/SelectDefault";
 import TableEpps from "./_components/TableEpps";
 import { useUserSessionStore } from "@store";
 import { EppService } from "@services";
-import { Epp } from "@interfaces";
+import { Epp, EppSortableColumn } from "@interfaces";
+import { SortOrder } from "@shared/utils";
 
 export default function EppPage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [data, setData] = useState<Epp[]>([]);
+  const [rows, setRows] = useState<Epp[]>([]);
+  const [count, setCount] = useState<number>(0);
   const [open, setOpen] = useState<boolean>(false);
   const [manufacturingPlantId, setManufacturingPlantId] = useState<string>("");
+
+  // Estado de la consulta paginada (page es 0-based, como TablePagination).
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch] = useDebounce(search, 400);
+  const [order, setOrder] = useState<SortOrder>("asc");
+  const [orderBy, setOrderBy] = useState<EppSortableColumn | null>(null);
+
+  // Solo se aplica la respuesta de la última petición.
+  const lastRequestId = useRef(0);
 
   const manufacturingPlants = useUserSessionStore(
     (state) => state.manufacturingPlants,
   );
 
-  const getData = (plantId: string) => {
+  const getData = useCallback(() => {
+    const requestId = ++lastRequestId.current;
+
+    if (!manufacturingPlantId) {
+      setRows([]);
+      setCount(0);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
-    EppService.findAll({ manufacturingPlantId: plantId })
-      .then(setData)
-      .finally(() => setIsLoading(false));
-  };
+
+    EppService.findPaginated({
+      manufacturingPlantId,
+      page: page + 1,
+      limit: rowsPerPage,
+      search: debouncedSearch,
+      ...(orderBy && { orderBy, order }),
+    })
+      .then(({ data, count }) => {
+        if (requestId !== lastRequestId.current) return;
+
+        // Si la página quedó vacía (ej. se borró el último registro), ir a la última con datos.
+        if (!data.length && count > 0 && page > 0) {
+          setPage(Math.max(0, Math.ceil(count / rowsPerPage) - 1));
+          return;
+        }
+
+        setRows(data);
+        setCount(count);
+      })
+      .finally(() => {
+        if (requestId === lastRequestId.current) setIsLoading(false);
+      });
+  }, [
+    manufacturingPlantId,
+    page,
+    rowsPerPage,
+    debouncedSearch,
+    order,
+    orderBy,
+  ]);
 
   useEffect(() => {
-    if (!manufacturingPlantId) return setData([]);
-    getData(manufacturingPlantId);
-  }, [manufacturingPlantId]);
+    getData();
+  }, [getData]);
+
+  // Cualquier cambio de filtro, orden o tamaño vuelve a la primera página.
+  useEffect(() => {
+    setPage(0);
+  }, [manufacturingPlantId, debouncedSearch, order, orderBy, rowsPerPage]);
 
   useEffect(() => {
     if (manufacturingPlants.length) {
@@ -51,7 +104,7 @@ export default function EppPage() {
           if (!confirm) return setOpen(false);
           EppService.create(form).then(() => {
             setOpen(false);
-            if (manufacturingPlantId) getData(manufacturingPlantId);
+            getData();
           });
         }}
       />
@@ -95,9 +148,7 @@ export default function EppPage() {
             </Button>
             <Button
               variant="contained"
-              onClick={() =>
-                manufacturingPlantId && getData(manufacturingPlantId)
-              }
+              onClick={() => getData()}
               startIcon={<RefreshIcon />}
               sx={{ width: { xs: "100%", sm: "auto" } }}
             >
@@ -112,16 +163,25 @@ export default function EppPage() {
             md: 12,
           }}
         >
-          {isLoading ? (
-            <LoadingLinear />
-          ) : (
-            <TableEpps
-              data={data}
-              onHistoryDeleted={() =>
-                manufacturingPlantId && getData(manufacturingPlantId)
-              }
-            />
-          )}
+          {/* La tabla no se desmonta al cargar: así la búsqueda conserva el foco. */}
+          <TableEpps
+            rows={rows}
+            count={count}
+            isLoading={isLoading}
+            page={page}
+            rowsPerPage={rowsPerPage}
+            search={search}
+            order={order}
+            orderBy={orderBy}
+            onPageChange={setPage}
+            onRowsPerPageChange={setRowsPerPage}
+            onSearchChange={setSearch}
+            onSortChange={(nextOrder, nextOrderBy) => {
+              setOrder(nextOrder);
+              setOrderBy(nextOrderBy);
+            }}
+            onHistoryDeleted={getData}
+          />
         </Grid>
       </Grid>
     </>

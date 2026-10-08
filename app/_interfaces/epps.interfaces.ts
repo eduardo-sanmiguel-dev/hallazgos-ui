@@ -1,5 +1,24 @@
 import { User } from "./users.interfaces";
 
+export type EppSortableColumn = "name" | "code" | "position" | "area";
+
+export interface QueryEpps {
+  manufacturingPlantId: string;
+  /** Página 1-based, como la espera la API. */
+  page: number;
+  limit: number;
+  search?: string;
+  orderBy?: EppSortableColumn;
+  order?: "asc" | "desc";
+}
+
+export interface EppsPage {
+  data: Epp[];
+  count: number;
+  page: number;
+  limit: number;
+}
+
 export interface PayloadCreateEpp {
   employeeId: number;
   signature: string;
