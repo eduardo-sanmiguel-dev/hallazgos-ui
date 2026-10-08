@@ -14,7 +14,6 @@ import { TableFooter } from "@mui/material";
 import { TablePagination } from "@mui/material";
 import { Grid } from "@mui/material";
 import { Button } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import { Toolbar } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { ButtonGroup } from "@mui/material";
@@ -68,8 +67,6 @@ const HdsPage = () => {
   const [filters, setFilters] = useState<IFiltersHds>({
     name: "",
   });
-
-  const theme = useTheme();
 
   const emptyRows =
     page > 0 ? Math.max(0, (1 + page) * rowsPerPage - data.length) : 0;

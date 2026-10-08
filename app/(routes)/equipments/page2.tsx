@@ -11,7 +11,6 @@ import { TableHead } from "@mui/material";
 import { Paper } from "@mui/material";
 import { Typography } from "@mui/material";
 import { Grid } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import { Toolbar } from "@mui/material";
 import { Box } from "@mui/material";
@@ -331,8 +330,6 @@ export default function EquipmentsPage() {
   const manufacturingPlants = useUserSessionStore(
     (state) => state.manufacturingPlants,
   );
-
-  const theme = useTheme();
 
   const emptyRows =
     page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;

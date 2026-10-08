@@ -633,8 +633,6 @@ export default function TopicTg() {
     useShallow((state) => state),
   );
 
-  const theme = useTheme();
-
   const emptyRows =
     page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
 
