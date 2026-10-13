@@ -12,7 +12,6 @@ import { Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -22,7 +21,6 @@ import type {
   EventClickArg,
   EventInput,
 } from "@fullcalendar/core";
-
 import { GembaWalksService, GembaWalkScheduleEvent } from "@services";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import GembaWalkAccessGuard from "../_components/GembaWalkAccessGuard";
