@@ -26,6 +26,12 @@ const FiltersSecondaryTypes = ({ filters, setFilters, count }: Props) => {
           sm: 12,
           md: 12,
         }}
+        sx={{
+          color: (theme) =>
+            theme.palette.mode === "light"
+              ? theme.palette.common.black
+              : theme.palette.common.white,
+        }}
       >
         <Typography variant="subtitle1" gutterBottom>
           <FilterListIcon sx={{ pt: 1 }} /> Filtros ({count})

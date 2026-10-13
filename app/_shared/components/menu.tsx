@@ -36,12 +36,18 @@ import HealthAndSafetyIcon from "@mui/icons-material/HealthAndSafety";
 import SettingsSuggestIcon from "@mui/icons-material/SettingsSuggest";
 import MapIcon from "@mui/icons-material/Map";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
+import DirectionsWalkIcon from "@mui/icons-material/DirectionsWalk";
+import GridViewIcon from "@mui/icons-material/GridView";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import FactCheckIcon from "@mui/icons-material/FactCheck";
 
 import { useCategoriesStore, useUserSessionStore } from "@store";
 import { ROLE_ADMINISTRADOR } from "@shared/constants";
 import { notify } from "@shared/utils";
 import {
   AuthService,
+  GembaWalksService,
   MainTypesService,
   ProcessesService,
   ZonesService,
@@ -55,14 +61,19 @@ function CreateLink({
   tooltip,
   icon,
   nested = false,
+  level = 1,
   expanded = true,
+  isSelected,
 }: {
   url: string;
   title: string;
   tooltip?: string;
   icon: ReactNode;
   nested?: boolean;
+  level?: number;
   expanded?: boolean;
+  // Por defecto se marca cuando la ruta actual empieza con `url`.
+  isSelected?: (pathname: string) => boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -71,8 +82,8 @@ function CreateLink({
     <Tooltip title={tooltip || title} placement="right">
       <ListItemButton
         onClick={() => router.push(url)}
-        selected={pathname.startsWith(url)}
-        sx={nested ? { pl: expanded ? 4 : 2 } : undefined}
+        selected={isSelected ? isSelected(pathname) : pathname.startsWith(url)}
+        sx={nested ? { pl: expanded ? 2 + level * 2 : 2 } : undefined}
       >
         <ListItemIcon>{icon}</ListItemIcon>
         {expanded && <ListItemText primary={title} />}
@@ -85,6 +96,8 @@ export const MainListItems = ({ expanded = true }: { expanded?: boolean }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [openConfig, setOpenConfig] = useState(false);
   const [openMedicinaLaboral, setOpenMedicinaLaboral] = useState(false);
+  const [openGembaWalk, setOpenGembaWalk] = useState(false);
+  const [isGembaWalkObserver, setIsGembaWalkObserver] = useState(false);
 
   const role = useUserSessionStore((state) => state.role);
   const email = useUserSessionStore((state) => state.email);
@@ -108,6 +121,13 @@ export const MainListItems = ({ expanded = true }: { expanded?: boolean }) => {
   useEffect(() => {
     initialCategories();
   }, [initialCategories]);
+
+  // El módulo de recorridos solo se muestra a los observadores de Gemba Walk.
+  useEffect(() => {
+    GembaWalksService.access()
+      .then(({ isObserver }) => setIsGembaWalkObserver(isObserver))
+      .catch(() => setIsGembaWalkObserver(false));
+  }, []);
 
   useEffect(() => {
     if (role && role === ROLE_ADMINISTRADOR && !isAdmin) {
@@ -155,6 +175,21 @@ export const MainListItems = ({ expanded = true }: { expanded?: boolean }) => {
             expanded={expanded}
           />
         </>
+      )}
+      {isGembaWalkObserver && (
+        <CreateLink
+          url="/gemba-walk"
+          title="Gemba Walk"
+          tooltip="Gemba Walk - Recorridos"
+          icon={<DirectionsWalkIcon />}
+          expanded={expanded}
+          isSelected={(pathname) =>
+            pathname === "/gemba-walk" ||
+            pathname.startsWith("/gemba-walk/form") ||
+            pathname.startsWith("/gemba-walk/view") ||
+            pathname.startsWith("/gemba-walk/schedule")
+          }
+        />
       )}
       {!userEpp.includes(email) && (
         <>
@@ -336,6 +371,75 @@ export const MainListItems = ({ expanded = true }: { expanded?: boolean }) => {
                 icon={<FireExtinguisherIcon />}
                 expanded={expanded}
               />
+              <Tooltip title="Gemba Walk" placement="right">
+                <ListItemButton
+                  onClick={() => setOpenGembaWalk((prev) => !prev)}
+                  sx={{ pl: expanded ? 4 : 2 }}
+                >
+                  <ListItemIcon>
+                    <DirectionsWalkIcon />
+                  </ListItemIcon>
+                  {expanded && <ListItemText primary="Gemba Walk" />}
+                  {expanded ? (
+                    openGembaWalk ? (
+                      <ExpandLess />
+                    ) : (
+                      <ExpandMore />
+                    )
+                  ) : (
+                    <ChevronRightIcon
+                      sx={{
+                        fontSize: 18,
+                        color: "text.secondary",
+                        transform: openGembaWalk
+                          ? "rotate(90deg)"
+                          : "rotate(0deg)",
+                        transition: "transform 0.2s ease",
+                      }}
+                    />
+                  )}
+                </ListItemButton>
+              </Tooltip>
+              <Collapse in={openGembaWalk} timeout="auto" unmountOnExit>
+                <List component="div" disablePadding>
+                  <CreateLink
+                    nested
+                    level={2}
+                    url="/gemba-walk/zones"
+                    title="Zonas"
+                    tooltip="Gemba Walk - Zonas"
+                    icon={<GridViewIcon />}
+                    expanded={expanded}
+                  />
+                  <CreateLink
+                    nested
+                    level={2}
+                    url="/gemba-walk/observers"
+                    title="Observadores"
+                    tooltip="Gemba Walk - Observadores"
+                    icon={<VisibilityIcon />}
+                    expanded={expanded}
+                  />
+                  <CreateLink
+                    nested
+                    level={2}
+                    url="/gemba-walk/calendar"
+                    title="Calendario"
+                    tooltip="Gemba Walk - Calendario"
+                    icon={<CalendarMonthIcon />}
+                    expanded={expanded}
+                  />
+                  <CreateLink
+                    nested
+                    level={2}
+                    url="/gemba-walk/evaluations"
+                    title="Evaluaciones"
+                    tooltip="Gemba Walk - Conceptos de evaluación"
+                    icon={<FactCheckIcon />}
+                    expanded={expanded}
+                  />
+                </List>
+              </Collapse>
             </List>
           </Collapse>
         </>

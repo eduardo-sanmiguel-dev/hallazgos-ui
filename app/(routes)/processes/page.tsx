@@ -49,8 +49,15 @@ const ProcessesPage = () => {
         size={{
           xs: 12,
           sm: 12,
-          md: 12
-        }}>
+          md: 12,
+        }}
+        sx={{
+          color: (theme) =>
+            theme.palette.mode === "light"
+              ? theme.palette.common.black
+              : theme.palette.common.white,
+        }}
+      >
         <Typography variant="h4" gutterBottom>
           Procesos
         </Typography>
@@ -59,8 +66,9 @@ const ProcessesPage = () => {
         size={{
           xs: 12,
           sm: 12,
-          md: 12
-        }}>
+          md: 12,
+        }}
+      >
         <Toolbar>
           <Box sx={{ flexGrow: 1 }}>
             <Button
@@ -88,8 +96,9 @@ const ProcessesPage = () => {
         size={{
           xs: 12,
           sm: 12,
-          md: 12
-        }}>
+          md: 12,
+        }}
+      >
         <FiltersProcesses
           filters={filters}
           setFilters={setFilters}
@@ -100,8 +109,9 @@ const ProcessesPage = () => {
         size={{
           xs: 12,
           sm: 12,
-          md: 12
-        }}>
+          md: 12,
+        }}
+      >
         {isLoading ? (
           <LoadingLinear />
         ) : (

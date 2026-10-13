@@ -48,8 +48,15 @@ const MainTypesPage = () => {
         size={{
           xs: 12,
           sm: 12,
-          md: 12
-        }}>
+          md: 12,
+        }}
+        sx={{
+          color: (theme) =>
+            theme.palette.mode === "light"
+              ? theme.palette.common.black
+              : theme.palette.common.white,
+        }}
+      >
         <Typography variant="h4" gutterBottom>
           Criterios
         </Typography>
@@ -58,8 +65,9 @@ const MainTypesPage = () => {
         size={{
           xs: 12,
           sm: 12,
-          md: 12
-        }}>
+          md: 12,
+        }}
+      >
         <Toolbar>
           <Box sx={{ flexGrow: 1 }}>
             <Button
@@ -87,8 +95,9 @@ const MainTypesPage = () => {
         size={{
           xs: 12,
           sm: 12,
-          md: 12
-        }}>
+          md: 12,
+        }}
+      >
         <FiltersMainTypes
           filters={filters}
           setFilters={setFilters}
@@ -99,8 +108,9 @@ const MainTypesPage = () => {
         size={{
           xs: 12,
           sm: 12,
-          md: 12
-        }}>
+          md: 12,
+        }}
+      >
         {isLoading ? (
           <LoadingLinear />
         ) : (

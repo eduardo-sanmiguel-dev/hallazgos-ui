@@ -48,9 +48,19 @@ const ManufacturingPlantsPage = () => {
         size={{
           xs: 12,
           sm: 12,
-          md: 12
-        }}>
-        <Typography variant="h4" gutterBottom>
+          md: 12,
+        }}
+      >
+        <Typography
+          variant="h4"
+          gutterBottom
+          sx={{
+            color: (theme) =>
+              theme.palette.mode === "light"
+                ? theme.palette.common.black
+                : theme.palette.common.white,
+          }}
+        >
           Plantas
         </Typography>
       </Grid>
@@ -58,8 +68,9 @@ const ManufacturingPlantsPage = () => {
         size={{
           xs: 12,
           sm: 12,
-          md: 12
-        }}>
+          md: 12,
+        }}
+      >
         <Toolbar>
           <Box sx={{ flexGrow: 1 }}>
             <Button
@@ -87,8 +98,9 @@ const ManufacturingPlantsPage = () => {
         size={{
           xs: 12,
           sm: 12,
-          md: 12
-        }}>
+          md: 12,
+        }}
+      >
         <FiltersManufacturingPlants
           filters={filters}
           setFilters={setFilters}
@@ -99,8 +111,9 @@ const ManufacturingPlantsPage = () => {
         size={{
           xs: 12,
           sm: 12,
-          md: 12
-        }}>
+          md: 12,
+        }}
+      >
         {isLoading ? (
           <LoadingLinear />
         ) : (
