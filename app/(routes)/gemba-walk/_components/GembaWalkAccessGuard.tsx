@@ -25,8 +25,8 @@ export default function GembaWalkAccessGuard({
   if (!isObserver) {
     return (
       <Alert severity="warning">
-        Solo los usuarios registrados como observadores de Gemba Walk pueden
-        acceder a este módulo.
+        Solo los usuarios registrados como observadores de Gemba Walk o los
+        administradores pueden acceder a este módulo.
       </Alert>
     );
   }

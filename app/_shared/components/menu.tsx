@@ -122,7 +122,8 @@ export const MainListItems = ({ expanded = true }: { expanded?: boolean }) => {
     initialCategories();
   }, [initialCategories]);
 
-  // El módulo de recorridos solo se muestra a los observadores de Gemba Walk.
+  // El módulo de recorridos se muestra a los observadores de Gemba Walk y al
+  // administrador.
   useEffect(() => {
     GembaWalksService.access()
       .then(({ isObserver }) => setIsGembaWalkObserver(isObserver))
@@ -176,22 +177,21 @@ export const MainListItems = ({ expanded = true }: { expanded?: boolean }) => {
           />
         </>
       )}
-      {isGembaWalkObserver ||
-        (isAdmin && (
-          <CreateLink
-            url="/gemba-walk"
-            title="Gemba Walk"
-            tooltip="Gemba Walk - Recorridos"
-            icon={<DirectionsWalkIcon />}
-            expanded={expanded}
-            isSelected={(pathname) =>
-              pathname === "/gemba-walk" ||
-              pathname.startsWith("/gemba-walk/form") ||
-              pathname.startsWith("/gemba-walk/view") ||
-              pathname.startsWith("/gemba-walk/schedule")
-            }
-          />
-        ))}
+      {(isGembaWalkObserver || isAdmin) && (
+        <CreateLink
+          url="/gemba-walk"
+          title="Gemba Walk"
+          tooltip="Gemba Walk - Recorridos"
+          icon={<DirectionsWalkIcon />}
+          expanded={expanded}
+          isSelected={(pathname) =>
+            pathname === "/gemba-walk" ||
+            pathname.startsWith("/gemba-walk/form") ||
+            pathname.startsWith("/gemba-walk/view") ||
+            pathname.startsWith("/gemba-walk/schedule")
+          }
+        />
+      )}
       {!userEpp.includes(email) && (
         <>
           <CreateLink
