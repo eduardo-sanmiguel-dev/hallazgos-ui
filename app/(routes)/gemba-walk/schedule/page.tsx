@@ -23,6 +23,8 @@ import type {
 } from "@fullcalendar/core";
 import { GembaWalksService, GembaWalkScheduleEvent } from "@services";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
+import { useUserSessionStore } from "@store";
+import { ROLE_ADMINISTRADOR } from "@shared/constants";
 import GembaWalkAccessGuard from "../_components/GembaWalkAccessGuard";
 
 const LegendItem = ({
@@ -59,6 +61,10 @@ const STATUS_MARK: Record<GembaWalkScheduleEvent["status"], string> = {
 // Calendario informativo: no permite crear, editar ni eliminar eventos.
 const GembaWalkSchedule = () => {
   const router = useRouter();
+
+  // El administrador ve el estado de los recorridos de cualquier observador.
+  const isAdmin =
+    useUserSessionStore((state) => state.role) === ROLE_ADMINISTRADOR;
 
   const [manufacturingPlantId, setManufacturingPlantId] = useState("");
   const [range, setRange] = useState<{ start: string; end: string } | null>(
@@ -181,13 +187,13 @@ const GembaWalkSchedule = () => {
             variant="body2"
             sx={{ color: (theme) => theme.palette.text.primary }}
           >
-            ✓ Realizado por ti
+            {isAdmin ? "✓ Realizado" : "✓ Realizado por ti"}
           </Typography>
           <Typography
             variant="body2"
             sx={{ color: (theme) => theme.palette.text.primary }}
           >
-            ✗ No realizado por ti
+            {isAdmin ? "✗ No realizado" : "✗ No realizado por ti"}
           </Typography>
         </Box>
       </Grid>
