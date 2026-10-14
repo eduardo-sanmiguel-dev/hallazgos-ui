@@ -22,6 +22,10 @@ interface Props {
   getData: () => void;
 }
 
+// Los eventos cuya fecha y hora ya pasó no se editan ni se eliminan.
+const isPast = (scheduledAt: string | Date) =>
+  new Date(scheduledAt).getTime() <= Date.now();
+
 const columns = [
   "ID",
   "Planta",
@@ -41,9 +45,15 @@ export default function TableGembaWalkCalendar({ rows, getData }: Props) {
 
   const router = useRouter();
 
-  const remove = (id: number) => {
+  const remove = (row: GembaWalkCalendar) => {
+    // El toast de confirmación puede quedar abierto hasta que el evento pase.
+    if (isPast(row.scheduledAt)) {
+      toast.error("No se pueden eliminar eventos pasados");
+      return;
+    }
+
     setIsLoading(true);
-    GembaWalkCalendarService.remove(id)
+    GembaWalkCalendarService.remove(row.id)
       .then(() => {
         notify("Evento eliminado correctamente", true);
         getData();
@@ -61,7 +71,7 @@ export default function TableGembaWalkCalendar({ rows, getData }: Props) {
       },
       action: {
         label: "Eliminar",
-        onClick: () => remove(row.id),
+        onClick: () => remove(row),
       },
     });
   };
@@ -103,26 +113,29 @@ export default function TableGembaWalkCalendar({ rows, getData }: Props) {
             {stringToDateWithTime(row.updatedAt)}
           </StyledTableCell>
           <StyledTableCell>
-            <Stack direction="row" spacing={1}>
-              <Chip
-                icon={<EditIcon />}
-                label="Editar"
-                color="warning"
-                onClick={() =>
-                  router.push(
-                    `/gemba-walk/calendar/form?manufacturingPlantId=${row.gembaWalkZone?.manufacturingPlant?.id}&date=${moment(row.scheduledAt).format("YYYY-MM-DD")}`,
-                  )
-                }
-                disabled={new Date(row.scheduledAt).getTime() <= Date.now()}
-              />
-              <Chip
-                icon={<DeleteIcon />}
-                label="Eliminar"
-                color="error"
-                onClick={() => confirmRemove(row)}
-                disabled={isLoading}
-              />
-            </Stack>
+            {isPast(row.scheduledAt) ? (
+              "-"
+            ) : (
+              <Stack direction="row" spacing={1}>
+                <Chip
+                  icon={<EditIcon />}
+                  label="Editar"
+                  color="warning"
+                  onClick={() =>
+                    router.push(
+                      `/gemba-walk/calendar/form?manufacturingPlantId=${row.gembaWalkZone?.manufacturingPlant?.id}&date=${moment(row.scheduledAt).format("YYYY-MM-DD")}`,
+                    )
+                  }
+                />
+                <Chip
+                  icon={<DeleteIcon />}
+                  label="Eliminar"
+                  color="error"
+                  onClick={() => confirmRemove(row)}
+                  disabled={isLoading}
+                />
+              </Stack>
+            )}
           </StyledTableCell>
         </StyledTableRow>
       )}

@@ -176,21 +176,22 @@ export const MainListItems = ({ expanded = true }: { expanded?: boolean }) => {
           />
         </>
       )}
-      {isGembaWalkObserver && (
-        <CreateLink
-          url="/gemba-walk"
-          title="Gemba Walk"
-          tooltip="Gemba Walk - Recorridos"
-          icon={<DirectionsWalkIcon />}
-          expanded={expanded}
-          isSelected={(pathname) =>
-            pathname === "/gemba-walk" ||
-            pathname.startsWith("/gemba-walk/form") ||
-            pathname.startsWith("/gemba-walk/view") ||
-            pathname.startsWith("/gemba-walk/schedule")
-          }
-        />
-      )}
+      {isGembaWalkObserver ||
+        (isAdmin && (
+          <CreateLink
+            url="/gemba-walk"
+            title="Gemba Walk"
+            tooltip="Gemba Walk - Recorridos"
+            icon={<DirectionsWalkIcon />}
+            expanded={expanded}
+            isSelected={(pathname) =>
+              pathname === "/gemba-walk" ||
+              pathname.startsWith("/gemba-walk/form") ||
+              pathname.startsWith("/gemba-walk/view") ||
+              pathname.startsWith("/gemba-walk/schedule")
+            }
+          />
+        ))}
       {!userEpp.includes(email) && (
         <>
           <CreateLink

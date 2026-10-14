@@ -12,11 +12,15 @@ import { Box } from "@mui/material";
 import { Paper } from "@mui/material";
 import { Typography } from "@mui/material";
 import { Button } from "@mui/material";
+import { Dialog } from "@mui/material";
+import { DialogTitle } from "@mui/material";
+import { DialogContent } from "@mui/material";
+import { DialogContentText } from "@mui/material";
+import { DialogActions } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import SaveIcon from "@mui/icons-material/Save";
 import CloseIcon from "@mui/icons-material/Close";
-import UndoIcon from "@mui/icons-material/Undo";
 import { toast } from "sonner";
 import moment from "moment-timezone";
 
@@ -115,6 +119,8 @@ const GembaWalkCalendarFormPage = () => {
   >({});
   const [dialogState, setDialogState] = useState<DialogState | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isCancelConfirmOpen, setIsCancelConfirmOpen] =
+    useState<boolean>(false);
 
   const calendarRef = useRef<FullCalendar>(null);
   const newKeyCounter = useRef(0);
@@ -246,7 +252,7 @@ const GembaWalkCalendarFormPage = () => {
     if (value === manufacturingPlantId) return;
 
     if (hasChanges) {
-      toast.error("Guarda o descarta los cambios antes de cambiar de planta");
+      toast.error("Guarda los cambios antes de cambiar de planta");
       return;
     }
 
@@ -479,9 +485,16 @@ const GembaWalkCalendarFormPage = () => {
     setDialogState(null);
   };
 
-  const discardChanges = () => {
-    setNewEvents({});
-    setModifiedEvents({});
+  const goBack = () => router.push("/gemba-walk/calendar");
+
+  // Si hay eventos sin guardar se pide confirmación antes de salir.
+  const cancel = () => {
+    if (hasChanges) {
+      setIsCancelConfirmOpen(true);
+      return;
+    }
+
+    goBack();
   };
 
   const save = async () => {
@@ -514,7 +527,7 @@ const GembaWalkCalendarFormPage = () => {
       }
 
       toast.success("Calendario guardado correctamente");
-      router.push("/gemba-walk/calendar");
+      goBack();
     } catch {
       // El error ya se notifica en axiosWrapper; lo guardado se refleja al recargar.
       getSavedEvents();
@@ -549,20 +562,9 @@ const GembaWalkCalendarFormPage = () => {
           color="error"
           fullWidth
           startIcon={<CloseIcon />}
-          onClick={() => router.push("/gemba-walk/calendar")}
+          onClick={cancel}
         >
           Cancelar
-        </Button>
-      </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <Button
-          variant="outlined"
-          fullWidth
-          startIcon={<UndoIcon />}
-          onClick={discardChanges}
-          disabled={!hasChanges || isLoading}
-        >
-          Descartar cambios
         </Button>
       </Grid>
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -704,6 +706,35 @@ const GembaWalkCalendarFormPage = () => {
         onEdit={handleEdit}
         onRemoveNew={handleRemoveNew}
       />
+      <Dialog
+        open={isCancelConfirmOpen}
+        onClose={() => setIsCancelConfirmOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Eventos sin guardar</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Tienes{" "}
+            {[
+              newCount && `${newCount} evento(s) nuevo(s)`,
+              modifiedCount && `${modifiedCount} evento(s) modificado(s)`,
+            ]
+              .filter(Boolean)
+              .join(" y ")}{" "}
+            sin guardar. Si cancelas, se perderán estos cambios. ¿Estás seguro
+            de que deseas cancelar?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsCancelConfirmOpen(false)} autoFocus>
+            Regresar
+          </Button>
+          <Button color="error" onClick={goBack}>
+            Salir sin guardar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Grid>
   );
 };
