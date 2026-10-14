@@ -15,7 +15,12 @@ import {
   AppBar as MuiAppBar,
   AppBarProps as MuiAppBarProps,
 } from "@mui/material";
-import { useTheme, ThemeProvider, createTheme } from "@mui/material/styles";
+import {
+  alpha,
+  useTheme,
+  ThemeProvider,
+  createTheme,
+} from "@mui/material/styles";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
@@ -28,16 +33,17 @@ import { styled } from "@mui/material/styles";
 import { Drawer as MuiDrawer } from "@mui/material";
 import { Toolbar } from "@mui/material";
 import { Divider } from "@mui/material";
-import { List } from "@mui/material";
 import { Box } from "@mui/material";
+import { useMediaQuery } from "@mui/material";
 import Highcharts from "highcharts/esm/highcharts.src.js";
 
-import { MainListItems, SecondaryListItems } from "@shared/components/menu";
+import { MainListItems, UserFooter } from "@shared/components/menu";
 import Copyright from "@shared/components/Copyright";
 import { useUserSessionStore } from "@store";
 import { UsersService } from "@services";
 
-const drawerWidth: number = 260;
+// Ancho suficiente para que ninguna etiqueta del menú se corte.
+const drawerWidth: number = 300;
 
 interface AppBarProps extends MuiAppBarProps {
   open?: boolean;
@@ -69,7 +75,10 @@ const Drawer = styled(MuiDrawer, {
     whiteSpace: "nowrap",
     width: drawerWidth,
     height: "100%",
-    overflowY: "auto",
+    // La lista hace scroll por su cuenta y el pie queda fijo al fondo.
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
     transition: theme.transitions.create("width", {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.enteringScreen,
@@ -182,12 +191,10 @@ function BtnChangeMode() {
 export default function MainLayout({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<"light" | "dark">("light");
   const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const { id: userId, name, setSession, role } = useUserSessionStore();
 
-  const toggleDrawer = () => {
-    setOpen(!open);
-  };
 
   useEffect(() => {
     if (!userId) {
@@ -234,6 +241,59 @@ export default function MainLayout({ children }: { children: ReactNode }) {
     [mode, lightTheme, darkTheme],
   );
 
+  // En móvil y tablet el menú es temporal (se superpone al contenido).
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const expanded = isMobile || open;
+
+  const toggleDrawer = () => {
+    if (isMobile) {
+      setMobileOpen((prev) => !prev);
+    } else {
+      setOpen((prev) => !prev);
+    }
+  };
+
+  const closeMobileDrawer = () => {
+    if (isMobile) setMobileOpen(false);
+  };
+
+  const drawerContent = (
+    <>
+      <Toolbar
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          px: [1],
+          flexShrink: 0,
+        }}
+      >
+        <IconButton onClick={toggleDrawer} aria-label="Cerrar menú">
+          <ChevronLeftIcon />
+        </IconButton>
+      </Toolbar>
+      <Divider />
+      <Box
+        sx={(theme) => ({
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          overflowX: "hidden",
+          scrollbarWidth: "thin",
+          scrollbarColor: `${alpha(theme.palette.text.primary, 0.2)} transparent`,
+          "&::-webkit-scrollbar": { width: 6 },
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: alpha(theme.palette.text.primary, 0.2),
+            borderRadius: 3,
+          },
+        })}
+      >
+        <MainListItems expanded={expanded} onNavigate={closeMobileDrawer} />
+      </Box>
+      <UserFooter expanded={expanded} />
+    </>
+  );
+
   useEffect(() => {
     const colorModeCurrent = localStorage.getItem("colorMode") as
       | "light"
@@ -248,7 +308,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
       <ThemeProvider theme={theme}>
         <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
           <CssBaseline />
-          <AppBar position="absolute" open={open}>
+          <AppBar position="absolute" open={open && !isMobile}>
             <Toolbar
               sx={{
                 pr: "24px",
@@ -261,7 +321,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                 onClick={toggleDrawer}
                 sx={{
                   marginRight: "36px",
-                  ...(open && { display: "none" }),
+                  ...(open && !isMobile && { display: "none" }),
                 }}
               >
                 <MenuIcon />
@@ -283,26 +343,31 @@ export default function MainLayout({ children }: { children: ReactNode }) {
               <BtnChangeMode />
             </Toolbar>
           </AppBar>
-          <Drawer variant="permanent" open={open}>
-            <Toolbar
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "flex-end",
-                px: [1],
+          {isMobile ? (
+            <MuiDrawer
+              variant="temporary"
+              open={mobileOpen}
+              onClose={closeMobileDrawer}
+              keepMounted
+              slotProps={{
+                paper: {
+                  sx: {
+                    width: drawerWidth,
+                    maxWidth: "85vw",
+                    display: "flex",
+                    flexDirection: "column",
+                    overflow: "hidden",
+                  },
+                },
               }}
             >
-              <IconButton onClick={toggleDrawer}>
-                <ChevronLeftIcon />
-              </IconButton>
-            </Toolbar>
-            <Divider />
-            <List component="nav">
-              <MainListItems expanded={open} />
-              <Divider sx={{ my: 1 }} />
-              <SecondaryListItems expanded={open} />
-            </List>
-          </Drawer>
+              {drawerContent}
+            </MuiDrawer>
+          ) : (
+            <Drawer variant="permanent" open={open}>
+              {drawerContent}
+            </Drawer>
+          )}
           <Box
             component="main"
             sx={{
