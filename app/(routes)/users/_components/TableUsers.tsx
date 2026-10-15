@@ -2,13 +2,15 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Chip } from "@mui/material";
-import { Stack } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
 import { Tooltip } from "@mui/material";
 
 import { notify, stringToDateWithTime } from "@shared/utils";
+import { useConfirmDialog } from "@shared/components/ConfirmDialog";
+import {
+  DeleteAction,
+  EditAction,
+  RowActions,
+} from "@shared/components/RowActions";
 import TableDefault, {
   StyledTableCell,
   StyledTableRow,
@@ -38,6 +40,7 @@ export default function TableUsers({ rows, getData }: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const router = useRouter();
+  const { confirm, confirmDialog } = useConfirmDialog();
 
   const remove = (id: number) => {
     setIsLoading(true);
@@ -49,6 +52,17 @@ export default function TableUsers({ rows, getData }: Props) {
       .finally(() => setIsLoading(false));
   };
 
+  const confirmRemove = async (row: User) => {
+    const confirmed = await confirm({
+      title: "Eliminar usuario",
+      description: `¿Deseas eliminar al usuario "${row.name}"?`,
+      confirmLabel: "Eliminar",
+      tone: "danger",
+    });
+
+    if (confirmed) remove(row.id);
+  };
+
   const truncateText = (text: string) => {
     if (!text) return "";
 
@@ -58,71 +72,68 @@ export default function TableUsers({ rows, getData }: Props) {
   };
 
   return (
-    <TableDefault
-      rows={rows}
-      columns={columns}
-      paintRows={(row: User) => {
-        const zonesName = row.zones
-          .map(
-            ({ name, manufacturingPlant }) =>
-              `${name} (${manufacturingPlant.name})`
-          )
-          .join("\n");
+    <>
+      <TableDefault
+        rows={rows}
+        columns={columns}
+        paintRows={(row: User) => {
+          const zonesName = row.zones
+            .map(
+              ({ name, manufacturingPlant }) =>
+                `${name} (${manufacturingPlant.name})`
+            )
+            .join("\n");
 
-        const processesName = row.processes
-          .map(
-            ({ name, manufacturingPlant }) =>
-              `${name} (${manufacturingPlant.name})`
-          )
-          .join("\n");
+          const processesName = row.processes
+            .map(
+              ({ name, manufacturingPlant }) =>
+                `${name} (${manufacturingPlant.name})`
+            )
+            .join("\n");
 
-        return (
-          <StyledTableRow key={row.id}>
-            <StyledTableCell component="th" scope="row">
-              {row.id}
-            </StyledTableCell>
-            <StyledTableCell>{row.name}</StyledTableCell>
-            <StyledTableCell>{row.email}</StyledTableCell>
-            <StyledTableCell>
-              {row.manufacturingPlants.map(({ name }) => name).join(", ")}
-            </StyledTableCell>
-            <StyledTableCell>
-              <Tooltip title={zonesName}>
-                <div>{truncateText(zonesName)}</div>
-              </Tooltip>
-            </StyledTableCell>
-            <StyledTableCell>
-              <Tooltip title={processesName}>
-                <div>{truncateText(processesName)}</div>
-              </Tooltip>
-            </StyledTableCell>
-            <StyledTableCell>{row.role}</StyledTableCell>
-            <StyledTableCell>
-              {stringToDateWithTime(row.createdAt)}
-            </StyledTableCell>
-            <StyledTableCell>
-              {stringToDateWithTime(row.updatedAt)}
-            </StyledTableCell>
-            <StyledTableCell>
-              <Stack direction="row" spacing={1}>
-                <Chip
-                  icon={<EditIcon />}
-                  label="Editar"
-                  color="warning"
-                  onClick={() => router.push("/users/form?id=" + row.id)}
-                />
-                <Chip
-                  icon={<DeleteIcon />}
-                  label="Eliminar"
-                  color="error"
-                  onClick={() => remove(row.id)}
-                  disabled={isLoading}
-                />
-              </Stack>
-            </StyledTableCell>
-          </StyledTableRow>
-        );
-      }}
-    />
+          return (
+            <StyledTableRow key={row.id}>
+              <StyledTableCell component="th" scope="row">
+                {row.id}
+              </StyledTableCell>
+              <StyledTableCell>{row.name}</StyledTableCell>
+              <StyledTableCell>{row.email}</StyledTableCell>
+              <StyledTableCell>
+                {row.manufacturingPlants.map(({ name }) => name).join(", ")}
+              </StyledTableCell>
+              <StyledTableCell>
+                <Tooltip title={zonesName}>
+                  <div>{truncateText(zonesName)}</div>
+                </Tooltip>
+              </StyledTableCell>
+              <StyledTableCell>
+                <Tooltip title={processesName}>
+                  <div>{truncateText(processesName)}</div>
+                </Tooltip>
+              </StyledTableCell>
+              <StyledTableCell>{row.role}</StyledTableCell>
+              <StyledTableCell>
+                {stringToDateWithTime(row.createdAt)}
+              </StyledTableCell>
+              <StyledTableCell>
+                {stringToDateWithTime(row.updatedAt)}
+              </StyledTableCell>
+              <StyledTableCell>
+                <RowActions>
+                  <EditAction
+                    onClick={() => router.push("/users/form?id=" + row.id)}
+                  />
+                  <DeleteAction
+                    onClick={() => confirmRemove(row)}
+                    disabled={isLoading}
+                  />
+                </RowActions>
+              </StyledTableCell>
+            </StyledTableRow>
+          );
+        }}
+      />
+      {confirmDialog}
+    </>
   );
 }
