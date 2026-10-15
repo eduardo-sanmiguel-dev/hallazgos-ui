@@ -540,7 +540,7 @@ En `hallazgos_dev` se revisaron las 53 tablas con `id` serial. Había 5 desfasad
 SELECT t.tabla,
        t.secuencia,
        t.max_id,
-       CASE WHEN s.is_called THEN s.last_value + 1 ELSE s.last_value END AS siguiente
+       COALESCE(s.last_value + s.increment_by, s.start_value) AS siguiente
 FROM (
   SELECT c.relname AS tabla,
          pg_get_serial_sequence(quote_ident(c.relname), 'id') AS secuencia,
@@ -554,7 +554,7 @@ FROM (
 JOIN pg_sequences s ON s.schemaname || '.' || s.sequencename = replace(t.secuencia, '"', '')
 WHERE t.secuencia IS NOT NULL
   AND t.max_id IS NOT NULL
-  AND (CASE WHEN s.is_called THEN s.last_value + 1 ELSE s.last_value END) <= t.max_id
+  AND (COALESCE(s.last_value + s.increment_by, s.start_value)) <= t.max_id
 ORDER BY t.tabla;
 ```
 
@@ -577,7 +577,7 @@ BEGIN
     CONTINUE WHEN seq IS NULL;
     EXECUTE format('SELECT max(id) FROM %I', r.tabla) INTO max_id;
     CONTINUE WHEN max_id IS NULL;
-    IF (SELECT CASE WHEN is_called THEN last_value + 1 ELSE last_value END
+    IF (SELECT COALESCE(last_value + increment_by, start_value)
         FROM pg_sequences WHERE schemaname || '.' || sequencename = replace(seq, '"', '')) <= max_id THEN
       PERFORM setval(seq, max_id, true);
       RAISE NOTICE 'Secuencia % ajustada a %', seq, max_id;
