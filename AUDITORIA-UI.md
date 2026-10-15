@@ -125,7 +125,7 @@ Riesgo = riesgo de **aplicar** la corrección para la funcionalidad existente.
 | Módulo | Estado | Problemas principales |
 |---|---|---|
 | HDS | 🟡 | `aria-label` "expand row" en descargar; tabla propia en vez de `TableDefault`; encabezado repetido |
-| Guías de entrenamiento | 🔴 | Archivo único de ~1 370 líneas; firmas; anchos fijos; `any` |
+| Guías de entrenamiento | ⚪ | **Fuera de alcance: módulo sin uso** (ver sección "Fuera de alcance: Guías de entrenamiento") |
 | Usuarios, Plantas, Procesos, Criterios, Tipos de criterios | 🟡 | Eliminar sin confirmación; refrescar sin nombre; mensaje equivocado en Criterios y Tipos de criterios ("Planta eliminada correctamente") |
 | Colaboradores | 🟡 | Eliminar sin confirmación; `any` en formulario |
 | Lugares | 🟢 | Patrón estándar con confirmación |
@@ -217,7 +217,7 @@ Dirección: **industrial y utilitaria, refinada**. Es un sistema de seguridad in
 5. Equipos de emergencia
 6. Inspección de extintores
 7. EPP
-8. Guías de entrenamiento
+8. ~~Guías de entrenamiento~~ (fuera de alcance: módulo sin uso)
 9. Gemba Walk recorridos
 10. Hallazgos
 11. ICS
@@ -423,9 +423,7 @@ Hallazgos sin corregir (para decidir):
 - **Usuarios:** la contraseña se escribe en un campo de texto visible (`type="text"`).
 - **Errores junto al campo en selects:** el error aparece, pero el foco solo se mueve a los campos de texto.
 
-Pendientes acordados (tarea aparte):
-- **Configuración G. Entr. — `DraggableTopicRow`:** está definido dentro de `ScreenForm` y se remonta en cada render.
-- **Configuración G. Entr. — reordenar temas:** agregar botones subir/bajar como alternativa al arrastre (WCAG 2.5.7).
+Los pendientes de `DraggableTopicRow` y de los botones subir/bajar se movieron a "Fuera de alcance: Guías de entrenamiento".
 
 ### Pendientes fuera de la UI (backend y producción)
 
@@ -469,3 +467,13 @@ Pendientes acordados (tarea aparte):
    - **Si se necesita una aproximación masiva:** con un ancho mostrado conocido `W`, la conversión sería `x' = round(x * 12396 / W)` y `y' = round(y * 12396 / W)` (la imagen conserva su proporción). Antes conviene validarla con dos o tres zonas comparando visualmente en el plano.
    - **Riesgo de la consulta:** una zona marcada de verdad en la esquina superior izquierda del plano también cumpliría el criterio. Por eso se revisa la lista antes de corregir.
    - No se ejecutó nada contra producción.
+
+### Fuera de alcance: Guías de entrenamiento (módulo sin uso)
+
+Decisión del 14/10/2026: el módulo `/training-guide` ya no se usa. No se modifica ni se prueba, y no se dispara su firma ni su correo. Lo que se había anotado para él queda registrado aquí por si el módulo se retoma:
+
+- **Propuesta: dividir `training-guide/page.tsx`** (~1 370 líneas en un solo archivo). Partirlo en filtros, tabla, diálogo de alta y edición, captura de firma y vista de evaluación, y después aplicar el patrón del sistema de diseño (encabezado, `FilterBar`, `TableDefault`, `RowActions`, `ConfirmDialog` y errores junto al campo).
+- **Configuración G. Entr. — `DraggableTopicRow`:** está definido dentro de `ScreenForm` (regla `rerender-no-inline-components`). Conviene sacarlo a nivel de módulo y pasarle `form`/`setForm` por props. En la prueba de arrastre no se vio que las filas saltaran ni perdieran el foco.
+- **Configuración G. Entr. — reordenar temas sin arrastrar:** agregar botones subir/bajar como alternativa al arrastre (WCAG 2.5.7).
+
+Configuración G. Entr. y Temas sí recibieron el patrón visual en el bloque 2 y se probaron de punta a punta, porque ya estaban hechos antes de esta decisión.
