@@ -204,6 +204,7 @@ export default function ReassignResponsiblesEvidence({
                   <IconButton
                     edge="end"
                     color="error"
+                    aria-label={`Quitar a ${responsible.name}`}
                     onClick={() =>
                       handleRemoveResponsible(Number(responsible.id))
                     }

@@ -77,7 +77,7 @@ export default function StartProcessEvidence({
         Evidencia de inicio de proceso
       </DialogTitle>
       <IconButton
-        aria-label="close"
+        aria-label="Cerrar"
         onClick={() => handleClose()}
         sx={{
           position: "absolute",

@@ -45,7 +45,7 @@ export default function EvidencePreview({
             edge="start"
             color="inherit"
             onClick={() => handleClose(refreshData)}
-            aria-label="close"
+            aria-label="Cerrar"
           >
             <CloseIcon />
           </IconButton>

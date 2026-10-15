@@ -1,5 +1,4 @@
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { toast } from "sonner";
 
 import { Chip } from "@mui/material";
 import { Menu } from "@mui/material";
@@ -39,6 +38,7 @@ import { useUserSessionStore } from "@store";
 import { EvidencesService } from "@services";
 import { EvidenceGraphql } from "@hooks";
 import TableDefaultServer from "@shared/components/TableDefaultServer";
+import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import {
   formatDayLabel,
@@ -87,6 +87,7 @@ export default function TableEvidences({
   const [idRow, setIdRow] = useState<number>(0);
   const [idRowProcess, setIdRowProcess] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { confirm, confirmDialog } = useConfirmDialog();
   const [supervisorOverrideEmails, setSupervisorOverrideEmails] = useState<
     string[]
   >([]);
@@ -121,19 +122,17 @@ export default function TableEvidences({
       .finally(() => setIsLoading(false));
   };
 
-  const confirmRemoveEvidence = (row: EvidenceGraphql) => {
-    toast.warning("Confirmar cancelación", {
+  // Antes los dos botones del aviso decían "Cancelar".
+  const confirmRemoveEvidence = async (row: EvidenceGraphql) => {
+    const confirmed = await confirm({
+      title: "Confirmar cancelación",
       description: `¿Desea cancelar/eliminar el hallazgo #${row.id}?`,
-      duration: 10000,
-      cancel: {
-        label: "Cancelar",
-        onClick: () => undefined,
-      },
-      action: {
-        label: "Cancelar",
-        onClick: () => removeEvicence(row.id),
-      },
+      confirmLabel: "Cancelar hallazgo",
+      cancelLabel: "Volver",
+      tone: "danger",
     });
+
+    if (confirmed) removeEvicence(row.id);
   };
 
   // !Atention: Force close evidence if the user is a supervisor
@@ -546,6 +545,8 @@ export default function TableEvidences({
             <StyledTableCell>
               <IconButton
                 size="small"
+                aria-label={`Acciones del hallazgo ${row.id}`}
+                aria-haspopup="menu"
                 onClick={(event) => openActionsMenu(event, row.id)}
               >
                 <MoreVertIcon />
@@ -649,6 +650,7 @@ export default function TableEvidences({
         setRowsPerPage={setRowsPerPage}
         count={countEvidence}
       />
+      {confirmDialog}
     </>
   );
 }
