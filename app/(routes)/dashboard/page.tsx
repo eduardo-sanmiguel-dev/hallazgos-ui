@@ -20,6 +20,7 @@ import {
   SelectChangeEvent,
   Stack,
   Tooltip,
+  Typography,
   Zoom,
 } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -35,6 +36,7 @@ import SelectDefault from "@components/SelectDefault";
 import { Area, ResponseDashboardHeatmapByFilters, User } from "@interfaces";
 import { AreasService, DashboardService, UsersService } from "@services";
 import { useCategoriesStore, useUserSessionStore } from "@store";
+import { useHighchartsTheme } from "@hooks/useHighchartsTheme";
 import AreaImageCoordinateSelector from "../areas/_components/AreaImageCoordinateSelector";
 import AreasChart from "./charts/AreasChart";
 import MainTypesChart from "./charts/MainTypesChart";
@@ -61,10 +63,23 @@ interface DashboardFilters {
   mainTypeNames: string[];
 }
 
+// Título solo para lectores de pantalla: la barra de filtros es lo primero
+// que se ve en la página.
+const visuallyHidden = {
+  position: "absolute",
+  width: "1px",
+  height: "1px",
+  overflow: "hidden",
+  clip: "rect(0 0 0 0)",
+  whiteSpace: "nowrap",
+} as const;
+
 const restrictedDashboardEmail = "glora@hadainternational.com";
 
 const DashboardPage = () => {
   const router = useRouter();
+  // Al cambiar de tema se vuelven a crear las gráficas con sus colores.
+  const chartsMode = useHighchartsTheme();
 
   const manufacturingPlants = useUserSessionStore(
     (state) => state.manufacturingPlants || [],
@@ -461,7 +476,10 @@ const DashboardPage = () => {
   }
 
   return (
-    <Grid container spacing={2}>
+    <Grid key={chartsMode} container spacing={2}>
+      <Typography component="h1" sx={visuallyHidden}>
+        Dashboard de hallazgos
+      </Typography>
       {isHistoricalView ? (
         <>
           <Grid

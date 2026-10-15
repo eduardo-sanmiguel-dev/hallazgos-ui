@@ -9,7 +9,6 @@ import {
   useState,
 } from "react";
 
-import { usePathname } from "next/navigation";
 
 import {
   AppBar as MuiAppBar,
@@ -34,7 +33,6 @@ import { Toolbar } from "@mui/material";
 import { Divider } from "@mui/material";
 import { Box } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
-import Highcharts from "highcharts/esm/highcharts.src.js";
 
 import { MainListItems, UserFooter } from "@shared/components/menu";
 import Copyright from "@shared/components/Copyright";
@@ -104,81 +102,14 @@ function BtnChangeMode() {
   const theme = useTheme();
   const colorMode = useContext(ColorModeContext);
 
-  const pathname = usePathname();
-
   const modeCurrent = theme.palette.mode;
 
   const isLight = modeCurrent === "light";
   const isDark = modeCurrent === "dark";
 
-  useEffect(() => {
-    if (isDark) {
-      Highcharts.setOptions({
-        chart: {
-          backgroundColor: "#303030",
-        },
-        title: {
-          style: {
-            color: "#fff",
-          },
-        },
-        subtitle: {
-          style: {
-            color: "#fff",
-          },
-        },
-        colors: [
-          "#f45b5b",
-          "#8085e9",
-          "#8d4654",
-          "#7798BF",
-          "#aaeeee",
-          "#ff0066",
-          "#eeaaee",
-          "#55BF3B",
-          "#DF5353",
-          "#7798BF",
-          "#aaeeee",
-        ],
-      });
-    } else if (isLight) {
-      Highcharts.setOptions({
-        chart: {
-          backgroundColor: "#fff",
-        },
-        title: {
-          style: {
-            color: "#000",
-          },
-        },
-        subtitle: {
-          style: {
-            color: "#000",
-          },
-        },
-        colors: [
-          "#7cb5ec",
-          "#434348",
-          "#90ed7d",
-          "#f7a35c",
-          "#8085e9",
-          "#f15c80",
-          "#e4d354",
-          "#2b908f",
-          "#f45b5b",
-          "#91e8e1",
-          "#aaeeee",
-        ],
-      });
-    }
-  }, [modeCurrent, isDark, isLight]);
-
   const handleToggleColorMode = () => {
     colorMode.toggleColorMode();
     localStorage.setItem("colorMode", isLight ? "dark" : "light");
-    if (pathname === "/dashboard") {
-      window.location.reload();
-    }
   };
 
   return (
