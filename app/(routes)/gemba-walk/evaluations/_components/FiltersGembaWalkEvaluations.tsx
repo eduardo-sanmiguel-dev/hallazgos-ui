@@ -1,12 +1,11 @@
 import { Grid } from "@mui/material";
-import { Typography } from "@mui/material";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import { TextField } from "@mui/material";
-import { Paper } from "@mui/material";
 
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
 import { GEMBA_WALK_EVALUATION_CATEGORIES } from "@interfaces";
+
+import FilterBar from "@shared/components/FilterBar";
 
 export interface IFiltersGembaWalkEvaluations {
   manufacturingPlantId: string;
@@ -27,26 +26,7 @@ export const categoryOptions = GEMBA_WALK_EVALUATION_CATEGORIES.map(
 
 const FiltersGembaWalkEvaluations = ({ filters, setFilters, count }: Props) => {
   return (
-    <Grid container spacing={2} sx={{ mb: 2 }}>
-      <Grid size={{ xs: 12 }}>
-        <Typography
-          variant="subtitle1"
-          gutterBottom
-          sx={{
-            color: (theme) =>
-              theme.palette.mode === "light"
-                ? theme.palette.common.black
-                : theme.palette.common.white,
-          }}
-        >
-          <FilterListIcon
-            sx={{
-              pt: 1,
-            }}
-          />{" "}
-          Filtros ({count})
-        </Typography>
-      </Grid>
+    <FilterBar count={count}>
       <SelectManufacturingPlantsOwn
         value={filters.manufacturingPlantId}
         onChange={(e) =>
@@ -72,23 +52,21 @@ const FiltersGembaWalkEvaluations = ({ filters, setFilters, count }: Props) => {
         />
       </Grid>
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <Paper>
-          <TextField
-            fullWidth
-            label="Área o descripción"
-            variant="outlined"
-            value={filters.search}
-            autoComplete="off"
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                search: e.target.value,
-              })
-            }
-          />
-        </Paper>
+        <TextField
+          fullWidth
+          label="Área o descripción"
+          variant="outlined"
+          value={filters.search}
+          autoComplete="off"
+          onChange={(e) =>
+            setFilters({
+              ...filters,
+              search: e.target.value,
+            })
+          }
+        />
       </Grid>
-    </Grid>
+    </FilterBar>
   );
 };
 
