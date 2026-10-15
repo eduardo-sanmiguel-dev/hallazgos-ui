@@ -9,13 +9,13 @@ import { useSearchParams } from "next/navigation";
 
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
-import { Paper } from "@mui/material";
-import SaveIcon from "@mui/icons-material/Save";
-import { Button } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import { toast } from "sonner";
 
 import { ManufacturingPlantsService } from "@services";
+import { useFieldErrors } from "@hooks/useFieldErrors";
+import PageHeader from "@shared/components/PageHeader";
+import FormSection from "@shared/components/FormSection";
+import FormActions from "@shared/components/FormActions";
 
 const ManufacturingPlantsFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -29,6 +29,12 @@ const ManufacturingPlantsFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { fail, fieldProps } = useFieldErrors<
+    | "name"
+    | "link"
+    | "lat"
+    | "lng"
+  >(form);
 
   const save = () => {
     const nameClean = form.name.trim();
@@ -37,22 +43,22 @@ const ManufacturingPlantsFormPage = () => {
     const lngClean = form.lng.trim();
 
     if (!nameClean) {
-      toast.error("El nombre es requerido");
+      fail("name", "El nombre es requerido");
       return;
     }
 
     if (!linkClean) {
-      toast.error("El link es requerido");
+      fail("link", "El link es requerido");
       return;
     }
 
     if (!latClean) {
-      toast.error("La latitud es requerida");
+      fail("lat", "La latitud es requerida");
       return;
     }
 
     if (!lngClean) {
-      toast.error("La longitud es requerida");
+      fail("lng", "La longitud es requerida");
       return;
     }
 
@@ -114,15 +120,18 @@ const ManufacturingPlantsFormPage = () => {
   }, [searchParams]);
 
   return (
-    <Grid container spacing={2}>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 3
-        }}>
-        <Paper>
+    <>
+      <PageHeader title={idCurrent ? "Editar planta" : "Nueva planta"} />
+      <FormSection>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <TextField
+            {...fieldProps("name")}
+            required
             label="Nombre"
             variant="outlined"
             fullWidth
@@ -135,16 +144,16 @@ const ManufacturingPlantsFormPage = () => {
               })
             }
           />
-        </Paper>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 3
-        }}>
-        <Paper>
+        </Grid>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <TextField
+            {...fieldProps("link")}
+            required
             label="Link"
             variant="outlined"
             fullWidth
@@ -157,16 +166,16 @@ const ManufacturingPlantsFormPage = () => {
               })
             }
           />
-        </Paper>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 3
-        }}>
-        <Paper>
+        </Grid>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <TextField
+            {...fieldProps("lat")}
+            required
             type="number"
             onKeyDown={(evt) => evt.key === "e" && evt.preventDefault()}
             label="Latitud"
@@ -181,16 +190,16 @@ const ManufacturingPlantsFormPage = () => {
               })
             }
           />
-        </Paper>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 3
-        }}>
-        <Paper>
+        </Grid>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3
+          }}>
           <TextField
+            {...fieldProps("lng")}
+            required
             type="number"
             onKeyDown={(evt) => evt.key === "e" && evt.preventDefault()}
             label="Longitud"
@@ -205,44 +214,15 @@ const ManufacturingPlantsFormPage = () => {
               })
             }
           />
-        </Paper>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 3,
-          md: 3
-        }}>
-        <Button
-          variant="contained"
-          color="error"
-          fullWidth
-          startIcon={<CloseIcon />}
-          onClick={cancel}
-        >
-          Cancelar
-        </Button>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 3,
-          md: 3
-        }}>
-        <Button
-          loading={isLoading}
-          loadingPosition="start"
-          startIcon={<SaveIcon />}
-          variant="contained"
-          color="primary"
-          fullWidth
-          onClick={save}
-          disabled={isValidateForm || isLoading}
-        >
-          Guardar
-        </Button>
-      </Grid>
-    </Grid>
+        </Grid>
+      </FormSection>
+      <FormActions
+        onCancel={cancel}
+        onSave={save}
+        isSaving={isLoading}
+        isSaveDisabled={isValidateForm}
+      />
+    </>
   );
 };
 
