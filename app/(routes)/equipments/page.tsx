@@ -2,54 +2,59 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { Table } from "@mui/material";
-import { TableBody } from "@mui/material";
-import { TableContainer } from "@mui/material";
-import { TableFooter } from "@mui/material";
-import { TablePagination } from "@mui/material";
-import { TableHead } from "@mui/material";
-import { Paper } from "@mui/material";
-import { Typography } from "@mui/material";
 import { Grid } from "@mui/material";
-import FilterListIcon from "@mui/icons-material/FilterList";
-import { Toolbar } from "@mui/material";
-import { Box } from "@mui/material";
-import RefreshIcon from "@mui/icons-material/Refresh";
 import { TextField } from "@mui/material";
 import { Button } from "@mui/material";
-import { ButtonGroup } from "@mui/material";
 import { useDebouncedCallback } from "use-debounce";
 import AddIcon from "@mui/icons-material/Add";
-import { Tooltip } from "@mui/material";
 import { DialogTitle } from "@mui/material";
 import { DialogContent } from "@mui/material";
 import { DialogActions } from "@mui/material";
+import { FormHelperText } from "@mui/material";
 import { IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
 import { toast } from "sonner";
 
-import TablePaginationActions from "@shared/components/TablePaginationActions";
 import { BootstrapDialog } from "@routes/hallazgos/_components/CloseEvidence";
 import SelectManufacturingPlants from "@components/SelectManufacturingPlants";
 import LoadingLinear from "@shared/components/LoadingLinear";
+import PageHeader from "@shared/components/PageHeader";
+import RefreshButton from "@shared/components/RefreshButton";
+import FilterBar from "@shared/components/FilterBar";
+import { useConfirmDialog } from "@shared/components/ConfirmDialog";
+import {
+  DeleteAction,
+  EditAction,
+  RowActions,
+} from "@shared/components/RowActions";
+import TableDefault, {
+  StyledTableCell,
+  StyledTableRow,
+} from "@shared/components/TableDefault";
+import { useFieldErrors } from "@hooks/useFieldErrors";
 import { Equipment, ManufacturingPlant } from "@interfaces";
 import SelectDefault from "@components/SelectDefault";
 import { stringToDateWithTime } from "@shared/utils";
 import { useUserSessionStore } from "@store";
 import { EquipmentsService } from "@services";
-import {
-  StyledTableCell,
-  StyledTableRow,
-} from "@shared/components/TableDefault";
 
 export interface IFiltersTopics {
   manufacturingPlantId?: number;
   name?: string;
 }
 
-const colSpan = 10;
+const columns = [
+  "ID",
+  "Nombre",
+  "Frecuencia de entrega (dias)",
+  "Precio",
+  "Planta",
+  "Fecha de creación",
+  "Creado por",
+  "Fecha de actualización",
+  "Actualizado por",
+  "Acciones",
+];
 
 const ScreenForm = ({
   currentId,
@@ -71,6 +76,9 @@ const ScreenForm = ({
     manufacturingPlantId: "",
     price: "",
   });
+  const { fail, errorOf, fieldProps } = useFieldErrors<
+    "name" | "manufacturingPlantId"
+  >(form);
 
   const saveData = () => {
     const nameCleaned = form.name.trim();
@@ -78,12 +86,15 @@ const ScreenForm = ({
     const priceCleaned = Number(form.price.trim() || 0);
 
     if (!nameCleaned) {
-      toast.error("El nombre es requerido");
+      fail("name", "El nombre es requerido");
       return;
     }
 
     if (!form.manufacturingPlantId) {
-      toast.error("Debe seleccionar una planta de manufactura.");
+      fail(
+        "manufacturingPlantId",
+        "Debe seleccionar una planta de manufactura.",
+      );
       return;
     }
 
@@ -157,10 +168,10 @@ const ScreenForm = ({
       fullWidth={true}
     >
       <DialogTitle sx={{ m: 0, p: 2 }} id="customized-dialog-title">
-        {currentId ? "Editar" : "Nuevo"}
+        {currentId ? "Editar equipo" : "Nuevo equipo"}
       </DialogTitle>
       <IconButton
-        aria-label="close"
+        aria-label="Cerrar"
         onClick={() => handleClose(false)}
         sx={{
           position: "absolute",
@@ -180,17 +191,74 @@ const ScreenForm = ({
               md: 12,
             }}
           >
-            <Paper>
-              <SelectManufacturingPlants
-                value={form.manufacturingPlantId}
-                onChange={(e) =>
+            <SelectManufacturingPlants
+              value={form.manufacturingPlantId}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  manufacturingPlantId: e.target.value,
+                })
+              }
+            />
+            {errorOf("manufacturingPlantId") && (
+              <FormHelperText error>
+                {errorOf("manufacturingPlantId")}
+              </FormHelperText>
+            )}
+          </Grid>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 12,
+              md: 12,
+            }}
+          >
+            <TextField
+              {...fieldProps("name")}
+              required
+              label="Nombre"
+              variant="outlined"
+              fullWidth
+              autoComplete="off"
+              value={form.name}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  name: e.target.value,
+                })
+              }
+            />
+          </Grid>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 12,
+              md: 12,
+            }}
+          >
+            <TextField
+              label="Frecuencia de entrega (dias)"
+              variant="outlined"
+              fullWidth
+              autoComplete="off"
+              type="number"
+              slotProps={{ htmlInput: { min: 1, step: 0 } }}
+              onKeyDown={(evt) => {
+                const forbidden = ["e", "E", "-", "+", "."];
+                if (forbidden.includes(evt.key)) evt.preventDefault();
+              }}
+              onChange={(e) => {
+                const val = e.target.value;
+                const num = Number(val);
+                if (val === "" || (!Number.isNaN(num) && num > 0)) {
                   setForm({
                     ...form,
-                    manufacturingPlantId: e.target.value,
-                  })
+                    deliveryFrequency: e.target.value,
+                  });
                 }
-              />
-            </Paper>
+              }}
+              value={form.deliveryFrequency}
+            />
           </Grid>
           <Grid
             size={{
@@ -199,94 +267,36 @@ const ScreenForm = ({
               md: 12,
             }}
           >
-            <Paper>
-              <TextField
-                label="Nombre"
-                variant="outlined"
-                fullWidth
-                autoComplete="off"
-                value={form.name}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    name: e.target.value,
-                  })
-                }
-              />
-            </Paper>
-          </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 12,
-              md: 12,
-            }}
-          >
-            <Paper>
-              <TextField
-                label="Frecuencia de entrega (dias)"
-                variant="outlined"
-                fullWidth
-                autoComplete="off"
-                type="number"
-                slotProps={{ htmlInput: { min: 1, step: 0 } }}
-                onKeyDown={(evt) => {
-                  const forbidden = ["e", "E", "-", "+", "."];
-                  if (forbidden.includes(evt.key)) evt.preventDefault();
-                }}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  const num = Number(val);
-                  if (val === "" || (!Number.isNaN(num) && num > 0)) {
-                    setForm({
-                      ...form,
-                      deliveryFrequency: e.target.value,
-                    });
-                  }
-                }}
-                value={form.deliveryFrequency}
-              />
-            </Paper>
-          </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 12,
-              md: 12,
-            }}
-          >
-            <Paper>
-              <TextField
-                label="Precio"
-                variant="outlined"
-                fullWidth
-                autoComplete="off"
-                type="number"
-                slotProps={{ htmlInput: { min: 1, step: 0.01 } }}
-                onKeyDown={(evt) => {
-                  const forbidden = ["e", "E", "-", "+"];
-                  if (forbidden.includes(evt.key)) evt.preventDefault();
-                }}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  const num = Number(val);
+            <TextField
+              label="Precio"
+              variant="outlined"
+              fullWidth
+              autoComplete="off"
+              type="number"
+              slotProps={{ htmlInput: { min: 1, step: 0.01 } }}
+              onKeyDown={(evt) => {
+                const forbidden = ["e", "E", "-", "+"];
+                if (forbidden.includes(evt.key)) evt.preventDefault();
+              }}
+              onChange={(e) => {
+                const val = e.target.value;
+                const num = Number(val);
 
-                  if (val === "" || (!Number.isNaN(num) && num > 0)) {
-                    const rounded = Math.round(num * 100) / 100;
-                    setForm({
-                      ...form,
-                      price: rounded.toString(),
-                    });
-                  }
-                }}
-                value={form.price}
-              />
-            </Paper>
+                if (val === "" || (!Number.isNaN(num) && num > 0)) {
+                  const rounded = Math.round(num * 100) / 100;
+                  setForm({
+                    ...form,
+                    price: rounded.toString(),
+                  });
+                }
+              }}
+              value={form.price}
+            />
           </Grid>
         </Grid>
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => handleClose(false)} variant="text" color="error">
+        <Button onClick={() => handleClose(false)} variant="text">
           Cancelar
         </Button>
         <Button onClick={() => handleClose(true)} variant="contained">
@@ -298,8 +308,6 @@ const ScreenForm = ({
 };
 
 export default function EquipmentsPage() {
-  const [page, setPage] = useState<number>(0);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
   const [rows, setRows] = useState<Equipment[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [currentId, setCurrentId] = useState<number>(0);
@@ -312,6 +320,8 @@ export default function EquipmentsPage() {
     manufacturingPlantId: "",
     name: "",
   });
+
+  const { confirm, confirmDialog } = useConfirmDialog();
 
   const getData = useDebouncedCallback(() => {
     setIsLoading(true);
@@ -331,23 +341,6 @@ export default function EquipmentsPage() {
     (state) => state.manufacturingPlants,
   );
 
-  const emptyRows =
-    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
-
-  const handleChangePage = (
-    _: React.MouseEvent<HTMLButtonElement> | null,
-    newPage: number,
-  ) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
   useEffect(() => {
     if (manufacturingPlants.length === 1) {
       setFilters((prev) => ({
@@ -356,6 +349,22 @@ export default function EquipmentsPage() {
       }));
     }
   }, [manufacturingPlants]);
+
+  const confirmRemove = async (row: Equipment) => {
+    const confirmed = await confirm({
+      title: "Confirmar eliminación",
+      description: `¿Está seguro de eliminar el equipo "${row.name}"?`,
+      confirmLabel: "Confirmar",
+      tone: "danger",
+    });
+
+    if (!confirmed) return;
+
+    EquipmentsService.remove(row.id).then(() => {
+      toast.success("Equipo eliminado correctamente");
+      getData();
+    });
+  };
 
   return (
     <>
@@ -370,273 +379,101 @@ export default function EquipmentsPage() {
           }}
         />
       )}
-      <Grid container>
+      {confirmDialog}
+      <PageHeader title="Equipo de protección personal">
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setIsOpen(true)}
+        >
+          Crear
+        </Button>
+        <RefreshButton onClick={() => getData()} />
+      </PageHeader>
+      <FilterBar count={rows.length}>
         <Grid
           size={{
             xs: 12,
-            sm: 12,
-            md: 12,
+            sm: 6,
+            md: 3,
           }}
         >
-          <Typography
-            variant="h4"
-            gutterBottom
-            sx={{
-              color: (theme) =>
-                theme.palette.mode === "light"
-                  ? theme.palette.common.black
-                  : theme.palette.common.white,
+          <SelectDefault
+            data={manufacturingPlants}
+            label="Planta"
+            isFilter={true}
+            value={filters.manufacturingPlantId}
+            onChange={(e) => {
+              setFilters({
+                ...filters,
+                manufacturingPlantId: e.target.value,
+              });
             }}
-          >
-            Equipo de protección personal
-          </Typography>
+          />
         </Grid>
-
         <Grid
           size={{
             xs: 12,
-            sm: 12,
-            md: 12,
+            sm: 6,
+            md: 4,
           }}
         >
-          <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid
-              size={{
-                xs: 12,
-                sm: 12,
-                md: 12,
-              }}
-            >
-              <Typography
-                variant="subtitle1"
-                gutterBottom
-                sx={{
-                  color: (theme) =>
-                    theme.palette.mode === "light"
-                      ? theme.palette.common.black
-                      : theme.palette.common.white,
-                }}
-              >
-                <FilterListIcon sx={{ pt: 1 }} /> Filtros ({rows.length})
-              </Typography>
-            </Grid>
-            <Grid
-              size={{
-                xs: 12,
-                sm: 12,
-                md: 12,
-              }}
-            >
-              <Toolbar>
-                <Box sx={{ flexGrow: 1 }}>
-                  <Grid container spacing={2}>
-                    <Grid
-                      size={{
-                        xs: 12,
-                        sm: 6,
-                        md: 2,
-                      }}
-                    >
-                      <SelectDefault
-                        data={manufacturingPlants}
-                        label="Planta"
-                        isFilter={true}
-                        value={filters.manufacturingPlantId}
-                        onChange={(e) => {
-                          setFilters({
-                            ...filters,
-                            manufacturingPlantId: e.target.value,
-                          });
-                        }}
-                      />
-                    </Grid>
-                    <Grid
-                      size={{
-                        xs: 12,
-                        sm: 6,
-                        md: 4,
-                      }}
-                    >
-                      <Paper>
-                        <TextField
-                          label="Nombre"
-                          fullWidth
-                          variant="outlined"
-                          value={filters.name}
-                          autoComplete="off"
-                          onChange={(e) => {
-                            setFilters({
-                              ...filters,
-                              name: e.target.value,
-                            });
-                          }}
-                        />
-                      </Paper>
-                    </Grid>
-                  </Grid>
-                </Box>
-
-                <ButtonGroup
-                  variant="contained"
-                  aria-label="outlined primary button group"
-                >
-                  <Tooltip title="Crear" placement="top">
-                    <Button
-                      variant="contained"
-                      startIcon={<AddIcon />}
-                      onClick={() => setIsOpen(true)}
-                    />
-                  </Tooltip>
-                  <Tooltip title="Actualizar" placement="top">
-                    <Button
-                      variant="contained"
-                      startIcon={<RefreshIcon />}
-                      onClick={() => getData()}
-                    />
-                  </Tooltip>
-                </ButtonGroup>
-              </Toolbar>
-            </Grid>
-          </Grid>
+          <TextField
+            label="Nombre"
+            fullWidth
+            variant="outlined"
+            value={filters.name}
+            autoComplete="off"
+            onChange={(e) => {
+              setFilters({
+                ...filters,
+                name: e.target.value,
+              });
+            }}
+          />
         </Grid>
-
-        <Grid
-          size={{
-            xs: 12,
-            sm: 12,
-            md: 12,
-          }}
-        >
-          {isLoading ? (
-            <LoadingLinear />
-          ) : (
-            <TableContainer component={Paper}>
-              <Table
-                sx={{ minWidth: 500 }}
-                aria-label="custom pagination table"
-              >
-                <TableHead>
-                  <StyledTableRow>
-                    <StyledTableCell>ID</StyledTableCell>
-                    <StyledTableCell style={{ width: 350 }}>
-                      Nombre
-                    </StyledTableCell>
-                    <StyledTableCell>
-                      Frecuencia de entrega (dias)
-                    </StyledTableCell>
-                    <StyledTableCell>Precio</StyledTableCell>
-                    <StyledTableCell>Planta</StyledTableCell>
-                    <StyledTableCell>Fecha de creación</StyledTableCell>
-                    <StyledTableCell>Creado por</StyledTableCell>
-                    <StyledTableCell>Fecha de actualización</StyledTableCell>
-                    <StyledTableCell>Actualizado por</StyledTableCell>
-                    <StyledTableCell>Acciones</StyledTableCell>
-                  </StyledTableRow>
-                </TableHead>
-                <TableBody>
-                  {(rowsPerPage > 0
-                    ? rows.slice(
-                        page * rowsPerPage,
-                        page * rowsPerPage + rowsPerPage,
-                      )
-                    : rows
-                  ).map((row) => (
-                    <StyledTableRow key={row.name}>
-                      <StyledTableCell component="th" scope="row">
-                        {row.id}
-                      </StyledTableCell>
-                      <StyledTableCell>{row.name}</StyledTableCell>
-                      <StyledTableCell>{row.deliveryFrequency}</StyledTableCell>
-                      <StyledTableCell>
-                        {row.costHistory.length
-                          ? `$ ${row.costHistory[0].price}`
-                          : ""}
-                      </StyledTableCell>
-                      <StyledTableCell>
-                        {row.manufacturingPlant.name}
-                      </StyledTableCell>
-                      <StyledTableCell>
-                        {stringToDateWithTime(row.createdAt)}
-                      </StyledTableCell>
-                      <StyledTableCell>{row.createdBy.name}</StyledTableCell>
-                      <StyledTableCell>
-                        {stringToDateWithTime(row.updatedAt)}
-                      </StyledTableCell>
-                      <StyledTableCell>{row.updatedBy?.name}</StyledTableCell>
-                      <StyledTableCell>
-                        <Tooltip title="Editar" placement="top">
-                          <Button
-                            startIcon={<EditIcon color="inherit" />}
-                            onClick={() => {
-                              setIsOpen(true);
-                              setCurrentId(row.id);
-                            }}
-                          />
-                        </Tooltip>
-                        <Tooltip title="Eliminar" placement="top">
-                          <Button
-                            startIcon={<DeleteIcon color="error" />}
-                            onClick={() =>
-                              toast("¡ Confirmar eliminación !", {
-                                position: "top-center",
-                                description: `¿Está seguro de eliminar el equipo "${row.name}"?`,
-                                action: {
-                                  label: "Confirmar",
-                                  onClick: () =>
-                                    EquipmentsService.remove(row.id).then(
-                                      () => {
-                                        toast.success(
-                                          "Equipo eliminado correctamente",
-                                        );
-                                        getData();
-                                      },
-                                    ),
-                                },
-                              })
-                            }
-                          />
-                        </Tooltip>
-                      </StyledTableCell>
-                    </StyledTableRow>
-                  ))}
-                  {emptyRows > 0 && (
-                    <StyledTableRow style={{ height: 53 * emptyRows }}>
-                      <StyledTableCell colSpan={colSpan} />
-                    </StyledTableRow>
-                  )}
-                </TableBody>
-                <TableFooter>
-                  <StyledTableRow>
-                    <TablePagination
-                      rowsPerPageOptions={[
-                        5,
-                        10,
-                        25,
-                        { label: "All", value: -1 },
-                      ]}
-                      colSpan={colSpan}
-                      count={rows.length}
-                      rowsPerPage={rowsPerPage}
-                      page={page}
-                      slotProps={{
-                        select: {
-                          inputProps: {
-                            "aria-label": "rows per page",
-                          },
-                          native: true,
-                        },
-                      }}
-                      onPageChange={handleChangePage}
-                      onRowsPerPageChange={handleChangeRowsPerPage}
-                      ActionsComponent={TablePaginationActions}
-                    />
-                  </StyledTableRow>
-                </TableFooter>
-              </Table>
-            </TableContainer>
+      </FilterBar>
+      {isLoading ? (
+        <LoadingLinear />
+      ) : (
+        <TableDefault
+          rows={rows}
+          columns={columns}
+          ariaLabel="Equipos de protección personal"
+          paintRows={(row) => (
+            <StyledTableRow key={row.name}>
+              <StyledTableCell component="th" scope="row">
+                {row.id}
+              </StyledTableCell>
+              <StyledTableCell>{row.name}</StyledTableCell>
+              <StyledTableCell>{row.deliveryFrequency}</StyledTableCell>
+              <StyledTableCell>
+                {row.costHistory.length ? `$ ${row.costHistory[0].price}` : ""}
+              </StyledTableCell>
+              <StyledTableCell>{row.manufacturingPlant.name}</StyledTableCell>
+              <StyledTableCell>
+                {stringToDateWithTime(row.createdAt)}
+              </StyledTableCell>
+              <StyledTableCell>{row.createdBy.name}</StyledTableCell>
+              <StyledTableCell>
+                {stringToDateWithTime(row.updatedAt)}
+              </StyledTableCell>
+              <StyledTableCell>{row.updatedBy?.name}</StyledTableCell>
+              <StyledTableCell>
+                <RowActions>
+                  <EditAction
+                    onClick={() => {
+                      setIsOpen(true);
+                      setCurrentId(row.id);
+                    }}
+                  />
+                  <DeleteAction onClick={() => confirmRemove(row)} />
+                </RowActions>
+              </StyledTableCell>
+            </StyledTableRow>
           )}
-        </Grid>
-      </Grid>
+        />
+      )}
     </>
   );
 }
