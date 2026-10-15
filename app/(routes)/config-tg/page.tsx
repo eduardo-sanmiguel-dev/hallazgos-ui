@@ -1,8 +1,6 @@
 "use client";
 
 import {
-  ChangeEvent,
-  MouseEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -13,26 +11,19 @@ import {
 import { Table } from "@mui/material";
 import { TableBody } from "@mui/material";
 import { TableContainer } from "@mui/material";
-import { TableFooter } from "@mui/material";
-import { TablePagination } from "@mui/material";
 import { TableHead } from "@mui/material";
 import { Paper } from "@mui/material";
 import { Typography } from "@mui/material";
 import { Grid } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import FilterListIcon from "@mui/icons-material/FilterList";
-import { Box } from "@mui/material";
-import RefreshIcon from "@mui/icons-material/Refresh";
 import { Button } from "@mui/material";
-import { ButtonGroup } from "@mui/material";
 import { useDebouncedCallback } from "use-debounce";
 import AddIcon from "@mui/icons-material/Add";
-import { Tooltip } from "@mui/material";
 import { IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { toast } from "sonner";
+import { FormHelperText } from "@mui/material";
 import { Autocomplete } from "@mui/material";
 import { TextField } from "@mui/material";
 import { Checkbox } from "@mui/material";
@@ -44,11 +35,20 @@ import { Toolbar } from "@mui/material";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { useShallow } from "zustand/shallow";
 
-import TablePaginationActions from "@shared/components/TablePaginationActions";
 import { Transition } from "@routes/hallazgos/_components/EvidencePreview";
 import LoadingLinear from "@shared/components/LoadingLinear";
+import PageHeader from "@shared/components/PageHeader";
+import RefreshButton from "@shared/components/RefreshButton";
+import FilterBar from "@shared/components/FilterBar";
+import { useConfirmDialog } from "@shared/components/ConfirmDialog";
+import {
+  DeleteAction,
+  EditAction,
+  RowActions,
+} from "@shared/components/RowActions";
+import TableDefault from "@shared/components/TableDefault";
+import { useFieldErrors } from "@hooks/useFieldErrors";
 import SelectDefault from "@components/SelectDefault";
 import { stringToDateWithTime } from "@shared/utils";
 import { useUserSessionStore } from "@store";
@@ -75,7 +75,19 @@ export interface IFiltersConfigTg {
   positionId?: number;
 }
 
-const colSpan = 11;
+const columns = [
+  "ID",
+  "Puesto",
+  "Planta",
+  "No. Temas",
+  "Jefe de área",
+  "Jefe RRHH",
+  "Fecha de creación",
+  "Creado por",
+  "Fecha de actualización",
+  "Actualizado por",
+  "Acciones",
+];
 
 const ScreenForm = ({
   manufacturingPlants,
@@ -112,6 +124,13 @@ const ScreenForm = ({
     humanResourceManagerId: "",
     topics: [],
   });
+  const { fail, errorOf } = useFieldErrors<
+    | "manufacturingPlantId"
+    | "positionId"
+    | "areaManagerId"
+    | "humanResourceManagerId"
+    | "topics"
+  >(form);
 
   // Drag and drop logic for topics
   const moveTopicRow = (fromIdx: number, toIdx: number) => {
@@ -175,6 +194,7 @@ const ScreenForm = ({
         </StyledTableCell>
         <StyledTableCell align="center">
           <Button
+            aria-label={`Quitar el tema ${row.topic.name}`}
             onClick={() =>
               setForm({
                 ...form,
@@ -191,27 +211,27 @@ const ScreenForm = ({
 
   const saveData = () => {
     if (!form.manufacturingPlantId) {
-      toast.error("Debe seleccionar una planta");
+      fail("manufacturingPlantId", "Debe seleccionar una planta");
       return;
     }
 
     if (!form.positionId) {
-      toast.error("Debe seleccionar un puesto");
+      fail("positionId", "Debe seleccionar un puesto");
       return;
     }
 
     if (!form.areaManagerId) {
-      toast.error("Debe seleccionar un jefe de área");
+      fail("areaManagerId", "Debe seleccionar un jefe de área");
       return;
     }
 
     if (!form.humanResourceManagerId) {
-      toast.error("Debe seleccionar un jefe de RRHH");
+      fail("humanResourceManagerId", "Debe seleccionar un jefe de RRHH");
       return;
     }
 
     if (!form.topics.length) {
-      toast.error("Debe agregar al menos un tema");
+      fail("topics", "Debe agregar al menos un tema");
       return;
     }
 
@@ -312,12 +332,12 @@ const ScreenForm = ({
             edge="start"
             color="inherit"
             onClick={() => handleClose(false)}
-            aria-label="close"
+            aria-label="Cerrar"
           >
             <CloseIcon />
           </IconButton>
           <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
-            {!currentId ? "Nuevo" : "Editar"}
+            {!currentId ? "Nueva configuración" : "Editar configuración"}
           </Typography>
           <Button autoFocus color="inherit" onClick={() => handleClose(true)}>
             Guardar
@@ -343,6 +363,11 @@ const ScreenForm = ({
               });
             }}
           />
+          {errorOf("manufacturingPlantId") && (
+            <FormHelperText error>
+              {errorOf("manufacturingPlantId")}
+            </FormHelperText>
+          )}
         </Grid>
         {!!manufacturingPlantId && (
           <>
@@ -364,6 +389,11 @@ const ScreenForm = ({
                   });
                 }}
               />
+              {errorOf("positionId") && (
+                <FormHelperText error>
+                  {errorOf("positionId")}
+                </FormHelperText>
+              )}
             </Grid>
             <Grid
               size={{
@@ -389,6 +419,11 @@ const ScreenForm = ({
                     : ""
                 }
               />
+              {errorOf("areaManagerId") && (
+                <FormHelperText error>
+                  {errorOf("areaManagerId")}
+                </FormHelperText>
+              )}
             </Grid>
             <Grid
               size={{
@@ -414,6 +449,11 @@ const ScreenForm = ({
                     : ""
                 }
               />
+              {errorOf("humanResourceManagerId") && (
+                <FormHelperText error>
+                  {errorOf("humanResourceManagerId")}
+                </FormHelperText>
+              )}
             </Grid>
             <Paper sx={{ p: 2, width: "100%", m: 3 }} elevation={3}>
               <Grid
@@ -462,8 +502,7 @@ const ScreenForm = ({
                     }}
                   >
                     {!!users.length ? (
-                      <Paper>
-                        <Autocomplete
+                      <Autocomplete
                           multiple
                           options={users}
                           disableCloseOnSelect
@@ -498,7 +537,6 @@ const ScreenForm = ({
                             );
                           }}
                         />
-                      </Paper>
                     ) : (
                       <p>
                         No hay colaboradores disponibles para la planta
@@ -557,8 +595,16 @@ const ScreenForm = ({
                       md: 12,
                     }}
                   >
+                    {errorOf("topics") && (
+                      <FormHelperText error sx={{ mb: 1 }}>
+                        {errorOf("topics")}
+                      </FormHelperText>
+                    )}
                     <TableContainer component={Paper}>
-                      <Table sx={{ minWidth: 650 }} aria-label="simple table">
+                      <Table
+                        sx={{ minWidth: 650 }}
+                        aria-label="Temas de la configuración"
+                      >
                         <TableHead>
                           <StyledTableRow>
                             <StyledTableCell />
@@ -595,8 +641,6 @@ const ScreenForm = ({
 };
 
 export default function TopicTg() {
-  const [page, setPage] = useState<number>(0);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
   const [rows, setRows] = useState<ConfigTg[]>([]);
   const [positions, setPositions] = useState<BasicData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -610,6 +654,8 @@ export default function TopicTg() {
     manufacturingPlantId: "",
     positionId: "",
   });
+
+  const { confirm, confirmDialog } = useConfirmDialog();
 
   const getData = useDebouncedCallback(() => {
     setIsLoading(true);
@@ -629,25 +675,26 @@ export default function TopicTg() {
     EmployeesService.findPositions().then(setPositions);
   }, []);
 
-  const { manufacturingPlants } = useUserSessionStore(
-    useShallow((state) => state),
+  // Solo se lee la lista de plantas para no re-renderizar con cada cambio de
+  // la sesión.
+  const manufacturingPlants = useUserSessionStore(
+    (state) => state.manufacturingPlants,
   );
 
-  const emptyRows =
-    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
+  const confirmRemove = async (row: ConfigTg) => {
+    const confirmed = await confirm({
+      title: "Confirmar eliminación",
+      description: "¿Está seguro de eliminar?",
+      confirmLabel: "Confirmar",
+      tone: "danger",
+    });
 
-  const handleChangePage = (
-    _: MouseEvent<HTMLButtonElement> | null,
-    newPage: number,
-  ) => {
-    setPage(newPage);
-  };
+    if (!confirmed) return;
 
-  const handleChangeRowsPerPage = (
-    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
+    ConfigTgService.remove(row.id).then(() => {
+      toast.success("Configuración eliminada correctamente");
+      getData();
+    });
   };
 
   return (
@@ -664,264 +711,99 @@ export default function TopicTg() {
           }}
         />
       )}
-      <Grid container>
+      {confirmDialog}
+      <PageHeader title="Configuración - Guías de entrenamiento">
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setIsOpen(true)}
+        >
+          Crear
+        </Button>
+        <RefreshButton onClick={() => getData()} />
+      </PageHeader>
+      <FilterBar count={rows.length}>
         <Grid
           size={{
             xs: 12,
-            sm: 12,
-            md: 12,
+            sm: 6,
+            md: 3,
           }}
         >
-          <Typography
-            variant="h4"
-            gutterBottom
-            sx={{
-              color: (theme) =>
-                theme.palette.mode === "light"
-                  ? theme.palette.common.black
-                  : theme.palette.common.white,
+          <SelectDefault
+            data={manufacturingPlants}
+            label="Planta"
+            isFilter={true}
+            value={filters.manufacturingPlantId}
+            onChange={(e) => {
+              setFilters({
+                ...filters,
+                manufacturingPlantId: e.target.value,
+              });
             }}
-          >
-            Configuración - Guías de entrenamiento
-          </Typography>
+          />
         </Grid>
-
         <Grid
           size={{
             xs: 12,
-            sm: 12,
-            md: 12,
+            sm: 6,
+            md: 3,
           }}
         >
-          <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid
-              size={{
-                xs: 12,
-                sm: 12,
-                md: 12,
-              }}
-            >
-              <Typography
-                variant="subtitle1"
-                gutterBottom
-                sx={{
-                  color: (theme) =>
-                    theme.palette.mode === "light"
-                      ? theme.palette.common.black
-                      : theme.palette.common.white,
-                }}
-              >
-                <FilterListIcon sx={{ pt: 1 }} /> Filtros ({rows.length})
-              </Typography>
-            </Grid>
-            <Grid
-              size={{
-                xs: 12,
-                sm: 12,
-                md: 12,
-              }}
-            >
-              <Toolbar>
-                <Box sx={{ flexGrow: 1 }}>
-                  <Grid container spacing={2}>
-                    <Grid
-                      size={{
-                        xs: 12,
-                        sm: 6,
-                        md: 2,
-                      }}
-                    >
-                      <SelectDefault
-                        data={manufacturingPlants}
-                        label="Planta"
-                        isFilter={true}
-                        value={filters.manufacturingPlantId}
-                        onChange={(e) => {
-                          setFilters({
-                            ...filters,
-                            manufacturingPlantId: e.target.value,
-                          });
-                        }}
-                      />
-                    </Grid>
-                    <Grid
-                      size={{
-                        xs: 12,
-                        sm: 6,
-                        md: 2,
-                      }}
-                    >
-                      <SelectDefault
-                        data={positions}
-                        label="Puesto"
-                        isFilter={true}
-                        value={filters.positionId}
-                        onChange={(e) => {
-                          setFilters({
-                            ...filters,
-                            positionId: e.target.value,
-                          });
-                        }}
-                      />
-                    </Grid>
-                  </Grid>
-                </Box>
-
-                <ButtonGroup
-                  variant="contained"
-                  aria-label="outlined primary button group"
-                >
-                  <Tooltip title="Crear" placement="top">
-                    <Button
-                      variant="contained"
-                      startIcon={<AddIcon />}
-                      onClick={() => setIsOpen(true)}
-                    />
-                  </Tooltip>
-                  <Tooltip title="Actualizar" placement="top">
-                    <Button
-                      variant="contained"
-                      startIcon={<RefreshIcon />}
-                      onClick={() => getData()}
-                    />
-                  </Tooltip>
-                </ButtonGroup>
-              </Toolbar>
-            </Grid>
-          </Grid>
+          <SelectDefault
+            data={positions}
+            label="Puesto"
+            isFilter={true}
+            value={filters.positionId}
+            onChange={(e) => {
+              setFilters({
+                ...filters,
+                positionId: e.target.value,
+              });
+            }}
+          />
         </Grid>
-
-        <Grid
-          size={{
-            xs: 12,
-            sm: 12,
-            md: 12,
-          }}
-        >
-          {isLoading ? (
-            <LoadingLinear />
-          ) : (
-            <TableContainer component={Paper}>
-              <Table
-                sx={{ minWidth: 500 }}
-                aria-label="custom pagination table"
-              >
-                <TableHead>
-                  <StyledTableRow>
-                    <StyledTableCell>ID</StyledTableCell>
-                    <StyledTableCell>Puesto</StyledTableCell>
-                    <StyledTableCell>Planta</StyledTableCell>
-                    <StyledTableCell>No. Temas</StyledTableCell>
-                    <StyledTableCell>Jefe de área</StyledTableCell>
-                    <StyledTableCell>Jefe RRHH</StyledTableCell>
-                    <StyledTableCell>Fecha de creación</StyledTableCell>
-                    <StyledTableCell>Creado por</StyledTableCell>
-                    <StyledTableCell>Fecha de actualización</StyledTableCell>
-                    <StyledTableCell>Actualizado por</StyledTableCell>
-                    <StyledTableCell>Acciones</StyledTableCell>
-                  </StyledTableRow>
-                </TableHead>
-                <TableBody>
-                  {(rowsPerPage > 0
-                    ? rows.slice(
-                        page * rowsPerPage,
-                        page * rowsPerPage + rowsPerPage,
-                      )
-                    : rows
-                  ).map((row) => (
-                    <StyledTableRow key={row.id}>
-                      <StyledTableCell component="th" scope="row">
-                        {row.id}
-                      </StyledTableCell>
-                      <StyledTableCell>{row.position.name}</StyledTableCell>
-                      <StyledTableCell>
-                        {row.manufacturingPlant.name}
-                      </StyledTableCell>
-                      <StyledTableCell>{row.topics.length}</StyledTableCell>
-                      <StyledTableCell>{row.areaManager.name}</StyledTableCell>
-                      <StyledTableCell>
-                        {row.humanResourceManager.name}
-                      </StyledTableCell>
-                      <StyledTableCell>
-                        {stringToDateWithTime(row.createdAt)}
-                      </StyledTableCell>
-                      <StyledTableCell>{row.createdBy.name}</StyledTableCell>
-                      <StyledTableCell>
-                        {stringToDateWithTime(row.updatedAt)}
-                      </StyledTableCell>
-                      <StyledTableCell>{row.updatedBy?.name}</StyledTableCell>
-                      <StyledTableCell>
-                        <Tooltip title="Editar" placement="top">
-                          <Button
-                            startIcon={<EditIcon color="inherit" />}
-                            onClick={() => {
-                              setIsOpen(true);
-                              setCurrentId(row.id);
-                            }}
-                          />
-                        </Tooltip>
-                        <Tooltip title="Eliminar" placement="top">
-                          <Button
-                            startIcon={<DeleteIcon color="error" />}
-                            onClick={() =>
-                              toast("¡ Confirmar eliminación !", {
-                                position: "top-center",
-                                description: `¿Está seguro de eliminar?`,
-                                action: {
-                                  label: "Confirmar",
-                                  onClick: () =>
-                                    ConfigTgService.remove(row.id).then(() => {
-                                      toast.success(
-                                        "Configuración eliminada correctamente",
-                                      );
-                                      getData();
-                                    }),
-                                },
-                              })
-                            }
-                          />
-                        </Tooltip>
-                      </StyledTableCell>
-                    </StyledTableRow>
-                  ))}
-                  {emptyRows > 0 && (
-                    <StyledTableRow style={{ height: 53 * emptyRows }}>
-                      <StyledTableCell colSpan={colSpan} />
-                    </StyledTableRow>
-                  )}
-                </TableBody>
-                <TableFooter>
-                  <StyledTableRow>
-                    <TablePagination
-                      rowsPerPageOptions={[
-                        5,
-                        10,
-                        25,
-                        { label: "All", value: -1 },
-                      ]}
-                      colSpan={colSpan}
-                      count={rows.length}
-                      rowsPerPage={rowsPerPage}
-                      page={page}
-                      slotProps={{
-                        select: {
-                          inputProps: {
-                            "aria-label": "rows per page",
-                          },
-                          native: true,
-                        },
-                      }}
-                      onPageChange={handleChangePage}
-                      onRowsPerPageChange={handleChangeRowsPerPage}
-                      ActionsComponent={TablePaginationActions}
-                    />
-                  </StyledTableRow>
-                </TableFooter>
-              </Table>
-            </TableContainer>
+      </FilterBar>
+      {isLoading ? (
+        <LoadingLinear />
+      ) : (
+        <TableDefault
+          rows={rows}
+          columns={columns}
+          ariaLabel="Configuraciones de guías de entrenamiento"
+          paintRows={(row) => (
+            <StyledTableRow key={row.id}>
+              <StyledTableCell component="th" scope="row">
+                {row.id}
+              </StyledTableCell>
+              <StyledTableCell>{row.position.name}</StyledTableCell>
+              <StyledTableCell>{row.manufacturingPlant.name}</StyledTableCell>
+              <StyledTableCell>{row.topics.length}</StyledTableCell>
+              <StyledTableCell>{row.areaManager.name}</StyledTableCell>
+              <StyledTableCell>{row.humanResourceManager.name}</StyledTableCell>
+              <StyledTableCell>
+                {stringToDateWithTime(row.createdAt)}
+              </StyledTableCell>
+              <StyledTableCell>{row.createdBy.name}</StyledTableCell>
+              <StyledTableCell>
+                {stringToDateWithTime(row.updatedAt)}
+              </StyledTableCell>
+              <StyledTableCell>{row.updatedBy?.name}</StyledTableCell>
+              <StyledTableCell>
+                <RowActions>
+                  <EditAction
+                    onClick={() => {
+                      setIsOpen(true);
+                      setCurrentId(row.id);
+                    }}
+                  />
+                  <DeleteAction onClick={() => confirmRemove(row)} />
+                </RowActions>
+              </StyledTableCell>
+            </StyledTableRow>
           )}
-        </Grid>
-      </Grid>
+        />
+      )}
     </>
   );
 }
