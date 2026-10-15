@@ -328,3 +328,29 @@ Verificación en navegador (`/main-types`):
 - estado vacío revisado con un filtro sin coincidencias
 
 **Sin probar:** el `ConfirmDialog` real, porque abre el flujo de eliminación.
+
+### Fase 4 — Bloque 1: HDS y catálogos simples
+
+Piezas compartidas nuevas (`8eae5a8`):
+- `useFieldErrors`: error junto al campo + toast, con foco en el campo. Se importa directo (`@hooks/useFieldErrors`) para no arrastrar Apollo desde el barrel `@hooks`.
+- `FormSection` y `FormActions`: los campos van en una sola tarjeta, y "Cancelar" ahora es un botón con borde (antes, rojo sólido como acción destructiva).
+- `SelectManufacturingPlantsOwn` ya no trae su propio `Paper`.
+- `color-scheme` en el layout, para las barras de scroll en modo oscuro.
+
+| Módulo | Aplicado | No aplicado / notas |
+|---|---|---|
+| HDS | Encabezado, filtros, `TableDefault`, "Ver archivo" con nombre accesible | — |
+| Criterios | Formulario con título, sección, `required` y error junto al campo | (listado en Fase 3) |
+| Tipos de criterios | Todo el patrón; confirmación al eliminar; mensaje corregido | El campo "Responsable" dice "(opcional)" en su etiqueta, pero la validación lo exige. Se dejó igual: **para decidir**. |
+| Procesos | Todo el patrón; confirmación al eliminar | — |
+| Plantas | Todo el patrón; confirmación al eliminar | — |
+| Lugares | Todo el patrón; la confirmación pasa de toast a diálogo (mismo texto) | Los mensajes dicen "zona" aunque la pantalla se llama Lugares (`/zones`); no se cambiaron por ser texto de negocio. |
+| Zonas | Todo el patrón; diálogo de confirmación (mismo texto); el plano va en su propia sección | Mensajes dicen "área" aunque la pantalla se llama Zonas (`/areas`); no se cambiaron. |
+| Usuarios | Todo el patrón; confirmación al eliminar; la contraseña muestra `*` solo al crear | — |
+| Colaboradores | Todo el patrón; confirmación al desactivar; sin `as any` en las fechas; sin asterisco duplicado | — |
+
+Verificación:
+- **Código:** build y typecheck sin errores; lint igual a la línea base.
+- **Consola:** sin errores en los 16 listados y formularios del bloque (se confirmó que el lector captura errores).
+- **Anchos y modos:** 360, 768 y 1440 px, en claro y oscuro.
+- **Sin confirmar visualmente:** el arreglo de `color-scheme`, porque la API se detuvo durante la revisión.
