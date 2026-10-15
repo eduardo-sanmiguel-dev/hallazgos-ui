@@ -513,7 +513,7 @@ Configuración G. Entr. y Temas sí recibieron el patrón visual en el bloque 2 
   
   La diferencia que queda es el suavizado normal del trazo.
 
-**Secuencias desfasadas en `hallazgos_dev`** (solo lectura; no se corrigieron):
+**Secuencias desfasadas en `hallazgos_dev`** (estado al terminar el bloque 3; se corrigieron después, ver la sección siguiente):
 
 | Tabla | Secuencia | `MAX(id)` | Efecto |
 |---|---|---|---|
@@ -529,7 +529,8 @@ Configuración G. Entr. y Temas sí recibieron el patrón visual en el bloque 2 
 - **Unicidad (23505)** → 409 con mensaje en español: tabla y valor duplicado, y si es el `id`, aviso de secuencia desfasada.
 - **Otros errores de base de datos** → 500 con mensaje claro y su código.
 - En GraphQL devuelve la excepción tal cual.
-- Probado con errores simulados sobre la versión compilada. Sin commit: está en la rama `main` de `hallazgos-api`.
+- Probado con errores simulados sobre la versión compilada.
+- **Actualización:** esta primera versión mostraba tablas e ids al usuario. Se reemplazó por la de la rama `fix/mensaje-errores-bd` (ver al final de la sección siguiente).
 
 ### Secuencias de ids: corrección en desarrollo y consultas para producción
 
@@ -595,3 +596,19 @@ END $$;
 | Otros errores de base de datos | 500 | "No se pudo completar la operación. Avise al administrador del sistema." |
 
 El log de la API registra código, tabla, restricción y detalle.
+
+### Fase 4 — Bloque 4: Gemba Walk recorridos, Hallazgos, ICS, CIAEL, Dashboard y Análisis de datos
+
+Ritmo acordado: listado y formulario sin errores de consola, 360 y 1440 px en un solo modo (alternando claro y oscuro entre módulos), y un flujo de escritura solo donde el cambio afecta el guardado.
+
+| Módulo | Aplicado | Probado | Pendiente |
+|---|---|---|---|
+| EPP (cierre del bloque 3) | — | Guardar una entrega con firma y eliminarla del historial, tras corregir las secuencias | La fecha del historial muestra el día siguiente (entrega del 14/10/2026 aparece como 15/10/2026). Es un problema previo de zona horaria al mostrar la fecha; no se tocó. |
+| Gemba Walk recorridos (`d0fa927`) | `PageHeader` en listado, registro, detalle y calendario; acciones y `FilterBar` en el listado; "Ver" con `RowActions`; confirmación de registro con `ConfirmDialog` (mismo texto) y Cancelar sin rojo | Listado, formulario y calendario sin errores de consola | En el formulario, Cancelar queda junto a los selects (diseño previo). |
+| Hallazgos (`8f9c0a4`) | `PageHeader` con Crear, Actualizar, Excel y PDF; `FilterBar` conservando los chips de filtros activos y "Limpiar filtros"; formulario con título y botones sin rojo; nombres accesibles (cerrar, menú de acciones por hallazgo, quitar responsable); cancelar hallazgo con `ConfirmDialog` ("Volver" / "Cancelar hallazgo"; antes los dos botones decían "Cancelar") | Listado y formulario en oscuro, 360 y 1440 px. No se creó ningún hallazgo (envían correo). | Los campos del formulario se muestran en rojo desde el inicio (diseño previo). Al abrir el diálogo desde el menú de acciones, el foco no queda en "Volver". |
+| ICS (`3121350`) | `PageHeader` con Crear y Actualizar; `FilterBar`; formulario con `FormSection`/`FormActions` y errores junto al campo; eliminar con `DeleteAction` y `ConfirmDialog`; se quitó un `console.log` | Claro, 1440 px: listado, diálogo de eliminar (Esc no borra) y formulario | No se creó ningún registro, para no disparar la alerta de correo por acumular 3 reportes. La revisión a 360 px quedó pendiente porque la UI y la API se detuvieron en ese momento. |
+| CIAEL (`37da453`) | `PageHeader` con Crear registro, Excel y Actualizar; tabla con estado vacío y nombre accesible; diálogo con título "Nuevo registro CIAEL", "Cerrar", errores junto a los 23 campos obligatorios con foco y relleno responsivo; acentos corregidos ("Mecanismo", "Máquina", "Líder", "causó") | Oscuro, 1440 y 360 px; Guardar con el formulario vacío marca "Planta" y le pasa el foco | Las fechas del listado salen en inglés ("18 October 2018"), por `stringToDate` (previo; lo usan otros módulos). |
+| Dashboard y Análisis de datos (`7ff13af`) | Hook `useHighchartsTheme` (colores del theme en fondo, títulos, leyendas, ejes y botón de exportar); se quitó del layout la configuración global de Highcharts y el `window.location.reload()` al cambiar de tema; h1 para lectores de pantalla en Dashboard; Análisis de datos EPP con `PageHeader`, pestañas desplazables en móvil y acentos | Dashboard con planta seleccionada: oscuro → claro sin recargar (10 gráficas cambian de paleta y se conservan los filtros). Análisis EPP: claro → oscuro sin recargar, 360 px con pestañas desplazables y sin desbordes | El informe PDF del Dashboard usa fondo blanco fijo en `html2canvas`; en modo oscuro las gráficas salen con su fondo oscuro (comportamiento previo). |
+| Errores y 404 (`85e231a`) | `StatusPage` compartido; `app/(routes)/error.tsx` (Reintentar / Ir al inicio, dentro del layout); `app/not-found.tsx` en español | 404 en una ruta inexistente, sin errores de consola | `error.tsx` solo se verificó con build y tipos: probarlo requiere provocar un error de render. |
+
+**Nota técnica (Highcharts):** las opciones globales solo se aplican al crear una gráfica. El hook las aplica durante el render (antes de que se monten las gráficas hijas) y las páginas usan el modo como `key` del contenedor de gráficas, así que al cambiar de tema se vuelven a crear. En Dashboard eso repite las consultas de las gráficas, igual que la recarga anterior, pero sin recargar la aplicación ni perder los filtros.
