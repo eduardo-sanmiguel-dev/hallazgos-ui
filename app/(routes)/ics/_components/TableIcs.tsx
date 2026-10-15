@@ -1,14 +1,13 @@
 import { useState } from "react";
 //import { useRouter } from "next/navigation";
 
-import DeleteIcon from "@mui/icons-material/Delete";
 //import EditIcon from "@mui/icons-material/Edit";
-import { Stack } from "@mui/material";
-import { Chip } from "@mui/material";
 
 //import { notify, stringToDateWithTime } from "@shared/utils";
 import { notify } from "@shared/utils";
 import { ICSData } from "@interfaces";
+import { useConfirmDialog } from "@shared/components/ConfirmDialog";
+import { DeleteAction, RowActions } from "@shared/components/RowActions";
 import TableDefault, {
   StyledTableCell,
   StyledTableRow,
@@ -39,6 +38,8 @@ export default function TableIcs({ rows, getData }: Props) {
 
   //const router = useRouter();
 
+  const { confirm, confirmDialog } = useConfirmDialog();
+
   const remove = (id: number) => {
     setIsLoading(true);
     IcsService.remove(id)
@@ -49,49 +50,60 @@ export default function TableIcs({ rows, getData }: Props) {
       .finally(() => setIsLoading(false));
   };
 
+  const confirmRemove = async (row: ICSData) => {
+    const confirmed = await confirm({
+      title: "Eliminar registro de ICS",
+      description: `¿Deseas eliminar el registro de ICS #${row.id}?`,
+      confirmLabel: "Eliminar",
+      tone: "danger",
+    });
+
+    if (confirmed) remove(row.id);
+  };
+
   return (
-    <TableDefault
-      rows={rows}
-      columns={columns}
-      paintRows={(row: ICSData) => {
-        return (
-          <StyledTableRow key={row.id}>
-            <StyledTableCell component="th" scope="row">
-              {row.id}
-            </StyledTableCell>
-            <StyledTableCell>{row.manufacturingPlant.name}</StyledTableCell>
-            <StyledTableCell>{row.ruleOfLife.name}</StyledTableCell>
-            <StyledTableCell>
-              {row.standardOfBehavior?.name || ""}
-            </StyledTableCell>
-            <StyledTableCell>{row.areaOfBehavior?.name || ""}</StyledTableCell>
-            <StyledTableCell>{row.totalPeople}</StyledTableCell>
-            <StyledTableCell>{row.totalCorrectPeople}</StyledTableCell>
-            <StyledTableCell>{row.totalIncorrectPeople}</StyledTableCell>
-            <StyledTableCell>{row.icsPercentage}%</StyledTableCell>
-            {/* <StyledTableCell style={{ minWidth: 180 }}>
-              {row.createdAt ? stringToDateWithTime(row.createdAt) : ""}
-            </StyledTableCell> */}
-            <StyledTableCell>
-              <Stack direction="row" spacing={1}>
-                {/* <Chip
-                  icon={<EditIcon />}
-                  label="Editar"
-                  color="warning"
-                  onClick={() => router.push("/employees/form?id=" + row.id)}
-                /> */}
-                <Chip
-                  icon={<DeleteIcon />}
-                  label="Eliminar"
-                  color="error"
-                  onClick={() => remove(row.id)}
-                  disabled={isLoading}
-                />
-              </Stack>
-            </StyledTableCell>
-          </StyledTableRow>
-        );
-      }}
-    />
+    <>
+      <TableDefault
+        rows={rows}
+        columns={columns}
+        paintRows={(row: ICSData) => {
+          return (
+            <StyledTableRow key={row.id}>
+              <StyledTableCell component="th" scope="row">
+                {row.id}
+              </StyledTableCell>
+              <StyledTableCell>{row.manufacturingPlant.name}</StyledTableCell>
+              <StyledTableCell>{row.ruleOfLife.name}</StyledTableCell>
+              <StyledTableCell>
+                {row.standardOfBehavior?.name || ""}
+              </StyledTableCell>
+              <StyledTableCell>{row.areaOfBehavior?.name || ""}</StyledTableCell>
+              <StyledTableCell>{row.totalPeople}</StyledTableCell>
+              <StyledTableCell>{row.totalCorrectPeople}</StyledTableCell>
+              <StyledTableCell>{row.totalIncorrectPeople}</StyledTableCell>
+              <StyledTableCell>{row.icsPercentage}%</StyledTableCell>
+              {/* <StyledTableCell style={{ minWidth: 180 }}>
+                {row.createdAt ? stringToDateWithTime(row.createdAt) : ""}
+              </StyledTableCell> */}
+              <StyledTableCell>
+                <RowActions>
+                  {/* <Chip
+                    icon={<EditIcon />}
+                    label="Editar"
+                    color="warning"
+                    onClick={() => router.push("/employees/form?id=" + row.id)}
+                  /> */}
+                  <DeleteAction
+                    onClick={() => confirmRemove(row)}
+                    disabled={isLoading}
+                  />
+                </RowActions>
+              </StyledTableCell>
+            </StyledTableRow>
+          );
+        }}
+      />
+      {confirmDialog}
+    </>
   );
 }

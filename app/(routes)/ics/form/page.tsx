@@ -8,10 +8,8 @@ import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
 import { Grid } from "@mui/material";
-import SaveIcon from "@mui/icons-material/Save";
-import { Button } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import { toast } from "sonner";
+import { FormHelperText } from "@mui/material";
 import { Checkbox } from "@mui/material";
 import { Autocomplete } from "@mui/material";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
@@ -25,6 +23,10 @@ import { Paper, SelectChangeEvent, TextField } from "@mui/material";
 import { useUserSessionStore } from "@store";
 import ImageORCamera from "@shared/components/ImageORCamera";
 import { dataURLtoFile } from "@shared/utils";
+import { useFieldErrors } from "@hooks/useFieldErrors";
+import PageHeader from "@shared/components/PageHeader";
+import FormSection from "@shared/components/FormSection";
+import FormActions from "@shared/components/FormActions";
 
 const IcsFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -53,6 +55,12 @@ const IcsFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { fail, errorOf, fieldProps } = useFieldErrors<
+    | "manufacturingPlant"
+    | "totalPeople"
+    | "ruleOfLife"
+    | "employees"
+  >(form);
 
   const manufacturingPlants = useUserSessionStore(
     (state) => state.manufacturingPlants,
@@ -72,22 +80,22 @@ const IcsFormPage = () => {
     const sizeEmployees = employeesIds.length;
 
     if (!manufacturingPlantId) {
-      toast.error("La planta de manufactura es obligatoria");
+      fail("manufacturingPlant", "La planta de manufactura es obligatoria");
       return;
     }
 
     if (!totalPeopleClean) {
-      toast.error("El número de personas observadas es obligatorio");
+      fail("totalPeople", "El número de personas observadas es obligatorio");
       return;
     }
 
     if (!ruleOfLifeId) {
-      toast.error("La regla de vida es obligatoria");
+      fail("ruleOfLife", "La regla de vida es obligatoria");
       return;
     }
 
     if (!sizeEmployees) {
-      toast.error("Debe seleccionar al menos un colaborador");
+      fail("employees", "Debe seleccionar al menos un colaborador");
       return;
     }
 
@@ -169,8 +177,7 @@ const IcsFormPage = () => {
     if (!id) return;
 
     setIdCurrent(id);
-    IcsService.findOne(id).then((data) => {
-      console.log({ data });
+    IcsService.findOne(id).then(() => {
       /* setForm({
         totalPeople: `${data.totalPeople}`,
       }); */
@@ -216,7 +223,10 @@ const IcsFormPage = () => {
 
   return (
     <>
-      <Grid container spacing={2}>
+      <PageHeader
+        title={idCurrent ? "Editar registro de ICS" : "Nuevo registro de ICS"}
+      />
+      <FormSection>
         <Grid
           size={{
             xs: 12,
@@ -231,6 +241,9 @@ const IcsFormPage = () => {
             onChange={onChangeSelect}
             name="manufacturingPlant"
           />
+          {errorOf("manufacturingPlant") && (
+            <FormHelperText error>{errorOf("manufacturingPlant")}</FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -246,6 +259,9 @@ const IcsFormPage = () => {
             onChange={onChangeSelect}
             name="ruleOfLife"
           />
+          {errorOf("ruleOfLife") && (
+            <FormHelperText error>{errorOf("ruleOfLife")}</FormHelperText>
+          )}
         </Grid>
         {(
           catalogs.find((cat) => Number(cat.id) === Number(form.ruleOfLife))
@@ -309,36 +325,36 @@ const IcsFormPage = () => {
             md: 3,
           }}
         >
-          <Paper>
-            <TextField
-              fullWidth
-              label="Personas totales *"
-              variant="outlined"
-              value={form.totalPeople}
-              autoComplete="off"
-              type="number"
-              slotProps={{ htmlInput: { min: 1, step: 1 } }}
-              onKeyDown={(evt) => {
-                const forbidden = ["e", "E", "-", "+"];
-                if (forbidden.includes(evt.key)) evt.preventDefault();
-              }}
-              onPaste={(e) => {
-                const text = e.clipboardData.getData("text");
-                if (!/^\d+$/.test(text) || Number(text) <= 0)
-                  e.preventDefault();
-              }}
-              onChange={(e) => {
-                const val = e.target.value;
-                const num = Number(val);
-                if (val === "" || (!Number.isNaN(num) && num > 0)) {
-                  setForm({
-                    ...form,
-                    totalPeople: val,
-                  });
-                }
-              }}
-            />
-          </Paper>
+          <TextField
+            {...fieldProps("totalPeople")}
+            required
+            fullWidth
+            label="Personas totales"
+            variant="outlined"
+            value={form.totalPeople}
+            autoComplete="off"
+            type="number"
+            slotProps={{ htmlInput: { min: 1, step: 1 } }}
+            onKeyDown={(evt) => {
+              const forbidden = ["e", "E", "-", "+"];
+              if (forbidden.includes(evt.key)) evt.preventDefault();
+            }}
+            onPaste={(e) => {
+              const text = e.clipboardData.getData("text");
+              if (!/^\d+$/.test(text) || Number(text) <= 0)
+                e.preventDefault();
+            }}
+            onChange={(e) => {
+              const val = e.target.value;
+              const num = Number(val);
+              if (val === "" || (!Number.isNaN(num) && num > 0)) {
+                setForm({
+                  ...form,
+                  totalPeople: val,
+                });
+              }
+            }}
+          />
         </Grid>
         <Grid
           size={{
@@ -348,43 +364,41 @@ const IcsFormPage = () => {
           }}
         >
           {!!employees.length ? (
-            <Paper>
-              <Autocomplete
-                multiple
-                options={employees}
-                disableCloseOnSelect
-                getOptionLabel={(option) => option.name}
-                renderOption={(props, option, { selected }) => {
-                  const { key, ...optionProps } = props;
-                  return (
-                    <li key={key} {...optionProps}>
-                      <Checkbox
-                        icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
-                        checkedIcon={<CheckBoxIcon fontSize="small" />}
-                        style={{ marginRight: 8 }}
-                        checked={selected}
-                      />
-                      {option.name}
-                    </li>
-                  );
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Personas que no cumplen con el estándar *"
-                  />
-                )}
-                value={employees.filter((emp) =>
-                  form.employees.includes(String(emp.id)),
-                )}
-                onChange={(_, newValue) => {
-                  setForm({
-                    ...form,
-                    employees: newValue.map((emp) => String(emp.id)),
-                  });
-                }}
-              />
-            </Paper>
+            <Autocomplete
+              multiple
+              options={employees}
+              disableCloseOnSelect
+              getOptionLabel={(option) => option.name}
+              renderOption={(props, option, { selected }) => {
+                const { key, ...optionProps } = props;
+                return (
+                  <li key={key} {...optionProps}>
+                    <Checkbox
+                      icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
+                      checkedIcon={<CheckBoxIcon fontSize="small" />}
+                      style={{ marginRight: 8 }}
+                      checked={selected}
+                    />
+                    {option.name}
+                  </li>
+                );
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Personas que no cumplen con el estándar *"
+                />
+              )}
+              value={employees.filter((emp) =>
+                form.employees.includes(String(emp.id)),
+              )}
+              onChange={(_, newValue) => {
+                setForm({
+                  ...form,
+                  employees: newValue.map((emp) => String(emp.id)),
+                });
+              }}
+            />
           ) : form.manufacturingPlant && !employees.length ? (
             <p>No hay colaboradores disponibles</p>
           ) : (
@@ -427,50 +441,13 @@ const IcsFormPage = () => {
             attachedFile={attachedFile}
           />
         </Grid>
-      </Grid>
-      <Grid
-        container
-        spacing={2}
-        sx={{ marginTop: 2, alignContent: "center", justifyContent: "center" }}
-      >
-        <Grid
-          size={{
-            xs: 12,
-            sm: 3,
-            md: 3,
-          }}
-        >
-          <Button
-            variant="contained"
-            color="error"
-            fullWidth
-            startIcon={<CloseIcon />}
-            onClick={cancel}
-          >
-            Cancelar
-          </Button>
-        </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 3,
-            md: 3,
-          }}
-        >
-          <Button
-            loading={isLoading}
-            loadingPosition="start"
-            startIcon={<SaveIcon />}
-            variant="contained"
-            color="primary"
-            fullWidth
-            onClick={save}
-            disabled={isValidateForm || isLoading}
-          >
-            Guardar
-          </Button>
-        </Grid>
-      </Grid>
+      </FormSection>
+      <FormActions
+        onCancel={cancel}
+        onSave={save}
+        isSaving={isLoading}
+        isSaveDisabled={isValidateForm}
+      />
     </>
   );
 };
