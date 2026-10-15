@@ -137,10 +137,14 @@ import { styled } from "@mui/material/styles";
 import { TableHead } from "@mui/material";
 import { ReactNode, useState, ChangeEvent, MouseEvent } from "react";
 
+import { primarySoftBackground, primaryTextColor } from "../../theme";
+
+// Encabezado en verde tenue con texto oscurecido: el blanco sobre el verde de
+// marca no llegaba a contraste AA.
 export const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
-    backgroundColor: theme.palette.primary.main,
-    color: theme.palette.common.white,
+    backgroundColor: primarySoftBackground(theme),
+    color: primaryTextColor(theme),
   },
   [`&.${tableCellClasses.body}`]: {
     fontSize: 14,

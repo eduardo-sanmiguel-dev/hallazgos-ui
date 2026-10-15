@@ -24,21 +24,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/icon?family=Material+Icons"
-        />
-      </head>
+    <html lang="es" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <main>
-          {/* <DatadogRumInit /> */}
-          <ThemeRegistry options={{ key: "mui" }}>
-            <ApolloWrapper>{children}</ApolloWrapper>
-          </ThemeRegistry>
-          <Toaster position="top-right" expand={true} richColors closeButton />
-        </main>
+        {/* Cada layout o página define su propio <main>. */}
+        {/* <DatadogRumInit /> */}
+        <ThemeRegistry options={{ key: "mui" }}>
+          <ApolloWrapper>{children}</ApolloWrapper>
+        </ThemeRegistry>
+        <Toaster position="top-right" expand={true} richColors closeButton />
       </body>
     </html>
   );

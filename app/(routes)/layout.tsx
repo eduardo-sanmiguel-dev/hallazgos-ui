@@ -19,7 +19,6 @@ import {
   alpha,
   useTheme,
   ThemeProvider,
-  createTheme,
 } from "@mui/material/styles";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
@@ -40,6 +39,7 @@ import Highcharts from "highcharts/esm/highcharts.src.js";
 import { MainListItems, UserFooter } from "@shared/components/menu";
 import Copyright from "@shared/components/Copyright";
 import { useUserSessionStore } from "@store";
+import { createAppTheme } from "../theme";
 import { UsersService } from "@services";
 
 // Ancho suficiente para que ninguna etiqueta del menú se corte.
@@ -182,7 +182,12 @@ function BtnChangeMode() {
   };
 
   return (
-    <IconButton sx={{ ml: 1 }} onClick={handleToggleColorMode} color="inherit">
+    <IconButton
+      sx={{ ml: 1 }}
+      onClick={handleToggleColorMode}
+      color="inherit"
+      aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+    >
       {isDark ? <Brightness7Icon /> : <Brightness4Icon />}
     </IconButton>
   );
@@ -218,28 +223,8 @@ export default function MainLayout({ children }: { children: ReactNode }) {
     [],
   );
 
-  const lightTheme = createTheme({
-    palette: {
-      mode,
-      primary: {
-        main: "#71BF44",
-      },
-    },
-  });
-
-  const darkTheme = createTheme({
-    palette: {
-      mode,
-      primary: {
-        main: "#71BF44",
-      },
-    },
-  });
-
-  const theme = useMemo(
-    () => createTheme(mode === "light" ? lightTheme : darkTheme),
-    [mode, lightTheme, darkTheme],
-  );
+  // El theme solo se crea de nuevo al cambiar de modo.
+  const theme = useMemo(() => createAppTheme(mode), [mode]);
 
   // En móvil y tablet el menú es temporal (se superpone al contenido).
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -308,6 +293,27 @@ export default function MainLayout({ children }: { children: ReactNode }) {
       <ThemeProvider theme={theme}>
         <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
           <CssBaseline />
+          <Box
+            component="a"
+            href="#contenido"
+            sx={(theme) => ({
+              position: "absolute",
+              left: 8,
+              top: -64,
+              zIndex: theme.zIndex.tooltip,
+              px: 2,
+              py: 1,
+              borderRadius: `${theme.tokens.radius.md}px`,
+              backgroundColor: "background.paper",
+              color: "text.primary",
+              boxShadow: 3,
+              textDecoration: "none",
+              fontWeight: 600,
+              "&:focus": { top: 8 },
+            })}
+          >
+            Saltar al contenido
+          </Box>
           <AppBar position="absolute" open={open && !isMobile}>
             <Toolbar
               sx={{
@@ -317,7 +323,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
               <IconButton
                 edge="start"
                 color="inherit"
-                aria-label="open drawer"
+                aria-label="Abrir menú"
                 onClick={toggleDrawer}
                 sx={{
                   marginRight: "36px",
@@ -327,7 +333,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                 <MenuIcon />
               </IconButton>
               <Typography
-                component="h1"
+                component="p"
                 variant="h6"
                 color="inherit"
                 noWrap
@@ -370,7 +376,10 @@ export default function MainLayout({ children }: { children: ReactNode }) {
           )}
           <Box
             component="main"
+            id="contenido"
+            tabIndex={-1}
             sx={{
+              "&:focus": { outline: "none" },
               backgroundColor: (theme) =>
                 theme.palette.mode === "light"
                   ? theme.palette.grey[100]
