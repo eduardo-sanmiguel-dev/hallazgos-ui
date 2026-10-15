@@ -152,6 +152,20 @@ const AreaImageCoordinateSelector = ({
     null,
   );
 
+  // Si la imagen ya estaba cargada (caché o carga antes de la hidratación),
+  // onLoad no se dispara: se toma el tamaño real al montar el <img>. Sin esto
+  // las coordenadas se calculaban en píxeles de pantalla y el punto guardado
+  // no se mostraba al editar.
+  const syncNaturalSize = (img: HTMLImageElement | null) => {
+    if (!img?.complete || !img.naturalWidth || !img.naturalHeight) return;
+
+    setImageNaturalSize((prev) =>
+      prev.width === img.naturalWidth && prev.height === img.naturalHeight
+        ? prev
+        : { width: img.naturalWidth, height: img.naturalHeight },
+    );
+  };
+
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const isDraggingRef = useRef(false);
 
@@ -632,6 +646,7 @@ const AreaImageCoordinateSelector = ({
                   >
                     <Box
                       component="img"
+                      ref={syncNaturalSize}
                       src={imageSrc}
                       alt="Plano para mapa de calor"
                       loading="lazy"
@@ -904,6 +919,7 @@ const AreaImageCoordinateSelector = ({
                   >
                     <Box
                       component="img"
+                      ref={syncNaturalSize}
                       src={imageSrc}
                       alt="Planos"
                       loading="lazy"
