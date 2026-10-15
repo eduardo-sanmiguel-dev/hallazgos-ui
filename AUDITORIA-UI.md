@@ -354,3 +354,29 @@ Verificación:
 - **Consola:** sin errores en los 16 listados y formularios del bloque (se confirmó que el lector captura errores).
 - **Anchos y modos:** 360, 768 y 1440 px, en claro y oscuro.
 - **Sin confirmar visualmente:** el arreglo de `color-scheme`, porque la API se detuvo durante la revisión.
+
+### Decisiones aplicadas tras el bloque 1
+
+- **Tipos de criterios:** "Responsable" ya se muestra como obligatorio; la validación no cambió.
+- **Lugares (`/zones`):** los mensajes y la confirmación dicen "lugar".
+- **Zonas (`/areas`):** los mensajes y la confirmación dicen "zona".
+- En Lugares, el filtro, la columna y el campo "Zona" se quedaron igual, porque se refieren a la zona a la que pertenece cada lugar.
+- **Tablas vacías:** ya no conservan el ancho mínimo, así que el mensaje "Sin registros" no se corta en 360 px.
+
+### Fase 4 — Bloque 2: Gemba Walk configuración, Equipos, Temas, Configuración G. Entr. y Equipos de emergencia
+
+| Módulo | Aplicado | No aplicado / notas |
+|---|---|---|
+| Gemba Walk - Zonas | Encabezado, filtros, acciones, diálogo de confirmación (mismo texto), formulario con errores junto al campo | — |
+| Gemba Walk - Observadores | Igual; el error de usuario aplica a los dos selects (simple al editar, múltiple al crear) | — |
+| Gemba Walk - Evaluaciones | Igual | — |
+| Gemba Walk - Calendario | Encabezado, filtros, acciones, diálogo de confirmación; se conserva la revisión de eventos pasados | En el formulario del calendario solo cambian el encabezado y el estilo de Cancelar |
+| Equipos | Tabla compartida, confirmación con diálogo, "Crear" con texto, errores junto al campo en el diálogo | — |
+| Temas | Igual que Equipos; lectura acotada del store (antes se suscribía a toda la sesión) | — |
+| Configuración G. Entr. | Igual que Temas; nombre accesible en "quitar tema"; errores junto al campo | **Para decidir:** `DraggableTopicRow` está definido dentro de `ScreenForm` (se remonta en cada render) y el orden de temas solo se cambia arrastrando (WCAG 2.5.7 pide una alternativa sin arrastre). Ambos son de riesgo medio. |
+| Equipos de emergencia | Paginación compartida en español, estado vacío, casillas con nombre accesible, confirmación con diálogo, formulario con errores junto al campo; "Imprimir" se conserva igual | La casilla "seleccionar todos" tenía colores blancos fijos y quedaba invisible con el encabezado nuevo (regresión de la Fase 2, corregida aquí). |
+
+Verificación:
+- **Código:** build y typecheck sin errores; lint igual a la línea base.
+- **Consola:** sin errores en los 16 listados y formularios del bloque, incluidos los diálogos de Equipos y Configuración G. Entr. (abiertos y cerrados sin guardar).
+- **Anchos y modos:** 360, 768 y 1440 px, en claro y oscuro.
