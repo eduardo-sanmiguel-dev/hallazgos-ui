@@ -1,10 +1,9 @@
 import Grid from "@mui/material/Grid";
-import Typography from "@mui/material/Typography";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import TextField from "@mui/material/TextField";
-import Paper from "@mui/material/Paper";
 
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
+
+import FilterBar from "@shared/components/FilterBar";
 
 export interface IFiltersExtinguisherInspections {
   search: string;
@@ -23,27 +22,7 @@ const FiltersExtinguisherInspections = ({
   count,
 }: Props) => {
   return (
-    <Grid container spacing={2} sx={{ mb: 2 }}>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 12,
-          md: 12,
-        }}
-      >
-        <Typography
-          variant="subtitle1"
-          gutterBottom
-          sx={{
-            color: (theme) =>
-              theme.palette.mode === "light"
-                ? theme.palette.common.black
-                : theme.palette.common.white,
-          }}
-        >
-          <FilterListIcon sx={{ pt: 1 }} /> Filtros ({count})
-        </Typography>
-      </Grid>
+    <FilterBar count={count}>
 
       <SelectManufacturingPlantsOwn
         value={filters.manufacturingPlantId}
@@ -63,24 +42,22 @@ const FiltersExtinguisherInspections = ({
           md: 3,
         }}
       >
-        <Paper>
-          <TextField
-            id="extinguisher-inspections-search"
-            fullWidth
-            label="ID o Responsable"
-            variant="outlined"
-            value={filters.search}
-            autoComplete="off"
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                search: e.target.value,
-              })
-            }
-          />
-        </Paper>
+        <TextField
+          id="extinguisher-inspections-search"
+          fullWidth
+          label="ID o Responsable"
+          variant="outlined"
+          value={filters.search}
+          autoComplete="off"
+          onChange={(e) =>
+            setFilters({
+              ...filters,
+              search: e.target.value,
+            })
+          }
+        />
       </Grid>
-    </Grid>
+    </FilterBar>
   );
 };
 

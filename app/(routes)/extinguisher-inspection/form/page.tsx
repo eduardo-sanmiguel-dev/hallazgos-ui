@@ -39,6 +39,8 @@ import dayjs, { Dayjs } from "dayjs";
 import "dayjs/locale/es";
 
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
+import PageHeader from "@shared/components/PageHeader";
+import { primaryTextColor } from "../../../theme";
 import {
   EmergencyTeamsService,
   ExtinguisherInspectionsService,
@@ -727,6 +729,13 @@ const ExtinguisherInspectionFormPage = () => {
 
   return (
     <>
+      <PageHeader
+        title={
+          idCurrent
+            ? "Agregar evaluaciones a la inspección"
+            : "Nueva inspección de extintores"
+        }
+      />
       <Grid container spacing={2}>
         <SelectManufacturingPlantsOwn
           value={form.manufacturingPlantId}
@@ -746,48 +755,46 @@ const ExtinguisherInspectionFormPage = () => {
             md: 3,
           }}
         >
-          <Paper>
-            <LocalizationProvider
-              dateAdapter={AdapterDayjs}
-              adapterLocale="es"
-              localeText={
-                esES.components.MuiLocalizationProvider.defaultProps.localeText
+          <LocalizationProvider
+            dateAdapter={AdapterDayjs}
+            adapterLocale="es"
+            localeText={
+              esES.components.MuiLocalizationProvider.defaultProps.localeText
+            }
+          >
+            <DatePicker
+              label="Próxima recarga"
+              format="DD/MM/YYYY"
+              disablePast
+              minDate={today}
+              value={
+                form.sharedNextRechargeDate
+                  ? dayjs(form.sharedNextRechargeDate)
+                  : null
               }
-            >
-              <DatePicker
-                label="Próxima recarga"
-                format="DD/MM/YYYY"
-                disablePast
-                minDate={today}
-                value={
-                  form.sharedNextRechargeDate
-                    ? dayjs(form.sharedNextRechargeDate)
-                    : null
-                }
-                onChange={(newValue: Dayjs | null) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    sharedNextRechargeDate: newValue
-                      ? newValue.format("YYYY-MM-DD")
-                      : "",
-                  }))
-                }
-                slotProps={{
-                  field: {
-                    clearable: true,
-                    onClear: () =>
-                      setForm((prev) => ({
-                        ...prev,
-                        sharedNextRechargeDate: "",
-                      })),
-                  },
-                  textField: {
-                    fullWidth: true,
-                  },
-                }}
-              />
-            </LocalizationProvider>
-          </Paper>
+              onChange={(newValue: Dayjs | null) =>
+                setForm((prev) => ({
+                  ...prev,
+                  sharedNextRechargeDate: newValue
+                    ? newValue.format("YYYY-MM-DD")
+                    : "",
+                }))
+              }
+              slotProps={{
+                field: {
+                  clearable: true,
+                  onClear: () =>
+                    setForm((prev) => ({
+                      ...prev,
+                      sharedNextRechargeDate: "",
+                    })),
+                },
+                textField: {
+                  fullWidth: true,
+                },
+              }}
+            />
+          </LocalizationProvider>
         </Grid>
 
         <Grid
@@ -818,8 +825,7 @@ const ExtinguisherInspectionFormPage = () => {
           }}
         >
           <Button
-            variant="contained"
-            color="error"
+            variant="outlined"
             size="small"
             fullWidth
             startIcon={<CloseIcon />}
@@ -863,12 +869,8 @@ const ExtinguisherInspectionFormPage = () => {
           <Divider sx={{ my: 1 }} />
           <Typography
             variant="h6"
-            sx={{
-              color: (theme) =>
-                theme.palette.mode === "light"
-                  ? theme.palette.common.black
-                  : theme.palette.common.white,
-            }}
+            component="h2"
+            sx={{ color: "text.primary", fontWeight: 600 }}
           >
             Evaluaciones
           </Typography>
@@ -933,14 +935,15 @@ const ExtinguisherInspectionFormPage = () => {
                               borderRadius: 1,
                               border: "1px solid",
                               borderColor: "primary.main",
-                              backgroundColor: alpha("#1976d2", 0.08),
+                              backgroundColor: (theme) =>
+                                alpha(theme.palette.primary.main, 0.08),
                             }}
                           >
                             <Typography
                               variant="caption"
                               sx={{
                                 fontWeight: 700,
-                                color: "primary.main",
+                                color: primaryTextColor,
                               }}
                             >
                               {item.label}
@@ -961,53 +964,49 @@ const ExtinguisherInspectionFormPage = () => {
                 <Grid size={{ xs: 12, sm: 12, md: 8 }}>
                   <Grid container spacing={2}>
                     <Grid size={{ xs: 12, sm: 8, md: 8 }}>
-                      <Paper>
-                        <TextField
-                          select
-                          label="Novedad"
-                          fullWidth
-                          value={evaluation.newNoveltyConcept}
-                          onChange={(e) =>
-                            updateNoveltyDraft(
-                              index,
-                              "newNoveltyConcept",
-                              e.target.value,
-                            )
-                          }
-                        >
-                          <MenuItem value="">Seleccione</MenuItem>
-                          {groupedConceptFields.map((field) => (
-                            <MenuItem key={field.key} value={field.key}>
-                              {field.label}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      </Paper>
+                      <TextField
+                        select
+                        label="Novedad"
+                        fullWidth
+                        value={evaluation.newNoveltyConcept}
+                        onChange={(e) =>
+                          updateNoveltyDraft(
+                            index,
+                            "newNoveltyConcept",
+                            e.target.value,
+                          )
+                        }
+                      >
+                        <MenuItem value="">Seleccione</MenuItem>
+                        {groupedConceptFields.map((field) => (
+                          <MenuItem key={field.key} value={field.key}>
+                            {field.label}
+                          </MenuItem>
+                        ))}
+                      </TextField>
                     </Grid>
 
                     <Grid size={{ xs: 12, sm: 4, md: 4 }}>
-                      <Paper>
-                        <TextField
-                          select
-                          label="Estado"
-                          fullWidth
-                          value={evaluation.newNoveltyStatus}
-                          onChange={(e) =>
-                            updateNoveltyDraft(
-                              index,
-                              "newNoveltyStatus",
-                              e.target.value,
-                            )
-                          }
-                        >
-                          <MenuItem value="">Seleccione</MenuItem>
-                          {groupedStatusValues.map((status) => (
-                            <MenuItem key={status} value={status}>
-                              {statusLegendMap[status]}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      </Paper>
+                      <TextField
+                        select
+                        label="Estado"
+                        fullWidth
+                        value={evaluation.newNoveltyStatus}
+                        onChange={(e) =>
+                          updateNoveltyDraft(
+                            index,
+                            "newNoveltyStatus",
+                            e.target.value,
+                          )
+                        }
+                      >
+                        <MenuItem value="">Seleccione</MenuItem>
+                        {groupedStatusValues.map((status) => (
+                          <MenuItem key={status} value={status}>
+                            {statusLegendMap[status]}
+                          </MenuItem>
+                        ))}
+                      </TextField>
                     </Grid>
 
                     <Grid size={{ xs: 12, sm: 12, md: 12 }}>
@@ -1022,23 +1021,21 @@ const ExtinguisherInspectionFormPage = () => {
                     </Grid>
 
                     <Grid size={{ xs: 12, sm: 12, md: 12 }}>
-                      <Paper>
-                        <TextField
-                          label="Observaciones generales"
-                          fullWidth
-                          multiline
-                          minRows={6}
-                          autoComplete="off"
-                          value={evaluation.observations}
-                          onChange={(e) =>
-                            updateNoveltyDraft(
-                              index,
-                              "observations",
-                              e.target.value,
-                            )
-                          }
-                        />
-                      </Paper>
+                      <TextField
+                        label="Observaciones generales"
+                        fullWidth
+                        multiline
+                        minRows={6}
+                        autoComplete="off"
+                        value={evaluation.observations}
+                        onChange={(e) =>
+                          updateNoveltyDraft(
+                            index,
+                            "observations",
+                            e.target.value,
+                          )
+                        }
+                      />
                     </Grid>
 
                     <Grid size={{ xs: 12, sm: 12, md: 12 }}>
