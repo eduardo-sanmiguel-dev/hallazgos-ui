@@ -1,5 +1,5 @@
 import { SelectChangeEvent } from "@mui/material";
-import { Grid, Paper } from "@mui/material";
+import { Grid } from "@mui/material";
 
 import { useUserSessionStore } from "@store";
 import SelectDefault from "./SelectDefault";
@@ -38,15 +38,13 @@ const SelectManufacturingPlantsOwn = ({
         md: 3,
       }}
     >
-      <Paper>
-        <SelectDefault
-          data={manufacturingPlants}
-          label="Planta"
-          value={value}
-          onChange={onChange}
-          isFilter={isFilter}
-        />
-      </Paper>
+      <SelectDefault
+        data={manufacturingPlants}
+        label="Planta"
+        value={value}
+        onChange={onChange}
+        isFilter={isFilter}
+      />
     </Grid>
   );
 };

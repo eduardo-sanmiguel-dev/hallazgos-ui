@@ -291,7 +291,15 @@ export default function MainLayout({ children }: { children: ReactNode }) {
   return (
     <ColorModeContext.Provider value={colorMode}>
       <ThemeProvider theme={theme}>
-        <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+        <Box
+          sx={{
+            display: "flex",
+            height: "100vh",
+            overflow: "hidden",
+            // Scrollbars y controles nativos acordes al modo (se hereda).
+            colorScheme: mode,
+          }}
+        >
           <CssBaseline />
           <Box
             component="a"
