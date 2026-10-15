@@ -29,7 +29,9 @@ import { GembaWalkCalendar, GembaWalkEvaluation } from "@interfaces";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
 import LoadingLinear from "@shared/components/LoadingLinear";
+import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import GembaWalkAccessGuard from "../_components/GembaWalkAccessGuard";
+import PageHeader from "@shared/components/PageHeader";
 import { groupByCategory } from "../_components/groupByCategory";
 import { formatDuration } from "../_components/formatDuration";
 
@@ -81,6 +83,7 @@ const ElapsedTimer = ({ startedAt }: { startedAt: string }) => {
 
 const GembaWalkForm = () => {
   const router = useRouter();
+  const { confirm, confirmDialog } = useConfirmDialog();
 
   const [now, setNow] = useState(() => new Date());
   const [manufacturingPlantId, setManufacturingPlantId] = useState("");
@@ -190,19 +193,14 @@ const GembaWalkForm = () => {
       .finally(() => setIsSaving(false));
   };
 
-  const confirmSave = () => {
-    toast.warning("Confirmar registro", {
+  const confirmSave = async () => {
+    const confirmed = await confirm({
+      title: "Confirmar registro",
       description: `Se registrará el recorrido con ${compliantCount} C y ${nonCompliantCount} NC. Una vez guardado no se puede editar ni eliminar.`,
-      duration: 10000,
-      cancel: {
-        label: "Cancelar",
-        onClick: () => undefined,
-      },
-      action: {
-        label: "Registrar",
-        onClick: save,
-      },
+      confirmLabel: "Registrar",
     });
+
+    if (confirmed) save();
   };
 
   return (
@@ -461,8 +459,7 @@ const GembaWalkForm = () => {
 
       <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
         <Button
-          variant="contained"
-          color="error"
+          variant="outlined"
           fullWidth
           startIcon={<CloseIcon />}
           onClick={() => router.push("/gemba-walk")}
@@ -484,32 +481,18 @@ const GembaWalkForm = () => {
           Terminar recorrido
         </Button>
       </Grid>
+      {confirmDialog}
     </Grid>
   );
 };
 
 const GembaWalkFormPage = () => (
-  <Grid container>
-    <Grid size={{ xs: 12 }}>
-      <Typography
-        variant="h4"
-        gutterBottom
-        sx={{
-          color: (theme) =>
-            theme.palette.mode === "light"
-              ? theme.palette.common.black
-              : theme.palette.common.white,
-        }}
-      >
-        Registrar recorrido
-      </Typography>
-    </Grid>
-    <Grid size={{ xs: 12 }}>
-      <GembaWalkAccessGuard>
-        <GembaWalkForm />
-      </GembaWalkAccessGuard>
-    </Grid>
-  </Grid>
+  <>
+    <PageHeader title="Registrar recorrido" />
+    <GembaWalkAccessGuard>
+      <GembaWalkForm />
+    </GembaWalkAccessGuard>
+  </>
 );
 
 export default GembaWalkFormPage;

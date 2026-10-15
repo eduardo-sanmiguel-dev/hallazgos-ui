@@ -22,6 +22,7 @@ import { GembaWalk } from "@interfaces";
 import { stringToDateWithTime } from "@shared/utils";
 import LoadingLinear from "@shared/components/LoadingLinear";
 import GembaWalkAccessGuard from "../_components/GembaWalkAccessGuard";
+import PageHeader from "@shared/components/PageHeader";
 import { groupByCategory } from "../_components/groupByCategory";
 import { complianceOf } from "../_components/TableGembaWalks";
 import { formatDuration } from "../_components/formatDuration";
@@ -196,27 +197,12 @@ const GembaWalkDetail = () => {
 };
 
 const GembaWalkViewPage = () => (
-  <Grid container>
-    <Grid size={{ xs: 12 }}>
-      <Typography
-        variant="h4"
-        gutterBottom
-        sx={{
-          color: (theme) =>
-            theme.palette.mode === "light"
-              ? theme.palette.common.black
-              : theme.palette.common.white,
-        }}
-      >
-        Detalle del recorrido
-      </Typography>
-    </Grid>
-    <Grid size={{ xs: 12 }}>
-      <GembaWalkAccessGuard>
-        <GembaWalkDetail />
-      </GembaWalkAccessGuard>
-    </Grid>
-  </Grid>
+  <>
+    <PageHeader title="Detalle del recorrido" />
+    <GembaWalkAccessGuard>
+      <GembaWalkDetail />
+    </GembaWalkAccessGuard>
+  </>
 );
 
 export default GembaWalkViewPage;
