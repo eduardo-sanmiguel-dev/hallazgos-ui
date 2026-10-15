@@ -15,6 +15,10 @@ import { InputLabel } from "@mui/material";
 import { MenuItem } from "@mui/material";
 import { FormControl } from "@mui/material";
 import { Select, SelectChangeEvent } from "@mui/material";
+import { IconButton } from "@mui/material";
+import { InputAdornment } from "@mui/material";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
 import { UsersService } from "@services";
 import MultiSelectManufacturingPlants from "@components/MultiSelectManufacturingPlants";
@@ -28,6 +32,7 @@ import FormActions from "@shared/components/FormActions";
 
 const UsersFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const [idCurrent, setIdCurrent] = useState<number>(0);
   const [form, setForm] = useState<{
     name: string;
@@ -231,9 +236,10 @@ const UsersFormPage = () => {
             {...fieldProps("password")}
             required={!idCurrent}
             label="Contraseña"
+            type={showPassword ? "text" : "password"}
             variant="outlined"
             fullWidth
-            autoComplete="off"
+            autoComplete="new-password"
             value={form.password}
             onChange={(e) =>
               setForm({
@@ -241,6 +247,26 @@ const UsersFormPage = () => {
                 password: e.target.value,
               })
             }
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={
+                        showPassword
+                          ? "Ocultar contraseña"
+                          : "Mostrar contraseña"
+                      }
+                      aria-pressed={showPassword}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
           />
         </Grid>
         <Grid
@@ -289,7 +315,7 @@ const UsersFormPage = () => {
               }}
             />
             {errorOf("manufacturingPlantNames") && (
-              <FormHelperText error>
+              <FormHelperText data-error-for="manufacturingPlantNames" error>
                 {errorOf("manufacturingPlantNames")}
               </FormHelperText>
             )}
@@ -317,7 +343,7 @@ const UsersFormPage = () => {
                   manufacturingPlantNames={form.manufacturingPlantNames}
                 />
                 {errorOf("zoneNames") && (
-                  <FormHelperText error>{errorOf("zoneNames")}</FormHelperText>
+                  <FormHelperText data-error-for="zoneNames" error>{errorOf("zoneNames")}</FormHelperText>
                 )}
               </Grid>
               <Grid

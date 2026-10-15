@@ -222,6 +222,8 @@ const EmployeesFormPage = () => {
         >
           <TextField
             {...fieldProps("code")}
+            // Si hay error se muestra el error; si no, la ayuda.
+            helperText={errorOf("code") ?? "Solo números"}
             required
             label="Código de empleado"
             variant="outlined"
@@ -230,6 +232,7 @@ const EmployeesFormPage = () => {
             value={form.code}
             onChange={onChangeSelect}
             name="code"
+            slotProps={{ htmlInput: { inputMode: "numeric" } }}
           />
         </Grid>
         <Grid
@@ -280,7 +283,7 @@ const EmployeesFormPage = () => {
               }}
             />
             {errorOf("birthdate") && (
-              <FormHelperText error>{errorOf("birthdate")}</FormHelperText>
+              <FormHelperText data-error-for="birthdate" error>{errorOf("birthdate")}</FormHelperText>
             )}
           </LocalizationProvider>
         </Grid>
@@ -313,7 +316,7 @@ const EmployeesFormPage = () => {
               }}
             />
             {errorOf("dateOfAdmission") && (
-              <FormHelperText error>
+              <FormHelperText data-error-for="dateOfAdmission" error>
                 {errorOf("dateOfAdmission")}
               </FormHelperText>
             )}
@@ -334,7 +337,7 @@ const EmployeesFormPage = () => {
             name="area"
           />
           {errorOf("area") && (
-            <FormHelperText error>{errorOf("area")}</FormHelperText>
+            <FormHelperText data-error-for="area" error>{errorOf("area")}</FormHelperText>
           )}
         </Grid>
         <Grid
@@ -352,7 +355,7 @@ const EmployeesFormPage = () => {
             name="position"
           />
           {errorOf("position") && (
-            <FormHelperText error>{errorOf("position")}</FormHelperText>
+            <FormHelperText data-error-for="position" error>{errorOf("position")}</FormHelperText>
           )}
         </Grid>
         <Grid
@@ -387,7 +390,7 @@ const EmployeesFormPage = () => {
             }}
           />
           {errorOf("manufacturingPlantNames") && (
-            <FormHelperText error>
+            <FormHelperText data-error-for="manufacturingPlantNames" error>
               {errorOf("manufacturingPlantNames")}
             </FormHelperText>
           )}

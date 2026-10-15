@@ -179,7 +179,7 @@ const GembaWalkObserversFormPage = () => {
         />
         {errorOf("manufacturingPlantId") && (
           <Grid size={{ xs: 12 }}>
-            <FormHelperText error>
+            <FormHelperText data-error-for="manufacturingPlantId" error>
               {errorOf("manufacturingPlantId")}
             </FormHelperText>
           </Grid>
@@ -205,7 +205,7 @@ const GembaWalkObserversFormPage = () => {
             validationEmpty
           />
           {errorOf("gembaWalkZoneId") && (
-            <FormHelperText error>{errorOf("gembaWalkZoneId")}</FormHelperText>
+            <FormHelperText data-error-for="gembaWalkZoneId" error>{errorOf("gembaWalkZoneId")}</FormHelperText>
           )}
         </Grid>
         <Grid
@@ -246,7 +246,7 @@ const GembaWalkObserversFormPage = () => {
             />
           )}
           {errorOf("userIds") && (
-            <FormHelperText error>{errorOf("userIds")}</FormHelperText>
+            <FormHelperText data-error-for="userIds" error>{errorOf("userIds")}</FormHelperText>
           )}
         </Grid>
       </FormSection>

@@ -156,7 +156,7 @@ const ZonesFormPage = () => {
             }
           />
           {errorOf("manufacturingPlantId") && (
-            <FormHelperText error>
+            <FormHelperText data-error-for="manufacturingPlantId" error>
               {errorOf("manufacturingPlantId")}
             </FormHelperText>
           )}

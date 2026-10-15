@@ -201,7 +201,7 @@ const ScreenForm = ({
               }}
             />
             {errorOf("manufacturingPlantNames") && (
-              <FormHelperText error>
+              <FormHelperText data-error-for="manufacturingPlantNames" error>
                 {errorOf("manufacturingPlantNames")}
               </FormHelperText>
             )}
@@ -295,7 +295,7 @@ const ScreenForm = ({
                 <MenuItem value="BOOLEAN">Aprobado / Reprobado</MenuItem>
               </Select>
               {errorOf("typeOfEvaluation") && (
-                <FormHelperText>{errorOf("typeOfEvaluation")}</FormHelperText>
+                <FormHelperText data-error-for="typeOfEvaluation">{errorOf("typeOfEvaluation")}</FormHelperText>
               )}
             </FormControl>
           </Grid>

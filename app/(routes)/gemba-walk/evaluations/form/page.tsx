@@ -135,7 +135,7 @@ const GembaWalkEvaluationsFormPage = () => {
         />
         {errorOf("manufacturingPlantId") && (
           <Grid size={{ xs: 12 }}>
-            <FormHelperText error>
+            <FormHelperText data-error-for="manufacturingPlantId" error>
               {errorOf("manufacturingPlantId")}
             </FormHelperText>
           </Grid>
@@ -154,7 +154,7 @@ const GembaWalkEvaluationsFormPage = () => {
             validationEmpty
           />
           {errorOf("category") && (
-            <FormHelperText error>{errorOf("category")}</FormHelperText>
+            <FormHelperText data-error-for="category" error>{errorOf("category")}</FormHelperText>
           )}
         </Grid>
         <Grid size={{ xs: 12, sm: 12, md: 6 }}>

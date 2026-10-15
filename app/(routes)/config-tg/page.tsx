@@ -364,7 +364,7 @@ const ScreenForm = ({
             }}
           />
           {errorOf("manufacturingPlantId") && (
-            <FormHelperText error>
+            <FormHelperText data-error-for="manufacturingPlantId" error>
               {errorOf("manufacturingPlantId")}
             </FormHelperText>
           )}
@@ -390,7 +390,7 @@ const ScreenForm = ({
                 }}
               />
               {errorOf("positionId") && (
-                <FormHelperText error>
+                <FormHelperText data-error-for="positionId" error>
                   {errorOf("positionId")}
                 </FormHelperText>
               )}
@@ -420,7 +420,7 @@ const ScreenForm = ({
                 }
               />
               {errorOf("areaManagerId") && (
-                <FormHelperText error>
+                <FormHelperText data-error-for="areaManagerId" error>
                   {errorOf("areaManagerId")}
                 </FormHelperText>
               )}
@@ -450,7 +450,7 @@ const ScreenForm = ({
                 }
               />
               {errorOf("humanResourceManagerId") && (
-                <FormHelperText error>
+                <FormHelperText data-error-for="humanResourceManagerId" error>
                   {errorOf("humanResourceManagerId")}
                 </FormHelperText>
               )}
@@ -596,7 +596,7 @@ const ScreenForm = ({
                     }}
                   >
                     {errorOf("topics") && (
-                      <FormHelperText error sx={{ mb: 1 }}>
+                      <FormHelperText data-error-for="topics" error sx={{ mb: 1 }}>
                         {errorOf("topics")}
                       </FormHelperText>
                     )}

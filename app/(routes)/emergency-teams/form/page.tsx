@@ -154,7 +154,7 @@ const EmergencyTeamsFormPage = () => {
         />
         {errorOf("manufacturingPlantId") && (
           <Grid size={{ xs: 12 }}>
-            <FormHelperText error>
+            <FormHelperText data-error-for="manufacturingPlantId" error>
               {errorOf("manufacturingPlantId")}
             </FormHelperText>
           </Grid>

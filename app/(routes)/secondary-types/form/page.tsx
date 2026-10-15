@@ -152,7 +152,7 @@ const SecondaryTypesFormPage = () => {
             }
           />
           {errorOf("mainTypeId") && (
-            <FormHelperText error>{errorOf("mainTypeId")}</FormHelperText>
+            <FormHelperText data-error-for="mainTypeId" error>{errorOf("mainTypeId")}</FormHelperText>
           )}
         </Grid>
         <Grid
@@ -185,7 +185,7 @@ const SecondaryTypesFormPage = () => {
               <MenuItem value="Seguridad">Seguridad</MenuItem>
             </Select>
             {errorOf("typeResponsible") && (
-              <FormHelperText error>
+              <FormHelperText data-error-for="typeResponsible" error>
                 {errorOf("typeResponsible")}
               </FormHelperText>
             )}
