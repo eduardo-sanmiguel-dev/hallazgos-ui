@@ -477,3 +477,56 @@ Decisión del 14/10/2026: el módulo `/training-guide` ya no se usa. No se modif
 - **Configuración G. Entr. — reordenar temas sin arrastrar:** agregar botones subir/bajar como alternativa al arrastre (WCAG 2.5.7).
 
 Configuración G. Entr. y Temas sí recibieron el patrón visual en el bloque 2 y se probaron de punta a punta, porque ya estaban hechos antes de esta decisión.
+
+### Correcciones y pruebas posteriores
+
+**Correcciones de UI** (`70d6cb9`), probadas en el navegador:
+- **Usuarios:** la contraseña usa `type="password"` y tiene un botón "Mostrar/Ocultar contraseña" con `aria-pressed`; funciona al crear y al editar.
+- **Colaboradores:** el código de empleado muestra la ayuda "Solo números" y usa `inputMode="numeric"`; la validación no cambió.
+- **`useFieldErrors`:** el foco también llega a los selects, buscando el mensaje con `data-error-for`. Probado en "Responsable" (Tipos de criterios) y "Tipo de evaluación" (Temas).
+  - Caso límite: si el mensaje vive en un `Grid` aparte y el control anterior está deshabilitado, el foco no se mueve. Ejemplo: "Debe agregar al menos un tema" en Configuración G. Entr., cuyo botón "Agregar tema" está deshabilitado.
+
+**Cierre de las pruebas del bloque 2:**
+- **Temas:** crear funciona tras corregir la secuencia. Los dos temas de prueba se eliminaron con el diálogo durante una desconexión de la extensión; no se alcanzó a ver el mensaje final.
+- **Configuración G. Entr.:**
+  - agregar dos temas, reordenar arrastrando (sin saltos), quitar uno ("Quitar el tema …") y guardar;
+  - revisar la edición y eliminar (Esc no borra; confirmar sí).
+- **Equipos de emergencia:**
+  - selección individual: "Imprimir (1)" y encabezado en estado parcial;
+  - "seleccionar todos": marca las 5 filas de la página y desmarca todas;
+  - impresión: se interceptó `window.open` para no abrir el diálogo de impresión del navegador; genera una ventana con el QR en PNG y llama a `print()`;
+  - eliminar: Esc no borra; confirmar sí.
+
+### Fase 4 — Bloque 3: Inspección de extintores y EPP
+
+| Módulo | Aplicado | Probado | Pendiente |
+|---|---|---|---|
+| Inspección de extintores | Listado con `PageHeader` y `FilterBar`. Formulario: título ("Nueva inspección…" / "Agregar evaluaciones…"), fecha sin `Paper` propio, Cancelar sin rojo, "Evaluaciones" como `h2`, datos del equipo con colores del theme (antes `#1976d2` fijo y etiquetas en `primary.main` sin contraste AA), sin `Paper` por campo | Listado y formulario en 1440, 700 y 360 px, claro y oscuro, sin errores de consola | **Cámara:** no se abrió el escáner (pediría permiso de cámara al navegador). Sin escanear un QR no se pueden agregar evaluaciones, así que no se creó ninguna inspección. |
+| EPP | Título con "Crear registro" y Actualizar. Tabla: nombres en español; la descarga ahora es un botón usable con teclado (antes un ícono SVG con `onClick`); confirmación del historial con `ConfirmDialog`. Diálogo de registro: título "Registro de EPP", "Cerrar", texto alternativo de la firma, nombre accesible en "Quitar …"; se quitó el `console.log`. | Planta, colaborador, equipo, agregar y firma en 1440 y 360 px | **Guardar la entrega y eliminar del historial:** la API responde 500 por secuencias desfasadas (ver abajo). |
+
+**Firma de EPP** (sin cambiar la lógica ni la imagen guardada):
+- **Antes:** el canvas dibujaba en 500 × 200 pero se mostraba estirado a 466 × 198. Con el puntero al 90 % del ancho, el trazo quedaba **34 px antes**.
+- **Corrección:** el canvas se muestra exactamente al tamaño en que dibuja (500 × 200 en escritorio, 300 × 200 en móvil).
+- **Después:**
+  - 1440 px: puntero 50 → 450, trazo 48 → 443;
+  - 360 px: puntero 30 → 270, trazo 28 → 262.
+  
+  La diferencia que queda es el suavizado normal del trazo.
+
+**Secuencias desfasadas en `hallazgos_dev`** (solo lectura; no se corrigieron):
+
+| Tabla | Secuencia | `MAX(id)` | Efecto |
+|---|---|---|---|
+| `epp` | 3819 | 3819 | Chocó en el primer intento (el 23505 de la consola: `(id)=(3819)`); ese intento la dejó alineada |
+| `epp_equipment` | 4376 | 4377 | Guardar una entrega de EPP fallará |
+| `employee_area` | 26 | 27 | Crear un área de colaborador fallará |
+| `employee_position` | 193 | 195 | Crear un puesto fallará |
+| `machines` | 35 | 44 | Crear una máquina fallará |
+| `cie-diagnoses` | sin usar | 10 | Crear un diagnóstico fallará |
+
+**API — mensaje de error explícito** (`hallazgos-api/src/shared/filters/query-failed-exception.filter.ts`, registrado en `main.ts`):
+- Atrapa solo `QueryFailedError` no manejados y no cambia el resto de las excepciones.
+- **Unicidad (23505)** → 409 con mensaje en español: tabla y valor duplicado, y si es el `id`, aviso de secuencia desfasada.
+- **Otros errores de base de datos** → 500 con mensaje claro y su código.
+- En GraphQL devuelve la excepción tal cual.
+- Probado con errores simulados sobre la versión compilada. Sin commit: está en la rama `main` de `hallazgos-api`.
