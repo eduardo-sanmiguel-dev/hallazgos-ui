@@ -530,3 +530,68 @@ Configuración G. Entr. y Temas sí recibieron el patrón visual en el bloque 2 
 - **Otros errores de base de datos** → 500 con mensaje claro y su código.
 - En GraphQL devuelve la excepción tal cual.
 - Probado con errores simulados sobre la versión compilada. Sin commit: está en la rama `main` de `hallazgos-api`.
+
+### Secuencias de ids: corrección en desarrollo y consultas para producción
+
+En `hallazgos_dev` se revisaron las 53 tablas con `id` serial. Había 5 desfasadas además de `topic` (`cie-diagnoses`, `employee_area`, `employee_position`, `epp_equipment` y `machines`), y se corrigieron con `setval`. La verificación posterior no encontró ninguna. **No se ejecutó nada contra producción.**
+
+**1. Verificar en producción** (solo lectura). Lista las tablas cuya secuencia entregaría un `id` que ya existe:
+```sql
+SELECT t.tabla,
+       t.secuencia,
+       t.max_id,
+       CASE WHEN s.is_called THEN s.last_value + 1 ELSE s.last_value END AS siguiente
+FROM (
+  SELECT c.relname AS tabla,
+         pg_get_serial_sequence(quote_ident(c.relname), 'id') AS secuencia,
+         (xpath('/row/m/text()',
+                query_to_xml(format('SELECT max(id) AS m FROM %I', c.relname), false, true, '')))[1]::text::bigint AS max_id
+  FROM pg_class c
+  JOIN information_schema.columns col
+    ON col.table_schema = 'public' AND col.table_name = c.relname AND col.column_name = 'id'
+  WHERE c.relkind = 'r' AND c.relnamespace = 'public'::regnamespace
+) t
+JOIN pg_sequences s ON s.schemaname || '.' || s.sequencename = replace(t.secuencia, '"', '')
+WHERE t.secuencia IS NOT NULL
+  AND t.max_id IS NOT NULL
+  AND (CASE WHEN s.is_called THEN s.last_value + 1 ELSE s.last_value END) <= t.max_id
+ORDER BY t.tabla;
+```
+
+**2. Corregir en producción**, solo después de revisar el resultado anterior y con respaldo. Ajusta únicamente las secuencias atrasadas:
+```sql
+DO $$
+DECLARE
+  r record;
+  max_id bigint;
+  seq text;
+BEGIN
+  FOR r IN
+    SELECT c.relname AS tabla
+    FROM pg_class c
+    JOIN information_schema.columns col
+      ON col.table_schema = 'public' AND col.table_name = c.relname AND col.column_name = 'id'
+    WHERE c.relkind = 'r' AND c.relnamespace = 'public'::regnamespace
+  LOOP
+    seq := pg_get_serial_sequence(quote_ident(r.tabla), 'id');
+    CONTINUE WHEN seq IS NULL;
+    EXECUTE format('SELECT max(id) FROM %I', r.tabla) INTO max_id;
+    CONTINUE WHEN max_id IS NULL;
+    IF (SELECT CASE WHEN is_called THEN last_value + 1 ELSE last_value END
+        FROM pg_sequences WHERE schemaname || '.' || sequencename = replace(seq, '"', '')) <= max_id THEN
+      PERFORM setval(seq, max_id, true);
+      RAISE NOTICE 'Secuencia % ajustada a %', seq, max_id;
+    END IF;
+  END LOOP;
+END $$;
+```
+
+**API — mensaje de error de base de datos** (rama `fix/mensaje-errores-bd` de `hallazgos-api`, `58b6db1`). El usuario solo ve mensajes en español sin tablas, columnas ni ids:
+
+| Caso | Respuesta | Mensaje |
+|---|---|---|
+| Duplicado por secuencia | 409 | "No se pudo guardar el registro. Avise al administrador del sistema." |
+| Duplicado real | 409 | "No se pudo guardar: ya existe un registro con esos datos." |
+| Otros errores de base de datos | 500 | "No se pudo completar la operación. Avise al administrador del sistema." |
+
+El log de la API registra código, tabla, restricción y detalle.
