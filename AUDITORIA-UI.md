@@ -255,3 +255,39 @@ Aplicado:
 - Menú: usa `primaryTextColor` del theme; mismo aspecto.
 
 Verificación: build y typecheck sin errores; lint igual a la línea base. No se verificó en navegador (la API local no está corriendo y el proxy bloquea las páginas sin ella).
+
+#### Qué revisar en la Fase 2
+
+En orden de impacto. Revisar cada punto en **modo claro y oscuro**.
+
+1. **Encabezados de tabla** (el cambio más visible; afecta a casi todos los módulos).
+   - Dónde: `/users`, `/hallazgos`, `/gemba-walk/calendar`, `/hds`.
+   - Antes: texto blanco sobre verde sólido. Ahora: fondo verde tenue con texto verde oscuro en negritas (en oscuro, texto verde claro).
+   - Revisar que se lean bien y que el fondo no se confunda con las filas cebra.
+2. **Paginación de tablas.**
+   - Dónde: cualquier tabla con más de 5 filas, p. ej. `/users`.
+   - Ahora dice "Filas por página" y "1–5 de 20" en lugar del texto en inglés.
+   - Los botones de primera/última página todavía tienen nombres en inglés para lectores de pantalla; se corrigen en la Fase 3.
+3. **Botones.**
+   - Dónde: "Crear" y refrescar en cualquier listado (`/main-types`); "Guardar" y "Cancelar" en formularios (`/users/form`, `/gemba-walk/calendar/form`).
+   - Ahora: sin mayúsculas forzadas, sin sombra y con esquinas de 10 px.
+   - Revisar que los grupos de botones (`ButtonGroup`) sigan viéndose unidos.
+4. **Acciones "Editar" / "Eliminar" en filas** (14 tablas).
+   - Dónde: `/main-types`, `/users`, `/gemba-walk/zones`.
+   - Ahora: esquinas de 8 px en lugar de forma de píldora.
+5. **Filtros.**
+   - Dónde: cualquier listado, p. ej. `/main-types`, `/zones`, `/hallazgos`.
+   - Hay 35 archivos donde cada campo está dentro de un `Paper`. Ahora el campo tiene radio de 10 px y el `Paper` de 12 px: revisar que no se note un borde o sombra desalineada en las esquinas. Si se nota, se corrige en la Fase 3 con `FilterBar`.
+6. **Diálogos.**
+   - Dónde: crear o editar un evento en `/gemba-walk/calendar/form`; reasignar responsables y la vista de imagen en `/hallazgos`.
+   - Ahora: esquinas de 16 px y título en negritas.
+7. **Tarjetas, menús flotantes y paneles** (`Paper` con radio de 12 px).
+   - Dónde: `/dashboard` (tarjetas que no definen su propio radio) y los menús flotantes del menú lateral colapsado.
+8. **Teclado.**
+   - En cualquier pantalla, presionar `Tab` al cargar: debe aparecer arriba a la izquierda "Saltar al contenido". Al seguir con `Tab`, los botones deben mostrar un contorno verde.
+9. **Login (`/`).**
+   - Usa el mismo theme en modo claro: revisar el botón de entrar y los campos.
+10. **Menú lateral.**
+    - Debe verse igual que antes. Únicos cambios esperados: los menús flotantes del modo colapsado tienen esquinas más redondeadas, y el contorno de foco con teclado.
+
+Sin cambios esperados: colores de las gráficas, AppBar, fondo general y textos de negocio.
