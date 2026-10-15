@@ -426,3 +426,46 @@ Hallazgos sin corregir (para decidir):
 Pendientes acordados (tarea aparte):
 - **Configuración G. Entr. — `DraggableTopicRow`:** está definido dentro de `ScreenForm` y se remonta en cada render.
 - **Configuración G. Entr. — reordenar temas:** agregar botones subir/bajar como alternativa al arrastre (WCAG 2.5.7).
+
+### Pendientes fuera de la UI (backend y producción)
+
+1. **Secuencia de `topic` en producción.** En desarrollo, `public.topic_id_seq` estaba en 10 y `MAX(id)` en 19; se ajustó con `setval` solo en `hallazgos_dev`. Para verificar en producción, solo lectura:
+   ```sql
+   SELECT (SELECT MAX(id) FROM topic) AS max_id, last_value, is_called
+   FROM public.topic_id_seq;
+   ```
+   Si `last_value < max_id`, la corrección es:
+   ```sql
+   SELECT setval('public.topic_id_seq', (SELECT MAX(id) FROM topic));
+   ```
+   Conviene revisar también las demás secuencias si la base se restauró desde un respaldo.
+
+2. **Backend: errores de unicidad.** La API traduce cualquier error `23505` como "ya existe ese nombre" (por ejemplo `topics.service.ts`), aunque la causa sea otra, como una secuencia desfasada. Debería revisar la restricción violada (`error.constraint` o `error.detail`) y solo en el caso real responder que el nombre ya existe.
+
+3. **Backend: mensajes en inglés que llegan al usuario.** Ejemplos: "code must be a number conforming to the specified constraints" (validación del DTO de colaboradores) y "Topic with this name already exists". Se dejan sin traducir en la UI, a propósito: la corrección va en la API.
+
+4. **Producción: zonas con coordenadas mal escaladas** por el error del selector del plano, corregido en `625231c`.
+   - **Por qué se reconocen:** las coordenadas correctas están en la escala de la imagen `planos.png` (12396 × 17542 px), mientras que las afectadas quedaron en píxeles de pantalla, que no pasan del ancho mostrado del plano (alrededor de 1 600 px).
+   - **En desarrollo:** las 12 zonas con punto están entre X 5501 y 7061; ninguna es sospechosa.
+   - **Consulta para identificarlas** (solo lectura):
+   ```sql
+   SELECT a.id,
+          a.name,
+          mp.name AS planta,
+          a."coordinateX",
+          a."coordinateY",
+          a."zoomLevel",
+          a."updatedAt"
+   FROM areas a
+   LEFT JOIN manufacturing_plant mp ON mp.id = a."manufacturingPlantId"
+   WHERE a."isActive" = true
+     AND a."coordinateX" IS NOT NULL
+     AND a."coordinateY" IS NOT NULL
+     AND a."coordinateX" < 1600
+     AND a."coordinateY" < 1600
+   ORDER BY a."updatedAt" DESC;
+   ```
+   - **Propuesta de corrección:** volver a marcar cada zona listada desde **Configuración → General → Zonas → Editar**, ya con el selector corregido, y guardar. No se recomienda convertir automáticamente: el factor de escala dependía del ancho con que se mostró el plano en cada guardado, y ese dato no se guardó.
+   - **Si se necesita una aproximación masiva:** con un ancho mostrado conocido `W`, la conversión sería `x' = round(x * 12396 / W)` y `y' = round(y * 12396 / W)` (la imagen conserva su proporción). Antes conviene validarla con dos o tres zonas comparando visualmente en el plano.
+   - **Riesgo de la consulta:** una zona marcada de verdad en la esquina superior izquierda del plano también cumpliría el criterio. Por eso se revisa la lista antes de corregir.
+   - No se ejecutó nada contra producción.
