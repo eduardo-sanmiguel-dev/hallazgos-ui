@@ -612,3 +612,59 @@ Ritmo acordado: listado y formulario sin errores de consola, 360 y 1440 px en un
 | Errores y 404 (`85e231a`) | `StatusPage` compartido; `app/(routes)/error.tsx` (Reintentar / Ir al inicio, dentro del layout); `app/not-found.tsx` en español | 404 en una ruta inexistente, sin errores de consola | `error.tsx` solo se verificó con build y tipos: probarlo requiere provocar un error de render. |
 
 **Nota técnica (Highcharts):** las opciones globales solo se aplican al crear una gráfica. El hook las aplica durante el render (antes de que se monten las gráficas hijas) y las páginas usan el modo como `key` del contenedor de gráficas, así que al cambiar de tema se vuelven a crear. En Dashboard eso repite las consultas de las gráficas, igual que la recarga anterior, pero sin recargar la aplicación ni perder los filtros.
+
+### Fase 5 — Verificación final
+
+**Comandos** (rama `feat/mejora-ui-sistema` contra la línea base de la Fase 0):
+
+| Comando | Resultado |
+|---|---|
+| `npm run build` | Compila sin errores |
+| `npm run typecheck` (TypeScript 7) y `tsc --noEmit` (TypeScript 6) | Sin errores |
+| `npm run lint` | 0 errores y 2 advertencias, las mismas de la línea base (`exhaustive-deps` en `MultiSelectProcesses` y `MultiSelectZones`) |
+| Pruebas automatizadas | El proyecto no tiene |
+
+**Revisión del diff contra `main`** (115 archivos):
+- No cambian servicios (`_services`), stores (`_store`), interfaces, `proxy.ts`, `next.config`, `package.json` ni el lockfile.
+- No se agregaron ni eliminaron rutas (`page.tsx`). Los archivos nuevos son componentes, hooks, `error.tsx` y `not-found.tsx`.
+- Las llamadas a servicios y las navegaciones (`router.push`) son las mismas antes y después: solo cambiaron de lugar, por ejemplo dentro de una confirmación.
+- Los payloads no cambian.
+- Los permisos del menú y de las páginas no cambian.
+- Los únicos enlaces nuevos son el salto a `#contenido` y "Ir al inicio" (`/dashboard`) en las páginas de error. Se quitó la hoja de Material Icons sin uso (A10).
+
+### Lista de pruebas manuales
+
+**Por perfil.** Entrar con cada perfil, revisar que el menú muestre solo lo indicado y recorrer sus módulos con la lista por módulo.
+
+| Perfil | Debe ver | No debe ver |
+|---|---|---|
+| Administrador | Todo el menú, incluidos ICS, CIAEL, Gemba Walk y toda la Configuración | — |
+| Usuario EPP | Dashboard, Hallazgos, Inspección de extintores, EPP y Análisis de datos | Guías de entrenamiento, HDS, ICS, CIAEL y Configuración |
+| Observador Gemba Walk | Dashboard, Hallazgos, Gemba Walk (recorridos y calendario), Guías, HDS y Análisis de datos | ICS, CIAEL, Configuración y la configuración de Gemba Walk |
+| Usuario normal | Dashboard, Hallazgos, Guías, HDS y Análisis de datos | ICS, CIAEL, Gemba Walk, EPP, Extintores y Configuración |
+| Usuario solo HDS | HDS y Análisis de datos; `/dashboard` lo redirige a `/hds` | Todo lo demás |
+
+**En todos los perfiles:**
+- menú lateral: abrir y cerrar, el foco va a la sección activa y en móvil se ve como cajón;
+- cambiar de tema claro/oscuro en Dashboard y Análisis de datos (sin recarga);
+- abrir una ruta inexistente (404 en español).
+
+**Por módulo.** En cada uno: listado y formulario a 1440 y 360 px, en claro y oscuro, sin errores de consola.
+
+| Módulo | Qué probar |
+|---|---|
+| Dashboard | Elegir planta y fechas; las gráficas cargan; cambiar de tema conserva los filtros; mapa de calor, histórico y PDF |
+| Análisis de datos EPP | Cambiar planta; las 4 pestañas; a 360 px las pestañas se desplazan |
+| Hallazgos | Filtros con chips y "Limpiar filtros"; Excel y PDF; ver detalle; reasignar responsables; cancelar con el diálogo ("Volver" no cancela). Crear un hallazgo envía correo: probar solo con destinatarios de prueba. |
+| ICS | Filtro por nombre; crear y editar con errores junto al campo; eliminar con diálogo (Esc no borra). Tres reportes acumulados disparan la alerta por correo. |
+| Gemba Walk | Listado con filtros de planta y fechas; registrar recorrido con confirmación; detalle; calendario (eventos pasados sin editar ni eliminar) |
+| Inspección de extintores | Listado y filtros; nueva inspección con escaneo de QR (pide permiso de cámara) |
+| EPP | Registrar una entrega con firma (el trazo sigue al puntero); descargar; eliminar del historial con diálogo |
+| CIAEL | Crear registro: Guardar vacío marca el primer campo y le da el foco; Excel; estado vacío |
+| HDS | Listado, subir y descargar; eliminar con diálogo |
+| Usuarios, Colaboradores, Plantas, Lugares, Zonas, Procesos | Crear y editar con errores junto al campo; eliminar con diálogo; mostrar/ocultar contraseña en Usuarios; "Solo números" en el código de Colaboradores; punto en el plano en Zonas |
+| Criterios y Tipos de criterios | Crear, editar y eliminar con diálogo; "Responsable" obligatorio |
+| Equipo de protección, Equipos de emergencia | Crear, editar y eliminar con diálogo; selección e impresión de QR en Equipos de emergencia |
+| Temas y Configuración G. Entr. | Crear, editar y eliminar; arrastrar temas en la configuración |
+| Gemba Walk configuración (Zonas, Observadores, Calendario, Evaluaciones) | Crear, editar y eliminar con diálogo |
+| Guías de entrenamiento | Fuera de alcance (módulo sin uso): no se modificó |
