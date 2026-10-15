@@ -291,3 +291,40 @@ En orden de impacto. Revisar cada punto en **modo claro y oscuro**.
     - Debe verse igual que antes. Únicos cambios esperados: los menús flotantes del modo colapsado tienen esquinas más redondeadas, y el contorno de foco con teclado.
 
 Sin cambios esperados: colores de las gráficas, AppBar, fondo general y textos de negocio.
+
+### Fase 3 — Componentes compartidos
+
+Creados en `app/_shared/components`:
+
+| Componente | Propósito |
+|---|---|
+| `PageHeader` | Título de página como `h1` (estilo h4) con acciones a la derecha; se acomoda en 360 px |
+| `RefreshButton` | Botón de solo ícono con `aria-label` y tooltip "Actualizar" |
+| `FilterBar` | Sección de filtros con título, contador de registros y grid; sustituye un `Paper` por campo |
+| `RowActions`, `EditAction`, `DeleteAction`, `ViewAction` | Acciones de fila con tono suave y contraste AA en claro y oscuro (mínimo 5.06:1 medido) |
+| `ConfirmDialog` + `useConfirmDialog()` | Confirmación accesible; el foco inicia en "Cancelar" |
+| `EmptyState` | Mensaje "Sin registros"; `TableDefault` lo muestra automáticamente |
+
+Mejorados sin cambiar su API (los ~70 usos compilan sin modificarse):
+- `TableDefault<T>` y `TableDefaultServer<T>` genéricos; sin el código muerto; `aria-label` configurable; estado vacío; textos en español ("Todos", "Filas por página"); corregido el `colSpan={6}` fijo de la fila de relleno.
+- `TablePaginationActions`: nombres accesibles en español; `TableDefault` ya no tiene una copia propia.
+- `TableFooterDefault`: sin `any`; "Todos".
+- `LoadingLinear`: `role="status"` y nombre accesible.
+
+No se creó `LoadingState`: `LoadingLinear` ya cumple ese papel tras la mejora.
+
+Pantalla de prueba, **Criterios** (`/main-types`):
+- usa `PageHeader`, `RefreshButton`, `FilterBar` y `RowActions`
+- eliminar pide confirmación con `ConfirmDialog` (decisión 1)
+- el mensaje ahora dice "Criterio eliminado correctamente" (decisión 2)
+
+El formulario de Criterios queda para la Fase 4.
+
+Verificación en navegador (`/main-types`):
+- 360, 768 y 1100-1440 px, en claro y oscuro
+- sin errores de consola tras recargar
+- estructura: un `h1`, un `<main>`, `lang="es"`
+- paginación y acciones con nombres en español
+- estado vacío revisado con un filtro sin coincidencias
+
+**Sin probar:** el `ConfirmDialog` real, porque abre el flujo de eliminación.

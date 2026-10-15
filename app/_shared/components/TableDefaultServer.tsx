@@ -17,18 +17,21 @@ import { Paper } from "@mui/material";
 import TableFooterDefault from "./TableFooterDefault";
 import { StyledTableCell, StyledTableRow } from "./TableDefault";
 
-interface Props {
-  rows: any[];
-  paintRows: (value: any, index: number, array: any[]) => ReactNode;
+interface Props<T> {
+  rows: T[];
+  // Firma de método para aceptar los `paintRows={(row: X) => ...}` existentes.
+  paintRows(value: T, index: number, array: T[]): ReactNode;
   columns: string[];
   page?: number;
   setPage?: Dispatch<SetStateAction<number>>;
   rowsPerPage?: number;
   setRowsPerPage?: Dispatch<SetStateAction<number>>;
   count?: number;
+  // Nombre accesible de la tabla.
+  ariaLabel?: string;
 }
 
-const TableDefaultServer = ({
+const TableDefaultServer = <T,>({
   rows,
   paintRows,
   columns,
@@ -37,7 +40,8 @@ const TableDefaultServer = ({
   rowsPerPage: rowsPerPageCtrl,
   setRowsPerPage: setRowsPerPageCtrl,
   count,
-}: Props) => {
+  ariaLabel = "Tabla de registros",
+}: Props<T>) => {
   const [page, setPage] = useState(pageCtrl || 0);
   const [rowsPerPage, setRowsPerPage] = useState(rowsPerPageCtrl || 5);
   const [colSpan] = useState(columns.length);
@@ -70,7 +74,7 @@ const TableDefaultServer = ({
 
   return (
     <TableContainer component={Paper}>
-      <Table sx={{ minWidth: 500 }} aria-label="custom pagination table">
+      <Table sx={{ minWidth: 500 }} aria-label={ariaLabel}>
         <TableHead>
           <StyledTableRow>
             {columns.map((column) => (

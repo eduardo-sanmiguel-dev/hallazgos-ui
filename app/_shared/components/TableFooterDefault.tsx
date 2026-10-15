@@ -7,7 +7,7 @@ import { TablePagination } from "@mui/material";
 import TablePaginationActions from "@shared/components/TablePaginationActions";
 
 interface Props {
-  rows: any[];
+  rows: readonly unknown[];
   page: number;
   rowsPerPage: number;
   handleChangePage: (
@@ -34,7 +34,7 @@ const TableFooterDefault = ({
     <TableFooter>
       <TableRow>
         <TablePagination
-          rowsPerPageOptions={[5, 10, 25, { label: "All", value: -1 }]}
+          rowsPerPageOptions={[5, 10, 25, { label: "Todos", value: -1 }]}
           colSpan={colSpan}
           count={count ?? rows.length}
           rowsPerPage={rowsPerPage}

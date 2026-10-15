@@ -16,10 +16,12 @@ interface TablePaginationActionsProps {
 }
 
 export default function TablePaginationActions(
-  props: TablePaginationActionsProps
+  props: TablePaginationActionsProps,
 ) {
   const theme = useTheme();
   const { count, page, rowsPerPage, onPageChange } = props;
+
+  const lastPage = Math.max(0, Math.ceil(count / rowsPerPage) - 1);
 
   const handleFirstPageButtonClick = (event: MouseEvent<HTMLButtonElement>) => {
     onPageChange(event, 0);
@@ -34,7 +36,7 @@ export default function TablePaginationActions(
   };
 
   const handleLastPageButtonClick = (event: MouseEvent<HTMLButtonElement>) => {
-    onPageChange(event, Math.max(0, Math.ceil(count / rowsPerPage) - 1));
+    onPageChange(event, lastPage);
   };
 
   return (
@@ -42,14 +44,14 @@ export default function TablePaginationActions(
       <IconButton
         onClick={handleFirstPageButtonClick}
         disabled={page === 0}
-        aria-label="first page"
+        aria-label="Primera página"
       >
         {theme.direction === "rtl" ? <LastPageIcon /> : <FirstPageIcon />}
       </IconButton>
       <IconButton
         onClick={handleBackButtonClick}
         disabled={page === 0}
-        aria-label="previous page"
+        aria-label="Página anterior"
       >
         {theme.direction === "rtl" ? (
           <KeyboardArrowRight />
@@ -59,8 +61,8 @@ export default function TablePaginationActions(
       </IconButton>
       <IconButton
         onClick={handleNextButtonClick}
-        disabled={page >= Math.ceil(count / rowsPerPage) - 1}
-        aria-label="next page"
+        disabled={page >= lastPage}
+        aria-label="Página siguiente"
       >
         {theme.direction === "rtl" ? (
           <KeyboardArrowLeft />
@@ -70,8 +72,8 @@ export default function TablePaginationActions(
       </IconButton>
       <IconButton
         onClick={handleLastPageButtonClick}
-        disabled={page >= Math.ceil(count / rowsPerPage) - 1}
-        aria-label="last page"
+        disabled={page >= lastPage}
+        aria-label="Última página"
       >
         {theme.direction === "rtl" ? <FirstPageIcon /> : <LastPageIcon />}
       </IconButton>
