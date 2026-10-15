@@ -3,11 +3,13 @@ import { TableBody } from "@mui/material";
 import { TableContainer } from "@mui/material";
 import { TableHead } from "@mui/material";
 import { Paper } from "@mui/material";
+import { TableCell, TableRow } from "@mui/material";
 
 import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
+import EmptyState from "@shared/components/EmptyState";
 import { Ciael } from "@interfaces";
 import { stringToDate, stringToDateWithTime } from "@shared/utils";
 
@@ -18,7 +20,10 @@ interface Props {
 export default function TableCiaels({ data }: Props) {
   return (
     <TableContainer component={Paper}>
-      <Table sx={{ minWidth: 650 }} aria-label="simple table">
+      <Table
+        sx={{ minWidth: data.length ? 650 : undefined }}
+        aria-label="Registros CIAEL"
+      >
         <TableHead>
           <StyledTableRow>
             <StyledTableCell>Tipo de evento</StyledTableCell>
@@ -32,6 +37,13 @@ export default function TableCiaels({ data }: Props) {
           </StyledTableRow>
         </TableHead>
         <TableBody>
+          {data.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={8} sx={{ borderBottom: 0 }}>
+                <EmptyState title="Sin registros CIAEL" size="small" />
+              </TableCell>
+            </TableRow>
+          )}
           {data.map((ciael) => (
             <StyledTableRow
               key={ciael.id}

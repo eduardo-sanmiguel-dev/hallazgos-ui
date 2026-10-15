@@ -15,6 +15,7 @@ import { Dialog } from "@mui/material";
 import { AppBar } from "@mui/material";
 import { Paper } from "@mui/material";
 import { Grid } from "@mui/material";
+import { FormHelperText } from "@mui/material";
 import { toast } from "sonner";
 import dayjs, { Dayjs } from "dayjs";
 import "dayjs/locale/es";
@@ -23,6 +24,7 @@ import { AssociatedTasksService } from "_services/associated-tasks.service";
 import { Transition } from "@routes/hallazgos/_components/EvidencePreview";
 import { TypeOfLinksService } from "_services/type-of-links.service";
 import SelectDefault from "@components/SelectDefault";
+import { useFieldErrors } from "@hooks/useFieldErrors";
 import { useUserSessionStore } from "@store";
 import {
   AccidentPosition,
@@ -153,6 +155,31 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
   const [isLoading, setIsLoading] = useState(false);
 
   const [form, setForm] = useState<FormProps>(initialForm);
+  const { fail, errorOf, fieldProps } = useFieldErrors<
+    | "manufacturingPlant"
+    | "typeOfEvent"
+    | "cieDiagnosis"
+    | "employee"
+    | "eventDate"
+    | "description"
+    | "zone"
+    | "accidentPosition"
+    | "bodyPart"
+    | "atAgent"
+    | "typeOfInjury"
+    | "atMechanism"
+    | "workingDay"
+    | "timeWorked"
+    | "usualWork"
+    | "typeOfLink"
+    | "isDeath"
+    | "machine"
+    | "isInside"
+    | "associatedTask"
+    | "areaLeader"
+    | "riskFactor"
+    | "natureOfEvent"
+  >(form);
 
   const resetForm = () => setForm(initialForm);
 
@@ -265,117 +292,117 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
     const descriptionClean = description.trim();
 
     if (!manufacturingPlant) {
-      toast.error("Seleccione una planta");
+      fail("manufacturingPlant", "Seleccione una planta");
       return;
     }
 
     if (!typeOfEvent) {
-      toast.error("Seleccione un tipo de evento");
+      fail("typeOfEvent", "Seleccione un tipo de evento");
       return;
     }
 
     if (!cieDiagnosis) {
-      toast.error("Seleccione un diagnóstico CIE");
+      fail("cieDiagnosis", "Seleccione un diagnóstico CIE");
       return;
     }
 
     if (!employee) {
-      toast.error("Seleccione un colaborador");
+      fail("employee", "Seleccione un colaborador");
       return;
     }
 
     if (!eventDate) {
-      toast.error("Seleccione la fecha del evento");
+      fail("eventDate", "Seleccione la fecha del evento");
       return;
     }
 
     if (!descriptionClean) {
-      toast.error("Ingrese la descripción del evento");
+      fail("description", "Ingrese la descripción del evento");
       return;
     }
 
     if (!zone) {
-      toast.error("Seleccione una zona");
+      fail("zone", "Seleccione una zona");
       return;
     }
 
     if (!accidentPosition) {
-      toast.error("Seleccione un nombre del cargo");
+      fail("accidentPosition", "Seleccione un nombre del cargo");
       return;
     }
 
     if (!bodyPart) {
-      toast.error("Seleccione una parte del cuerpo afectada");
+      fail("bodyPart", "Seleccione una parte del cuerpo afectada");
       return;
     }
 
     if (!atAgent) {
-      toast.error("Seleccione un agente AT");
+      fail("atAgent", "Seleccione un agente AT");
       return;
     }
 
     if (!typeOfInjury) {
-      toast.error("Seleccione un tipo de lesión");
+      fail("typeOfInjury", "Seleccione un tipo de lesión");
       return;
     }
 
     if (!atMechanism) {
-      toast.error("Seleccione un mecanismo o formas del AT");
+      fail("atMechanism", "Seleccione un mecanismo o formas del AT");
       return;
     }
 
     if (!workingDay) {
-      toast.error("Seleccione una jornada");
+      fail("workingDay", "Seleccione una jornada");
       return;
     }
 
     if (!timeWorked) {
-      toast.error("Ingrese el tiempo laborado previo al AT");
+      fail("timeWorked", "Ingrese el tiempo laborado previo al AT");
       return;
     }
 
     if (!usualWork) {
-      toast.error("Seleccione si es labor habitual");
+      fail("usualWork", "Seleccione si es labor habitual");
       return;
     }
 
     if (!typeOfLink) {
-      toast.error("Seleccione un tipo de vinculación");
+      fail("typeOfLink", "Seleccione un tipo de vinculación");
       return;
     }
 
     if (!isDeath) {
-      toast.error("Seleccione si causo la muerte");
+      fail("isDeath", "Seleccione si causó la muerte");
       return;
     }
 
     if (!machine) {
-      toast.error("Seleccione una maquina o equipo");
+      fail("machine", "Seleccione una máquina o equipo");
       return;
     }
 
     if (!isInside) {
-      toast.error("Seleccione si fue dentro de la planta");
+      fail("isInside", "Seleccione si fue dentro de la planta");
       return;
     }
 
     if (!associatedTask) {
-      toast.error("Seleccione una tarea asociada");
+      fail("associatedTask", "Seleccione una tarea asociada");
       return;
     }
 
     if (!areaLeader) {
-      toast.error("Seleccione un lider de área");
+      fail("areaLeader", "Seleccione un líder de área");
       return;
     }
 
     if (!riskFactor) {
-      toast.error("Seleccione un factor de riesgo asociado");
+      fail("riskFactor", "Seleccione un factor de riesgo asociado");
       return;
     }
 
     if (!natureOfEvent) {
-      toast.error("Seleccione una naturaleza del evento");
+      fail("natureOfEvent", "Seleccione una naturaleza del evento");
       return;
     }
 
@@ -431,12 +458,12 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
             edge="start"
             color="inherit"
             onClick={handleClose}
-            aria-label="close"
+            aria-label="Cerrar"
           >
             <CloseIcon />
           </IconButton>
-          <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
-            CIAEL
+          <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="h2">
+            Nuevo registro CIAEL
           </Typography>
           <Button
             autoFocus
@@ -448,7 +475,7 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
           </Button>
         </Toolbar>
       </AppBar>
-      <Grid container spacing={2} sx={{ p: 5 }}>
+      <Grid container spacing={2} sx={{ p: { xs: 2, sm: 3, md: 5 } }}>
         <Grid
           size={{
             xs: 12,
@@ -463,6 +490,11 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
             onChange={onChangeSelect}
             name="manufacturingPlant"
           />
+          {errorOf("manufacturingPlant") && (
+            <FormHelperText data-error-for="manufacturingPlant" error>
+              {errorOf("manufacturingPlant")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -478,6 +510,11 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
             onChange={onChangeSelect}
             name="employee"
           />
+          {errorOf("employee") && (
+            <FormHelperText data-error-for="employee" error>
+              {errorOf("employee")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -493,6 +530,11 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
             onChange={onChangeSelect}
             name="typeOfEvent"
           />
+          {errorOf("typeOfEvent") && (
+            <FormHelperText data-error-for="typeOfEvent" error>
+              {errorOf("typeOfEvent")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -520,6 +562,7 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
                 slotProps={{
                   textField: {
                     fullWidth: true,
+                    ...fieldProps("eventDate"),
                   } as any,
                 }}
               />
@@ -540,6 +583,11 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
             onChange={onChangeSelect}
             name="cieDiagnosis"
           />
+          {errorOf("cieDiagnosis") && (
+            <FormHelperText data-error-for="cieDiagnosis" error>
+              {errorOf("cieDiagnosis")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -582,6 +630,11 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
             onChange={onChangeSelect}
             name="zone"
           />
+          {errorOf("zone") && (
+            <FormHelperText data-error-for="zone" error>
+              {errorOf("zone")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -597,6 +650,11 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
             onChange={onChangeSelect}
             name="accidentPosition"
           />
+          {errorOf("accidentPosition") && (
+            <FormHelperText data-error-for="accidentPosition" error>
+              {errorOf("accidentPosition")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -612,6 +670,11 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
             onChange={onChangeSelect}
             name="bodyPart"
           />
+          {errorOf("bodyPart") && (
+            <FormHelperText data-error-for="bodyPart" error>
+              {errorOf("bodyPart")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -627,6 +690,11 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
             onChange={onChangeSelect}
             name="atAgent"
           />
+          {errorOf("atAgent") && (
+            <FormHelperText data-error-for="atAgent" error>
+              {errorOf("atAgent")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -642,6 +710,11 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
             onChange={onChangeSelect}
             name="typeOfInjury"
           />
+          {errorOf("typeOfInjury") && (
+            <FormHelperText data-error-for="typeOfInjury" error>
+              {errorOf("typeOfInjury")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -652,11 +725,16 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
         >
           <SelectDefault
             data={atMechanisms}
-            label="Mécanismo o formas del AT *"
+            label="Mecanismo o formas del AT *"
             value={form.atMechanism}
             onChange={onChangeSelect}
             name="atMechanism"
           />
+          {errorOf("atMechanism") && (
+            <FormHelperText data-error-for="atMechanism" error>
+              {errorOf("atMechanism")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -672,6 +750,11 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
             onChange={onChangeSelect}
             name="workingDay"
           />
+          {errorOf("workingDay") && (
+            <FormHelperText data-error-for="workingDay" error>
+              {errorOf("workingDay")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -689,6 +772,7 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
               type="text"
               onKeyDown={handleKeyDown}
               value={form.timeWorked}
+              {...fieldProps("timeWorked")}
               name="timeWorked"
               onChange={handleChange}
               slotProps={{
@@ -714,6 +798,11 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
             onChange={onChangeSelect}
             name="usualWork"
           />
+          {errorOf("usualWork") && (
+            <FormHelperText data-error-for="usualWork" error>
+              {errorOf("usualWork")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -729,6 +818,11 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
             onChange={onChangeSelect}
             name="typeOfLink"
           />
+          {errorOf("typeOfLink") && (
+            <FormHelperText data-error-for="typeOfLink" error>
+              {errorOf("typeOfLink")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -744,6 +838,11 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
             onChange={onChangeSelect}
             name="isDeath"
           />
+          {errorOf("isDeath") && (
+            <FormHelperText data-error-for="isDeath" error>
+              {errorOf("isDeath")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -754,11 +853,16 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
         >
           <SelectDefault
             data={machines}
-            label="Maquina / Equipo *"
+            label="Máquina / Equipo *"
             value={form.machine}
             onChange={onChangeSelect}
             name="machine"
           />
+          {errorOf("machine") && (
+            <FormHelperText data-error-for="machine" error>
+              {errorOf("machine")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -774,6 +878,11 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
             onChange={onChangeSelect}
             name="isInside"
           />
+          {errorOf("isInside") && (
+            <FormHelperText data-error-for="isInside" error>
+              {errorOf("isInside")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -789,6 +898,11 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
             onChange={onChangeSelect}
             name="associatedTask"
           />
+          {errorOf("associatedTask") && (
+            <FormHelperText data-error-for="associatedTask" error>
+              {errorOf("associatedTask")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -799,11 +913,16 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
         >
           <SelectDefault
             data={areaLeaders}
-            label="Lider de área *"
+            label="Líder de área *"
             value={form.areaLeader}
             onChange={onChangeSelect}
             name="areaLeader"
           />
+          {errorOf("areaLeader") && (
+            <FormHelperText data-error-for="areaLeader" error>
+              {errorOf("areaLeader")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -814,11 +933,16 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
         >
           <SelectDefault
             data={riskFactors}
-            label="Factor de riesgo  asociado *"
+            label="Factor de riesgo asociado *"
             value={form.riskFactor}
             onChange={onChangeSelect}
             name="riskFactor"
           />
+          {errorOf("riskFactor") && (
+            <FormHelperText data-error-for="riskFactor" error>
+              {errorOf("riskFactor")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -834,6 +958,11 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
             onChange={onChangeSelect}
             name="natureOfEvent"
           />
+          {errorOf("natureOfEvent") && (
+            <FormHelperText data-error-for="natureOfEvent" error>
+              {errorOf("natureOfEvent")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -859,7 +988,7 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
         >
           <Paper sx={{ p: 2 }}>
             <TextField
-              id="description-multiline-solution"
+              {...fieldProps("description")}
               multiline
               rows={10}
               variant="standard"
@@ -871,7 +1000,7 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
                   description: e.target.value,
                 })
               }
-              label="Descripción del evento"
+              label="Descripción del evento *"
             />
           </Paper>
         </Grid>

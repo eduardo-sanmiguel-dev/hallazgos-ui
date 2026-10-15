@@ -4,16 +4,15 @@ import { useEffect, useState } from "react";
 
 import AddIcon from "@mui/icons-material/Add";
 import { Button } from "@mui/material";
-import { Grid } from "@mui/material";
 
 import DialogCreateCiael from "./components/DialogCreateCiael";
 import TableCiaels from "./components/TableCiaels";
 import { Ciael } from "@interfaces";
 import { CiaelsService } from "@services";
-import { Toolbar, Box, ButtonGroup } from "@mui/material";
-import RefreshIcon from "@mui/icons-material/Refresh";
 import SimCardDownloadIcon from "@mui/icons-material/SimCardDownload";
 import LoadingLinear from "@shared/components/LoadingLinear";
+import PageHeader from "@shared/components/PageHeader";
+import RefreshButton from "@shared/components/RefreshButton";
 
 const CiaelPage = () => {
   const [open, setOpen] = useState(false);
@@ -35,61 +34,32 @@ const CiaelPage = () => {
   return (
     <>
       <DialogCreateCiael open={open} setOpen={setOpen} getData={getData} />
-      <Grid container spacing={2}>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 12,
-            md: 12
-          }}>
-          <Toolbar>
-            <Box sx={{ flexGrow: 1 }}>
-              <Button
-                variant="contained"
-                onClick={() => setOpen(true)}
-                startIcon={<AddIcon />}
-              >
-                Crear registro
-              </Button>
-            </Box>
-
-            <ButtonGroup
-              variant="contained"
-              aria-label="outlined primary button group"
-            >
-              <Button
-                variant="contained"
-                startIcon={<RefreshIcon />}
-                onClick={() => getData()}
-              />
-              <Button
-                variant="contained"
-                startIcon={<SimCardDownloadIcon />}
-                onClick={() => {
-                  setIsLoadingExcel(true);
-                  CiaelsService.downloadExcel().finally(() =>
-                    setIsLoadingExcel(false)
-                  );
-                }}
-                loading={isLoadingExcel}
-              >
-                EXCEL
-              </Button>
-            </ButtonGroup>
-          </Toolbar>
-        </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 12,
-            md: 12
-          }}>
-          {isLoading ? <LoadingLinear /> : <TableCiaels data={ciaels} />}
-        </Grid>
-      </Grid>
+      <PageHeader title="CIAEL">
+        <Button
+          variant="contained"
+          onClick={() => setOpen(true)}
+          startIcon={<AddIcon />}
+        >
+          Crear registro
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<SimCardDownloadIcon />}
+          onClick={() => {
+            setIsLoadingExcel(true);
+            CiaelsService.downloadExcel().finally(() =>
+              setIsLoadingExcel(false),
+            );
+          }}
+          loading={isLoadingExcel}
+        >
+          Excel
+        </Button>
+        <RefreshButton onClick={() => getData()} />
+      </PageHeader>
+      {isLoading ? <LoadingLinear /> : <TableCiaels data={ciaels} />}
     </>
   );
 };
 
 export default CiaelPage;
-
