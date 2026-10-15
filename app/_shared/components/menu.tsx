@@ -26,7 +26,7 @@ import { Menu } from "@mui/material";
 import { MenuItem } from "@mui/material";
 import { Tooltip } from "@mui/material";
 import { Typography } from "@mui/material";
-import { alpha, darken } from "@mui/material/styles";
+import { alpha } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import SpaceDashboardIcon from "@mui/icons-material/SpaceDashboard";
 import InsightsIcon from "@mui/icons-material/Insights";
@@ -64,6 +64,7 @@ import PersonSearchIcon from "@mui/icons-material/PersonSearch";
 
 import { useCategoriesStore, useUserSessionStore } from "@store";
 import { ROLE_ADMINISTRADOR } from "@shared/constants";
+import { primaryTextColor } from "../../theme";
 import { notify } from "@shared/utils";
 import {
   AuthService,
@@ -385,12 +386,8 @@ const visibleSections = (sections: MenuSection[], ctx: MenuContext) =>
 const isLinkSelected = (link: MenuLinkConfig, pathname: string) =>
   link.isSelected ? link.isSelected(pathname) : pathname.startsWith(link.url);
 
-// Color del item activo: en modo claro se oscurece el primario para que el
-// texto cumpla contraste AA sobre el fondo translúcido.
-const activeColor = (theme: Theme) =>
-  theme.palette.mode === "light"
-    ? darken(theme.palette.primary.main, 0.45)
-    : theme.palette.primary.light;
+// Color del item activo (contraste AA sobre el fondo translúcido).
+const activeColor = primaryTextColor;
 
 const navItemSx =
   (expanded: boolean, nested = false) =>

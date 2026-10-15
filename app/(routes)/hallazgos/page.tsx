@@ -4,13 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { Toolbar } from "@mui/material";
-import { Box } from "@mui/material";
 import { Grid } from "@mui/material";
 import { Button } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import RefreshIcon from "@mui/icons-material/Refresh";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import SimCardDownloadIcon from "@mui/icons-material/SimCardDownload";
 import { toast } from "sonner";
@@ -21,6 +18,8 @@ import FiltersEvidence, {
   FiltersEvidences,
 } from "./_components/FiltersEvidence";
 import { useEvidences } from "@hooks";
+import PageHeader from "@shared/components/PageHeader";
+import RefreshButton from "@shared/components/RefreshButton";
 import { EvidencesService } from "@services";
 
 export default function HallazgosPage() {
@@ -123,113 +122,75 @@ export default function HallazgosPage() {
   }, [getData]);
 
   return (
-    <Grid container>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 12,
-          md: 12,
-        }}
-      >
-        <Toolbar
-          sx={{
-            px: { xs: 0, sm: 2 },
-            py: 1,
-            gap: 1,
-            alignItems: { xs: "stretch", sm: "center" },
-            flexDirection: { xs: "column", sm: "row" },
+    <>
+      <PageHeader title="Hallazgos">
+        <Button
+          variant="contained"
+          startIcon={<AddAPhotoIcon />}
+          onClick={() => router.push("/hallazgos/form")}
+          fullWidth={isMobile}
+        >
+          Crear
+        </Button>
+        <RefreshButton onClick={() => getData()} />
+        <Button
+          variant="outlined"
+          startIcon={<SimCardDownloadIcon />}
+          onClick={() => {
+            setIsLoadingExcel(true);
+            EvidencesService.downloadExcel(filters).finally(() =>
+              setIsLoadingExcel(false),
+            );
+          }}
+          loading={isLoadingExcel}
+        >
+          Excel
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<SimCardDownloadIcon />}
+          onClick={() => createPdf()}
+          loading={isLoadingPdf}
+        >
+          PDF
+        </Button>
+      </PageHeader>
+      <Grid container>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 12,
+            md: 12,
           }}
         >
-          <Box sx={{ flexGrow: 1, width: { xs: "100%", sm: "auto" } }}>
-            <Button
-              variant="contained"
-              startIcon={<AddAPhotoIcon />}
-              onClick={() => router.push("/hallazgos/form")}
-              fullWidth={isMobile}
-              sx={{ minHeight: 44 }}
-            >
-              Crear
-            </Button>
-          </Box>
-
-          <Box
-            sx={{
-              width: { xs: "100%", sm: "auto" },
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "auto auto auto" },
-              gap: 1,
-              "& .MuiButton-root": {
-                minHeight: 44,
-                width: { xs: "100%", sm: "auto" },
-              },
-            }}
-          >
-            <Button
-              variant="contained"
-              startIcon={<RefreshIcon />}
-              onClick={() => getData()}
-              aria-label="Refrescar"
-            >
-              Refrescar
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<SimCardDownloadIcon />}
-              onClick={() => {
-                setIsLoadingExcel(true);
-                EvidencesService.downloadExcel(filters).finally(() =>
-                  setIsLoadingExcel(false),
-                );
-              }}
-              loading={isLoadingExcel}
-            >
-              EXCEL
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<SimCardDownloadIcon />}
-              onClick={() => createPdf()}
-              loading={isLoadingPdf}
-            >
-              PDF
-            </Button>
-          </Box>
-        </Toolbar>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 12,
-          md: 12,
-        }}
-      >
-        <FiltersEvidence
-          filters={filters}
-          setFilters={setFilters}
-          count={countEvidence}
-        />
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 12,
-          md: 12,
-        }}
-      >
-        {isLoading ? (
-          <LoadingLinear />
-        ) : (
-          <TableEvidences
-            rows={evidences}
-            getData={getData}
-            page={page}
-            setPage={setPage}
-            rowsPerPage={rowsPerPage}
-            setRowsPerPage={setRowsPerPage}
-            countEvidence={countEvidence}
+          <FiltersEvidence
+            filters={filters}
+            setFilters={setFilters}
+            count={countEvidence}
           />
-        )}
+        </Grid>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 12,
+            md: 12,
+          }}
+        >
+          {isLoading ? (
+            <LoadingLinear />
+          ) : (
+            <TableEvidences
+              rows={evidences}
+              getData={getData}
+              page={page}
+              setPage={setPage}
+              rowsPerPage={rowsPerPage}
+              setRowsPerPage={setRowsPerPage}
+              countEvidence={countEvidence}
+            />
+          )}
+        </Grid>
       </Grid>
-    </Grid>
+    </>
   );
 }

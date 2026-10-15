@@ -9,24 +9,30 @@ import { useSearchParams } from "next/navigation";
 
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
-import { Paper } from "@mui/material";
-import SaveIcon from "@mui/icons-material/Save";
-import { Button } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import { toast } from "sonner";
+import { FormHelperText } from "@mui/material";
 import { InputLabel } from "@mui/material";
 import { MenuItem } from "@mui/material";
 import { FormControl } from "@mui/material";
 import { Select, SelectChangeEvent } from "@mui/material";
+import { IconButton } from "@mui/material";
+import { InputAdornment } from "@mui/material";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
 import { UsersService } from "@services";
 import MultiSelectManufacturingPlants from "@components/MultiSelectManufacturingPlants";
 import MultiSelectZones from "@components/MultiSelectZones";
 import { isValidEmail } from "@shared/utils";
 import MultiSelectProcesses from "@components/MultiSelectProcesses";
+import { useFieldErrors } from "@hooks/useFieldErrors";
+import PageHeader from "@shared/components/PageHeader";
+import FormSection from "@shared/components/FormSection";
+import FormActions from "@shared/components/FormActions";
 
 const UsersFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const [idCurrent, setIdCurrent] = useState<number>(0);
   const [form, setForm] = useState<{
     name: string;
@@ -48,6 +54,13 @@ const UsersFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { fail, errorOf, fieldProps } = useFieldErrors<
+    | "name"
+    | "email"
+    | "password"
+    | "manufacturingPlantNames"
+    | "zoneNames"
+  >(form);
 
   const save = () => {
     const nameClean = form.name.trim();
@@ -55,32 +68,32 @@ const UsersFormPage = () => {
     const passwordClean = form.password.trim();
 
     if (!nameClean) {
-      toast.error("El nombre es requerido");
+      fail("name", "El nombre es requerido");
       return;
     }
 
     if (!emailClean) {
-      toast.error("El correo electrónico es requerido");
+      fail("email", "El correo electrónico es requerido");
       return;
     }
 
     if (!isValidEmail(emailClean)) {
-      toast.error("El correo electrónico no es válido");
+      fail("email", "El correo electrónico no es válido");
       return;
     }
 
     if (!idCurrent && !passwordClean) {
-      toast.error("La contraseña es requerida");
+      fail("password", "La contraseña es requerida");
       return;
     }
 
     if (!form.manufacturingPlantNames.length) {
-      toast.error("La planta de manufactura es requerida");
+      fail("manufacturingPlantNames", "La planta de manufactura es requerida");
       return;
     }
 
     if (form.rule === "Supervisor" && !form.zoneNames.length) {
-      toast.error("La zona es requerida");
+      fail("zoneNames", "La zona es requerida");
       return;
     }
 
@@ -164,7 +177,8 @@ const UsersFormPage = () => {
 
   return (
     <>
-      <Grid container spacing={2}>
+      <PageHeader title={idCurrent ? "Editar usuario" : "Nuevo usuario"} />
+      <FormSection>
         <Grid
           size={{
             xs: 12,
@@ -172,21 +186,21 @@ const UsersFormPage = () => {
             md: 3,
           }}
         >
-          <Paper>
-            <TextField
-              label="Nombre"
-              variant="outlined"
-              fullWidth
-              autoComplete="off"
-              value={form.name}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  name: e.target.value,
-                })
-              }
-            />
-          </Paper>
+          <TextField
+            {...fieldProps("name")}
+            required
+            label="Nombre"
+            variant="outlined"
+            fullWidth
+            autoComplete="off"
+            value={form.name}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                name: e.target.value,
+              })
+            }
+          />
         </Grid>
         <Grid
           size={{
@@ -195,21 +209,21 @@ const UsersFormPage = () => {
             md: 3,
           }}
         >
-          <Paper>
-            <TextField
-              label="Correo electrónico"
-              variant="outlined"
-              fullWidth
-              autoComplete="off"
-              value={form.email}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  email: e.target.value,
-                })
-              }
-            />
-          </Paper>
+          <TextField
+            {...fieldProps("email")}
+            required
+            label="Correo electrónico"
+            variant="outlined"
+            fullWidth
+            autoComplete="off"
+            value={form.email}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                email: e.target.value,
+              })
+            }
+          />
         </Grid>
         <Grid
           size={{
@@ -218,21 +232,42 @@ const UsersFormPage = () => {
             md: 3,
           }}
         >
-          <Paper>
-            <TextField
-              label="Contraseña"
-              variant="outlined"
-              fullWidth
-              autoComplete="off"
-              value={form.password}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  password: e.target.value,
-                })
-              }
-            />
-          </Paper>
+          <TextField
+            {...fieldProps("password")}
+            required={!idCurrent}
+            label="Contraseña"
+            type={showPassword ? "text" : "password"}
+            variant="outlined"
+            fullWidth
+            autoComplete="new-password"
+            value={form.password}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                password: e.target.value,
+              })
+            }
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={
+                        showPassword
+                          ? "Ocultar contraseña"
+                          : "Mostrar contraseña"
+                      }
+                      aria-pressed={showPassword}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
         </Grid>
         <Grid
           size={{
@@ -241,27 +276,25 @@ const UsersFormPage = () => {
             md: 3,
           }}
         >
-          <Paper>
-            <FormControl fullWidth>
-              <InputLabel id="rule-select-label">Rol</InputLabel>
-              <Select
-                labelId="rule-select-label"
-                id="rule-select"
-                value={form.rule}
-                label="Rol"
-                onChange={(e: SelectChangeEvent) =>
-                  setForm({
-                    ...form,
-                    rule: e.target.value as string,
-                  })
-                }
-              >
-                <MenuItem value="Administrador">Administrador</MenuItem>
-                <MenuItem value="General">General</MenuItem>
-                <MenuItem value="Supervisor">Supervisor</MenuItem>
-              </Select>
-            </FormControl>
-          </Paper>
+          <FormControl fullWidth>
+            <InputLabel id="rule-select-label">Rol</InputLabel>
+            <Select
+              labelId="rule-select-label"
+              id="rule-select"
+              value={form.rule}
+              label="Rol"
+              onChange={(e: SelectChangeEvent) =>
+                setForm({
+                  ...form,
+                  rule: e.target.value as string,
+                })
+              }
+            >
+              <MenuItem value="Administrador">Administrador</MenuItem>
+              <MenuItem value="General">General</MenuItem>
+              <MenuItem value="Supervisor">Supervisor</MenuItem>
+            </Select>
+          </FormControl>
         </Grid>
 
         {form.rule && (
@@ -272,17 +305,20 @@ const UsersFormPage = () => {
               md: 4,
             }}
           >
-            <Paper>
-              <MultiSelectManufacturingPlants
-                values={form.manufacturingPlantNames}
-                onChange={(values) => {
-                  setForm({
-                    ...form,
-                    manufacturingPlantNames: values,
-                  });
-                }}
-              />
-            </Paper>
+            <MultiSelectManufacturingPlants
+              values={form.manufacturingPlantNames}
+              onChange={(values) => {
+                setForm({
+                  ...form,
+                  manufacturingPlantNames: values,
+                });
+              }}
+            />
+            {errorOf("manufacturingPlantNames") && (
+              <FormHelperText data-error-for="manufacturingPlantNames" error>
+                {errorOf("manufacturingPlantNames")}
+              </FormHelperText>
+            )}
           </Grid>
         )}
 
@@ -296,18 +332,19 @@ const UsersFormPage = () => {
                   md: 4,
                 }}
               >
-                <Paper>
-                  <MultiSelectZones
-                    values={form.zoneNames}
-                    onChange={(values) => {
-                      setForm({
-                        ...form,
-                        zoneNames: values,
-                      });
-                    }}
-                    manufacturingPlantNames={form.manufacturingPlantNames}
-                  />
-                </Paper>
+                <MultiSelectZones
+                  values={form.zoneNames}
+                  onChange={(values) => {
+                    setForm({
+                      ...form,
+                      zoneNames: values,
+                    });
+                  }}
+                  manufacturingPlantNames={form.manufacturingPlantNames}
+                />
+                {errorOf("zoneNames") && (
+                  <FormHelperText data-error-for="zoneNames" error>{errorOf("zoneNames")}</FormHelperText>
+                )}
               </Grid>
               <Grid
                 size={{
@@ -316,65 +353,26 @@ const UsersFormPage = () => {
                   md: 4,
                 }}
               >
-                <Paper>
-                  <MultiSelectProcesses
-                    values={form.processNames}
-                    onChange={(values) => {
-                      setForm({
-                        ...form,
-                        processNames: values,
-                      });
-                    }}
-                    manufacturingPlantNames={form.manufacturingPlantNames}
-                  />
-                </Paper>
+                <MultiSelectProcesses
+                  values={form.processNames}
+                  onChange={(values) => {
+                    setForm({
+                      ...form,
+                      processNames: values,
+                    });
+                  }}
+                  manufacturingPlantNames={form.manufacturingPlantNames}
+                />
               </Grid>
             </>
           )}
-      </Grid>
-      <Grid
-        container
-        spacing={2}
-        sx={{ marginTop: 2, alignContent: "center", justifyContent: "center" }}
-      >
-        <Grid
-          size={{
-            xs: 12,
-            sm: 3,
-            md: 3,
-          }}
-        >
-          <Button
-            variant="contained"
-            color="error"
-            fullWidth
-            startIcon={<CloseIcon />}
-            onClick={cancel}
-          >
-            Cancelar
-          </Button>
-        </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 3,
-            md: 3,
-          }}
-        >
-          <Button
-            loading={isLoading}
-            loadingPosition="start"
-            startIcon={<SaveIcon />}
-            variant="contained"
-            color="primary"
-            fullWidth
-            onClick={save}
-            disabled={isValidateForm || isLoading}
-          >
-            Guardar
-          </Button>
-        </Grid>
-      </Grid>
+      </FormSection>
+      <FormActions
+        onCancel={cancel}
+        onSave={save}
+        isSaving={isLoading}
+        isSaveDisabled={isValidateForm}
+      />
     </>
   );
 };

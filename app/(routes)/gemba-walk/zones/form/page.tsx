@@ -9,14 +9,15 @@ import { useSearchParams } from "next/navigation";
 
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
-import { Paper } from "@mui/material";
-import SaveIcon from "@mui/icons-material/Save";
-import { Button } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import { toast } from "sonner";
+import { FormHelperText } from "@mui/material";
 
 import { GembaWalkZonesService } from "@services";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
+import { useFieldErrors } from "@hooks/useFieldErrors";
+import PageHeader from "@shared/components/PageHeader";
+import FormSection from "@shared/components/FormSection";
+import FormActions from "@shared/components/FormActions";
 
 const GembaWalkZonesFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -29,6 +30,11 @@ const GembaWalkZonesFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { fail, errorOf, fieldProps } = useFieldErrors<
+    | "manufacturingPlantId"
+    | "nameZone"
+    | "nameLocation"
+  >(form);
 
   const save = () => {
     const manufacturingPlantId = Number(form.manufacturingPlantId);
@@ -36,17 +42,17 @@ const GembaWalkZonesFormPage = () => {
     const nameLocation = form.nameLocation.trim();
 
     if (!manufacturingPlantId) {
-      toast.error("La planta es requerida");
+      fail("manufacturingPlantId", "La planta es requerida");
       return;
     }
 
     if (!nameZone) {
-      toast.error("La zona es requerida");
+      fail("nameZone", "La zona es requerida");
       return;
     }
 
     if (!nameLocation) {
-      toast.error("La ubicación es requerida");
+      fail("nameLocation", "La ubicación es requerida");
       return;
     }
 
@@ -98,25 +104,37 @@ const GembaWalkZonesFormPage = () => {
   }, [searchParams]);
 
   return (
-    <Grid container spacing={2}>
-      <SelectManufacturingPlantsOwn
-        value={form.manufacturingPlantId}
-        onChange={(e) =>
-          setForm({
-            ...form,
-            manufacturingPlantId: e.target.value,
-          })
-        }
+    <>
+      <PageHeader
+        title={idCurrent ? "Editar zona de Gemba Walk" : "Nueva zona de Gemba Walk"}
       />
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 4,
-        }}
-      >
-        <Paper>
+      <FormSection>
+        <SelectManufacturingPlantsOwn
+          value={form.manufacturingPlantId}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              manufacturingPlantId: e.target.value,
+            })
+          }
+        />
+        {errorOf("manufacturingPlantId") && (
+          <Grid size={{ xs: 12 }}>
+            <FormHelperText data-error-for="manufacturingPlantId" error>
+              {errorOf("manufacturingPlantId")}
+            </FormHelperText>
+          </Grid>
+        )}
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 4,
+          }}
+        >
           <TextField
+            {...fieldProps("nameZone")}
+            required
             label="Zona"
             variant="outlined"
             fullWidth
@@ -129,17 +147,17 @@ const GembaWalkZonesFormPage = () => {
               })
             }
           />
-        </Paper>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 4,
-        }}
-      >
-        <Paper>
+        </Grid>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 4,
+          }}
+        >
           <TextField
+            {...fieldProps("nameLocation")}
+            required
             label="Ubicación"
             variant="outlined"
             fullWidth
@@ -152,46 +170,15 @@ const GembaWalkZonesFormPage = () => {
               })
             }
           />
-        </Paper>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 2.5,
-        }}
-      >
-        <Button
-          variant="contained"
-          color="error"
-          fullWidth
-          startIcon={<CloseIcon />}
-          onClick={cancel}
-        >
-          Cancelar
-        </Button>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 2.5,
-        }}
-      >
-        <Button
-          loading={isLoading}
-          loadingPosition="start"
-          startIcon={<SaveIcon />}
-          variant="contained"
-          color="primary"
-          fullWidth
-          onClick={save}
-          disabled={isValidateForm || isLoading}
-        >
-          Guardar
-        </Button>
-      </Grid>
-    </Grid>
+        </Grid>
+      </FormSection>
+      <FormActions
+        onCancel={cancel}
+        onSave={save}
+        isSaving={isLoading}
+        isSaveDisabled={isValidateForm}
+      />
+    </>
   );
 };
 

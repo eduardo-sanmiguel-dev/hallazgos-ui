@@ -26,6 +26,7 @@ import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsO
 import { useUserSessionStore } from "@store";
 import { ROLE_ADMINISTRADOR } from "@shared/constants";
 import GembaWalkAccessGuard from "../_components/GembaWalkAccessGuard";
+import PageHeader from "@shared/components/PageHeader";
 
 const LegendItem = ({
   label,
@@ -270,27 +271,12 @@ const GembaWalkSchedule = () => {
 };
 
 const GembaWalkSchedulePage = () => (
-  <Grid container>
-    <Grid size={{ xs: 12 }}>
-      <Typography
-        variant="h4"
-        gutterBottom
-        sx={{
-          color: (theme) =>
-            theme.palette.mode === "light"
-              ? theme.palette.common.black
-              : theme.palette.common.white,
-        }}
-      >
-        Gemba Walk - Calendario de recorridos
-      </Typography>
-    </Grid>
-    <Grid size={{ xs: 12 }}>
-      <GembaWalkAccessGuard>
-        <GembaWalkSchedule />
-      </GembaWalkAccessGuard>
-    </Grid>
-  </Grid>
+  <>
+    <PageHeader title="Gemba Walk - Calendario de recorridos" />
+    <GembaWalkAccessGuard>
+      <GembaWalkSchedule />
+    </GembaWalkAccessGuard>
+  </>
 );
 
 export default GembaWalkSchedulePage;

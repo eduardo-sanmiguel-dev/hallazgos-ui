@@ -9,11 +9,8 @@ import { useSearchParams } from "next/navigation";
 
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
-import { Paper } from "@mui/material";
-import SaveIcon from "@mui/icons-material/Save";
-import { Button } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import { toast } from "sonner";
+import { FormHelperText } from "@mui/material";
 import { FormControl } from "@mui/material";
 import { Select, SelectChangeEvent } from "@mui/material";
 import { InputLabel } from "@mui/material";
@@ -21,6 +18,10 @@ import { MenuItem } from "@mui/material";
 
 import { SecondaryTypesService } from "@services";
 import SelectMainTypes from "@components/SelectMainTypes";
+import { useFieldErrors } from "@hooks/useFieldErrors";
+import PageHeader from "@shared/components/PageHeader";
+import FormSection from "@shared/components/FormSection";
+import FormActions from "@shared/components/FormActions";
 
 const SecondaryTypesFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -33,6 +34,11 @@ const SecondaryTypesFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { fail, errorOf, fieldProps } = useFieldErrors<
+    | "name"
+    | "mainTypeId"
+    | "typeResponsible"
+  >(form);
 
   const save = () => {
     const nameClean = form.name.trim();
@@ -40,17 +46,17 @@ const SecondaryTypesFormPage = () => {
     const typeResponsible = form.typeResponsible;
 
     if (!nameClean) {
-      toast.error("El nombre es requerido");
+      fail("name", "El nombre es requerido");
       return;
     }
 
     if (!mainTypeId) {
-      toast.error("El tipo de criterio es requerido");
+      fail("mainTypeId", "El tipo de criterio es requerido");
       return;
     }
 
     if (!typeResponsible) {
-      toast.error("El tipo de responsable es requerido");
+      fail("typeResponsible", "El tipo de responsable es requerido");
       return;
     }
 
@@ -103,15 +109,20 @@ const SecondaryTypesFormPage = () => {
   }, [searchParams]);
 
   return (
-    <Grid container spacing={2}>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 4
-        }}>
-        <Paper>
+    <>
+      <PageHeader
+        title={idCurrent ? "Editar tipo de criterio" : "Nuevo tipo de criterio"}
+      />
+      <FormSection>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 4
+          }}>
           <TextField
+            {...fieldProps("name")}
+            required
             label="Nombre"
             variant="outlined"
             fullWidth
@@ -124,15 +135,13 @@ const SecondaryTypesFormPage = () => {
               })
             }
           />
-        </Paper>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 4
-        }}>
-        <Paper>
+        </Grid>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 4
+          }}>
           <SelectMainTypes
             value={form.mainTypeId}
             onChange={(e) =>
@@ -142,16 +151,21 @@ const SecondaryTypesFormPage = () => {
               })
             }
           />
-        </Paper>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 4
-        }}>
-        <Paper>
-          <FormControl fullWidth>
+          {errorOf("mainTypeId") && (
+            <FormHelperText data-error-for="mainTypeId" error>{errorOf("mainTypeId")}</FormHelperText>
+          )}
+        </Grid>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 4
+          }}>
+          <FormControl
+            fullWidth
+            required
+            error={!!errorOf("typeResponsible")}
+          >
             <InputLabel id="responsible-type-select-label">
               Responsable
             </InputLabel>
@@ -159,7 +173,7 @@ const SecondaryTypesFormPage = () => {
               labelId="responsible-type-select-label"
               id="responsible-type-select"
               value={form.typeResponsible}
-              label="Responsable (opcional)"
+              label="Responsable *"
               onChange={(e: SelectChangeEvent) =>
                 setForm({
                   ...form,
@@ -170,45 +184,21 @@ const SecondaryTypesFormPage = () => {
               <MenuItem value="Mantenimiento">Mantenimiento</MenuItem>
               <MenuItem value="Seguridad">Seguridad</MenuItem>
             </Select>
+            {errorOf("typeResponsible") && (
+              <FormHelperText data-error-for="typeResponsible" error>
+                {errorOf("typeResponsible")}
+              </FormHelperText>
+            )}
           </FormControl>
-        </Paper>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 6
-        }}>
-        <Button
-          variant="contained"
-          color="error"
-          fullWidth
-          startIcon={<CloseIcon />}
-          onClick={cancel}
-        >
-          Cancelar
-        </Button>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 6
-        }}>
-        <Button
-          loading={isLoading}
-          loadingPosition="start"
-          startIcon={<SaveIcon />}
-          variant="contained"
-          color="primary"
-          fullWidth
-          onClick={save}
-          disabled={isValidateForm || isLoading}
-        >
-          Guardar
-        </Button>
-      </Grid>
-    </Grid>
+        </Grid>
+      </FormSection>
+      <FormActions
+        onCancel={cancel}
+        onSave={save}
+        isSaving={isLoading}
+        isSaveDisabled={isValidateForm}
+      />
+    </>
   );
 };
 

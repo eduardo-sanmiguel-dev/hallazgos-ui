@@ -3,13 +3,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Chip } from "@mui/material";
-import { Stack } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
 import { toast } from "sonner";
 import moment from "moment-timezone";
 
 import { notify, stringToDateWithTime } from "@shared/utils";
+import { useConfirmDialog } from "@shared/components/ConfirmDialog";
+import {
+  DeleteAction,
+  EditAction,
+  RowActions,
+} from "@shared/components/RowActions";
 import TableDefault, {
   StyledTableCell,
   StyledTableRow,
@@ -44,9 +47,10 @@ export default function TableGembaWalkCalendar({ rows, getData }: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const router = useRouter();
+  const { confirm, confirmDialog } = useConfirmDialog();
 
   const remove = (row: GembaWalkCalendar) => {
-    // El toast de confirmación puede quedar abierto hasta que el evento pase.
+    // La confirmación puede quedar abierta hasta que el evento pase.
     if (isPast(row.scheduledAt)) {
       toast.error("No se pueden eliminar eventos pasados");
       return;
@@ -61,84 +65,77 @@ export default function TableGembaWalkCalendar({ rows, getData }: Props) {
       .finally(() => setIsLoading(false));
   };
 
-  const confirmRemove = (row: GembaWalkCalendar) => {
-    toast.warning("Confirmar eliminación", {
+  const confirmRemove = async (row: GembaWalkCalendar) => {
+    const confirmed = await confirm({
+      title: "Confirmar eliminación",
       description: `¿Desea eliminar el evento #${row.id} (${row.gembaWalkZone?.nameZone} - ${stringToDateWithTime(row.scheduledAt)})?`,
-      duration: 10000,
-      cancel: {
-        label: "Cancelar",
-        onClick: () => undefined,
-      },
-      action: {
-        label: "Eliminar",
-        onClick: () => remove(row),
-      },
+      confirmLabel: "Eliminar",
+      tone: "danger",
     });
+
+    if (confirmed) remove(row);
   };
 
   return (
-    <TableDefault
-      rows={rows}
-      columns={columns}
-      paintRows={(row: GembaWalkCalendar) => (
-        <StyledTableRow key={row.id}>
-          <StyledTableCell component="th" scope="row">
-            {row.id}
-          </StyledTableCell>
-          <StyledTableCell>
-            {row.gembaWalkZone?.manufacturingPlant?.name || "-"}
-          </StyledTableCell>
-          <StyledTableCell>
-            {row.gembaWalkZone?.nameZone || "-"}
-          </StyledTableCell>
-          <StyledTableCell>
-            {row.gembaWalkZone?.nameLocation || "-"}
-          </StyledTableCell>
-          <StyledTableCell>
-            {stringToDateWithTime(row.scheduledAt)}
-          </StyledTableCell>
-          <StyledTableCell>
-            <Chip
-              size="small"
-              label={row.isAdditional ? "Sí" : "No"}
-              color={row.isAdditional ? "info" : "default"}
-            />
-          </StyledTableCell>
-          <StyledTableCell>{row.createdBy?.name || "-"}</StyledTableCell>
-          <StyledTableCell>{row.updatedBy?.name || "-"}</StyledTableCell>
-          <StyledTableCell>
-            {stringToDateWithTime(row.createdAt)}
-          </StyledTableCell>
-          <StyledTableCell>
-            {stringToDateWithTime(row.updatedAt)}
-          </StyledTableCell>
-          <StyledTableCell>
-            {isPast(row.scheduledAt) ? (
-              "-"
-            ) : (
-              <Stack direction="row" spacing={1}>
-                <Chip
-                  icon={<EditIcon />}
-                  label="Editar"
-                  color="warning"
-                  onClick={() =>
-                    router.push(
-                      `/gemba-walk/calendar/form?manufacturingPlantId=${row.gembaWalkZone?.manufacturingPlant?.id}&date=${moment(row.scheduledAt).format("YYYY-MM-DD")}`,
-                    )
-                  }
-                />
-                <Chip
-                  icon={<DeleteIcon />}
-                  label="Eliminar"
-                  color="error"
-                  onClick={() => confirmRemove(row)}
-                  disabled={isLoading}
-                />
-              </Stack>
-            )}
-          </StyledTableCell>
-        </StyledTableRow>
-      )}
-    />
+    <>
+      <TableDefault
+        rows={rows}
+        columns={columns}
+        paintRows={(row: GembaWalkCalendar) => (
+          <StyledTableRow key={row.id}>
+            <StyledTableCell component="th" scope="row">
+              {row.id}
+            </StyledTableCell>
+            <StyledTableCell>
+              {row.gembaWalkZone?.manufacturingPlant?.name || "-"}
+            </StyledTableCell>
+            <StyledTableCell>
+              {row.gembaWalkZone?.nameZone || "-"}
+            </StyledTableCell>
+            <StyledTableCell>
+              {row.gembaWalkZone?.nameLocation || "-"}
+            </StyledTableCell>
+            <StyledTableCell>
+              {stringToDateWithTime(row.scheduledAt)}
+            </StyledTableCell>
+            <StyledTableCell>
+              <Chip
+                size="small"
+                label={row.isAdditional ? "Sí" : "No"}
+                color={row.isAdditional ? "info" : "default"}
+              />
+            </StyledTableCell>
+            <StyledTableCell>{row.createdBy?.name || "-"}</StyledTableCell>
+            <StyledTableCell>{row.updatedBy?.name || "-"}</StyledTableCell>
+            <StyledTableCell>
+              {stringToDateWithTime(row.createdAt)}
+            </StyledTableCell>
+            <StyledTableCell>
+              {stringToDateWithTime(row.updatedAt)}
+            </StyledTableCell>
+            <StyledTableCell>
+              {isPast(row.scheduledAt) ? (
+                "-"
+              ) : (
+                <RowActions>
+                  <EditAction
+                    onClick={() =>
+                      router.push(
+                        `/gemba-walk/calendar/form?manufacturingPlantId=${row.gembaWalkZone?.manufacturingPlant?.id}&date=${moment(row.scheduledAt).format("YYYY-MM-DD")}`,
+                      )
+                    }
+                  />
+                  <DeleteAction
+                    onClick={() => confirmRemove(row)}
+                    disabled={isLoading}
+                  />
+                </RowActions>
+              )}
+            </StyledTableCell>
+          </StyledTableRow>
+        )}
+      />
+      {confirmDialog}
+    </>
   );
 }

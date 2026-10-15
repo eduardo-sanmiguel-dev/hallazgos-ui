@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 
 import { Grid } from "@mui/material";
-import { Typography } from "@mui/material";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import { TextField } from "@mui/material";
-import { Paper } from "@mui/material";
 
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
 import { GembaWalkZonesService } from "@services";
+
+import FilterBar from "@shared/components/FilterBar";
 
 export interface IFiltersGembaWalkObservers {
   manufacturingPlantId: string;
@@ -44,32 +43,7 @@ const FiltersGembaWalkObservers = ({ filters, setFilters, count }: Props) => {
   }, [filters.manufacturingPlantId]);
 
   return (
-    <Grid container spacing={2} sx={{ mb: 2 }}>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 12,
-          md: 12,
-        }}
-      >
-        <Typography
-          variant="subtitle1"
-          gutterBottom
-          sx={{
-            color: (theme) =>
-              theme.palette.mode === "light"
-                ? theme.palette.common.black
-                : theme.palette.common.white,
-          }}
-        >
-          <FilterListIcon
-            sx={{
-              pt: 1,
-            }}
-          />{" "}
-          Filtros ({count})
-        </Typography>
-      </Grid>
+    <FilterBar count={count}>
       <SelectManufacturingPlantsOwn
         value={filters.manufacturingPlantId}
         onChange={(e) =>
@@ -109,23 +83,21 @@ const FiltersGembaWalkObservers = ({ filters, setFilters, count }: Props) => {
           md: 3,
         }}
       >
-        <Paper>
-          <TextField
-            fullWidth
-            label="Usuario"
-            variant="outlined"
-            value={filters.userName}
-            autoComplete="off"
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                userName: e.target.value,
-              })
-            }
-          />
-        </Paper>
+        <TextField
+          fullWidth
+          label="Usuario"
+          variant="outlined"
+          value={filters.userName}
+          autoComplete="off"
+          onChange={(e) =>
+            setFilters({
+              ...filters,
+              userName: e.target.value,
+            })
+          }
+        />
       </Grid>
-    </Grid>
+    </FilterBar>
   );
 };
 

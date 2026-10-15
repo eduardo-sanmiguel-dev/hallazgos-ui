@@ -9,7 +9,6 @@ import {
   useState,
 } from "react";
 
-import { usePathname } from "next/navigation";
 
 import {
   AppBar as MuiAppBar,
@@ -19,7 +18,6 @@ import {
   alpha,
   useTheme,
   ThemeProvider,
-  createTheme,
 } from "@mui/material/styles";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
@@ -35,11 +33,11 @@ import { Toolbar } from "@mui/material";
 import { Divider } from "@mui/material";
 import { Box } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
-import Highcharts from "highcharts/esm/highcharts.src.js";
 
 import { MainListItems, UserFooter } from "@shared/components/menu";
 import Copyright from "@shared/components/Copyright";
 import { useUserSessionStore } from "@store";
+import { createAppTheme } from "../theme";
 import { UsersService } from "@services";
 
 // Ancho suficiente para que ninguna etiqueta del menú se corte.
@@ -104,85 +102,23 @@ function BtnChangeMode() {
   const theme = useTheme();
   const colorMode = useContext(ColorModeContext);
 
-  const pathname = usePathname();
-
   const modeCurrent = theme.palette.mode;
 
   const isLight = modeCurrent === "light";
   const isDark = modeCurrent === "dark";
 
-  useEffect(() => {
-    if (isDark) {
-      Highcharts.setOptions({
-        chart: {
-          backgroundColor: "#303030",
-        },
-        title: {
-          style: {
-            color: "#fff",
-          },
-        },
-        subtitle: {
-          style: {
-            color: "#fff",
-          },
-        },
-        colors: [
-          "#f45b5b",
-          "#8085e9",
-          "#8d4654",
-          "#7798BF",
-          "#aaeeee",
-          "#ff0066",
-          "#eeaaee",
-          "#55BF3B",
-          "#DF5353",
-          "#7798BF",
-          "#aaeeee",
-        ],
-      });
-    } else if (isLight) {
-      Highcharts.setOptions({
-        chart: {
-          backgroundColor: "#fff",
-        },
-        title: {
-          style: {
-            color: "#000",
-          },
-        },
-        subtitle: {
-          style: {
-            color: "#000",
-          },
-        },
-        colors: [
-          "#7cb5ec",
-          "#434348",
-          "#90ed7d",
-          "#f7a35c",
-          "#8085e9",
-          "#f15c80",
-          "#e4d354",
-          "#2b908f",
-          "#f45b5b",
-          "#91e8e1",
-          "#aaeeee",
-        ],
-      });
-    }
-  }, [modeCurrent, isDark, isLight]);
-
   const handleToggleColorMode = () => {
     colorMode.toggleColorMode();
     localStorage.setItem("colorMode", isLight ? "dark" : "light");
-    if (pathname === "/dashboard") {
-      window.location.reload();
-    }
   };
 
   return (
-    <IconButton sx={{ ml: 1 }} onClick={handleToggleColorMode} color="inherit">
+    <IconButton
+      sx={{ ml: 1 }}
+      onClick={handleToggleColorMode}
+      color="inherit"
+      aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+    >
       {isDark ? <Brightness7Icon /> : <Brightness4Icon />}
     </IconButton>
   );
@@ -218,28 +154,8 @@ export default function MainLayout({ children }: { children: ReactNode }) {
     [],
   );
 
-  const lightTheme = createTheme({
-    palette: {
-      mode,
-      primary: {
-        main: "#71BF44",
-      },
-    },
-  });
-
-  const darkTheme = createTheme({
-    palette: {
-      mode,
-      primary: {
-        main: "#71BF44",
-      },
-    },
-  });
-
-  const theme = useMemo(
-    () => createTheme(mode === "light" ? lightTheme : darkTheme),
-    [mode, lightTheme, darkTheme],
-  );
+  // El theme solo se crea de nuevo al cambiar de modo.
+  const theme = useMemo(() => createAppTheme(mode), [mode]);
 
   // En móvil y tablet el menú es temporal (se superpone al contenido).
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -306,8 +222,37 @@ export default function MainLayout({ children }: { children: ReactNode }) {
   return (
     <ColorModeContext.Provider value={colorMode}>
       <ThemeProvider theme={theme}>
-        <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+        <Box
+          sx={{
+            display: "flex",
+            height: "100vh",
+            overflow: "hidden",
+            // Scrollbars y controles nativos acordes al modo (se hereda).
+            colorScheme: mode,
+          }}
+        >
           <CssBaseline />
+          <Box
+            component="a"
+            href="#contenido"
+            sx={(theme) => ({
+              position: "absolute",
+              left: 8,
+              top: -64,
+              zIndex: theme.zIndex.tooltip,
+              px: 2,
+              py: 1,
+              borderRadius: `${theme.tokens.radius.md}px`,
+              backgroundColor: "background.paper",
+              color: "text.primary",
+              boxShadow: 3,
+              textDecoration: "none",
+              fontWeight: 600,
+              "&:focus": { top: 8 },
+            })}
+          >
+            Saltar al contenido
+          </Box>
           <AppBar position="absolute" open={open && !isMobile}>
             <Toolbar
               sx={{
@@ -317,7 +262,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
               <IconButton
                 edge="start"
                 color="inherit"
-                aria-label="open drawer"
+                aria-label="Abrir menú"
                 onClick={toggleDrawer}
                 sx={{
                   marginRight: "36px",
@@ -327,7 +272,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
                 <MenuIcon />
               </IconButton>
               <Typography
-                component="h1"
+                component="p"
                 variant="h6"
                 color="inherit"
                 noWrap
@@ -370,7 +315,10 @@ export default function MainLayout({ children }: { children: ReactNode }) {
           )}
           <Box
             component="main"
+            id="contenido"
+            tabIndex={-1}
             sx={{
+              "&:focus": { outline: "none" },
               backgroundColor: (theme) =>
                 theme.palette.mode === "light"
                   ? theme.palette.grey[100]

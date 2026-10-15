@@ -8,11 +8,8 @@ import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
 import { Grid } from "@mui/material";
-import { Paper } from "@mui/material";
-import SaveIcon from "@mui/icons-material/Save";
-import { Button } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import { toast } from "sonner";
+import { FormHelperText } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { TextField } from "@mui/material";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -26,6 +23,10 @@ import { CatalogEmployee } from "@interfaces";
 import SelectDefault from "@components/SelectDefault";
 import { SelectChangeEvent } from "@mui/material";
 import MultiSelectManufacturingPlants from "@components/MultiSelectManufacturingPlants";
+import { useFieldErrors } from "@hooks/useFieldErrors";
+import PageHeader from "@shared/components/PageHeader";
+import FormSection from "@shared/components/FormSection";
+import FormActions from "@shared/components/FormActions";
 
 const EmployeesFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -53,6 +54,15 @@ const EmployeesFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { fail, errorOf, fieldProps } = useFieldErrors<
+    | "code"
+    | "name"
+    | "birthdate"
+    | "dateOfAdmission"
+    | "area"
+    | "position"
+    | "manufacturingPlantNames"
+  >(form);
 
   useEffect(() => {
     EmployeesService.catalogs().then((data) => setCatalogs(data));
@@ -68,47 +78,47 @@ const EmployeesFormPage = () => {
     const manufacturingPlantNamesClean = form.manufacturingPlantNames;
 
     if (!codeClean) {
-      toast.error("El código es requerido");
+      fail("code", "El código es requerido");
       return;
     }
 
     if (!nameClean) {
-      toast.error("El nombre es requerido");
+      fail("name", "El nombre es requerido");
       return;
     }
 
     if (!birthdateClean) {
-      toast.error("La fecha de nacimiento es requerida");
+      fail("birthdate", "La fecha de nacimiento es requerida");
       return;
     }
 
     if (!birthdateClean.isValid()) {
-      toast.error("La fecha de nacimiento no es válida");
+      fail("birthdate", "La fecha de nacimiento no es válida");
       return;
     }
 
     if (!dateOfAdmissionClean) {
-      toast.error("La fecha de admisión es requerida");
+      fail("dateOfAdmission", "La fecha de admisión es requerida");
       return;
     }
 
     if (!dateOfAdmissionClean.isValid()) {
-      toast.error("La fecha de admisión no es válida");
+      fail("dateOfAdmission", "La fecha de admisión no es válida");
       return;
     }
 
     if (!areaClean) {
-      toast.error("El área es requerida");
+      fail("area", "El área es requerida");
       return;
     }
 
     if (!positionClean) {
-      toast.error("El puesto es requerido");
+      fail("position", "El puesto es requerido");
       return;
     }
 
     if (!manufacturingPlantNamesClean.length) {
-      toast.error("Seleccione al menos una planta");
+      fail("manufacturingPlantNames", "Seleccione al menos una planta");
       return;
     }
 
@@ -199,7 +209,10 @@ const EmployeesFormPage = () => {
 
   return (
     <>
-      <Grid container spacing={2}>
+      <PageHeader
+        title={idCurrent ? "Editar colaborador" : "Nuevo colaborador"}
+      />
+      <FormSection>
         <Grid
           size={{
             xs: 12,
@@ -207,17 +220,20 @@ const EmployeesFormPage = () => {
             md: 3,
           }}
         >
-          <Paper>
-            <TextField
-              label="Código de empleado *"
-              variant="outlined"
-              fullWidth
-              autoComplete="off"
-              value={form.code}
-              onChange={onChangeSelect}
-              name="code"
-            />
-          </Paper>
+          <TextField
+            {...fieldProps("code")}
+            // Si hay error se muestra el error; si no, la ayuda.
+            helperText={errorOf("code") ?? "Solo números"}
+            required
+            label="Código de empleado"
+            variant="outlined"
+            fullWidth
+            autoComplete="off"
+            value={form.code}
+            onChange={onChangeSelect}
+            name="code"
+            slotProps={{ htmlInput: { inputMode: "numeric" } }}
+          />
         </Grid>
         <Grid
           size={{
@@ -226,17 +242,17 @@ const EmployeesFormPage = () => {
             md: 3,
           }}
         >
-          <Paper>
-            <TextField
-              label="Nombre completo *"
-              variant="outlined"
-              fullWidth
-              autoComplete="off"
-              value={form.name}
-              onChange={onChangeSelect}
-              name="name"
-            />
-          </Paper>
+          <TextField
+            {...fieldProps("name")}
+            required
+            label="Nombre completo"
+            variant="outlined"
+            fullWidth
+            autoComplete="off"
+            value={form.name}
+            onChange={onChangeSelect}
+            name="name"
+          />
         </Grid>
         <Grid
           size={{
@@ -245,30 +261,31 @@ const EmployeesFormPage = () => {
             md: 3,
           }}
         >
-          <Paper>
-            <LocalizationProvider
-              dateAdapter={AdapterDayjs}
-              adapterLocale="es"
-              localeText={
-                esES.components.MuiLocalizationProvider.defaultProps.localeText
+          <LocalizationProvider
+            dateAdapter={AdapterDayjs}
+            adapterLocale="es"
+            localeText={
+              esES.components.MuiLocalizationProvider.defaultProps.localeText
+            }
+          >
+            <DatePicker
+              label="Fecha de nacimiento *"
+              format="DD/MM/YYYY"
+              maxDate={dayjs()}
+              value={form.birthdate}
+              onChange={(newValue: Dayjs | null) =>
+                setForm({ ...form, birthdate: newValue })
               }
-            >
-              <DatePicker
-                label="Fecha de nacimiento *"
-                format="DD/MM/YYYY"
-                maxDate={dayjs()}
-                value={form.birthdate}
-                onChange={(newValue: Dayjs | null) =>
-                  setForm({ ...form, birthdate: newValue })
-                }
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                  } as any,
-                }}
-              />
-            </LocalizationProvider>
-          </Paper>
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                },
+              }}
+            />
+            {errorOf("birthdate") && (
+              <FormHelperText data-error-for="birthdate" error>{errorOf("birthdate")}</FormHelperText>
+            )}
+          </LocalizationProvider>
         </Grid>
         <Grid
           size={{
@@ -277,30 +294,33 @@ const EmployeesFormPage = () => {
             md: 3,
           }}
         >
-          <Paper>
-            <LocalizationProvider
-              dateAdapter={AdapterDayjs}
-              adapterLocale="es"
-              localeText={
-                esES.components.MuiLocalizationProvider.defaultProps.localeText
+          <LocalizationProvider
+            dateAdapter={AdapterDayjs}
+            adapterLocale="es"
+            localeText={
+              esES.components.MuiLocalizationProvider.defaultProps.localeText
+            }
+          >
+            <DatePicker
+              label="Fecha de admisión *"
+              format="DD/MM/YYYY"
+              maxDate={dayjs()}
+              value={form.dateOfAdmission}
+              onChange={(newValue: Dayjs | null) =>
+                setForm({ ...form, dateOfAdmission: newValue })
               }
-            >
-              <DatePicker
-                label="Fecha de admisión *"
-                format="DD/MM/YYYY"
-                maxDate={dayjs()}
-                value={form.dateOfAdmission}
-                onChange={(newValue: Dayjs | null) =>
-                  setForm({ ...form, dateOfAdmission: newValue })
-                }
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                  } as any,
-                }}
-              />
-            </LocalizationProvider>
-          </Paper>
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                },
+              }}
+            />
+            {errorOf("dateOfAdmission") && (
+              <FormHelperText data-error-for="dateOfAdmission" error>
+                {errorOf("dateOfAdmission")}
+              </FormHelperText>
+            )}
+          </LocalizationProvider>
         </Grid>
         <Grid
           size={{
@@ -316,6 +336,9 @@ const EmployeesFormPage = () => {
             onChange={onChangeSelect}
             name="area"
           />
+          {errorOf("area") && (
+            <FormHelperText data-error-for="area" error>{errorOf("area")}</FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -331,6 +354,9 @@ const EmployeesFormPage = () => {
             onChange={onChangeSelect}
             name="position"
           />
+          {errorOf("position") && (
+            <FormHelperText data-error-for="position" error>{errorOf("position")}</FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -354,62 +380,28 @@ const EmployeesFormPage = () => {
             md: 3,
           }}
         >
-          <Paper>
-            <MultiSelectManufacturingPlants
-              values={form.manufacturingPlantNames}
-              onChange={(values) => {
-                setForm({
-                  ...form,
-                  manufacturingPlantNames: values,
-                });
-              }}
-            />
-          </Paper>
+          <MultiSelectManufacturingPlants
+            values={form.manufacturingPlantNames}
+            onChange={(values) => {
+              setForm({
+                ...form,
+                manufacturingPlantNames: values,
+              });
+            }}
+          />
+          {errorOf("manufacturingPlantNames") && (
+            <FormHelperText data-error-for="manufacturingPlantNames" error>
+              {errorOf("manufacturingPlantNames")}
+            </FormHelperText>
+          )}
         </Grid>
-      </Grid>
-      <Grid
-        container
-        spacing={2}
-        sx={{ marginTop: 2, alignContent: "center", justifyContent: "center" }}
-      >
-        <Grid
-          size={{
-            xs: 12,
-            sm: 3,
-            md: 3,
-          }}
-        >
-          <Button
-            variant="contained"
-            color="error"
-            fullWidth
-            startIcon={<CloseIcon />}
-            onClick={cancel}
-          >
-            Cancelar
-          </Button>
-        </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 3,
-            md: 3,
-          }}
-        >
-          <Button
-            loading={isLoading}
-            loadingPosition="start"
-            startIcon={<SaveIcon />}
-            variant="contained"
-            color="primary"
-            fullWidth
-            onClick={save}
-            disabled={isValidateForm || isLoading}
-          >
-            Guardar
-          </Button>
-        </Grid>
-      </Grid>
+      </FormSection>
+      <FormActions
+        onCancel={cancel}
+        onSave={save}
+        isSaving={isLoading}
+        isSaveDisabled={isValidateForm}
+      />
     </>
   );
 };

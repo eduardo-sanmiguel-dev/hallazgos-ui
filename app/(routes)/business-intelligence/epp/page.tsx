@@ -2,8 +2,8 @@
 
 import { useEffect, useState, type ComponentType } from "react";
 
-import { Box, Grid, Stack, Tab, Tabs } from "@mui/material";
-import { alpha } from "@mui/material/styles";
+import { Box, Grid, Stack, Tab, Tabs, useMediaQuery } from "@mui/material";
+import { alpha, useTheme } from "@mui/material/styles";
 
 import Chart1 from "./charts/Charts1";
 import Chart2 from "./charts/Charts2";
@@ -19,6 +19,8 @@ import { DashboardService } from "@services";
 import { BusinessIntelligenceEpp } from "@interfaces";
 import SelectDefault from "@components/SelectDefault";
 import { useUserSessionStore } from "@store";
+import { useHighchartsTheme } from "@hooks/useHighchartsTheme";
+import PageHeader from "@shared/components/PageHeader";
 
 type ChartComponentProps = {
   data: BusinessIntelligenceEpp | null;
@@ -32,15 +34,15 @@ type ChartGroupItem = {
 
 const chartGroups = [
   {
-    title: "Gasto y Costo",
+    title: "Gasto y costo",
     charts: [{ Component: Chart2 }, { Component: Chart1 }] as ChartGroupItem[],
   },
   {
-    title: "Entregas y Operacion",
+    title: "Entregas y operación",
     charts: [{ Component: Chart4 }, { Component: Chart3 }] as ChartGroupItem[],
   },
   {
-    title: "Cobertura de Empleados",
+    title: "Cobertura de colaboradores",
     charts: [
       { Component: Chart7 },
       { Component: Chart6 },
@@ -48,7 +50,7 @@ const chartGroups = [
     ] as ChartGroupItem[],
   },
   {
-    title: "Analisis de Costos",
+    title: "Análisis de costos",
     charts: [
       { Component: Chart10 },
       { Component: Chart9 },
@@ -58,6 +60,9 @@ const chartGroups = [
 ];
 
 const EPPCharts = () => {
+  // Al cambiar de tema se vuelven a crear las gráficas con sus colores.
+  const chartsMode = useHighchartsTheme();
+  const isMobile = useMediaQuery(useTheme().breakpoints.down("sm"));
   const [activeTab, setActiveTab] = useState(0);
   const activeGroup = chartGroups[activeTab];
   const [data, setData] = useState<BusinessIntelligenceEpp | null>(null);
@@ -81,91 +86,96 @@ const EPPCharts = () => {
   }, [manufacturingPlants]);
 
   return (
-    <Grid container spacing={2} sx={{ mb: 2 }}>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 3,
-          md: 2,
-        }}
-      >
-        <SelectDefault
-          data={manufacturingPlants}
-          label="Planta"
-          isFilter={true}
-          value={manufacturingPlantId}
-          onChange={(e) => {
-            setManufacturingPlantId(e.target.value);
+    <>
+      <PageHeader title="Análisis de datos EPP" />
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 3,
+            md: 2,
           }}
-        />
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 12,
-          md: 12,
-        }}
-      >
-        <Stack spacing={{ xs: 3, md: 4 }}>
-          <Tabs
-            value={activeTab}
-            onChange={(_, newValue: number) => setActiveTab(newValue)}
-            aria-label="Grupos de indicadores EPP"
-            sx={{
-              width: "100%",
-              backgroundColor: "primary.main",
-              "& .MuiTab-root": {
-                color: (theme) => alpha(theme.palette.common.white, 0.68),
-                opacity: 1,
-                transition: "all 0.2s ease",
-              },
-              "& .MuiTab-root.Mui-selected": {
-                color: "common.white",
-                fontWeight: 700,
-                backgroundColor: (theme) =>
-                  alpha(theme.palette.common.white, 0.14),
-              },
+        >
+          <SelectDefault
+            data={manufacturingPlants}
+            label="Planta"
+            isFilter={true}
+            value={manufacturingPlantId}
+            onChange={(e) => {
+              setManufacturingPlantId(e.target.value);
             }}
-            indicatorColor="secondary"
-            textColor="inherit"
-            variant="fullWidth"
-            scrollButtons="auto"
-          >
-            {chartGroups.map((group, index) => (
-              <Tab
-                key={group.title}
-                label={group.title}
-                id={`epp-group-tab-${index}`}
-                aria-controls={`epp-group-panel-${index}`}
-              />
-            ))}
-          </Tabs>
-
-          <Stack
-            spacing={2}
-            role="tabpanel"
-            id={`epp-group-panel-${activeTab}`}
-            aria-labelledby={`epp-group-tab-${activeTab}`}
-          >
-            <Grid container spacing={{ xs: 2, md: 2.5 }}>
-              {activeGroup.charts.map(({ Component, fullWidth }, index) => (
-                <Grid
-                  key={`${activeGroup.title}-${index}`}
-                  size={{
-                    xs: 12,
-                    md: fullWidth ? 12 : 6,
-                  }}
-                >
-                  <Box sx={{ width: "100%" }}>
-                    <Component data={data} />
-                  </Box>
-                </Grid>
+          />
+        </Grid>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 12,
+            md: 12,
+          }}
+        >
+          <Stack spacing={{ xs: 3, md: 4 }}>
+            <Tabs
+              value={activeTab}
+              onChange={(_, newValue: number) => setActiveTab(newValue)}
+              aria-label="Grupos de indicadores EPP"
+              sx={{
+                width: "100%",
+                backgroundColor: "primary.main",
+                "& .MuiTab-root": {
+                  color: (theme) => alpha(theme.palette.common.white, 0.68),
+                  opacity: 1,
+                  transition: "all 0.2s ease",
+                },
+                "& .MuiTab-root.Mui-selected": {
+                  color: "common.white",
+                  fontWeight: 700,
+                  backgroundColor: (theme) =>
+                    alpha(theme.palette.common.white, 0.14),
+                },
+              }}
+              indicatorColor="secondary"
+              textColor="inherit"
+              // En pantallas chicas las cuatro pestañas no caben a lo ancho.
+              variant={isMobile ? "scrollable" : "fullWidth"}
+              scrollButtons="auto"
+              allowScrollButtonsMobile
+            >
+              {chartGroups.map((group, index) => (
+                <Tab
+                  key={group.title}
+                  label={group.title}
+                  id={`epp-group-tab-${index}`}
+                  aria-controls={`epp-group-panel-${index}`}
+                />
               ))}
-            </Grid>
+            </Tabs>
+
+            <Stack
+              spacing={2}
+              role="tabpanel"
+              id={`epp-group-panel-${activeTab}`}
+              aria-labelledby={`epp-group-tab-${activeTab}`}
+            >
+              <Grid key={chartsMode} container spacing={{ xs: 2, md: 2.5 }}>
+                {activeGroup.charts.map(({ Component, fullWidth }, index) => (
+                  <Grid
+                    key={`${activeGroup.title}-${index}`}
+                    size={{
+                      xs: 12,
+                      md: fullWidth ? 12 : 6,
+                    }}
+                  >
+                    <Box sx={{ width: "100%" }}>
+                      <Component data={data} />
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+            </Stack>
           </Stack>
-        </Stack>
+        </Grid>
       </Grid>
-    </Grid>
+    </>
   );
 };
 

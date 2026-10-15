@@ -40,6 +40,7 @@ import type {
 import { GembaWalkCalendarService, GembaWalkZonesService } from "@services";
 import { GembaWalkCalendar } from "@interfaces";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
+import PageHeader from "@shared/components/PageHeader";
 import DialogCalendarEvent, {
   CalendarOption,
   DialogState,
@@ -539,18 +540,7 @@ const GembaWalkCalendarFormPage = () => {
   return (
     <Grid container spacing={2}>
       <Grid size={{ xs: 12 }}>
-        <Typography
-          variant="h4"
-          gutterBottom
-          sx={{
-            color: (theme) =>
-              theme.palette.mode === "light"
-                ? theme.palette.common.black
-                : theme.palette.common.white,
-          }}
-        >
-          Gemba Walk - Calendario
-        </Typography>
+        <PageHeader title="Gemba Walk - Calendario" />
       </Grid>
       <SelectManufacturingPlantsOwn
         value={manufacturingPlantId}
@@ -558,11 +548,11 @@ const GembaWalkCalendarFormPage = () => {
       />
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         <Button
-          variant="contained"
-          color="error"
+          variant="outlined"
           fullWidth
           startIcon={<CloseIcon />}
           onClick={cancel}
+          sx={{ minHeight: 44 }}
         >
           Cancelar
         </Button>
@@ -577,6 +567,7 @@ const GembaWalkCalendarFormPage = () => {
           fullWidth
           onClick={save}
           disabled={!hasChanges || isLoading}
+          sx={{ minHeight: 44 }}
         >
           Guardar
         </Button>

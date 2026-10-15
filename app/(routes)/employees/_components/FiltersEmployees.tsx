@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { Grid } from "@mui/material";
-import { Typography } from "@mui/material";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import { TextField } from "@mui/material";
-import { Paper } from "@mui/material";
 import SelectDefault from "@components/SelectDefault";
 import { EmployeesService } from "@services";
 import { CatalogEmployee } from "@interfaces";
+
+import FilterBar from "@shared/components/FilterBar";
 
 export interface IFiltersEmployees {
   manufacturingPlantId?: number;
@@ -55,27 +54,7 @@ const FiltersEmployees = ({ filters, setFilters, count }: Props) => {
   );
 
   return (
-    <Grid container spacing={2} sx={{ mb: 2 }}>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 12,
-          md: 12,
-        }}
-      >
-        <Typography
-          variant="subtitle1"
-          gutterBottom
-          sx={{
-            color: (theme) =>
-              theme.palette.mode === "light"
-                ? theme.palette.common.black
-                : theme.palette.common.white,
-          }}
-        >
-          <FilterListIcon sx={{ pt: 1 }} /> Filtros ({count})
-        </Typography>
-      </Grid>
+    <FilterBar count={count}>
       <Grid
         size={{
           xs: 12,
@@ -83,21 +62,19 @@ const FiltersEmployees = ({ filters, setFilters, count }: Props) => {
           md: 2,
         }}
       >
-        <Paper>
-          <TextField
-            fullWidth
-            label="Nombre o código"
-            variant="outlined"
-            value={filters.name}
-            autoComplete="off"
-            onChange={(e) => {
-              setFilters({
-                ...filters,
-                name: e.target.value,
-              });
-            }}
-          />
-        </Paper>
+        <TextField
+          fullWidth
+          label="Nombre o código"
+          variant="outlined"
+          value={filters.name}
+          autoComplete="off"
+          onChange={(e) => {
+            setFilters({
+              ...filters,
+              name: e.target.value,
+            });
+          }}
+        />
       </Grid>
       <Grid
         size={{
@@ -160,49 +137,43 @@ const FiltersEmployees = ({ filters, setFilters, count }: Props) => {
         />
       </Grid>
       {/*<Grid item xs={12} sm={4} md={2}>
-        <Paper>
-          <SelectManufacturingPlants
-            value={filters.manufacturingPlantId}
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                manufacturingPlantId: e.target.value,
-              })
-            }
-            isFilter={true}
-          />
-        </Paper>
+        <SelectManufacturingPlants
+          value={filters.manufacturingPlantId}
+          onChange={(e) =>
+            setFilters({
+              ...filters,
+              manufacturingPlantId: e.target.value,
+            })
+          }
+          isFilter={true}
+        />
       </Grid>
       <Grid item xs={12} sm={4} md={2}>
-        <Paper>
-          <SelectRules
-            value={filters.rule}
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                rule: e.target.value,
-              })
-            }
-            isFilter={true}
-          />
-        </Paper>
+        <SelectRules
+          value={filters.rule}
+          onChange={(e) =>
+            setFilters({
+              ...filters,
+              rule: e.target.value,
+            })
+          }
+          isFilter={true}
+        />
       </Grid>
       <Grid item xs={12} sm={4} md={2}>
-        <Paper>
-          <SelectZones
-            value={filters.zoneId}
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                zoneId: e.target.value,
-              })
-            }
-            isFilter={true}
-            manufacturingPlantId={filters.manufacturingPlantId}
-          />
-        </Paper>
+        <SelectZones
+          value={filters.zoneId}
+          onChange={(e) =>
+            setFilters({
+              ...filters,
+              zoneId: e.target.value,
+            })
+          }
+          isFilter={true}
+          manufacturingPlantId={filters.manufacturingPlantId}
+        />
           </Grid>*/}
-    </Grid>
+    </FilterBar>
   );
 };
 

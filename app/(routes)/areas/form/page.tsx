@@ -9,14 +9,15 @@ import { useSearchParams } from "next/navigation";
 
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
-import { Paper } from "@mui/material";
-import SaveIcon from "@mui/icons-material/Save";
-import { Button } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import { FormHelperText } from "@mui/material";
 import { toast } from "sonner";
 
 import { AreasService } from "@services";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
+import { useFieldErrors } from "@hooks/useFieldErrors";
+import PageHeader from "@shared/components/PageHeader";
+import FormSection from "@shared/components/FormSection";
+import FormActions from "@shared/components/FormActions";
 import AreaImageCoordinateSelector, {
   type AreaMarkedPoint,
 } from "../_components/AreaImageCoordinateSelector";
@@ -34,18 +35,21 @@ const AreasFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { fail, errorOf, fieldProps } = useFieldErrors<
+    "name" | "manufacturingPlantId"
+  >(form);
 
   const save = () => {
     const nameClean = form.name.trim();
     const manufacturingPlantId = Number(form.manufacturingPlantId);
 
     if (!nameClean) {
-      toast.error("El nombre es requerido");
+      fail("name", "El nombre es requerido");
       return;
     }
 
     if (!manufacturingPlantId) {
-      toast.error("La planta es requerida");
+      fail("manufacturingPlantId", "La planta es requerida");
       return;
     }
 
@@ -62,7 +66,7 @@ const AreasFormPage = () => {
         }),
       })
         .then(() => {
-          toast.success("Área creada correctamente");
+          toast.success("Zona creada correctamente");
           cancel();
         })
         .finally(() => setIsLoading(false));
@@ -77,7 +81,7 @@ const AreasFormPage = () => {
         }),
       })
         .then(() => {
-          toast.success("Área actualizada correctamente");
+          toast.success("Zona actualizada correctamente");
           cancel();
         })
         .finally(() => setIsLoading(false));
@@ -123,22 +127,19 @@ const AreasFormPage = () => {
   }, [searchParams]);
 
   return (
-    <Grid
-      container
-      spacing={2}
-      sx={{
-        minHeight: "calc(100vh - 200px)",
-      }}
-    >
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 4,
-        }}
-      >
-        <Paper>
+    <>
+      <PageHeader title={idCurrent ? "Editar zona" : "Nueva zona"} />
+      <FormSection>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 4,
+          }}
+        >
           <TextField
+            {...fieldProps("name")}
+            required
             label="Nombre"
             variant="outlined"
             fullWidth
@@ -151,71 +152,40 @@ const AreasFormPage = () => {
               })
             }
           />
-        </Paper>
-      </Grid>
-      <SelectManufacturingPlantsOwn
-        value={form.manufacturingPlantId}
-        onChange={(e) =>
-          setForm({
-            ...form,
-            manufacturingPlantId: e.target.value,
-          })
-        }
-      />
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 2.5,
-        }}
-      >
-        <Button
-          variant="contained"
-          color="error"
-          fullWidth
-          startIcon={<CloseIcon />}
-          onClick={cancel}
-        >
-          Cancelar
-        </Button>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 2.5,
-        }}
-      >
-        <Button
-          loading={isLoading}
-          loadingPosition="start"
-          startIcon={<SaveIcon />}
-          variant="contained"
-          color="primary"
-          fullWidth
-          onClick={save}
-          disabled={isValidateForm || isLoading}
-        >
-          Guardar
-        </Button>
-      </Grid>
-
-      <Grid
-        size={{
-          xs: 12,
-        }}
-        sx={{
-          display: "flex",
-          pt: "0 !important",
-        }}
-      >
-        <AreaImageCoordinateSelector
-          imageSrc="/images/planos.png"
-          initialPoint={pointToPersist}
-          onPointChange={setPointToPersist}
+        </Grid>
+        <SelectManufacturingPlantsOwn
+          value={form.manufacturingPlantId}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              manufacturingPlantId: e.target.value,
+            })
+          }
         />
-      </Grid>
-    </Grid>
+        {errorOf("manufacturingPlantId") && (
+          <Grid size={{ xs: 12 }}>
+            <FormHelperText data-error-for="manufacturingPlantId" error>
+              {errorOf("manufacturingPlantId")}
+            </FormHelperText>
+          </Grid>
+        )}
+      </FormSection>
+      <FormSection title="Ubicación en el plano">
+        <Grid size={{ xs: 12 }} sx={{ display: "flex" }}>
+          <AreaImageCoordinateSelector
+            imageSrc="/images/planos.png"
+            initialPoint={pointToPersist}
+            onPointChange={setPointToPersist}
+          />
+        </Grid>
+      </FormSection>
+      <FormActions
+        onCancel={cancel}
+        onSave={save}
+        isSaving={isLoading}
+        isSaveDisabled={isValidateForm}
+      />
+    </>
   );
 };
 

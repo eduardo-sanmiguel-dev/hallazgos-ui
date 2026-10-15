@@ -1,9 +1,8 @@
 import { Grid } from "@mui/material";
-import { Typography } from "@mui/material";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import { TextField } from "@mui/material";
-import { Paper } from "@mui/material";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
+
+import FilterBar from "@shared/components/FilterBar";
 
 export interface IFiltersGembaWalkZones {
   nameZone: string;
@@ -19,32 +18,7 @@ interface Props {
 
 const FiltersGembaWalkZones = ({ filters, setFilters, count }: Props) => {
   return (
-    <Grid container spacing={2} sx={{ mb: 2 }}>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 12,
-          md: 12,
-        }}
-      >
-        <Typography
-          variant="subtitle1"
-          gutterBottom
-          sx={{
-            color: (theme) =>
-              theme.palette.mode === "light"
-                ? theme.palette.common.black
-                : theme.palette.common.white,
-          }}
-        >
-          <FilterListIcon
-            sx={{
-              pt: 1,
-            }}
-          />{" "}
-          Filtros ({count})
-        </Typography>
-      </Grid>
+    <FilterBar count={count}>
       <SelectManufacturingPlantsOwn
         value={filters.manufacturingPlantId}
         onChange={(e) =>
@@ -62,21 +36,19 @@ const FiltersGembaWalkZones = ({ filters, setFilters, count }: Props) => {
           md: 3,
         }}
       >
-        <Paper>
-          <TextField
-            fullWidth
-            label="Zona"
-            variant="outlined"
-            value={filters.nameZone}
-            autoComplete="off"
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                nameZone: e.target.value,
-              })
-            }
-          />
-        </Paper>
+        <TextField
+          fullWidth
+          label="Zona"
+          variant="outlined"
+          value={filters.nameZone}
+          autoComplete="off"
+          onChange={(e) =>
+            setFilters({
+              ...filters,
+              nameZone: e.target.value,
+            })
+          }
+        />
       </Grid>
       <Grid
         size={{
@@ -85,23 +57,21 @@ const FiltersGembaWalkZones = ({ filters, setFilters, count }: Props) => {
           md: 3,
         }}
       >
-        <Paper>
-          <TextField
-            fullWidth
-            label="Ubicación"
-            variant="outlined"
-            value={filters.nameLocation}
-            autoComplete="off"
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                nameLocation: e.target.value,
-              })
-            }
-          />
-        </Paper>
+        <TextField
+          fullWidth
+          label="Ubicación"
+          variant="outlined"
+          value={filters.nameLocation}
+          autoComplete="off"
+          onChange={(e) =>
+            setFilters({
+              ...filters,
+              nameLocation: e.target.value,
+            })
+          }
+        />
       </Grid>
-    </Grid>
+    </FilterBar>
   );
 };
 

@@ -8,16 +8,20 @@ import { MenuItem } from "@mui/material";
 import { FormControl } from "@mui/material";
 import { Select, SelectChangeEvent } from "@mui/material";
 import { Chip } from "@mui/material";
+import type { MenuProps as MuiMenuProps } from "@mui/material";
 
 import { ProcessesService } from "@services";
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
-const MenuProps = {
-  PaperProps: {
-    style: {
-      maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
-      width: 250,
+// MUI 9 ya no acepta PaperProps en el menú: se pasa por slotProps.paper.
+const MenuProps: Partial<MuiMenuProps> = {
+  slotProps: {
+    paper: {
+      style: {
+        maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
+        width: 250,
+      },
     },
   },
 };
@@ -119,7 +123,7 @@ export default function MultiSelectProcesses({
               ))}
             </Box>
           )}
-          MenuProps={MenuProps as any}
+          MenuProps={MenuProps}
         >
           <MenuItem value="none-all">{labelSelectAll}</MenuItem>
           {names

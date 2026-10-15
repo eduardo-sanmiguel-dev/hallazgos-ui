@@ -9,16 +9,17 @@ import { useSearchParams } from "next/navigation";
 
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
-import { Paper } from "@mui/material";
-import SaveIcon from "@mui/icons-material/Save";
-import { Button } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import { toast } from "sonner";
+import { FormHelperText } from "@mui/material";
 
 import { GembaWalkEvaluationsService } from "@services";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
 import { categoryOptions } from "../_components/FiltersGembaWalkEvaluations";
+import { useFieldErrors } from "@hooks/useFieldErrors";
+import PageHeader from "@shared/components/PageHeader";
+import FormSection from "@shared/components/FormSection";
+import FormActions from "@shared/components/FormActions";
 
 const GembaWalkEvaluationsFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -32,6 +33,12 @@ const GembaWalkEvaluationsFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { fail, errorOf, fieldProps } = useFieldErrors<
+    | "manufacturingPlantId"
+    | "category"
+    | "area"
+    | "description"
+  >(form);
 
   const cancel = () => {
     router.push("/gemba-walk/evaluations");
@@ -43,22 +50,22 @@ const GembaWalkEvaluationsFormPage = () => {
     const description = form.description.trim();
 
     if (!manufacturingPlantId) {
-      toast.error("La planta es requerida");
+      fail("manufacturingPlantId", "La planta es requerida");
       return;
     }
 
     if (!form.category) {
-      toast.error("La categoría es requerida");
+      fail("category", "La categoría es requerida");
       return;
     }
 
     if (!area) {
-      toast.error("El área es requerida");
+      fail("area", "El área es requerida");
       return;
     }
 
     if (!description) {
-      toast.error("La descripción es requerida");
+      fail("description", "La descripción es requerida");
       return;
     }
 
@@ -112,33 +119,48 @@ const GembaWalkEvaluationsFormPage = () => {
   }, [searchParams]);
 
   return (
-    <Grid container spacing={2}>
-      <SelectManufacturingPlantsOwn
-        value={form.manufacturingPlantId}
-        onChange={(e) =>
-          setForm((prev) => ({
-            ...prev,
-            manufacturingPlantId: e.target.value,
-          }))
-        }
+    <>
+      <PageHeader
+        title={idCurrent ? "Editar concepto de evaluación" : "Nuevo concepto de evaluación"}
       />
-      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <SelectDefault
-          data={categoryOptions}
-          label="Categoría"
-          value={form.category}
+      <FormSection>
+        <SelectManufacturingPlantsOwn
+          value={form.manufacturingPlantId}
           onChange={(e) =>
             setForm((prev) => ({
               ...prev,
-              category: e.target.value,
+              manufacturingPlantId: e.target.value,
             }))
           }
-          validationEmpty
         />
-      </Grid>
-      <Grid size={{ xs: 12, sm: 12, md: 6 }}>
-        <Paper>
+        {errorOf("manufacturingPlantId") && (
+          <Grid size={{ xs: 12 }}>
+            <FormHelperText data-error-for="manufacturingPlantId" error>
+              {errorOf("manufacturingPlantId")}
+            </FormHelperText>
+          </Grid>
+        )}
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <SelectDefault
+            data={categoryOptions}
+            label="Categoría"
+            value={form.category}
+            onChange={(e) =>
+              setForm((prev) => ({
+                ...prev,
+                category: e.target.value,
+              }))
+            }
+            validationEmpty
+          />
+          {errorOf("category") && (
+            <FormHelperText data-error-for="category" error>{errorOf("category")}</FormHelperText>
+          )}
+        </Grid>
+        <Grid size={{ xs: 12, sm: 12, md: 6 }}>
           <TextField
+            {...fieldProps("area")}
+            required
             label="Área"
             placeholder="Ej. EPP, Rutas de Evacuación y Salidas, 1'S - Clasificación"
             variant="outlined"
@@ -152,11 +174,11 @@ const GembaWalkEvaluationsFormPage = () => {
               }))
             }
           />
-        </Paper>
-      </Grid>
-      <Grid size={{ xs: 12 }}>
-        <Paper>
+        </Grid>
+        <Grid size={{ xs: 12 }}>
           <TextField
+            {...fieldProps("description")}
+            required
             label="Descripción"
             placeholder="Qué se debe verificar durante el recorrido"
             variant="outlined"
@@ -171,34 +193,15 @@ const GembaWalkEvaluationsFormPage = () => {
               }))
             }
           />
-        </Paper>
-      </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
-        <Button
-          variant="contained"
-          color="error"
-          fullWidth
-          startIcon={<CloseIcon />}
-          onClick={cancel}
-        >
-          Cancelar
-        </Button>
-      </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
-        <Button
-          loading={isLoading}
-          loadingPosition="start"
-          startIcon={<SaveIcon />}
-          variant="contained"
-          color="primary"
-          fullWidth
-          onClick={save}
-          disabled={isValidateForm || isLoading}
-        >
-          Guardar
-        </Button>
-      </Grid>
-    </Grid>
+        </Grid>
+      </FormSection>
+      <FormActions
+        onCancel={cancel}
+        onSave={save}
+        isSaving={isLoading}
+        isSaveDisabled={isValidateForm}
+      />
+    </>
   );
 };
 

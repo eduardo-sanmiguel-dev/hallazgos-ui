@@ -1,9 +1,7 @@
 import { ChangeEvent, MouseEvent, useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
-import { useTheme } from "@mui/material/styles";
 
-import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -14,18 +12,16 @@ import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import TableCell from "@mui/material/TableCell";
 import Checkbox from "@mui/material/Checkbox";
-import Chip from "@mui/material/Chip";
-import Stack from "@mui/material/Stack";
-import IconButton from "@mui/material/IconButton";
-import FirstPageIcon from "@mui/icons-material/FirstPage";
-import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft";
-import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
-import LastPageIcon from "@mui/icons-material/LastPage";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import { toast } from "sonner";
 
 import { notify, stringToDateWithTime } from "@shared/utils";
+import TablePaginationActions from "@shared/components/TablePaginationActions";
+import EmptyState from "@shared/components/EmptyState";
+import { useConfirmDialog } from "@shared/components/ConfirmDialog";
+import {
+  DeleteAction,
+  EditAction,
+  RowActions,
+} from "@shared/components/RowActions";
 import { EmergencyTeam } from "@interfaces";
 import { EmergencyTeamsService } from "@services";
 import {
@@ -40,79 +36,6 @@ interface Props {
   getData: () => void;
 }
 
-interface TablePaginationActionsProps {
-  count: number;
-  page: number;
-  rowsPerPage: number;
-  onPageChange: (event: MouseEvent<HTMLButtonElement>, newPage: number) => void;
-}
-
-function TablePaginationActions({
-  count,
-  page,
-  rowsPerPage,
-  onPageChange,
-}: TablePaginationActionsProps) {
-  const theme = useTheme();
-
-  const handleFirstPageButtonClick = (event: MouseEvent<HTMLButtonElement>) => {
-    onPageChange(event, 0);
-  };
-
-  const handleBackButtonClick = (event: MouseEvent<HTMLButtonElement>) => {
-    onPageChange(event, page - 1);
-  };
-
-  const handleNextButtonClick = (event: MouseEvent<HTMLButtonElement>) => {
-    onPageChange(event, page + 1);
-  };
-
-  const handleLastPageButtonClick = (event: MouseEvent<HTMLButtonElement>) => {
-    onPageChange(event, Math.max(0, Math.ceil(count / rowsPerPage) - 1));
-  };
-
-  return (
-    <Box sx={{ flexShrink: 0, ml: 2.5 }}>
-      <IconButton
-        onClick={handleFirstPageButtonClick}
-        disabled={page === 0}
-        aria-label="first page"
-      >
-        {theme.direction === "rtl" ? <LastPageIcon /> : <FirstPageIcon />}
-      </IconButton>
-      <IconButton
-        onClick={handleBackButtonClick}
-        disabled={page === 0}
-        aria-label="previous page"
-      >
-        {theme.direction === "rtl" ? (
-          <KeyboardArrowRight />
-        ) : (
-          <KeyboardArrowLeft />
-        )}
-      </IconButton>
-      <IconButton
-        onClick={handleNextButtonClick}
-        disabled={rowsPerPage > 0 && page >= Math.ceil(count / rowsPerPage) - 1}
-        aria-label="next page"
-      >
-        {theme.direction === "rtl" ? (
-          <KeyboardArrowLeft />
-        ) : (
-          <KeyboardArrowRight />
-        )}
-      </IconButton>
-      <IconButton
-        onClick={handleLastPageButtonClick}
-        disabled={rowsPerPage > 0 && page >= Math.ceil(count / rowsPerPage) - 1}
-        aria-label="last page"
-      >
-        {theme.direction === "rtl" ? <FirstPageIcon /> : <LastPageIcon />}
-      </IconButton>
-    </Box>
-  );
-}
-
 export default function EmergencyTeamsTable({
   rows,
   selectedIds,
@@ -124,6 +47,7 @@ export default function EmergencyTeamsTable({
   const [rowsPerPage, setRowsPerPage] = useState<number>(5);
 
   const router = useRouter();
+  const { confirm, confirmDialog } = useConfirmDialog();
 
   const paginatedRows =
     rowsPerPage > 0
@@ -152,19 +76,15 @@ export default function EmergencyTeamsTable({
       .finally(() => setIsLoading(false));
   };
 
-  const confirmRemove = (row: EmergencyTeam) => {
-    toast.warning("Confirmar eliminación", {
+  const confirmRemove = async (row: EmergencyTeam) => {
+    const confirmed = await confirm({
+      title: "Confirmar eliminación",
       description: `¿Desea eliminar el equipo #${row.id} (${row.location})?`,
-      duration: 10000,
-      cancel: {
-        label: "Cancelar",
-        onClick: () => undefined,
-      },
-      action: {
-        label: "Eliminar",
-        onClick: () => remove(row.id),
-      },
+      confirmLabel: "Eliminar",
+      tone: "danger",
     });
+
+    if (confirmed) remove(row.id);
   };
 
   const isSelected = (id: number) => selectedIds.includes(id);
@@ -223,7 +143,7 @@ export default function EmergencyTeamsTable({
   return (
     <>
       <TableContainer component={Paper}>
-        <Table>
+        <Table aria-label="Equipos de emergencia">
           <TableHead>
             <StyledTableRow>
               <StyledTableCell padding="checkbox">
@@ -231,13 +151,9 @@ export default function EmergencyTeamsTable({
                   checked={allChecked}
                   indeterminate={someChecked}
                   onChange={(e) => handleSelectAll(e.target.checked)}
-                  sx={{
-                    color: "rgba(255, 255, 255, 0.85)",
-                    "&.Mui-checked": {
-                      color: "#fff",
-                    },
-                    "&.MuiCheckbox-indeterminate": {
-                      color: "#fff",
+                  slotProps={{
+                    input: {
+                      "aria-label": "Seleccionar todos los de esta página",
                     },
                   }}
                 />
@@ -256,12 +172,24 @@ export default function EmergencyTeamsTable({
             </StyledTableRow>
           </TableHead>
           <TableBody>
+            {!rows.length && (
+              <TableRow>
+                <TableCell colSpan={12} sx={{ borderBottom: 0 }}>
+                  <EmptyState size="small" />
+                </TableCell>
+              </TableRow>
+            )}
             {paginatedRows.map((row) => (
               <StyledTableRow key={row.id} hover>
                 <StyledTableCell padding="checkbox">
                   <Checkbox
                     checked={isSelected(row.id)}
                     onChange={(e) => handleSelectOne(row.id, e.target.checked)}
+                    slotProps={{
+                      input: {
+                        "aria-label": `Seleccionar el equipo ${row.id}`,
+                      },
+                    }}
                   />
                 </StyledTableCell>
                 <StyledTableCell>{row.id}</StyledTableCell>
@@ -281,23 +209,17 @@ export default function EmergencyTeamsTable({
                 </StyledTableCell>
                 <StyledTableCell>{row.updatedBy?.name || "-"}</StyledTableCell>
                 <StyledTableCell>
-                  <Stack direction="row" spacing={1}>
-                    <Chip
-                      icon={<EditIcon />}
-                      label="Editar"
-                      color="warning"
+                  <RowActions>
+                    <EditAction
                       onClick={() =>
                         router.push("/emergency-teams/form?id=" + row.id)
                       }
                     />
-                    <Chip
-                      icon={<DeleteIcon />}
-                      label="Eliminar"
-                      color="error"
+                    <DeleteAction
                       onClick={() => confirmRemove(row)}
                       disabled={isLoading}
                     />
-                  </Stack>
+                  </RowActions>
                 </StyledTableCell>
               </StyledTableRow>
             ))}
@@ -310,7 +232,7 @@ export default function EmergencyTeamsTable({
           <TableFooter>
             <StyledTableRow>
               <TablePagination
-                rowsPerPageOptions={[5, 10, 25, { label: "All", value: -1 }]}
+                rowsPerPageOptions={[5, 10, 25, { label: "Todos", value: -1 }]}
                 colSpan={12}
                 count={rows.length}
                 rowsPerPage={rowsPerPage}
@@ -318,7 +240,7 @@ export default function EmergencyTeamsTable({
                 slotProps={{
                   select: {
                     inputProps: {
-                      "aria-label": "rows per page",
+                      "aria-label": "Filas por página",
                     },
                     native: true,
                   },
@@ -331,6 +253,7 @@ export default function EmergencyTeamsTable({
           </TableFooter>
         </Table>
       </TableContainer>
+      {confirmDialog}
     </>
   );
 }

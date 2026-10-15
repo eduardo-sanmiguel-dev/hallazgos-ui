@@ -2,9 +2,9 @@ import { useRouter } from "next/navigation";
 
 import { Chip } from "@mui/material";
 import { Stack } from "@mui/material";
-import VisibilityIcon from "@mui/icons-material/Visibility";
 
 import { stringToDateWithTime } from "@shared/utils";
+import { RowActions, ViewAction } from "@shared/components/RowActions";
 import TableDefault, {
   StyledTableCell,
   StyledTableRow,
@@ -90,12 +90,11 @@ export default function TableGembaWalks({ rows }: Props) {
             <StyledTableCell>{percent}%</StyledTableCell>
             <StyledTableCell>{row.createdBy?.name || "-"}</StyledTableCell>
             <StyledTableCell>
-              <Chip
-                icon={<VisibilityIcon />}
-                label="Ver"
-                color="primary"
-                onClick={() => router.push("/gemba-walk/view?id=" + row.id)}
-              />
+              <RowActions>
+                <ViewAction
+                  onClick={() => router.push("/gemba-walk/view?id=" + row.id)}
+                />
+              </RowActions>
             </StyledTableCell>
           </StyledTableRow>
         );

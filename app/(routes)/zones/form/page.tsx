@@ -9,17 +9,17 @@ import { useSearchParams } from "next/navigation";
 
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
-import { Paper } from "@mui/material";
-import SaveIcon from "@mui/icons-material/Save";
-import { Button } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import { toast } from "sonner";
-import Box from "@mui/material/Box";
+import { FormHelperText } from "@mui/material";
 
 import { AreasService, ZonesService } from "@services";
 import SelectManufacturingPlants from "@components/SelectManufacturingPlants";
 import SelectDefault from "@components/SelectDefault";
 import { Area } from "@interfaces";
+import { useFieldErrors } from "@hooks/useFieldErrors";
+import PageHeader from "@shared/components/PageHeader";
+import FormSection from "@shared/components/FormSection";
+import FormActions from "@shared/components/FormActions";
 
 const ZonesFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -33,18 +33,22 @@ const ZonesFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { fail, errorOf, fieldProps } = useFieldErrors<
+    | "name"
+    | "manufacturingPlantId"
+  >(form);
 
   const save = () => {
     const nameClean = form.name.trim();
     const manufacturingPlantId = Number(form.manufacturingPlantId);
 
     if (!nameClean) {
-      toast.error("El nombre es requerido");
+      fail("name", "El nombre es requerido");
       return;
     }
 
     if (!manufacturingPlantId) {
-      toast.error("La planta es requerida");
+      fail("manufacturingPlantId", "La planta es requerida");
       return;
     }
 
@@ -57,7 +61,7 @@ const ZonesFormPage = () => {
         areaId: form.areaId ? Number(form.areaId) : null,
       })
         .then(() => {
-          toast.success("Zona creada correctamente");
+          toast.success("Lugar creado correctamente");
           cancel();
         })
         .finally(() => setIsLoading(false));
@@ -68,7 +72,7 @@ const ZonesFormPage = () => {
         areaId: form.areaId ? Number(form.areaId) : null,
       })
         .then(() => {
-          toast.success("Zona actualizada correctamente");
+          toast.success("Lugar actualizado correctamente");
           cancel();
         })
         .finally(() => setIsLoading(false));
@@ -109,16 +113,19 @@ const ZonesFormPage = () => {
   }, []);
 
   return (
-    <Grid container spacing={2}>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 4,
-        }}
-      >
-        <Paper>
+    <>
+      <PageHeader title={idCurrent ? "Editar lugar" : "Nuevo lugar"} />
+      <FormSection>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 4,
+          }}
+        >
           <TextField
+            {...fieldProps("name")}
+            required
             label="Nombre"
             variant="outlined"
             fullWidth
@@ -131,16 +138,14 @@ const ZonesFormPage = () => {
               })
             }
           />
-        </Paper>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 4,
-        }}
-      >
-        <Paper>
+        </Grid>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 4,
+          }}
+        >
           <SelectManufacturingPlants
             value={form.manufacturingPlantId}
             onChange={(e) =>
@@ -150,69 +155,40 @@ const ZonesFormPage = () => {
               })
             }
           />
-        </Paper>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 3,
-          md: 4,
-        }}
-      >
-        <SelectDefault
-          data={areas}
-          label="Zona (opcional)"
-          value={form.areaId}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              areaId: e.target.value,
-            })
-          }
-          isFilter={true}
-        />
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 12,
-          md: 12,
-        }}
-      >
-        <Box
-          sx={{
-            width: "100%",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 2,
+          {errorOf("manufacturingPlantId") && (
+            <FormHelperText data-error-for="manufacturingPlantId" error>
+              {errorOf("manufacturingPlantId")}
+            </FormHelperText>
+          )}
+        </Grid>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 3,
+            md: 4,
           }}
         >
-          <Button
-            variant="contained"
-            color="error"
-            startIcon={<CloseIcon />}
-            onClick={cancel}
-            fullWidth
-          >
-            Cancelar
-          </Button>
-
-          <Button
-            loading={isLoading}
-            loadingPosition="start"
-            startIcon={<SaveIcon />}
-            variant="contained"
-            color="primary"
-            onClick={save}
-            disabled={isValidateForm || isLoading}
-            fullWidth
-          >
-            Guardar
-          </Button>
-        </Box>
-      </Grid>
-    </Grid>
+          <SelectDefault
+            data={areas}
+            label="Zona (opcional)"
+            value={form.areaId}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                areaId: e.target.value,
+              })
+            }
+            isFilter={true}
+          />
+        </Grid>
+      </FormSection>
+      <FormActions
+        onCancel={cancel}
+        onSave={save}
+        isSaving={isLoading}
+        isSaveDisabled={isValidateForm}
+      />
+    </>
   );
 };
 

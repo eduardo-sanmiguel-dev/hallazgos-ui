@@ -9,13 +9,13 @@ import { useSearchParams } from "next/navigation";
 
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
-import { Paper } from "@mui/material";
-import SaveIcon from "@mui/icons-material/Save";
-import { Button } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import { toast } from "sonner";
 
 import { MainTypesService } from "@services";
+import { useFieldErrors } from "@hooks/useFieldErrors";
+import PageHeader from "@shared/components/PageHeader";
+import FormSection from "@shared/components/FormSection";
+import FormActions from "@shared/components/FormActions";
 
 const MainTypesFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -26,12 +26,13 @@ const MainTypesFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { fail, fieldProps } = useFieldErrors<"name">(form);
 
   const save = () => {
     const nameClean = form.name.trim();
 
     if (!nameClean) {
-      toast.error("El nombre es requerido");
+      fail("name", "El nombre es requerido");
       return;
     }
     setIsLoading(true);
@@ -76,16 +77,20 @@ const MainTypesFormPage = () => {
   }, [searchParams]);
 
   return (
-    <Grid container spacing={2}>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 3
-        }}>
-        <Paper>
+    <>
+      <PageHeader title={idCurrent ? "Editar criterio" : "Nuevo criterio"} />
+      <FormSection>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 4,
+          }}
+        >
           <TextField
+            {...fieldProps("name")}
             label="Nombre"
+            required
             variant="outlined"
             fullWidth
             autoComplete="off"
@@ -97,44 +102,15 @@ const MainTypesFormPage = () => {
               })
             }
           />
-        </Paper>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 3,
-          md: 3
-        }}>
-        <Button
-          variant="contained"
-          color="error"
-          fullWidth
-          startIcon={<CloseIcon />}
-          onClick={cancel}
-        >
-          Cancelar
-        </Button>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 3,
-          md: 3
-        }}>
-        <Button
-          loading={isLoading}
-          loadingPosition="start"
-          startIcon={<SaveIcon />}
-          variant="contained"
-          color="primary"
-          fullWidth
-          onClick={save}
-          disabled={isValidateForm || isLoading}
-        >
-          Guardar
-        </Button>
-      </Grid>
-    </Grid>
+        </Grid>
+      </FormSection>
+      <FormActions
+        onCancel={cancel}
+        onSave={save}
+        isSaving={isLoading}
+        isSaveDisabled={isValidateForm}
+      />
+    </>
   );
 };
 

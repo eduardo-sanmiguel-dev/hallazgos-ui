@@ -4,17 +4,13 @@ import { useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Toolbar } from "@mui/material";
-import { Box } from "@mui/material";
-import { Grid } from "@mui/material";
 import { Button } from "@mui/material";
-import RefreshIcon from "@mui/icons-material/Refresh";
 import Add from "@mui/icons-material/Add";
-import { ButtonGroup } from "@mui/material";
 import { useDebouncedCallback } from "use-debounce";
-import { Typography } from "@mui/material";
 
 import LoadingLinear from "@shared/components/LoadingLinear";
+import PageHeader from "@shared/components/PageHeader";
+import RefreshButton from "@shared/components/RefreshButton";
 import { SecondaryTypesService } from "@services";
 import { SecondaryType } from "@interfaces";
 import TableSecondaryTypes from "./_components/TableSecondaryTypes";
@@ -44,81 +40,28 @@ const SecondaryTypesPage = () => {
   }, [getData, filters]);
 
   return (
-    <Grid container>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 12,
-          md: 12,
-        }}
-        sx={{
-          color: (theme) =>
-            theme.palette.mode === "light"
-              ? theme.palette.common.black
-              : theme.palette.common.white,
-        }}
-      >
-        <Typography variant="h4" gutterBottom>
-          Tipos de criterios
-        </Typography>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 12,
-          md: 12,
-        }}
-      >
-        <Toolbar>
-          <Box sx={{ flexGrow: 1 }}>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => router.push("/secondary-types/form")}
-            >
-              Crear
-            </Button>
-          </Box>
-
-          <ButtonGroup
-            variant="contained"
-            aria-label="outlined primary button group"
-          >
-            <Button
-              variant="contained"
-              startIcon={<RefreshIcon />}
-              onClick={() => getData()}
-            ></Button>
-          </ButtonGroup>
-        </Toolbar>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 12,
-          md: 12,
-        }}
-      >
-        <FiltersSecondaryTypes
-          filters={filters}
-          setFilters={setFilters}
-          count={data.length}
-        />
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 12,
-          md: 12,
-        }}
-      >
-        {isLoading ? (
-          <LoadingLinear />
-        ) : (
-          <TableSecondaryTypes rows={data} getData={getData} />
-        )}
-      </Grid>
-    </Grid>
+    <>
+      <PageHeader title="Tipos de criterios">
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => router.push("/secondary-types/form")}
+        >
+          Crear
+        </Button>
+        <RefreshButton onClick={() => getData()} />
+      </PageHeader>
+      <FiltersSecondaryTypes
+        filters={filters}
+        setFilters={setFilters}
+        count={data.length}
+      />
+      {isLoading ? (
+        <LoadingLinear />
+      ) : (
+        <TableSecondaryTypes rows={data} getData={getData} />
+      )}
+    </>
   );
 };
 

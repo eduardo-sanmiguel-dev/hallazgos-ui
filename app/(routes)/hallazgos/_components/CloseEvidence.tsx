@@ -110,7 +110,7 @@ export default function CloseEvidence({
         Imagen la solución{" "}
       </DialogTitle>
       <IconButton
-        aria-label="close"
+        aria-label="Cerrar"
         onClick={() => handleClose()}
         sx={{
           position: "absolute",

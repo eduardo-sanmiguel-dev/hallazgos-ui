@@ -9,16 +9,17 @@ import { useSearchParams } from "next/navigation";
 
 import Grid from "@mui/material/Grid";
 import TextField from "@mui/material/TextField";
-import Paper from "@mui/material/Paper";
-import SaveIcon from "@mui/icons-material/Save";
-import Button from "@mui/material/Button";
-import CloseIcon from "@mui/icons-material/Close";
 import MenuItem from "@mui/material/MenuItem";
 import { toast } from "sonner";
+import { FormHelperText } from "@mui/material";
 
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import { EmergencyTeamsService } from "@services";
 import { ExtinguisherType } from "@interfaces";
+import { useFieldErrors } from "@hooks/useFieldErrors";
+import PageHeader from "@shared/components/PageHeader";
+import FormSection from "@shared/components/FormSection";
+import FormActions from "@shared/components/FormActions";
 
 const extinguisherTypes = [
   ExtinguisherType.PQS,
@@ -41,6 +42,13 @@ const EmergencyTeamsFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { fail, errorOf, fieldProps } = useFieldErrors<
+    | "manufacturingPlantId"
+    | "location"
+    | "extinguisherNumber"
+    | "capacity"
+    | "typeOfExtinguisher"
+  >(form);
 
   const save = () => {
     const locationClean = form.location.trim();
@@ -48,27 +56,27 @@ const EmergencyTeamsFormPage = () => {
     const capacityClean = form.capacity.trim();
 
     if (!form.manufacturingPlantId) {
-      toast.error("La planta es requerida");
+      fail("manufacturingPlantId", "La planta es requerida");
       return;
     }
 
     if (!locationClean) {
-      toast.error("La ubicación es requerida");
+      fail("location", "La ubicación es requerida");
       return;
     }
 
     if (!extinguisherNumberClean) {
-      toast.error("El número de extintor es requerido");
+      fail("extinguisherNumber", "El número de extintor es requerido");
       return;
     }
 
     if (!capacityClean) {
-      toast.error("La capacidad es requerida");
+      fail("capacity", "La capacidad es requerida");
       return;
     }
 
     if (!form.typeOfExtinguisher) {
-      toast.error("El tipo de extintor es requerido");
+      fail("typeOfExtinguisher", "El tipo de extintor es requerido");
       return;
     }
 
@@ -130,25 +138,37 @@ const EmergencyTeamsFormPage = () => {
   }, [searchParams]);
 
   return (
-    <Grid container spacing={2}>
-      <SelectManufacturingPlantsOwn
-        value={form.manufacturingPlantId}
-        onChange={(e) =>
-          setForm({
-            ...form,
-            manufacturingPlantId: e.target.value,
-          })
-        }
+    <>
+      <PageHeader
+        title={idCurrent ? "Editar equipo de emergencia" : "Nuevo equipo de emergencia"}
       />
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 3,
-        }}
-      >
-        <Paper>
+      <FormSection>
+        <SelectManufacturingPlantsOwn
+          value={form.manufacturingPlantId}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              manufacturingPlantId: e.target.value,
+            })
+          }
+        />
+        {errorOf("manufacturingPlantId") && (
+          <Grid size={{ xs: 12 }}>
+            <FormHelperText data-error-for="manufacturingPlantId" error>
+              {errorOf("manufacturingPlantId")}
+            </FormHelperText>
+          </Grid>
+        )}
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3,
+          }}
+        >
           <TextField
+            {...fieldProps("location")}
+            required
             label="Ubicación"
             variant="outlined"
             fullWidth
@@ -162,17 +182,17 @@ const EmergencyTeamsFormPage = () => {
               })
             }
           />
-        </Paper>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 3,
-        }}
-      >
-        <Paper>
+        </Grid>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3,
+          }}
+        >
           <TextField
+            {...fieldProps("extinguisherNumber")}
+            required
             label="Núm. Extintor"
             variant="outlined"
             fullWidth
@@ -189,17 +209,17 @@ const EmergencyTeamsFormPage = () => {
               })
             }
           />
-        </Paper>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 3,
-        }}
-      >
-        <Paper>
+        </Grid>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3,
+          }}
+        >
           <TextField
+            {...fieldProps("typeOfExtinguisher")}
+            required
             select
             label="Tipo de extintor"
             variant="outlined"
@@ -220,17 +240,17 @@ const EmergencyTeamsFormPage = () => {
               </MenuItem>
             ))}
           </TextField>
-        </Paper>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 3,
-        }}
-      >
-        <Paper>
+        </Grid>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3,
+          }}
+        >
           <TextField
+            {...fieldProps("capacity")}
+            required
             type="number"
             onKeyDown={(evt) => evt.key === "e" && evt.preventDefault()}
             label="Capacidad"
@@ -246,46 +266,15 @@ const EmergencyTeamsFormPage = () => {
               })
             }
           />
-        </Paper>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 3,
-          md: 3,
-        }}
-      >
-        <Button
-          variant="contained"
-          color="error"
-          fullWidth
-          startIcon={<CloseIcon />}
-          onClick={cancel}
-        >
-          Cancelar
-        </Button>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 3,
-          md: 3,
-        }}
-      >
-        <Button
-          loading={isLoading}
-          loadingPosition="start"
-          startIcon={<SaveIcon />}
-          variant="contained"
-          color="primary"
-          fullWidth
-          onClick={save}
-          disabled={isValidateForm || isLoading}
-        >
-          Guardar
-        </Button>
-      </Grid>
-    </Grid>
+        </Grid>
+      </FormSection>
+      <FormActions
+        onCancel={cancel}
+        onSave={save}
+        isSaving={isLoading}
+        isSaveDisabled={isValidateForm}
+      />
+    </>
   );
 };
 
