@@ -66,7 +66,7 @@ const AreasFormPage = () => {
         }),
       })
         .then(() => {
-          toast.success("Área creada correctamente");
+          toast.success("Zona creada correctamente");
           cancel();
         })
         .finally(() => setIsLoading(false));
@@ -81,7 +81,7 @@ const AreasFormPage = () => {
         }),
       })
         .then(() => {
-          toast.success("Área actualizada correctamente");
+          toast.success("Zona actualizada correctamente");
           cancel();
         })
         .finally(() => setIsLoading(false));

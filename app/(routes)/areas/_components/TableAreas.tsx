@@ -43,7 +43,7 @@ export default function TableAreas({ rows, getData }: Props) {
     setIsLoading(true);
     AreasService.remove(id)
       .then(() => {
-        notify("Área eliminada correctamente", true);
+        notify("Zona eliminada correctamente", true);
         getData();
       })
       .finally(() => setIsLoading(false));
@@ -52,7 +52,7 @@ export default function TableAreas({ rows, getData }: Props) {
   const confirmRemove = async (row: Area) => {
     const confirmed = await confirm({
       title: "Confirmar eliminación",
-      description: `¿Desea eliminar el área #${row.id} (${row.name})?`,
+      description: `¿Desea eliminar la zona #${row.id} (${row.name})?`,
       confirmLabel: "Eliminar",
       tone: "danger",
     });
