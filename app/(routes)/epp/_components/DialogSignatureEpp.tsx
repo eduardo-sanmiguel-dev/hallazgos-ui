@@ -1,6 +1,8 @@
 import { useRef } from "react";
 
 import { Button } from "@mui/material";
+import { IconButton } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import { Dialog } from "@mui/material";
 import { AppBar } from "@mui/material";
 import { Toolbar } from "@mui/material";
@@ -28,6 +30,7 @@ export default function DialogSignatureEpp({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const canvasWidth = isMobile ? 300 : 500;
+  const canvasHeight = 200;
 
   const handleClose = () => {
     setOpen(false);
@@ -53,19 +56,37 @@ export default function DialogSignatureEpp({
       slots={{ transition: Transition }}
     >
       <AppBar sx={{ position: "relative" }}>
-        <Toolbar></Toolbar>
+        <Toolbar>
+          <IconButton
+            edge="start"
+            color="inherit"
+            onClick={handleClose}
+            aria-label="Cerrar sin firmar"
+          >
+            <CloseIcon />
+          </IconButton>
+          <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="h2">
+            Firma del colaborador
+          </Typography>
+        </Toolbar>
       </AppBar>
-      <Paper elevation={3} sx={{ p: 2, maxWidth: 500, mx: "auto", mt: 10 }}>
+      {/* El canvas se muestra exactamente al tamaño en que dibuja: si se
+          estira, el trazo queda desplazado respecto al puntero o al dedo. */}
+      <Paper
+        elevation={3}
+        sx={{ p: 2, width: "fit-content", maxWidth: "100%", mx: "auto", mt: 10 }}
+      >
         <Typography variant="h6" gutterBottom>
           Firma electrónica
         </Typography>
         <Box
           sx={{
-            border: "1px solid #ccc",
+            border: 1,
+            borderColor: "divider",
             borderRadius: 1,
             overflow: "hidden",
-            width: "100%",
-            height: 200,
+            width: canvasWidth + 2,
+            height: canvasHeight + 2,
           }}
         >
           <SignatureCanvas
@@ -73,8 +94,12 @@ export default function DialogSignatureEpp({
             penColor="black"
             canvasProps={{
               width: canvasWidth,
-              height: 200,
-              style: { width: "100%", height: "100%" },
+              height: canvasHeight,
+              style: {
+                display: "block",
+                width: canvasWidth,
+                height: canvasHeight,
+              },
             }}
           />
         </Box>

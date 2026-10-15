@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { toast } from "sonner";
 
 import Image from "next/image";
 
@@ -28,6 +27,7 @@ import {
   StyledTableRow,
 } from "@shared/components/TableDefault";
 import { useUserSessionStore } from "@store";
+import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { EppService } from "@services";
 import { Epp, EppSortableColumn } from "@interfaces";
 
@@ -41,23 +41,20 @@ function Row({
   onHistoryDeleted: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const { confirm, confirmDialog } = useConfirmDialog();
 
-  const confirmRemoveHistory = (equipmentHistoryId: number) => {
-    toast.warning("Confirmar eliminación", {
+  const confirmRemoveHistory = async (equipmentHistoryId: number) => {
+    const confirmed = await confirm({
+      title: "Confirmar eliminación",
       description: "¿Desea eliminar este registro del historial?",
-      duration: 10000,
-      cancel: {
-        label: "Cancelar",
-        onClick: () => undefined,
-      },
-      action: {
-        label: "Eliminar",
-        onClick: async () => {
-          await EppService.removeHistory(equipmentHistoryId);
-          onHistoryDeleted();
-        },
-      },
+      confirmLabel: "Eliminar",
+      tone: "danger",
     });
+
+    if (!confirmed) return;
+
+    await EppService.removeHistory(equipmentHistoryId);
+    onHistoryDeleted();
   };
 
   return (
@@ -65,7 +62,12 @@ function Row({
       <StyledTableRow sx={{ "& > *": { borderBottom: "unset" } }}>
         <StyledTableCell>
           <IconButton
-            aria-label="expand row"
+            aria-label={
+              open
+                ? `Ocultar historial de ${epp.name}`
+                : `Ver historial de ${epp.name}`
+            }
+            aria-expanded={open}
             size="small"
             onClick={() => setOpen(!open)}
           >
@@ -79,12 +81,13 @@ function Row({
         <StyledTableCell>{epp.position.name}</StyledTableCell>
         <StyledTableCell>{epp.area.name}</StyledTableCell>
         <StyledTableCell align="center">
-          <SimCardDownloadIcon
+          <IconButton
             color="primary"
-            fontSize="large"
-            style={{ cursor: "pointer" }}
+            aria-label={`Descargar archivo de ${epp.name}`}
             onClick={() => EppService.downloadFile(epp.id, epp.code)}
-          />
+          >
+            <SimCardDownloadIcon fontSize="large" />
+          </IconButton>
         </StyledTableCell>
       </StyledTableRow>
       <StyledTableRow>
@@ -97,7 +100,7 @@ function Row({
               <Typography variant="h6" gutterBottom component="div">
                 Historial de entrega
               </Typography>
-              <Table size="small" aria-label="purchases">
+              <Table size="small" aria-label={`Historial de entrega de ${epp.name}`}>
                 <TableHead>
                   <StyledTableRow>
                     <StyledTableCell>Epp</StyledTableCell>
@@ -145,7 +148,7 @@ function Row({
                         <StyledTableCell align="center">
                           {equipment.createBy?.id === currentUserId && (
                             <IconButton
-                              aria-label="borrar registro"
+                              aria-label="Eliminar registro del historial"
                               size="small"
                               color="error"
                               onClick={() => confirmRemoveHistory(equipment.id)}
@@ -162,6 +165,7 @@ function Row({
           </Collapse>
         </StyledTableCell>
       </StyledTableRow>
+      {confirmDialog}
     </>
   );
 }
@@ -240,7 +244,7 @@ export default function TableEpps({
       </Box>
       <Box sx={{ height: 4 }}>{isLoading && <LinearProgress />}</Box>
       <TableContainer>
-        <Table aria-label="collapsible table" size="small">
+        <Table aria-label="Entregas de EPP por colaborador" size="small">
           <TableHead>
             <StyledTableRow>
               <StyledTableCell />

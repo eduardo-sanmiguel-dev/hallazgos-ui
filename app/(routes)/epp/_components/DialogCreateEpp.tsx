@@ -171,10 +171,6 @@ export default function DialogCreateEpp({ open, create }: Props) {
     }
   };
 
-  useEffect(() => {
-    console.log({ equipments });
-  }, [equipments]);
-
   return (
     <>
       <DialogSignatureEpp
@@ -194,12 +190,12 @@ export default function DialogCreateEpp({ open, create }: Props) {
               edge="start"
               color="inherit"
               onClick={() => handleClose(false)}
-              aria-label="close"
+              aria-label="Cerrar"
             >
               <CloseIcon />
             </IconButton>
-            <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
-              Epp
+            <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="h2">
+              Registro de EPP
             </Typography>
             <Button
               autoFocus
@@ -325,7 +321,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
                     {signature ? (
                       <Image
                         src={signature}
-                        alt="Signature"
+                        alt="Firma del colaborador"
                         width={350}
                         height={150}
                       />
@@ -379,6 +375,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
                                 <Button
                                   color="error"
                                   variant="contained"
+                                  aria-label={`Quitar ${equipment.name}`}
                                   onClick={() =>
                                     setEquipmentsNew(
                                       equipmentsNew.filter(

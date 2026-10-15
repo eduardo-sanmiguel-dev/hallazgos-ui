@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDebounce } from "use-debounce";
 
-import { Button, ButtonGroup, Grid } from "@mui/material";
-import RefreshIcon from "@mui/icons-material/Refresh";
+import { Button, Grid } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 
 import DialogCreateEpp from "./_components/DialogCreateEpp";
@@ -14,6 +13,8 @@ import { useUserSessionStore } from "@store";
 import { EppService } from "@services";
 import { Epp, EppSortableColumn } from "@interfaces";
 import { SortOrder } from "@shared/utils";
+import PageHeader from "@shared/components/PageHeader";
+import RefreshButton from "@shared/components/RefreshButton";
 
 export default function EppPage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -108,6 +109,16 @@ export default function EppPage() {
           });
         }}
       />
+      <PageHeader title="EPP - Equipos de protección personal">
+        <Button
+          variant="contained"
+          onClick={() => setOpen(true)}
+          startIcon={<AddIcon />}
+        >
+          Crear registro
+        </Button>
+        <RefreshButton onClick={() => getData()} />
+      </PageHeader>
       <Grid container spacing={2}>
         <Grid
           size={{
@@ -123,38 +134,6 @@ export default function EppPage() {
             onChange={(e) => setManufacturingPlantId(e.target.value)}
             validationEmpty
           />
-        </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 9,
-          }}
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: { xs: "center", md: "flex-end" },
-            mt: { xs: 0.5, sm: 0 },
-          }}
-        >
-          <ButtonGroup variant="contained" aria-label="Basic button group">
-            <Button
-              variant="contained"
-              onClick={() => setOpen(true)}
-              startIcon={<AddIcon />}
-              sx={{ width: { xs: "100%", sm: "auto" } }}
-            >
-              Crear registro
-            </Button>
-            <Button
-              variant="contained"
-              onClick={() => getData()}
-              startIcon={<RefreshIcon />}
-              sx={{ width: { xs: "100%", sm: "auto" } }}
-            >
-              Recargar
-            </Button>
-          </ButtonGroup>
         </Grid>
         <Grid
           size={{
