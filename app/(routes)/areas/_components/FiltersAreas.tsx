@@ -1,9 +1,8 @@
 import { Grid } from "@mui/material";
-import { Typography } from "@mui/material";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import { TextField } from "@mui/material";
-import { Paper } from "@mui/material";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
+
+import FilterBar from "@shared/components/FilterBar";
 
 export interface IFiltersAreas {
   name: string;
@@ -18,32 +17,7 @@ interface Props {
 
 const FiltersAreas = ({ filters, setFilters, count }: Props) => {
   return (
-    <Grid container spacing={2} sx={{ mb: 2 }}>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 12,
-          md: 12,
-        }}
-      >
-        <Typography
-          variant="subtitle1"
-          gutterBottom
-          sx={{
-            color: (theme) =>
-              theme.palette.mode === "light"
-                ? theme.palette.common.black
-                : theme.palette.common.white,
-          }}
-        >
-          <FilterListIcon
-            sx={{
-              pt: 1,
-            }}
-          />{" "}
-          Filtros ({count})
-        </Typography>
-      </Grid>
+    <FilterBar count={count}>
       <Grid
         size={{
           xs: 12,
@@ -51,21 +25,19 @@ const FiltersAreas = ({ filters, setFilters, count }: Props) => {
           md: 3,
         }}
       >
-        <Paper>
-          <TextField
-            fullWidth
-            label="Nombre"
-            variant="outlined"
-            value={filters.name}
-            autoComplete="off"
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                name: e.target.value,
-              })
-            }
-          />
-        </Paper>
+        <TextField
+          fullWidth
+          label="Nombre"
+          variant="outlined"
+          value={filters.name}
+          autoComplete="off"
+          onChange={(e) =>
+            setFilters({
+              ...filters,
+              name: e.target.value,
+            })
+          }
+        />
       </Grid>
       <SelectManufacturingPlantsOwn
         value={filters.manufacturingPlantId}
@@ -77,7 +49,7 @@ const FiltersAreas = ({ filters, setFilters, count }: Props) => {
         }
         isFilter={true}
       />
-    </Grid>
+    </FilterBar>
   );
 };
 
