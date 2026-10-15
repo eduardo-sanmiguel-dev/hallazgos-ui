@@ -4,19 +4,15 @@ import { useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import Toolbar from "@mui/material/Toolbar";
-import Box from "@mui/material/Box";
-import Grid from "@mui/material/Grid";
 import Button from "@mui/material/Button";
-import RefreshIcon from "@mui/icons-material/Refresh";
 import Add from "@mui/icons-material/Add";
 import PrintIcon from "@mui/icons-material/Print";
-import ButtonGroup from "@mui/material/ButtonGroup";
 import { useDebouncedCallback } from "use-debounce";
-import Typography from "@mui/material/Typography";
 import QRCode from "qrcode";
 
 import LoadingLinear from "@shared/components/LoadingLinear";
+import PageHeader from "@shared/components/PageHeader";
+import RefreshButton from "@shared/components/RefreshButton";
 import { notify } from "@shared/utils";
 import { EmergencyTeamsService } from "@services";
 import { EmergencyTeam } from "@interfaces";
@@ -211,97 +207,41 @@ const EmergencyTeamsPage = () => {
   };
 
   return (
-    <Grid container>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 12,
-          md: 12,
-        }}
-      >
-        <Typography
-          variant="h4"
-          gutterBottom
-          sx={{
-            color: (theme) =>
-              theme.palette.mode === "light"
-                ? theme.palette.common.black
-                : theme.palette.common.white,
-          }}
+    <>
+      <PageHeader title="Equipos de emergencia">
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => router.push("/emergency-teams/form")}
         >
-          Equipos de emergencia
-        </Typography>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 12,
-          md: 12,
-        }}
-      >
-        <Toolbar>
-          <Box sx={{ flexGrow: 1 }}>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => router.push("/emergency-teams/form")}
-            >
-              Crear
-            </Button>
-          </Box>
-
-          <ButtonGroup
-            variant="contained"
-            aria-label="outlined primary button group"
-          >
-            <Button
-              variant="contained"
-              startIcon={<PrintIcon />}
-              onClick={printSelectedQrs}
-              disabled={!selectedIds.length}
-            >
-              Imprimir ({selectedIds.length})
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<RefreshIcon />}
-              onClick={() => getData()}
-            ></Button>
-          </ButtonGroup>
-        </Toolbar>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 12,
-          md: 12,
-        }}
-      >
-        <FiltersEmergencyTeams
-          filters={filters}
-          setFilters={setFilters}
-          count={data.length}
+          Crear
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<PrintIcon />}
+          onClick={printSelectedQrs}
+          disabled={!selectedIds.length}
+        >
+          Imprimir ({selectedIds.length})
+        </Button>
+        <RefreshButton onClick={() => getData()} />
+      </PageHeader>
+      <FiltersEmergencyTeams
+        filters={filters}
+        setFilters={setFilters}
+        count={data.length}
+      />
+      {isLoading ? (
+        <LoadingLinear />
+      ) : (
+        <EmergencyTeamsTable
+          rows={data}
+          selectedIds={selectedIds}
+          setSelectedIds={setSelectedIds}
+          getData={getData}
         />
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 12,
-          md: 12,
-        }}
-      >
-        {isLoading ? (
-          <LoadingLinear />
-        ) : (
-          <EmergencyTeamsTable
-            rows={data}
-            selectedIds={selectedIds}
-            setSelectedIds={setSelectedIds}
-            getData={getData}
-          />
-        )}
-      </Grid>
-    </Grid>
+      )}
+    </>
   );
 };
 
