@@ -8,10 +8,8 @@ import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
 import { Grid } from "@mui/material";
-import SaveIcon from "@mui/icons-material/Save";
-import { Button } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import { toast } from "sonner";
+import { FormHelperText } from "@mui/material";
 
 import {
   GembaWalkObserversService,
@@ -20,6 +18,10 @@ import {
 } from "@services";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
+import { useFieldErrors } from "@hooks/useFieldErrors";
+import PageHeader from "@shared/components/PageHeader";
+import FormSection from "@shared/components/FormSection";
+import FormActions from "@shared/components/FormActions";
 
 interface Option {
   id: number;
@@ -43,6 +45,11 @@ const GembaWalkObserversFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { fail, errorOf } = useFieldErrors<
+    | "manufacturingPlantId"
+    | "gembaWalkZoneId"
+    | "userIds"
+  >(form);
 
   const save = () => {
     const manufacturingPlantId = Number(form.manufacturingPlantId);
@@ -50,17 +57,17 @@ const GembaWalkObserversFormPage = () => {
     const userIds = form.userIds.map(Number);
 
     if (!manufacturingPlantId) {
-      toast.error("La planta es requerida");
+      fail("manufacturingPlantId", "La planta es requerida");
       return;
     }
 
     if (!gembaWalkZoneId) {
-      toast.error("La zona es requerida");
+      fail("gembaWalkZoneId", "La zona es requerida");
       return;
     }
 
     if (!userIds.length) {
-      toast.error("El usuario es requerido");
+      fail("userIds", "El usuario es requerido");
       return;
     }
 
@@ -151,118 +158,105 @@ const GembaWalkObserversFormPage = () => {
   }, [form.manufacturingPlantId]);
 
   return (
-    <Grid container spacing={2}>
-      <SelectManufacturingPlantsOwn
-        value={form.manufacturingPlantId}
-        onChange={(e) =>
-          setForm((prev) =>
-            prev.manufacturingPlantId === e.target.value
-              ? prev
-              : {
-                  manufacturingPlantId: e.target.value,
-                  gembaWalkZoneId: "",
-                  userIds: [],
-                },
-          )
-        }
+    <>
+      <PageHeader
+        title={idCurrent ? "Editar observador" : "Nuevo observador"}
       />
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 3,
-        }}
-      >
-        <SelectDefault
-          data={zones}
-          label="Zona"
-          value={form.gembaWalkZoneId}
+      <FormSection>
+        <SelectManufacturingPlantsOwn
+          value={form.manufacturingPlantId}
           onChange={(e) =>
-            setForm((prev) => ({
-              ...prev,
-              gembaWalkZoneId: e.target.value,
-            }))
+            setForm((prev) =>
+              prev.manufacturingPlantId === e.target.value
+                ? prev
+                : {
+                    manufacturingPlantId: e.target.value,
+                    gembaWalkZoneId: "",
+                    userIds: [],
+                  },
+            )
           }
-          disabled={!form.manufacturingPlantId}
-          validationEmpty
         />
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 12,
-          md: 6,
-        }}
-      >
-        {idCurrent ? (
-          <SelectDefault
-            data={users}
-            label="Usuario"
-            value={form.userIds[0] || ""}
-            onChange={(e) =>
-              setForm((prev) => ({
-                ...prev,
-                userIds: e.target.value ? [e.target.value] : [],
-              }))
-            }
-            disabled={!form.manufacturingPlantId}
-            validationEmpty
-          />
-        ) : (
-          <SelectDefault
-            multiple
-            data={users}
-            label="Usuarios"
-            value={form.userIds}
-            onChange={(e) =>
-              setForm((prev) => ({
-                ...prev,
-                userIds: e.target.value,
-              }))
-            }
-            disabled={!form.manufacturingPlantId}
-            validationEmpty
-          />
+        {errorOf("manufacturingPlantId") && (
+          <Grid size={{ xs: 12 }}>
+            <FormHelperText error>
+              {errorOf("manufacturingPlantId")}
+            </FormHelperText>
+          </Grid>
         )}
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 2.5,
-        }}
-      >
-        <Button
-          variant="contained"
-          color="error"
-          fullWidth
-          startIcon={<CloseIcon />}
-          onClick={cancel}
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3,
+          }}
         >
-          Cancelar
-        </Button>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 2.5,
-        }}
-      >
-        <Button
-          loading={isLoading}
-          loadingPosition="start"
-          startIcon={<SaveIcon />}
-          variant="contained"
-          color="primary"
-          fullWidth
-          onClick={save}
-          disabled={isValidateForm || isLoading}
+          <SelectDefault
+            data={zones}
+            label="Zona"
+            value={form.gembaWalkZoneId}
+            onChange={(e) =>
+              setForm((prev) => ({
+                ...prev,
+                gembaWalkZoneId: e.target.value,
+              }))
+            }
+            disabled={!form.manufacturingPlantId}
+            validationEmpty
+          />
+          {errorOf("gembaWalkZoneId") && (
+            <FormHelperText error>{errorOf("gembaWalkZoneId")}</FormHelperText>
+          )}
+        </Grid>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 12,
+            md: 6,
+          }}
         >
-          Guardar
-        </Button>
-      </Grid>
-    </Grid>
+          {idCurrent ? (
+            <SelectDefault
+              data={users}
+              label="Usuario"
+              value={form.userIds[0] || ""}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  userIds: e.target.value ? [e.target.value] : [],
+                }))
+              }
+              disabled={!form.manufacturingPlantId}
+              validationEmpty
+            />
+          ) : (
+            <SelectDefault
+              multiple
+              data={users}
+              label="Usuarios"
+              value={form.userIds}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  userIds: e.target.value,
+                }))
+              }
+              disabled={!form.manufacturingPlantId}
+              validationEmpty
+            />
+          )}
+          {errorOf("userIds") && (
+            <FormHelperText error>{errorOf("userIds")}</FormHelperText>
+          )}
+        </Grid>
+      </FormSection>
+      <FormActions
+        onCancel={cancel}
+        onSave={save}
+        isSaving={isLoading}
+        isSaveDisabled={isValidateForm}
+      />
+    </>
   );
 };
 
