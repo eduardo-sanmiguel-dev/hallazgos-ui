@@ -380,3 +380,49 @@ Verificación:
 - **Código:** build y typecheck sin errores; lint igual a la línea base.
 - **Consola:** sin errores en los 16 listados y formularios del bloque, incluidos los diálogos de Equipos y Configuración G. Entr. (abiertos y cerrados sin guardar).
 - **Anchos y modos:** 360, 768 y 1440 px, en claro y oscuro.
+
+### Pruebas funcionales de los bloques 1 y 2 (base de desarrollo)
+
+Entorno verificado antes de escribir datos:
+- La UI apunta a `http://localhost:4000` y la API a PostgreSQL en `127.0.0.1` (`hallazgos_dev`).
+- La API corre con `NODE_ENV=development`, así que los correos se redirigen a una dirección de prueba fija.
+
+Registros creados con prefijo `PRUEBA-UI` y eliminados al terminar, salvo el colaborador de prueba: queda **inactivo** porque la interfaz solo permite desactivar.
+
+| Pantalla | Crear | Editar | Diálogo de eliminar (Esc / Enter / Cancelar no borran; confirmar borra) | Mensaje |
+|---|---|---|---|---|
+| Criterios | ✅ | ✅ | ✅ las 4 salidas | ✅ |
+| Tipos de criterios | ✅ (y error junto al campo en "Responsable") | — | ✅ Esc / confirmar | ✅ |
+| Procesos | ✅ | — | ✅ | ✅ |
+| Plantas | ✅ | — | ✅ | ✅ |
+| Zonas | ✅ con punto en el plano | — | ✅ | ✅ "Zona eliminada" |
+| Lugares | ✅ | — | ✅ | ✅ "Lugar eliminado" |
+| Usuarios | ✅ (correo inválido: error bajo el campo, foco y toast) | — | ✅ | ✅ |
+| Colaboradores | ✅ | — | ✅ "Desactivar" solo en activos; en inactivos no aparece | ✅ |
+| Gemba Walk - Zonas | ✅ | — | ✅ | ✅ |
+| Gemba Walk - Observadores | ✅ | — | ✅ | ✅ |
+| Gemba Walk - Evaluaciones | ✅ | — | ✅ | ✅ |
+| Gemba Walk - Calendario | ✅ evento futuro | — | ✅; los eventos pasados muestran "-" | ✅ |
+| Equipos | ✅ (error junto al campo en el diálogo) | ✅ | ✅ | ✅ |
+| Temas | ❌ la API responde 409 incluso con un nombre nuevo (ver abajo) | — | sin probar | — |
+| Configuración G. Entr. | sin probar: la API se detuvo durante la prueba | — | — | — |
+| Equipos de emergencia | sin probar: la API se detuvo | — | — | — |
+
+Fallas encontradas y corregidas:
+- **Selector del plano (Zonas)**, error previo:
+  - con carga directa o recarga de la página, la imagen ya estaba cargada y `onLoad` no se disparaba;
+  - las coordenadas se guardaban en píxeles de pantalla en lugar de la escala de la imagen (12396 × 17542), y el punto guardado no aparecía al editar;
+  - corregido en `625231c`; verificado en 1440 y 360 px.
+- **Multiselects de planta, zona y proceso**, error previo: usaban `PaperProps`, que MUI 9 eliminó; la prop llegaba al DOM con aviso en consola y la altura máxima del menú no se aplicaba. Corregido en `a6e2abd`.
+
+Hallazgos sin corregir (para decidir):
+- **Zonas con coordenadas en escala equivocada:** las que se crearon o editaron con la página recargada pueden tener coordenadas en escala de pantalla (valores menores a ~1 600). Conviene revisarlas en la base; afectan el mapa de calor del dashboard.
+- **Temas — 409 al crear:** la API traduce cualquier violación de unicidad (`23505`) como "Topic with this name already exists". Como falla también con nombres nuevos, lo más probable es que la secuencia del `id` de `topics` esté desfasada en la base de desarrollo. Es de API o base, no de UI.
+- **Mensajes de la API en inglés** que llegan al usuario: "code must be a number…" en Colaboradores y "Topic with this name already exists" en Temas.
+- **Colaboradores:** el código de empleado debe ser numérico y el formulario no lo indica.
+- **Usuarios:** la contraseña se escribe en un campo de texto visible (`type="text"`).
+- **Errores junto al campo en selects:** el error aparece, pero el foco solo se mueve a los campos de texto.
+
+Pendientes acordados (tarea aparte):
+- **Configuración G. Entr. — `DraggableTopicRow`:** está definido dentro de `ScreenForm` y se remonta en cada render.
+- **Configuración G. Entr. — reordenar temas:** agregar botones subir/bajar como alternativa al arrastre (WCAG 2.5.7).
