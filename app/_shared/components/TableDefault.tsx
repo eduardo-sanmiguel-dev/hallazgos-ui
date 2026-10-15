@@ -85,7 +85,12 @@ export default function TableDefault<T>({
 
   return (
     <TableContainer component={Paper}>
-      <Table sx={{ minWidth: 500 }} aria-label={ariaLabel}>
+      <Table
+        // Sin filas no hace falta el ancho mínimo: así el mensaje de "Sin
+        // registros" no queda cortado en pantallas angostas.
+        sx={{ minWidth: rows.length ? 500 : undefined }}
+        aria-label={ariaLabel}
+      >
         <TableHead>
           <StyledTableRow>
             {columns.map((column) => (
