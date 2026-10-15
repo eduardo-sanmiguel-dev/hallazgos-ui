@@ -44,7 +44,7 @@ export default function TableZones({ rows, getData }: Props) {
     setIsLoading(true);
     ZonesService.remove(id)
       .then(() => {
-        notify("Zona eliminada correctamente", true);
+        notify("Lugar eliminado correctamente", true);
         getData();
       })
       .finally(() => setIsLoading(false));
@@ -53,7 +53,7 @@ export default function TableZones({ rows, getData }: Props) {
   const confirmRemove = async (row: Zone) => {
     const confirmed = await confirm({
       title: "Confirmar eliminación",
-      description: `¿Desea eliminar la zona #${row.id} (${row.name})?`,
+      description: `¿Desea eliminar el lugar #${row.id} (${row.name})?`,
       confirmLabel: "Eliminar",
       tone: "danger",
     });

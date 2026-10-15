@@ -61,7 +61,7 @@ const ZonesFormPage = () => {
         areaId: form.areaId ? Number(form.areaId) : null,
       })
         .then(() => {
-          toast.success("Zona creada correctamente");
+          toast.success("Lugar creado correctamente");
           cancel();
         })
         .finally(() => setIsLoading(false));
@@ -72,7 +72,7 @@ const ZonesFormPage = () => {
         areaId: form.areaId ? Number(form.areaId) : null,
       })
         .then(() => {
-          toast.success("Zona actualizada correctamente");
+          toast.success("Lugar actualizado correctamente");
           cancel();
         })
         .finally(() => setIsLoading(false));
