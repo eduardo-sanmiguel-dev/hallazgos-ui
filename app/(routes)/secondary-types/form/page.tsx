@@ -161,7 +161,11 @@ const SecondaryTypesFormPage = () => {
             sm: 6,
             md: 4
           }}>
-          <FormControl fullWidth>
+          <FormControl
+            fullWidth
+            required
+            error={!!errorOf("typeResponsible")}
+          >
             <InputLabel id="responsible-type-select-label">
               Responsable
             </InputLabel>
@@ -169,7 +173,7 @@ const SecondaryTypesFormPage = () => {
               labelId="responsible-type-select-label"
               id="responsible-type-select"
               value={form.typeResponsible}
-              label="Responsable (opcional)"
+              label="Responsable *"
               onChange={(e: SelectChangeEvent) =>
                 setForm({
                   ...form,
