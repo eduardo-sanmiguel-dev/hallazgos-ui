@@ -41,13 +41,14 @@ import LoadingLinear from "@shared/components/LoadingLinear";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import FilterBar from "@shared/components/FilterBar";
+import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import {
   DeleteAction,
   EditAction,
   RowActions,
 } from "@shared/components/RowActions";
-import TableDefault from "@shared/components/TableDefault";
+import TableDefaultServer from "@shared/components/TableDefaultServer";
 import { useFieldErrors } from "@hooks/useFieldErrors";
 import SelectDefault from "@components/SelectDefault";
 import { stringToDateWithTime } from "@shared/utils";
@@ -640,9 +641,20 @@ const ScreenForm = ({
   );
 };
 
+const DEFAULT_FILTERS = {
+  manufacturingPlantId: "",
+  positionId: "",
+  areaManagerId: "",
+  humanResourceManagerId: "",
+};
+
 export default function TopicTg() {
   const [rows, setRows] = useState<ConfigTg[]>([]);
+  const [count, setCount] = useState<number>(0);
+  const [page, setPage] = useState<number>(0);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
   const [positions, setPositions] = useState<BasicData[]>([]);
+  const [filterUsers, setFilterUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [currentId, setCurrentId] = useState<number>(0);
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -650,30 +662,44 @@ export default function TopicTg() {
   const [filters, setFilters] = useState<{
     manufacturingPlantId: string;
     positionId: string;
-  }>({
-    manufacturingPlantId: "",
-    positionId: "",
-  });
+    areaManagerId: string;
+    humanResourceManagerId: string;
+  }>(DEFAULT_FILTERS);
 
   const { confirm, confirmDialog } = useConfirmDialog();
 
   const getData = useDebouncedCallback(() => {
     setIsLoading(true);
-    ConfigTgService.findAll({
-      manufacturingPlantId: Number(filters.manufacturingPlantId || 0),
-      positionId: Number(filters.positionId || 0),
+    ConfigTgService.findAllPaginated({
+      page: page + 1,
+      limit: rowsPerPage,
+      ...filters,
     })
-      .then(setRows)
+      .then(({ data, count }) => {
+        setRows(data);
+        setCount(count);
+      })
       .finally(() => setIsLoading(false));
   }, 500);
 
   useEffect(() => {
     getData();
-  }, [getData, filters]);
+  }, [getData, filters, page, rowsPerPage]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [filters]);
 
   useEffect(() => {
     EmployeesService.findPositions().then(setPositions);
   }, []);
+
+  // Jefes disponibles para filtrar: usuarios de la planta elegida.
+  useEffect(() => {
+    UsersService.findAll({
+      manufacturingPlantId: filters.manufacturingPlantId,
+    }).then(setFilterUsers);
+  }, [filters.manufacturingPlantId]);
 
   // Solo se lee la lista de plantas para no re-renderizar con cada cambio de
   // la sesión.
@@ -722,7 +748,11 @@ export default function TopicTg() {
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
-      <FilterBar count={rows.length}>
+      <FilterBar count={count}>
+        <ClearFiltersButton
+          visible={Object.values(filters).some(Boolean)}
+          onClick={() => setFilters(DEFAULT_FILTERS)}
+        />
         <Grid
           size={{
             xs: 12,
@@ -736,9 +766,12 @@ export default function TopicTg() {
             isFilter={true}
             value={filters.manufacturingPlantId}
             onChange={(e) => {
+              // Los jefes dependen de la planta.
               setFilters({
                 ...filters,
                 manufacturingPlantId: e.target.value,
+                areaManagerId: "",
+                humanResourceManagerId: "",
               });
             }}
           />
@@ -763,13 +796,58 @@ export default function TopicTg() {
             }}
           />
         </Grid>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3,
+          }}
+        >
+          <SelectDefault
+            data={filterUsers}
+            label="Jefe de área"
+            isFilter={true}
+            value={filters.areaManagerId}
+            onChange={(e) => {
+              setFilters({
+                ...filters,
+                areaManagerId: e.target.value,
+              });
+            }}
+          />
+        </Grid>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 6,
+            md: 3,
+          }}
+        >
+          <SelectDefault
+            data={filterUsers}
+            label="Jefe RRHH"
+            isFilter={true}
+            value={filters.humanResourceManagerId}
+            onChange={(e) => {
+              setFilters({
+                ...filters,
+                humanResourceManagerId: e.target.value,
+              });
+            }}
+          />
+        </Grid>
       </FilterBar>
       {isLoading ? (
         <LoadingLinear />
       ) : (
-        <TableDefault
+        <TableDefaultServer
           rows={rows}
           columns={columns}
+          page={page}
+          setPage={setPage}
+          rowsPerPage={rowsPerPage}
+          setRowsPerPage={setRowsPerPage}
+          count={count}
           ariaLabel="Configuraciones de guías de entrenamiento"
           paintRows={(row) => (
             <StyledTableRow key={row.id}>

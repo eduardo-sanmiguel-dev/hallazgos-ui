@@ -15,6 +15,23 @@ const findAll = async ({ name }: IFiltersHds) => {
   return data;
 };
 
+const findAllPaginated = async ({
+  name,
+  order,
+  page,
+  limit,
+}: IFiltersHds & { page: number; limit: number }) => {
+  const { data } = await api.get<{ data: Hds[]; count: number }>("", {
+    params: {
+      page,
+      limit,
+      ...(name?.trim() && { name: name.trim() }),
+      ...(order && { order }),
+    },
+  });
+  return data;
+};
+
 const downloadFile = async (name: string) => {
   const { data } = await api.get<Blob>(`download?name=${name}`, {
     responseType: "blob",
@@ -28,5 +45,6 @@ const downloadFile = async (name: string) => {
 
 export const HdsService = {
   findAll,
+  findAllPaginated,
   downloadFile,
 };

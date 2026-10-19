@@ -15,29 +15,43 @@ import { ProcessesService } from "@services";
 import { Processes } from "@interfaces";
 import TableProcesses from "./_components/TableProcesses";
 import FiltersProcesses, {
-  IFiltersProcesses,
+  DEFAULT_FILTERS_PROCESSES,
+  type IFiltersProcesses,
 } from "./_components/FiltersProcesses";
 
 const ProcessesPage = () => {
   const [data, setData] = useState<Processes[]>([]);
+  const [count, setCount] = useState<number>(0);
+  const [page, setPage] = useState<number>(0);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [filters, setFilters] = useState<IFiltersProcesses>({
-    name: "",
-    manufacturingPlantId: "",
-  });
+  const [filters, setFilters] = useState<IFiltersProcesses>(
+    DEFAULT_FILTERS_PROCESSES,
+  );
 
   const router = useRouter();
 
   const getData = useDebouncedCallback(() => {
     setIsLoading(true);
-    ProcessesService.findAll(filters)
-      .then(setData)
+    ProcessesService.findAllPaginated({
+      ...filters,
+      page: page + 1,
+      limit: rowsPerPage,
+    })
+      .then(({ data, count }) => {
+        setData(data);
+        setCount(count);
+      })
       .finally(() => setIsLoading(false));
   }, 500);
 
   useEffect(() => {
     getData();
-  }, [getData, filters]);
+  }, [getData, filters, page, rowsPerPage]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [filters]);
 
   return (
     <>
@@ -54,12 +68,20 @@ const ProcessesPage = () => {
       <FiltersProcesses
         filters={filters}
         setFilters={setFilters}
-        count={data.length}
+        count={count}
       />
       {isLoading ? (
         <LoadingLinear />
       ) : (
-        <TableProcesses rows={data} getData={getData} />
+        <TableProcesses
+          rows={data}
+          getData={getData}
+          page={page}
+          setPage={setPage}
+          rowsPerPage={rowsPerPage}
+          setRowsPerPage={setRowsPerPage}
+          count={count}
+        />
       )}
     </>
   );

@@ -8,6 +8,7 @@ import SelectDefault from "@components/SelectDefault";
 import { GembaWalkZonesService } from "@services";
 
 import FilterBar from "@shared/components/FilterBar";
+import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 
 export interface IFiltersGembaWalkObservers {
   manufacturingPlantId: string;
@@ -19,9 +20,18 @@ interface Props {
   filters: IFiltersGembaWalkObservers;
   setFilters: (filters: IFiltersGembaWalkObservers) => void;
   count: number;
+  // Visible cuando algún filtro difiere del valor por defecto.
+  canClear?: boolean;
+  onClear?: () => void;
 }
 
-const FiltersGembaWalkObservers = ({ filters, setFilters, count }: Props) => {
+const FiltersGembaWalkObservers = ({
+  filters,
+  setFilters,
+  count,
+  canClear = false,
+  onClear,
+}: Props) => {
   const [zones, setZones] = useState<{ id: number; name: string }[]>([]);
 
   useEffect(() => {
@@ -44,6 +54,7 @@ const FiltersGembaWalkObservers = ({ filters, setFilters, count }: Props) => {
 
   return (
     <FilterBar count={count}>
+      <ClearFiltersButton visible={canClear} onClick={() => onClear?.()} />
       <SelectManufacturingPlantsOwn
         value={filters.manufacturingPlantId}
         onChange={(e) =>

@@ -52,7 +52,33 @@ const remove = async (id: number) => {
   return data;
 };
 
+// Igual que findAll, pero paginado en la BD (page 1-based).
+// Los filtros vacíos no se envían.
+const findAllPaginated = async ({
+  page,
+  limit,
+  ...filters
+}: {
+  page: number;
+  limit: number;
+  [key: string]: string | number | undefined;
+}) => {
+  const { data } = await api.get<{ data: GembaWalkZone[]; count: number }>("", {
+    params: {
+      page,
+      limit,
+      ...Object.fromEntries(
+        Object.entries(filters).filter(
+          ([, value]) => value !== "" && value !== undefined,
+        ),
+      ),
+    },
+  });
+  return data;
+};
+
 export const GembaWalkZonesService = {
+  findAllPaginated,
   create,
   findAll,
   findOne,

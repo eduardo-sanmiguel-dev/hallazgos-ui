@@ -68,6 +68,34 @@ const findAll = async (filters: Filters) => {
   return data;
 };
 
+// startDate / endDate: YYYY-MM-DD, rango inclusivo sobre la fecha de inspección.
+const findAllPaginated = async (
+  filters: Filters & {
+    startDate?: string;
+    endDate?: string;
+    page: number;
+    limit: number;
+  },
+) => {
+  const { data } = await api.get<{
+    data: ExtinguisherInspection[];
+    count: number;
+  }>("", {
+    params: {
+      page: filters.page,
+      limit: filters.limit,
+      ...(filters.search && { search: filters.search }),
+      ...(filters.manufacturingPlantId && {
+        manufacturingPlantId: filters.manufacturingPlantId,
+      }),
+      ...(filters.startDate && { startDate: filters.startDate }),
+      ...(filters.endDate && { endDate: filters.endDate }),
+    },
+  });
+
+  return data;
+};
+
 const downloadFile = async (id: number) => {
   const { data, headers } = await api.get(`/download/file/${id}`, {
     responseType: "blob",
@@ -98,5 +126,6 @@ export const ExtinguisherInspectionsService = {
   findOne,
   update,
   findAll,
+  findAllPaginated,
   downloadFile,
 };

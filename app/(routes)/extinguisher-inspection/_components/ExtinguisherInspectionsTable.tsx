@@ -1,3 +1,5 @@
+import { Dispatch, SetStateAction } from "react";
+
 import SimCardDownloadIcon from "@mui/icons-material/SimCardDownload";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutlineOutlined";
 import IconButton from "@mui/material/IconButton";
@@ -10,13 +12,19 @@ import { useRouter } from "next/navigation";
 import { stringToDateWithTime } from "@shared/utils";
 import { ExtinguisherInspectionsService } from "@services";
 import { ExtinguisherInspection } from "@interfaces";
-import TableDefault, {
+import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
+import TableDefaultServer from "@shared/components/TableDefaultServer";
 
 interface Props {
   rows: ExtinguisherInspection[];
+  page: number;
+  setPage: Dispatch<SetStateAction<number>>;
+  rowsPerPage: number;
+  setRowsPerPage: Dispatch<SetStateAction<number>>;
+  count: number;
 }
 
 const columns = [
@@ -30,13 +38,25 @@ const columns = [
   "Acciones",
 ];
 
-export default function ExtinguisherInspectionsTable({ rows }: Props) {
+export default function ExtinguisherInspectionsTable({
+  rows,
+  page,
+  setPage,
+  rowsPerPage,
+  setRowsPerPage,
+  count,
+}: Props) {
   const router = useRouter();
 
   return (
-    <TableDefault
+    <TableDefaultServer
       rows={rows}
       columns={columns}
+      page={page}
+      setPage={setPage}
+      rowsPerPage={rowsPerPage}
+      setRowsPerPage={setRowsPerPage}
+      count={count}
       paintRows={(row: ExtinguisherInspection) => (
         <StyledTableRow key={row.id} hover>
           <StyledTableCell>{row.id}</StyledTableCell>

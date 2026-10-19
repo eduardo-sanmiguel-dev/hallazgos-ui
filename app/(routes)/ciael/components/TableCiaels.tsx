@@ -4,20 +4,34 @@ import { TableContainer } from "@mui/material";
 import { TableHead } from "@mui/material";
 import { Paper } from "@mui/material";
 import { TableCell, TableRow } from "@mui/material";
+import { ChangeEvent, Dispatch, SetStateAction } from "react";
 
 import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
+import TableFooterDefault from "@shared/components/TableFooterDefault";
 import EmptyState from "@shared/components/EmptyState";
 import { Ciael } from "@interfaces";
 import { stringToDate, stringToDateWithTime } from "@shared/utils";
 
 interface Props {
   data: Ciael[];
+  page: number;
+  setPage: Dispatch<SetStateAction<number>>;
+  rowsPerPage: number;
+  setRowsPerPage: Dispatch<SetStateAction<number>>;
+  count: number;
 }
 
-export default function TableCiaels({ data }: Props) {
+export default function TableCiaels({
+  data,
+  page,
+  setPage,
+  rowsPerPage,
+  setRowsPerPage,
+  count,
+}: Props) {
   return (
     <TableContainer component={Paper}>
       <Table
@@ -64,6 +78,20 @@ export default function TableCiaels({ data }: Props) {
             </StyledTableRow>
           ))}
         </TableBody>
+        <TableFooterDefault
+          rows={data}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          handleChangePage={(_, newPage) => setPage(newPage)}
+          handleChangeRowsPerPage={(
+            event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+          ) => {
+            setRowsPerPage(parseInt(event.target.value, 10));
+            setPage(0);
+          }}
+          colSpan={8}
+          count={count}
+        />
       </Table>
     </TableContainer>
   );

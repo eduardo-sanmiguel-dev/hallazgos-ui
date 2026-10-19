@@ -9,16 +9,11 @@ import {
   useState,
 } from "react";
 
-
 import {
   AppBar as MuiAppBar,
   AppBarProps as MuiAppBarProps,
 } from "@mui/material";
-import {
-  alpha,
-  useTheme,
-  ThemeProvider,
-} from "@mui/material/styles";
+import { alpha, useTheme, ThemeProvider } from "@mui/material/styles";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
@@ -34,7 +29,11 @@ import { Divider } from "@mui/material";
 import { Box } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
 
-import { MainListItems, UserFooter } from "@shared/components/menu";
+import Image from "next/image";
+import { Tooltip } from "@mui/material";
+
+import { MainListItems } from "@shared/components/menu";
+import HeaderUserMenu from "@shared/components/HeaderUserMenu";
 import Copyright from "@shared/components/Copyright";
 import { useUserSessionStore } from "@store";
 import { createAppTheme } from "../theme";
@@ -51,6 +50,12 @@ const AppBar = styled(MuiAppBar, {
   shouldForwardProp: (prop) => prop !== "open",
 })<AppBarProps>(({ theme, open }) => ({
   zIndex: theme.zIndex.drawer + 1,
+  // Superficie neutra con borde: el color queda para la marca y las acciones.
+  backgroundColor: theme.palette.background.paper,
+  backgroundImage: "none",
+  color: theme.palette.text.primary,
+  boxShadow: "none",
+  borderBottom: `1px solid ${theme.palette.divider}`,
   transition: theme.transitions.create(["width", "margin"], {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
@@ -112,15 +117,68 @@ function BtnChangeMode() {
     localStorage.setItem("colorMode", isLight ? "dark" : "light");
   };
 
+  const label = isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro";
+
   return (
-    <IconButton
-      sx={{ ml: 1 }}
-      onClick={handleToggleColorMode}
-      color="inherit"
-      aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+    <Tooltip title={label}>
+      <IconButton
+        onClick={handleToggleColorMode}
+        aria-label={label}
+        sx={{ color: "text.secondary" }}
+      >
+        {isDark ? <Brightness7Icon /> : <Brightness4Icon />}
+      </IconButton>
+    </Tooltip>
+  );
+}
+
+// Marca: logo y nombre del producto. En modo oscuro el logo va en blanco
+// monocromo; sus partes grises no se distinguen sobre fondo oscuro.
+function Brand() {
+  const theme = useTheme();
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1.5,
+        minWidth: 0,
+      }}
     >
-      {isDark ? <Brightness7Icon /> : <Brightness4Icon />}
-    </IconButton>
+      <Image
+        src="/images/logo-superior.png"
+        alt="Hada International"
+        width={61}
+        height={36}
+        priority
+        style={{
+          height: 36,
+          width: "auto",
+          ...(theme.palette.mode === "dark" && {
+            filter: "brightness(0) invert(1)",
+            opacity: 0.92,
+          }),
+        }}
+      />
+      <Divider
+        orientation="vertical"
+        flexItem
+        sx={{ my: 1.5, display: { xs: "none", sm: "block" } }}
+      />
+      <Typography
+        component="p"
+        noWrap
+        sx={{
+          display: { xs: "none", sm: "block" },
+          fontWeight: 600,
+          fontSize: "1.0625rem",
+          letterSpacing: "0.01em",
+        }}
+      >
+        ComportArte
+      </Typography>
+    </Box>
   );
 }
 
@@ -129,8 +187,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const { id: userId, name, setSession, role } = useUserSessionStore();
-
+  const { id: userId, setSession } = useUserSessionStore();
 
   useEffect(() => {
     if (!userId) {
@@ -179,12 +236,18 @@ export default function MainLayout({ children }: { children: ReactNode }) {
         sx={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "flex-end",
-          px: [1],
+          justifyContent: expanded ? "space-between" : "flex-end",
+          gap: 1,
+          px: [2, 2, 2],
           flexShrink: 0,
         }}
       >
-        <IconButton onClick={toggleDrawer} aria-label="Cerrar menú">
+        {expanded && <Brand />}
+        <IconButton
+          onClick={toggleDrawer}
+          aria-label="Cerrar menú"
+          sx={{ color: "text.secondary" }}
+        >
           <ChevronLeftIcon />
         </IconButton>
       </Toolbar>
@@ -206,14 +269,12 @@ export default function MainLayout({ children }: { children: ReactNode }) {
       >
         <MainListItems expanded={expanded} onNavigate={closeMobileDrawer} />
       </Box>
-      <UserFooter expanded={expanded} />
     </>
   );
 
   useEffect(() => {
     const colorModeCurrent = localStorage.getItem("colorMode") as
-      | "light"
-      | "dark";
+      "light" | "dark";
     if (colorModeCurrent) {
       setMode(colorModeCurrent);
     }
@@ -254,38 +315,28 @@ export default function MainLayout({ children }: { children: ReactNode }) {
             Saltar al contenido
           </Box>
           <AppBar position="absolute" open={open && !isMobile}>
-            <Toolbar
-              sx={{
-                pr: "24px",
-              }}
-            >
+            <Toolbar sx={{ gap: 1, px: { xs: 1.5, sm: 2.5 } }}>
               <IconButton
                 edge="start"
-                color="inherit"
                 aria-label="Abrir menú"
                 onClick={toggleDrawer}
                 sx={{
-                  marginRight: "36px",
+                  color: "text.secondary",
                   ...(open && !isMobile && { display: "none" }),
                 }}
               >
                 <MenuIcon />
               </IconButton>
-              <Typography
-                component="p"
-                variant="h6"
-                color="inherit"
-                noWrap
-                sx={{ flexGrow: 1 }}
-              >
-                {name} ({role})
-              </Typography>
-              {/* <IconButton color="inherit">
-            <Badge badgeContent={4} color="secondary">
-              <NotificationsIcon />
-            </Badge>
-          </IconButton> */}
+              {/* Con el menú lateral abierto la marca vive arriba del menú. */}
+              {!(open && !isMobile) && <Brand />}
+              <Box sx={{ flexGrow: 1 }} />
               <BtnChangeMode />
+              <Divider
+                orientation="vertical"
+                flexItem
+                sx={{ my: 1.5, mx: 0.5 }}
+              />
+              <HeaderUserMenu />
             </Toolbar>
           </AppBar>
           {isMobile ? (

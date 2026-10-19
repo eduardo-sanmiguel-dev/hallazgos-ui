@@ -6,6 +6,7 @@ import SelectDefault from "@components/SelectDefault";
 import { GEMBA_WALK_EVALUATION_CATEGORIES } from "@interfaces";
 
 import FilterBar from "@shared/components/FilterBar";
+import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 
 export interface IFiltersGembaWalkEvaluations {
   manufacturingPlantId: string;
@@ -17,6 +18,9 @@ interface Props {
   filters: IFiltersGembaWalkEvaluations;
   setFilters: (filters: IFiltersGembaWalkEvaluations) => void;
   count: number;
+  // Visible cuando algún filtro difiere del valor por defecto.
+  canClear?: boolean;
+  onClear?: () => void;
 }
 
 // SelectDefault usa el id como valor; aquí el id es el nombre de la categoría.
@@ -24,9 +28,16 @@ export const categoryOptions = GEMBA_WALK_EVALUATION_CATEGORIES.map(
   (category) => ({ id: category, name: category }),
 );
 
-const FiltersGembaWalkEvaluations = ({ filters, setFilters, count }: Props) => {
+const FiltersGembaWalkEvaluations = ({
+  filters,
+  setFilters,
+  count,
+  canClear = false,
+  onClear,
+}: Props) => {
   return (
     <FilterBar count={count}>
+      <ClearFiltersButton visible={canClear} onClick={() => onClear?.()} />
       <SelectManufacturingPlantsOwn
         value={filters.manufacturingPlantId}
         onChange={(e) =>

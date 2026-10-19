@@ -43,7 +43,24 @@ const remove = async (id: number) => {
   return data;
 };
 
+// Igual que findAll, pero paginado en la BD (page 1-based).
+const findAllPaginated = async (filters: {
+  name?: string;
+  page: number;
+  limit: number;
+}) => {
+  const { data } = await api.get<{ data: ManufacturingPlant[]; count: number }>("", {
+    params: {
+      page: filters.page,
+      limit: filters.limit,
+      ...(filters.name && { name: filters.name }),
+    },
+  });
+  return data;
+};
+
 export const ManufacturingPlantsService = {
+  findAllPaginated,
   create,
   findAll,
   findOne,

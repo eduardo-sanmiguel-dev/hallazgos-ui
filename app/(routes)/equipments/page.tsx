@@ -21,16 +21,18 @@ import LoadingLinear from "@shared/components/LoadingLinear";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import FilterBar from "@shared/components/FilterBar";
+import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import {
   DeleteAction,
   EditAction,
   RowActions,
 } from "@shared/components/RowActions";
-import TableDefault, {
+import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
+import TableDefaultServer from "@shared/components/TableDefaultServer";
 import { useFieldErrors } from "@hooks/useFieldErrors";
 import { Equipment, ManufacturingPlant } from "@interfaces";
 import SelectDefault from "@components/SelectDefault";
@@ -309,6 +311,9 @@ const ScreenForm = ({
 
 export default function EquipmentsPage() {
   const [rows, setRows] = useState<Equipment[]>([]);
+  const [count, setCount] = useState<number>(0);
+  const [page, setPage] = useState<number>(0);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [currentId, setCurrentId] = useState<number>(0);
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -325,17 +330,26 @@ export default function EquipmentsPage() {
 
   const getData = useDebouncedCallback(() => {
     setIsLoading(true);
-    EquipmentsService.findAll({
+    EquipmentsService.findAllPaginated({
+      page: page + 1,
+      limit: rowsPerPage,
       manufacturingPlantId: filters.manufacturingPlantId,
       name: filters.name,
     })
-      .then(setRows)
+      .then(({ data, count }) => {
+        setRows(data);
+        setCount(count);
+      })
       .finally(() => setIsLoading(false));
   }, 500);
 
   useEffect(() => {
     getData();
-  }, [getData, filters]);
+  }, [getData, filters, page, rowsPerPage]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [filters]);
 
   const manufacturingPlants = useUserSessionStore(
     (state) => state.manufacturingPlants,
@@ -390,7 +404,11 @@ export default function EquipmentsPage() {
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
-      <FilterBar count={rows.length}>
+      <FilterBar count={count}>
+        <ClearFiltersButton
+          visible={!!filters.name || !!filters.manufacturingPlantId}
+          onClick={() => setFilters({ manufacturingPlantId: "", name: "" })}
+        />
         <Grid
           size={{
             xs: 12,
@@ -436,9 +454,14 @@ export default function EquipmentsPage() {
       {isLoading ? (
         <LoadingLinear />
       ) : (
-        <TableDefault
+        <TableDefaultServer
           rows={rows}
           columns={columns}
+          page={page}
+          setPage={setPage}
+          rowsPerPage={rowsPerPage}
+          setRowsPerPage={setRowsPerPage}
+          count={count}
           ariaLabel="Equipos de protección personal"
           paintRows={(row) => (
             <StyledTableRow key={row.name}>

@@ -15,28 +15,43 @@ import { ManufacturingPlantsService } from "@services";
 import { ManufacturingPlant } from "@interfaces";
 import TableManufacturingPlants from "./_components/TableManufacturingPlants";
 import FiltersManufacturingPlants, {
-  IFiltersManufacturingPlants,
+  DEFAULT_FILTERS_MANUFACTURING_PLANTS,
+  type IFiltersManufacturingPlants,
 } from "./_components/FiltersManufacturingPlants";
 
 const ManufacturingPlantsPage = () => {
   const [data, setData] = useState<ManufacturingPlant[]>([]);
+  const [count, setCount] = useState<number>(0);
+  const [page, setPage] = useState<number>(0);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [filters, setFilters] = useState<IFiltersManufacturingPlants>({
-    name: "",
-  });
+  const [filters, setFilters] = useState<IFiltersManufacturingPlants>(
+    DEFAULT_FILTERS_MANUFACTURING_PLANTS,
+  );
 
   const router = useRouter();
 
   const getData = useDebouncedCallback(() => {
     setIsLoading(true);
-    ManufacturingPlantsService.findAll(filters)
-      .then(setData)
+    ManufacturingPlantsService.findAllPaginated({
+      ...filters,
+      page: page + 1,
+      limit: rowsPerPage,
+    })
+      .then(({ data, count }) => {
+        setData(data);
+        setCount(count);
+      })
       .finally(() => setIsLoading(false));
   }, 500);
 
   useEffect(() => {
     getData();
-  }, [getData, filters]);
+  }, [getData, filters, page, rowsPerPage]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [filters]);
 
   return (
     <>
@@ -53,12 +68,20 @@ const ManufacturingPlantsPage = () => {
       <FiltersManufacturingPlants
         filters={filters}
         setFilters={setFilters}
-        count={data.length}
+        count={count}
       />
       {isLoading ? (
         <LoadingLinear />
       ) : (
-        <TableManufacturingPlants rows={data} getData={getData} />
+        <TableManufacturingPlants
+          rows={data}
+          getData={getData}
+          page={page}
+          setPage={setPage}
+          rowsPerPage={rowsPerPage}
+          setRowsPerPage={setRowsPerPage}
+          count={count}
+        />
       )}
     </>
   );

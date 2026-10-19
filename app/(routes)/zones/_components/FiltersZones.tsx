@@ -9,12 +9,19 @@ import { AreasService } from "@services";
 import { Area } from "@interfaces";
 
 import FilterBar from "@shared/components/FilterBar";
+import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 
 export interface IFiltersZones {
   name: string;
   manufacturingPlantId: string;
   areaId: string;
 }
+
+export const DEFAULT_FILTERS_ZONES: IFiltersZones = {
+  name: "",
+  manufacturingPlantId: "",
+  areaId: "",
+};
 
 interface Props {
   filters: IFiltersZones;
@@ -25,18 +32,29 @@ interface Props {
 const FiltersZones = ({ filters, setFilters, count }: Props) => {
   const [areas, setAreas] = useState<Area[]>([]);
 
+  // Las zonas (areas) se acotan a la planta elegida.
   useEffect(() => {
-    AreasService.findAll({}).then((data) => {
+    AreasService.findAll({
+      manufacturingPlantId: filters.manufacturingPlantId,
+    }).then((data) => {
       const orderedAreas = [...data].sort((a, b) =>
         a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
       );
 
       setAreas(orderedAreas);
     });
-  }, []);
+  }, [filters.manufacturingPlantId]);
+
+  const hasFiltersToClear = (
+    Object.keys(DEFAULT_FILTERS_ZONES) as (keyof IFiltersZones)[]
+  ).some((key) => filters[key] !== DEFAULT_FILTERS_ZONES[key]);
 
   return (
     <FilterBar count={count}>
+      <ClearFiltersButton
+        visible={hasFiltersToClear}
+        onClick={() => setFilters(DEFAULT_FILTERS_ZONES)}
+      />
       <Grid
         size={{
           xs: 12,
@@ -71,6 +89,7 @@ const FiltersZones = ({ filters, setFilters, count }: Props) => {
             setFilters({
               ...filters,
               manufacturingPlantId: e.target.value,
+              areaId: "",
             })
           }
           isFilter={true}

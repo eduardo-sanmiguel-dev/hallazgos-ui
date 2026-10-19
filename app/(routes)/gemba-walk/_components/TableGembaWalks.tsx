@@ -1,3 +1,5 @@
+import { Dispatch, SetStateAction } from "react";
+
 import { useRouter } from "next/navigation";
 
 import { Chip } from "@mui/material";
@@ -5,15 +7,21 @@ import { Stack } from "@mui/material";
 
 import { stringToDateWithTime } from "@shared/utils";
 import { RowActions, ViewAction } from "@shared/components/RowActions";
-import TableDefault, {
+import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
+import TableDefaultServer from "@shared/components/TableDefaultServer";
 import { GembaWalk } from "@interfaces";
 import { formatDuration } from "./formatDuration";
 
 interface Props {
   rows: GembaWalk[];
+  page: number;
+  setPage: Dispatch<SetStateAction<number>>;
+  rowsPerPage: number;
+  setRowsPerPage: Dispatch<SetStateAction<number>>;
+  count: number;
 }
 
 const columns = [
@@ -44,13 +52,25 @@ export const complianceOf = (gembaWalk: GembaWalk) => {
   };
 };
 
-export default function TableGembaWalks({ rows }: Props) {
+export default function TableGembaWalks({
+  rows,
+  page,
+  setPage,
+  rowsPerPage,
+  setRowsPerPage,
+  count,
+}: Props) {
   const router = useRouter();
 
   return (
-    <TableDefault
+    <TableDefaultServer
       rows={rows}
       columns={columns}
+      page={page}
+      setPage={setPage}
+      rowsPerPage={rowsPerPage}
+      setRowsPerPage={setRowsPerPage}
+      count={count}
       paintRows={(row: GembaWalk) => {
         const { compliant, nonCompliant, percent } = complianceOf(row);
         const zone = row.gembaWalkCalendar?.gembaWalkZone;

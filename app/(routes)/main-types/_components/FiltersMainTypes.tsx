@@ -2,6 +2,7 @@ import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 
 import FilterBar from "@shared/components/FilterBar";
+import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 
 export interface IFiltersMainTypes {
   name: string;
@@ -11,11 +12,21 @@ interface Props {
   filters: IFiltersMainTypes;
   setFilters: (filters: IFiltersMainTypes) => void;
   count: number;
+  // Visible cuando algún filtro difiere del valor por defecto.
+  canClear?: boolean;
+  onClear?: () => void;
 }
 
-const FiltersMainTypes = ({ filters, setFilters, count }: Props) => {
+const FiltersMainTypes = ({
+  filters,
+  setFilters,
+  count,
+  canClear = false,
+  onClear,
+}: Props) => {
   return (
     <FilterBar count={count}>
+      <ClearFiltersButton visible={canClear} onClick={() => onClear?.()} />
       <Grid
         size={{
           xs: 12,

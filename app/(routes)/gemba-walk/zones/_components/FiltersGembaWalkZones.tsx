@@ -3,6 +3,7 @@ import { TextField } from "@mui/material";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 
 import FilterBar from "@shared/components/FilterBar";
+import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 
 export interface IFiltersGembaWalkZones {
   nameZone: string;
@@ -14,11 +15,21 @@ interface Props {
   filters: IFiltersGembaWalkZones;
   setFilters: (filters: IFiltersGembaWalkZones) => void;
   count: number;
+  // Visible cuando algún filtro difiere del valor por defecto.
+  canClear?: boolean;
+  onClear?: () => void;
 }
 
-const FiltersGembaWalkZones = ({ filters, setFilters, count }: Props) => {
+const FiltersGembaWalkZones = ({
+  filters,
+  setFilters,
+  count,
+  canClear = false,
+  onClear,
+}: Props) => {
   return (
     <FilterBar count={count}>
+      <ClearFiltersButton visible={canClear} onClick={() => onClear?.()} />
       <SelectManufacturingPlantsOwn
         value={filters.manufacturingPlantId}
         onChange={(e) =>

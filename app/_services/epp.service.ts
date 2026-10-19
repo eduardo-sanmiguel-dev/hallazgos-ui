@@ -18,7 +18,10 @@ const create = async (payload: PayloadCreateEpp) => {
 const findPaginated = async ({ search, ...query }: QueryEpps) => {
   const { data } = await api.get<EppsPage>("", {
     params: {
-      ...query,
+      // Los filtros vacíos no se envían (la API los valida como positivos).
+      ...Object.fromEntries(
+        Object.entries(query).filter(([, value]) => value !== ""),
+      ),
       ...(search?.trim() && { search: search.trim() }),
     },
   });

@@ -14,28 +14,42 @@ import RefreshButton from "@shared/components/RefreshButton";
 import { AreasService } from "@services";
 import { Area } from "@interfaces";
 import TableAreas from "./_components/TableAreas";
-import FiltersAreas, { IFiltersAreas } from "./_components/FiltersAreas";
+import FiltersAreas, {
+  DEFAULT_FILTERS_AREAS,
+  type IFiltersAreas,
+} from "./_components/FiltersAreas";
 
 const AreasPage = () => {
   const [data, setData] = useState<Area[]>([]);
+  const [count, setCount] = useState<number>(0);
+  const [page, setPage] = useState<number>(0);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [filters, setFilters] = useState<IFiltersAreas>({
-    name: "",
-    manufacturingPlantId: "",
-  });
+  const [filters, setFilters] = useState<IFiltersAreas>(DEFAULT_FILTERS_AREAS);
 
   const router = useRouter();
 
   const getData = useDebouncedCallback(() => {
     setIsLoading(true);
-    AreasService.findAll(filters)
-      .then(setData)
+    AreasService.findAllPaginated({
+      ...filters,
+      page: page + 1,
+      limit: rowsPerPage,
+    })
+      .then(({ data, count }) => {
+        setData(data);
+        setCount(count);
+      })
       .finally(() => setIsLoading(false));
   }, 500);
 
   useEffect(() => {
     getData();
-  }, [getData, filters]);
+  }, [getData, filters, page, rowsPerPage]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [filters]);
 
   return (
     <>
@@ -49,15 +63,19 @@ const AreasPage = () => {
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
-      <FiltersAreas
-        filters={filters}
-        setFilters={setFilters}
-        count={data.length}
-      />
+      <FiltersAreas filters={filters} setFilters={setFilters} count={count} />
       {isLoading ? (
         <LoadingLinear />
       ) : (
-        <TableAreas rows={data} getData={getData} />
+        <TableAreas
+          rows={data}
+          getData={getData}
+          page={page}
+          setPage={setPage}
+          rowsPerPage={rowsPerPage}
+          setRowsPerPage={setRowsPerPage}
+          count={count}
+        />
       )}
     </>
   );

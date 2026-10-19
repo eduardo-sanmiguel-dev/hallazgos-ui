@@ -38,6 +38,34 @@ const findAll = async () => {
   return data;
 };
 
+// startDate / endDate: YYYY-MM-DD, rango inclusivo sobre la fecha del evento.
+const findAllPaginated = async (filters: {
+  manufacturingPlantId?: string;
+  typeOfEventId?: string;
+  zoneId?: string;
+  employee?: string;
+  startDate?: string;
+  endDate?: string;
+  page: number;
+  limit: number;
+}) => {
+  const { data } = await api.get<{ data: Ciael[]; count: number }>("", {
+    params: {
+      page: filters.page,
+      limit: filters.limit,
+      ...(filters.manufacturingPlantId && {
+        manufacturingPlantId: filters.manufacturingPlantId,
+      }),
+      ...(filters.typeOfEventId && { typeOfEventId: filters.typeOfEventId }),
+      ...(filters.zoneId && { zoneId: filters.zoneId }),
+      ...(filters.employee && { employee: filters.employee }),
+      ...(filters.startDate && { startDate: filters.startDate }),
+      ...(filters.endDate && { endDate: filters.endDate }),
+    },
+  });
+  return data;
+};
+
 const create = async (payload: Payload) => {
   const { data } = await api.post<Ciael>("", payload);
   return data;
@@ -64,6 +92,7 @@ const downloadExcel = async () => {
 
 export const CiaelsService = {
   findAll,
+  findAllPaginated,
   create,
   downloadExcel,
 };

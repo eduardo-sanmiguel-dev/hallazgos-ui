@@ -10,6 +10,12 @@ export interface QueryEpps {
   search?: string;
   orderBy?: EppSortableColumn;
   order?: "asc" | "desc";
+  areaId?: string;
+  positionId?: string;
+  equipmentId?: string;
+  /** Rango de fecha de entrega, YYYY-MM-DD. */
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface EppsPage {

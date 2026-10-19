@@ -48,6 +48,32 @@ const findAll = async (filters: {
   return data;
 };
 
+const findAllPaginated = async (filters: {
+  // Nombre o correo electrónico.
+  search?: string;
+  manufacturingPlantId?: string;
+  rule?: string;
+  zoneId?: string;
+  processId?: string;
+  page: number;
+  limit: number;
+}) => {
+  const { data } = await api.get<{ data: User[]; count: number }>("", {
+    params: {
+      page: filters.page,
+      limit: filters.limit,
+      ...(filters.search?.trim() && { search: filters.search.trim() }),
+      ...(filters.manufacturingPlantId && {
+        manufacturingPlantId: filters.manufacturingPlantId,
+      }),
+      ...(filters.rule && { rule: filters.rule }),
+      ...(filters.zoneId && { zoneId: filters.zoneId }),
+      ...(filters.processId && { processId: filters.processId }),
+    },
+  });
+  return data;
+};
+
 const getInformationCurrentUser = async () => {
   const { data } = await api.get<User>("/get-information-current-user");
   return data;
@@ -76,6 +102,7 @@ const findAllSupervisors = async () => {
 export const UsersService = {
   create,
   findAll,
+  findAllPaginated,
   getInformationCurrentUser,
   findOne,
   update,

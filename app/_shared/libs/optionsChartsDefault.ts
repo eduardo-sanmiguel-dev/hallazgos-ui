@@ -14,8 +14,8 @@ export const optionsChartDefault = {
   },
   credits: {
     enabled: false,
-    text: "Cosmeticos trujillo",
-    href: 'javascript:window.open("https://cosmeticostrujillo.com", "_blank")',
+    text: "Grupo Hada",
+    href: 'javascript:window.open("https://grupohada.com", "_blank")',
   },
   responsive: {
     rules: [

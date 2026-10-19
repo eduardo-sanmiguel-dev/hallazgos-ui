@@ -12,7 +12,6 @@ import { TableContainer } from "@mui/material";
 import { TableHead } from "@mui/material";
 import { TablePagination } from "@mui/material";
 import { TableSortLabel } from "@mui/material";
-import { TextField } from "@mui/material";
 import { Typography } from "@mui/material";
 import { Paper } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
@@ -177,12 +176,12 @@ interface Props {
   /** 0-based */
   page: number;
   rowsPerPage: number;
-  search: string;
+  // Solo para el mensaje de "sin resultados".
+  hasFilters: boolean;
   order: SortOrder;
   orderBy: EppSortableColumn | null;
   onPageChange: (page: number) => void;
   onRowsPerPageChange: (rowsPerPage: number) => void;
-  onSearchChange: (search: string) => void;
   onSortChange: (order: SortOrder, orderBy: EppSortableColumn | null) => void;
   onHistoryDeleted: () => void;
 }
@@ -194,7 +193,7 @@ const SORTABLE_HEADERS: Array<{ column: EppSortableColumn; label: string }> = [
   { column: "area", label: "Área" },
 ];
 
-// Tabla controlada: la búsqueda, el orden y la paginación los resuelve la API;
+// Tabla controlada: los filtros, el orden y la paginación los resuelve la API;
 // aquí solo se muestra la página recibida.
 export default function TableEpps({
   rows,
@@ -202,12 +201,11 @@ export default function TableEpps({
   isLoading,
   page,
   rowsPerPage,
-  search,
+  hasFilters,
   order,
   orderBy,
   onPageChange,
   onRowsPerPageChange,
-  onSearchChange,
   onSortChange,
   onHistoryDeleted,
 }: Props) {
@@ -225,23 +223,6 @@ export default function TableEpps({
 
   return (
     <Paper>
-      <Box
-        sx={{
-          p: 2,
-          borderBottom: 1,
-          borderColor: "divider",
-        }}
-      >
-        <TextField
-          fullWidth
-          size="small"
-          variant="filled"
-          label="Buscar"
-          placeholder="Empleado, cédula, cargo o área"
-          value={search}
-          onChange={(event) => onSearchChange(event.target.value)}
-        />
-      </Box>
       <Box sx={{ height: 4 }}>{isLoading && <LinearProgress />}</Box>
       <TableContainer>
         <Table aria-label="Entregas de EPP por colaborador" size="small">
@@ -275,8 +256,8 @@ export default function TableEpps({
                   sx={{ py: 2, textAlign: "center" }}
                 >
                   <Typography variant="body2" color="text.secondary">
-                    {search.trim()
-                      ? "No se encontraron resultados con la búsqueda actual."
+                    {hasFilters
+                      ? "No se encontraron resultados con los filtros actuales."
                       : "No hay registros de EPP para esta planta."}
                   </Typography>
                 </StyledTableCell>

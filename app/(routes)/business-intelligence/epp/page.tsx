@@ -1,180 +1,273 @@
 "use client";
 
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 
-import { Box, Grid, Stack, Tab, Tabs, useMediaQuery } from "@mui/material";
-import { alpha, useTheme } from "@mui/material/styles";
+import { Box, Grid, Paper, Skeleton, Tab, Tabs } from "@mui/material";
 
-import Chart1 from "./charts/Charts1";
-import Chart2 from "./charts/Charts2";
-import Chart3 from "./charts/Charts3";
-import Chart4 from "./charts/Charts4";
-import Chart5 from "./charts/Charts5";
-import Chart6 from "./charts/Charts6";
-import Chart7 from "./charts/Charts7";
-import Chart8 from "./charts/Charts8";
-import Chart9 from "./charts/Charts9";
-import Chart10 from "./charts/Charts10";
 import { DashboardService } from "@services";
-import { BusinessIntelligenceEpp } from "@interfaces";
 import SelectDefault from "@components/SelectDefault";
 import { useUserSessionStore } from "@store";
 import { useHighchartsTheme } from "@hooks/useHighchartsTheme";
 import PageHeader from "@shared/components/PageHeader";
 
-type ChartComponentProps = {
-  data: BusinessIntelligenceEpp | null;
-};
+import KpiTile from "./_components/KpiTile";
+import {
+  BiData,
+  computeKpis,
+  currentAndPreviousMonth,
+  formatMoney,
+  formatNumber,
+  formatPercent,
+} from "./_lib/biEpp";
+import SpendByEquipmentChart from "./charts/SpendByEquipmentChart";
+import MonthlySpendChart from "./charts/MonthlySpendChart";
+import AverageSpendChart from "./charts/AverageSpendChart";
+import SpendShareChart from "./charts/SpendShareChart";
+import CurrentPriceChart from "./charts/CurrentPriceChart";
+import UnitsByEquipmentChart from "./charts/UnitsByEquipmentChart";
+import DeliveriesRangeChart from "./charts/DeliveriesRangeChart";
+import EmployeesWithDeliveryChart from "./charts/EmployeesWithDeliveryChart";
+import CoverageChart from "./charts/CoverageChart";
+import NewEmployeesEquipmentChart from "./charts/NewEmployeesEquipmentChart";
 
-type ChartComponentType = ComponentType<ChartComponentProps>;
-type ChartGroupItem = {
-  Component: ChartComponentType;
+type ChartItem = {
+  Component: ComponentType<{ data: BiData }>;
   fullWidth?: boolean;
 };
 
-const chartGroups = [
+const chartGroups: { title: string; charts: ChartItem[] }[] = [
   {
-    title: "Gasto y costo",
-    charts: [{ Component: Chart2 }, { Component: Chart1 }] as ChartGroupItem[],
-  },
-  {
-    title: "Entregas y operación",
-    charts: [{ Component: Chart4 }, { Component: Chart3 }] as ChartGroupItem[],
-  },
-  {
-    title: "Cobertura de colaboradores",
+    title: "Gasto",
     charts: [
-      { Component: Chart7 },
-      { Component: Chart6 },
-      { Component: Chart5, fullWidth: true },
-    ] as ChartGroupItem[],
+      { Component: MonthlySpendChart },
+      { Component: AverageSpendChart },
+      { Component: SpendByEquipmentChart, fullWidth: true },
+    ],
   },
   {
-    title: "Análisis de costos",
+    title: "Costos por equipo",
+    charts: [{ Component: SpendShareChart }, { Component: CurrentPriceChart }],
+  },
+  {
+    title: "Entregas",
     charts: [
-      { Component: Chart10 },
-      { Component: Chart9 },
-      { Component: Chart8, fullWidth: true },
-    ] as ChartGroupItem[],
+      { Component: DeliveriesRangeChart },
+      { Component: EmployeesWithDeliveryChart },
+      { Component: UnitsByEquipmentChart, fullWidth: true },
+    ],
+  },
+  {
+    title: "Cobertura",
+    charts: [
+      { Component: CoverageChart },
+      { Component: NewEmployeesEquipmentChart },
+    ],
   },
 ];
 
 const EPPCharts = () => {
   // Al cambiar de tema se vuelven a crear las gráficas con sus colores.
   const chartsMode = useHighchartsTheme();
-  const isMobile = useMediaQuery(useTheme().breakpoints.down("sm"));
   const [activeTab, setActiveTab] = useState(0);
-  const activeGroup = chartGroups[activeTab];
-  const [data, setData] = useState<BusinessIntelligenceEpp | null>(null);
+  const [data, setData] = useState<BiData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [manufacturingPlantId, setManufacturingPlantId] = useState("");
 
   const manufacturingPlants = useUserSessionStore(
     (state) => state.manufacturingPlants,
   );
 
+  const { currentName, previousName } = currentAndPreviousMonth();
+
+  // La planta es obligatoria: los indicadores se calculan por planta.
   useEffect(() => {
-    DashboardService.findBusinessIntelligenceEpp({
-      manufacturingPlantId,
-    }).then(setData);
-  }, [manufacturingPlantId]);
+    if (manufacturingPlants.length && !manufacturingPlantId) {
+      setManufacturingPlantId(manufacturingPlants[0].id.toString());
+    }
+  }, [manufacturingPlants, manufacturingPlantId]);
 
   useEffect(() => {
-    if (manufacturingPlants.length) {
-      const defaultPlantId = manufacturingPlants[0].id;
-      setManufacturingPlantId(defaultPlantId.toString());
-    }
-  }, [manufacturingPlants]);
+    if (!manufacturingPlantId) return;
+
+    let ignore = false;
+    setIsLoading(true);
+
+    DashboardService.findBusinessIntelligenceEpp({ manufacturingPlantId })
+      .then((response) => {
+        if (!ignore) setData(response);
+      })
+      .finally(() => {
+        if (!ignore) setIsLoading(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [manufacturingPlantId]);
+
+  const kpis = useMemo(() => (data ? computeKpis(data) : null), [data]);
+  const isFirstLoad = !data;
+  const activeGroup = chartGroups[activeTab];
 
   return (
     <>
-      <PageHeader title="Análisis de datos EPP" />
-      <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 3,
-            md: 2,
-          }}
-        >
+      <PageHeader
+        title="Análisis de datos EPP"
+        description={`${currentName} comparado con ${previousName}`}
+      >
+        <Box sx={{ minWidth: 220 }}>
           <SelectDefault
             data={manufacturingPlants}
             label="Planta"
-            isFilter={true}
             value={manufacturingPlantId}
-            onChange={(e) => {
-              setManufacturingPlantId(e.target.value);
-            }}
+            onChange={(e) => setManufacturingPlantId(e.target.value)}
           />
-        </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 12,
-            md: 12,
-          }}
-        >
-          <Stack spacing={{ xs: 3, md: 4 }}>
-            <Tabs
-              value={activeTab}
-              onChange={(_, newValue: number) => setActiveTab(newValue)}
-              aria-label="Grupos de indicadores EPP"
-              sx={{
-                width: "100%",
-                backgroundColor: "primary.main",
-                "& .MuiTab-root": {
-                  color: (theme) => alpha(theme.palette.common.white, 0.68),
-                  opacity: 1,
-                  transition: "all 0.2s ease",
-                },
-                "& .MuiTab-root.Mui-selected": {
-                  color: "common.white",
-                  fontWeight: 700,
-                  backgroundColor: (theme) =>
-                    alpha(theme.palette.common.white, 0.14),
-                },
-              }}
-              indicatorColor="secondary"
-              textColor="inherit"
-              // En pantallas chicas las cuatro pestañas no caben a lo ancho.
-              variant={isMobile ? "scrollable" : "fullWidth"}
-              scrollButtons="auto"
-              allowScrollButtonsMobile
-            >
-              {chartGroups.map((group, index) => (
-                <Tab
-                  key={group.title}
-                  label={group.title}
-                  id={`epp-group-tab-${index}`}
-                  aria-controls={`epp-group-panel-${index}`}
-                />
-              ))}
-            </Tabs>
+        </Box>
+      </PageHeader>
 
-            <Stack
-              spacing={2}
-              role="tabpanel"
-              id={`epp-group-panel-${activeTab}`}
-              aria-labelledby={`epp-group-tab-${activeTab}`}
-            >
-              <Grid key={chartsMode} container spacing={{ xs: 2, md: 2.5 }}>
-                {activeGroup.charts.map(({ Component, fullWidth }, index) => (
-                  <Grid
-                    key={`${activeGroup.title}-${index}`}
-                    size={{
-                      xs: 12,
-                      md: fullWidth ? 12 : 6,
-                    }}
-                  >
-                    <Box sx={{ width: "100%" }}>
-                      <Component data={data} />
-                    </Box>
-                  </Grid>
-                ))}
-              </Grid>
-            </Stack>
-          </Stack>
+      {/* En recargas se conserva lo anterior atenuado, sin saltos de layout. */}
+      <Box
+        sx={{
+          opacity: isLoading && !isFirstLoad ? 0.55 : 1,
+          transition: "opacity 0.2s ease",
+        }}
+        aria-busy={isLoading}
+      >
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          {[
+            {
+              label: "Gasto del mes",
+              value: kpis ? formatMoney(kpis.spend.current) : "",
+              delta: kpis && {
+                ...kpis.spend,
+                mode: "relative" as const,
+                polarity: "neutral" as const,
+              },
+            },
+            {
+              label: "Unidades entregadas",
+              value: kpis ? formatNumber(kpis.units.current) : "",
+              delta: kpis && {
+                ...kpis.units,
+                mode: "relative" as const,
+                polarity: "neutral" as const,
+              },
+            },
+            {
+              label: "Cobertura de colaboradores",
+              value: kpis ? formatPercent(kpis.coverage.current) : "",
+              caption: kpis
+                ? `${formatNumber(kpis.coverage.withDelivery)} de ${formatNumber(kpis.coverage.activeEmployees)} activos con entrega`
+                : undefined,
+              delta: kpis && {
+                ...kpis.coverage,
+                mode: "points" as const,
+                polarity: "good" as const,
+              },
+            },
+            {
+              label: "Entregas fuera de rango",
+              value: kpis ? formatPercent(kpis.outOfRange.current) : "",
+              caption: kpis
+                ? `${formatNumber(kpis.outOfRange.deliveries)} entregas en el mes`
+                : undefined,
+              delta: kpis && {
+                ...kpis.outOfRange,
+                mode: "points" as const,
+                polarity: "bad" as const,
+              },
+            },
+            {
+              label: "Gasto promedio por colaborador",
+              value: kpis ? formatMoney(kpis.averagePerEmployee.current) : "",
+              caption: kpis
+                ? `Promedio global ${formatMoney(kpis.averagePerEmployee.globalAverage)}`
+                : undefined,
+              delta: kpis && {
+                ...kpis.averagePerEmployee,
+                mode: "relative" as const,
+                polarity: "neutral" as const,
+              },
+            },
+            {
+              label: "Primera entrega de EPP",
+              value: kpis ? formatNumber(kpis.newEmployees.current) : "",
+              caption: "Colaboradores nuevos en EPP",
+              delta: kpis && {
+                ...kpis.newEmployees,
+                mode: "relative" as const,
+                polarity: "neutral" as const,
+              },
+            },
+          ].map(({ label, value, caption, delta }) => (
+            <Grid key={label} size={{ xs: 12, sm: 6, md: 4, xl: 2 }}>
+              <KpiTile
+                label={label}
+                value={value}
+                caption={caption}
+                isLoading={isFirstLoad}
+                delta={
+                  delta
+                    ? {
+                        current: delta.current,
+                        previous: delta.previous,
+                        mode: delta.mode,
+                        polarity: delta.polarity,
+                        comparedTo: previousName,
+                      }
+                    : undefined
+                }
+              />
+            </Grid>
+          ))}
         </Grid>
-      </Grid>
+
+        <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}>
+          <Tabs
+            value={activeTab}
+            onChange={(_, newValue: number) => setActiveTab(newValue)}
+            aria-label="Grupos de indicadores EPP"
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
+          >
+            {chartGroups.map((group, index) => (
+              <Tab
+                key={group.title}
+                label={group.title}
+                id={`epp-group-tab-${index}`}
+                aria-controls={`epp-group-panel-${index}`}
+                sx={{ fontWeight: 600 }}
+              />
+            ))}
+          </Tabs>
+        </Box>
+
+        <Grid
+          key={`${chartsMode}-${activeTab}`}
+          container
+          spacing={2}
+          role="tabpanel"
+          id={`epp-group-panel-${activeTab}`}
+          aria-labelledby={`epp-group-tab-${activeTab}`}
+        >
+          {activeGroup.charts.map(({ Component, fullWidth }, index) => (
+            <Grid
+              key={`${activeGroup.title}-${index}`}
+              size={{ xs: 12, lg: fullWidth ? 12 : 6 }}
+            >
+              {data ? (
+                <Component data={data} />
+              ) : (
+                <Paper variant="outlined" sx={{ p: 2 }}>
+                  <Skeleton variant="text" width="45%" />
+                  <Skeleton variant="rounded" height={300} sx={{ mt: 1 }} />
+                </Paper>
+              )}
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
     </>
   );
 };

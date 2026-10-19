@@ -18,36 +18,54 @@ import { EmergencyTeamsService } from "@services";
 import { EmergencyTeam } from "@interfaces";
 import EmergencyTeamsTable from "./_components/EmergencyTeamsTable";
 import FiltersEmergencyTeams, {
+  DEFAULT_FILTERS_EMERGENCY_TEAMS,
   IFiltersEmergencyTeams,
 } from "./_components/FiltersEmergencyTeams";
 
 const EmergencyTeamsPage = () => {
   const [data, setData] = useState<EmergencyTeam[]>([]);
+  const [count, setCount] = useState<number>(0);
+  const [page, setPage] = useState<number>(0);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  // Filas ya cargadas por id: la selección puede abarcar varias páginas y
+  // la API solo devuelve la actual.
+  const [rowsById, setRowsById] = useState<Record<number, EmergencyTeam>>({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [filters, setFilters] = useState<IFiltersEmergencyTeams>({
-    search: "",
-    manufacturingPlantId: "",
-  });
+  const [filters, setFilters] = useState<IFiltersEmergencyTeams>(
+    DEFAULT_FILTERS_EMERGENCY_TEAMS,
+  );
 
   const router = useRouter();
 
   const getData = useDebouncedCallback(() => {
     setIsLoading(true);
-    EmergencyTeamsService.findAll(filters)
-      .then(setData)
+    EmergencyTeamsService.findAllPaginated({
+      ...filters,
+      page: page + 1,
+      limit: rowsPerPage,
+    })
+      .then(({ data, count }) => {
+        setData(data);
+        setCount(count);
+        setRowsById((prev) => ({
+          ...prev,
+          ...Object.fromEntries(data.map((row) => [row.id, row])),
+        }));
+      })
       .finally(() => setIsLoading(false));
   }, 500);
 
   useEffect(() => {
     getData();
-  }, [getData, filters]);
+  }, [getData, filters, page, rowsPerPage]);
 
+  // Al cambiar los filtros se vuelve a la primera página y la selección se
+  // limpia (antes se conservaban solo los registros del nuevo resultado).
   useEffect(() => {
-    setSelectedIds((prev) =>
-      prev.filter((id) => data.some((row) => row.id === id)),
-    );
-  }, [data]);
+    setPage(0);
+    setSelectedIds([]);
+  }, [filters]);
 
   const printQrs = async (rowsToPrint: EmergencyTeam[]) => {
     if (!rowsToPrint.length) {
@@ -202,7 +220,9 @@ const EmergencyTeamsPage = () => {
   };
 
   const printSelectedQrs = () => {
-    const selectedRows = data.filter((row) => selectedIds.includes(row.id));
+    const selectedRows = selectedIds
+      .map((id) => rowsById[id])
+      .filter((row): row is EmergencyTeam => !!row);
     void printQrs(selectedRows);
   };
 
@@ -229,7 +249,7 @@ const EmergencyTeamsPage = () => {
       <FiltersEmergencyTeams
         filters={filters}
         setFilters={setFilters}
-        count={data.length}
+        count={count}
       />
       {isLoading ? (
         <LoadingLinear />
@@ -239,6 +259,11 @@ const EmergencyTeamsPage = () => {
           selectedIds={selectedIds}
           setSelectedIds={setSelectedIds}
           getData={getData}
+          page={page}
+          setPage={setPage}
+          rowsPerPage={rowsPerPage}
+          setRowsPerPage={setRowsPerPage}
+          count={count}
         />
       )}
     </>

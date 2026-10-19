@@ -95,6 +95,34 @@ const findAll = async (filters: {
   return data;
 };
 
+// Igual que findAll, pero paginado en base de datos.
+const findAllPaginated = async (filters: {
+  manufacturingPlantId?: string;
+  startDate?: string;
+  endDate?: string;
+  nameZone?: string;
+  nameLocation?: string;
+  isAdditional?: string;
+  page: number;
+  limit: number;
+}) => {
+  const { data } = await api.get<{ data: GembaWalk[]; count: number }>("", {
+    params: {
+      page: filters.page,
+      limit: filters.limit,
+      ...(filters.manufacturingPlantId && {
+        manufacturingPlantId: filters.manufacturingPlantId,
+      }),
+      ...(filters.startDate && { startDate: filters.startDate }),
+      ...(filters.endDate && { endDate: filters.endDate }),
+      ...(filters.nameZone && { nameZone: filters.nameZone }),
+      ...(filters.nameLocation && { nameLocation: filters.nameLocation }),
+      ...(filters.isAdditional && { isAdditional: filters.isAdditional }),
+    },
+  });
+  return data;
+};
+
 const findOne = async (id: number) => {
   const { data } = await api.get<GembaWalk>(`/${id}`);
   return data;
@@ -107,5 +135,6 @@ export const GembaWalksService = {
   start,
   create,
   findAll,
+  findAllPaginated,
   findOne,
 };

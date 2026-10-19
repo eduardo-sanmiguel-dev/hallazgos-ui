@@ -1,5 +1,5 @@
 import axiosWrapper from "./axiosWrapper";
-import { Zone } from "@interfaces";
+import { Processes, Zone } from "@interfaces";
 
 interface Payload {
   name: string;
@@ -54,7 +54,26 @@ const remove = async (id: number) => {
   return data;
 };
 
+// Igual que findAll, pero paginado en la BD (page 1-based).
+const findAllPaginated = async (filters: {
+  name?: string;
+  manufacturingPlantId?: string;
+  page: number;
+  limit: number;
+}) => {
+  const { data } = await api.get<{ data: Processes[]; count: number }>("", {
+    params: {
+      page: filters.page,
+      limit: filters.limit,
+      ...(filters.name && { name: filters.name }),
+      ...(filters.manufacturingPlantId && { manufacturingPlantId: filters.manufacturingPlantId }),
+    },
+  });
+  return data;
+};
+
 export const ProcessesService = {
+  findAllPaginated,
   create,
   findAll,
   findOne,

@@ -19,24 +19,35 @@ import FiltersGembaWalkCalendar, {
   IFiltersGembaWalkCalendar,
 } from "./_components/FiltersGembaWalkCalendar";
 
+// Valores iniciales de los filtros (también para "Limpiar filtros").
+const defaultFilters = (): IFiltersGembaWalkCalendar => ({
+  manufacturingPlantId: "",
+  gembaWalkZoneId: "",
+  startDate: moment().startOf("month").format("YYYY-MM-DD"),
+  endDate: moment().endOf("month").format("YYYY-MM-DD"),
+  isAdditional: "",
+});
+
 const GembaWalkCalendarPage = () => {
   const [data, setData] = useState<GembaWalkCalendar[]>([]);
+  const [count, setCount] = useState<number>(0);
+  const [page, setPage] = useState<number>(0);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [filters, setFilters] = useState<IFiltersGembaWalkCalendar>({
-    manufacturingPlantId: "",
-    gembaWalkZoneId: "",
-    startDate: moment().startOf("month").format("YYYY-MM-DD"),
-    endDate: moment().endOf("month").format("YYYY-MM-DD"),
-  });
+  const [filters, setFilters] =
+    useState<IFiltersGembaWalkCalendar>(defaultFilters);
 
   const router = useRouter();
 
   const getData = useDebouncedCallback(() => {
     setIsLoading(true);
     // Los días del filtro son locales; endDate se envía exclusivo (día siguiente).
-    GembaWalkCalendarService.findAll({
+    GembaWalkCalendarService.findAllPaginated({
+      page: page + 1,
+      limit: rowsPerPage,
       manufacturingPlantId: filters.manufacturingPlantId,
       gembaWalkZoneId: filters.gembaWalkZoneId,
+      isAdditional: filters.isAdditional,
       ...(filters.startDate && {
         startDate: moment(filters.startDate, "YYYY-MM-DD")
           .startOf("day")
@@ -49,13 +60,20 @@ const GembaWalkCalendarPage = () => {
           .toISOString(),
       }),
     })
-      .then(setData)
+      .then(({ data, count }) => {
+        setData(data);
+        setCount(count);
+      })
       .finally(() => setIsLoading(false));
   }, 500);
 
   useEffect(() => {
     getData();
-  }, [getData, filters]);
+  }, [getData, filters, page, rowsPerPage]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [filters]);
 
   return (
     <>
@@ -79,12 +97,22 @@ const GembaWalkCalendarPage = () => {
       <FiltersGembaWalkCalendar
         filters={filters}
         setFilters={setFilters}
-        count={data.length}
+        count={count}
+        canClear={JSON.stringify(filters) !== JSON.stringify(defaultFilters())}
+        onClear={() => setFilters(defaultFilters())}
       />
       {isLoading ? (
         <LoadingLinear />
       ) : (
-        <TableGembaWalkCalendar rows={data} getData={getData} />
+        <TableGembaWalkCalendar
+          rows={data}
+          getData={getData}
+          page={page}
+          setPage={setPage}
+          rowsPerPage={rowsPerPage}
+          setRowsPerPage={setRowsPerPage}
+          count={count}
+        />
       )}
     </>
   );

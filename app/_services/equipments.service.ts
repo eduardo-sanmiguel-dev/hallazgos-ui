@@ -51,7 +51,33 @@ const remove = async (id: number) => {
   await api.delete<Equipment>(`/${id}`);
 };
 
+// Igual que findAll, pero paginado en la BD (page 1-based).
+// Los filtros vacíos no se envían.
+const findAllPaginated = async ({
+  page,
+  limit,
+  ...filters
+}: {
+  page: number;
+  limit: number;
+  [key: string]: string | number | undefined;
+}) => {
+  const { data } = await api.get<{ data: Equipment[]; count: number }>("", {
+    params: {
+      page,
+      limit,
+      ...Object.fromEntries(
+        Object.entries(filters).filter(
+          ([, value]) => value !== "" && value !== undefined,
+        ),
+      ),
+    },
+  });
+  return data;
+};
+
 export const EquipmentsService = {
+  findAllPaginated,
   findOne,
   findAll,
   create,

@@ -12,11 +12,9 @@ import {
 
 import { usePathname, useRouter } from "next/navigation";
 
-import { Avatar } from "@mui/material";
 import { Box } from "@mui/material";
 import { Collapse } from "@mui/material";
 import { Divider } from "@mui/material";
-import { IconButton } from "@mui/material";
 import { List } from "@mui/material";
 import { ListItemButton } from "@mui/material";
 import { ListItemIcon } from "@mui/material";
@@ -25,12 +23,10 @@ import { ListSubheader } from "@mui/material";
 import { Menu } from "@mui/material";
 import { MenuItem } from "@mui/material";
 import { Tooltip } from "@mui/material";
-import { Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import SpaceDashboardIcon from "@mui/icons-material/SpaceDashboard";
 import InsightsIcon from "@mui/icons-material/Insights";
-import LogoutIcon from "@mui/icons-material/Logout";
 import FactoryIcon from "@mui/icons-material/Factory";
 import RuleIcon from "@mui/icons-material/Rule";
 import CategoryIcon from "@mui/icons-material/Category";
@@ -65,9 +61,7 @@ import PersonSearchIcon from "@mui/icons-material/PersonSearch";
 import { useCategoriesStore, useUserSessionStore } from "@store";
 import { ROLE_ADMINISTRADOR } from "@shared/constants";
 import { primaryTextColor } from "../../theme";
-import { notify } from "@shared/utils";
 import {
-  AuthService,
   GembaWalksService,
   MainTypesService,
   ProcessesService,
@@ -121,8 +115,7 @@ const adminOnly = ({ isAdmin }: MenuContext) => isAdmin;
 const eppAccess = ({ isAdmin, email }: MenuContext) =>
   isAdmin || EPP_USER_EMAILS.includes(email);
 
-const notEppUser = ({ email }: MenuContext) =>
-  !EPP_USER_EMAILS.includes(email);
+const notEppUser = ({ email }: MenuContext) => !EPP_USER_EMAILS.includes(email);
 
 const gembaWalkAccess = ({ isAdmin, isGembaWalkObserver }: MenuContext) =>
   isGembaWalkObserver || isAdmin;
@@ -736,9 +729,7 @@ export const MainListItems = ({
       )?.id ?? null;
 
   // Acordeón: un solo grupo abierto a la vez.
-  const [openGroupId, setOpenGroupId] = useState<string | null>(
-    activeGroupId,
-  );
+  const [openGroupId, setOpenGroupId] = useState<string | null>(activeGroupId);
   const [lastActiveGroupId, setLastActiveGroupId] = useState(activeGroupId);
 
   if (activeGroupId !== lastActiveGroupId) {
@@ -779,170 +770,5 @@ export const MainListItems = ({
         </Fragment>
       ))}
     </List>
-  );
-};
-
-const initialsOf = (name: string, email: string) => {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-
-  if (words.length) {
-    return words
-      .slice(0, 2)
-      .map((word) => word[0])
-      .join("")
-      .toUpperCase();
-  }
-
-  return (email[0] || "?").toUpperCase();
-};
-
-// Pie fijo del menú: perfil del usuario y botón para salir.
-export const UserFooter = ({ expanded = true }: { expanded?: boolean }) => {
-  const router = useRouter();
-  const { name, email, role, resetSession } = useUserSessionStore();
-
-  const displayName = name || email;
-  const roleLabel = role === ROLE_ADMINISTRADOR ? "Administrador" : "Usuario";
-  const initials = initialsOf(name || "", email || "");
-
-  const logout = () => {
-    AuthService.logout().then(({ message }) => {
-      notify(message, true);
-      router.push("/");
-      setTimeout(() => {
-        resetSession();
-      }, 1000);
-    });
-  };
-
-  const avatar = (
-    <Avatar
-      sx={(theme) => ({
-        width: 36,
-        height: 36,
-        fontSize: "0.875rem",
-        fontWeight: 600,
-        backgroundColor: theme.palette.primary.main,
-        color: theme.palette.primary.contrastText,
-      })}
-    >
-      {initials}
-    </Avatar>
-  );
-
-  const logoutSx = (theme: Theme) => ({
-    transition: theme.transitions.create(["background-color", "color"], {
-      duration: 150,
-    }),
-    "&:hover": {
-      color: theme.palette.error.main,
-      backgroundColor: alpha(theme.palette.error.main, 0.08),
-      "& .MuiListItemIcon-root": { color: theme.palette.error.main },
-    },
-    "&.Mui-focusVisible": {
-      outline: `2px solid ${theme.palette.error.main}`,
-      outlineOffset: -2,
-    },
-  });
-
-  if (!expanded) {
-    return (
-      <Box
-        sx={{
-          flexShrink: 0,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 1,
-          py: 1.5,
-          borderTop: 1,
-          borderColor: "divider",
-        }}
-      >
-        <Tooltip title={`${displayName} · ${roleLabel}`} placement="right">
-          {avatar}
-        </Tooltip>
-        <Tooltip title="Salir" placement="right">
-          <IconButton
-            aria-label="Salir"
-            onClick={logout}
-            sx={(theme) => ({
-              width: 44,
-              height: 44,
-              color: theme.palette.text.secondary,
-              ...logoutSx(theme),
-            })}
-          >
-            <LogoutIcon />
-          </IconButton>
-        </Tooltip>
-      </Box>
-    );
-  }
-
-  return (
-    <Box
-      sx={{
-        flexShrink: 0,
-        p: 1.5,
-        borderTop: 1,
-        borderColor: "divider",
-      }}
-    >
-      <Box
-        sx={(theme) => ({
-          display: "flex",
-          alignItems: "center",
-          gap: 1.5,
-          p: 1.25,
-          borderRadius: "12px",
-          backgroundColor: alpha(theme.palette.primary.main, 0.06),
-          border: `1px solid ${alpha(theme.palette.primary.main, 0.16)}`,
-        })}
-      >
-        {avatar}
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Tooltip title={displayName} placement="top">
-            <Typography
-              variant="body2"
-              noWrap
-              sx={{ fontWeight: 600, color: "text.primary" }}
-            >
-              {displayName}
-            </Typography>
-          </Tooltip>
-          <Typography
-            variant="caption"
-            noWrap
-            component="div"
-            sx={{ color: "text.secondary" }}
-          >
-            {roleLabel}
-          </Typography>
-        </Box>
-      </Box>
-      <ListItemButton
-        onClick={logout}
-        sx={(theme) => ({
-          mt: 1,
-          minHeight: 44,
-          px: 1.5,
-          borderRadius: "10px",
-          color: theme.palette.text.primary,
-          "& .MuiListItemIcon-root": {
-            minWidth: 36,
-            color: theme.palette.text.secondary,
-            transition: theme.transitions.create("color", { duration: 150 }),
-          },
-          "& .MuiListItemText-primary": { fontSize: "0.875rem" },
-          ...logoutSx(theme),
-        })}
-      >
-        <ListItemIcon>
-          <LogoutIcon />
-        </ListItemIcon>
-        <ListItemText primary="Salir" />
-      </ListItemButton>
-    </Box>
   );
 };

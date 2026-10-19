@@ -16,12 +16,8 @@ export default function Copyright(props: any) {
       }}
     >
       {"Copyright © "}
-      <Link
-        color="inherit"
-        href="https://cosmeticostrujillo.com"
-        target="_blank"
-      >
-        Cosmeticos trujillo
+      <Link color="inherit" href="https://grupohada.com" target="_blank">
+        Grupo Hada
       </Link>{" "}
       {new Date().getFullYear()}
       {"."}

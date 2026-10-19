@@ -18,10 +18,32 @@ interface Payload {
   employeeIds: number[];
 }
 
-const findAll = async ({ manufacturingPlantId, name }: IFiltersIcs) => {
+const findAll = async ({
+  manufacturingPlantId,
+  name,
+}: Partial<IFiltersIcs>) => {
   const { data } = await api.get<ICSData[]>("", {
     params: {
       ...(manufacturingPlantId && { manufacturingPlantId }),
+      ...(name && { name }),
+    },
+  });
+  return data;
+};
+
+const findAllPaginated = async ({
+  manufacturingPlantId,
+  areaOfBehaviorId,
+  name,
+  page,
+  limit,
+}: IFiltersIcs & { page: number; limit: number }) => {
+  const { data } = await api.get<{ data: ICSData[]; count: number }>("", {
+    params: {
+      page,
+      limit,
+      ...(manufacturingPlantId && { manufacturingPlantId }),
+      ...(areaOfBehaviorId && { areaOfBehaviorId }),
       ...(name && { name }),
     },
   });
@@ -65,6 +87,7 @@ const remove = async (id: number) => {
 
 export const IcsService = {
   findAll,
+  findAllPaginated,
   create,
   update,
   findOne,

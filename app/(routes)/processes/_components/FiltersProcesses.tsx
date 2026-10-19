@@ -4,11 +4,17 @@ import { TextField } from "@mui/material";
 import SelectManufacturingPlants from "@components/SelectManufacturingPlants";
 
 import FilterBar from "@shared/components/FilterBar";
+import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 
 export interface IFiltersProcesses {
   name: string;
   manufacturingPlantId: string;
 }
+
+export const DEFAULT_FILTERS_PROCESSES: IFiltersProcesses = {
+  name: "",
+  manufacturingPlantId: "",
+};
 
 interface Props {
   filters: IFiltersProcesses;
@@ -19,6 +25,10 @@ interface Props {
 const FiltersProcesses = ({ filters, setFilters, count }: Props) => {
   return (
     <FilterBar count={count}>
+      <ClearFiltersButton
+        visible={!!filters.name || !!filters.manufacturingPlantId}
+        onClick={() => setFilters(DEFAULT_FILTERS_PROCESSES)}
+      />
       <Grid
         size={{
           xs: 12,

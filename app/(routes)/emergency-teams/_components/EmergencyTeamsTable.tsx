@@ -1,4 +1,4 @@
-import { ChangeEvent, MouseEvent, useEffect, useState } from "react";
+import { ChangeEvent, MouseEvent, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -30,10 +30,16 @@ import {
 } from "@shared/components/TableDefault";
 
 interface Props {
+  // Filas de la página actual (paginadas en la API).
   rows: EmergencyTeam[];
   selectedIds: number[];
   setSelectedIds: (ids: number[]) => void;
   getData: () => void;
+  page: number;
+  setPage: (page: number) => void;
+  rowsPerPage: number;
+  setRowsPerPage: (rowsPerPage: number) => void;
+  count: number;
 }
 
 export default function EmergencyTeamsTable({
@@ -41,30 +47,21 @@ export default function EmergencyTeamsTable({
   selectedIds,
   setSelectedIds,
   getData,
+  page,
+  setPage,
+  rowsPerPage,
+  setRowsPerPage,
+  count,
 }: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [page, setPage] = useState<number>(0);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
 
   const router = useRouter();
   const { confirm, confirmDialog } = useConfirmDialog();
 
-  const paginatedRows =
-    rowsPerPage > 0
-      ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-      : rows;
+  const paginatedRows = rows;
 
   const emptyRows =
-    page > 0 && rowsPerPage > 0
-      ? Math.max(0, (1 + page) * rowsPerPage - rows.length)
-      : 0;
-
-  useEffect(() => {
-    const maxPage = Math.max(0, Math.ceil(rows.length / rowsPerPage) - 1);
-    if (page > maxPage) {
-      setPage(maxPage);
-    }
-  }, [rows.length, rowsPerPage, page]);
+    page > 0 && rowsPerPage > 0 ? Math.max(0, rowsPerPage - rows.length) : 0;
 
   const remove = (id: number) => {
     setIsLoading(true);
@@ -234,7 +231,7 @@ export default function EmergencyTeamsTable({
               <TablePagination
                 rowsPerPageOptions={[5, 10, 25, { label: "Todos", value: -1 }]}
                 colSpan={12}
-                count={rows.length}
+                count={count}
                 rowsPerPage={rowsPerPage}
                 page={page}
                 slotProps={{

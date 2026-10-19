@@ -7,8 +7,11 @@ import { Button, Grid } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 
 import DialogCreateEpp from "./_components/DialogCreateEpp";
-import SelectDefault from "@components/SelectDefault";
 import TableEpps from "./_components/TableEpps";
+import FiltersEpp, {
+  DEFAULT_FILTERS_EPP,
+  type IFiltersEpp,
+} from "./_components/FiltersEpp";
 import { useUserSessionStore } from "@store";
 import { EppService } from "@services";
 import { Epp, EppSortableColumn } from "@interfaces";
@@ -26,10 +29,11 @@ export default function EppPage() {
   // Estado de la consulta paginada (page es 0-based, como TablePagination).
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [search, setSearch] = useState("");
-  const [debouncedSearch] = useDebounce(search, 400);
   const [order, setOrder] = useState<SortOrder>("asc");
   const [orderBy, setOrderBy] = useState<EppSortableColumn | null>(null);
+  const [filters, setFilters] = useState<IFiltersEpp>(DEFAULT_FILTERS_EPP);
+  // Un solo debounce para todos los filtros (incluida la búsqueda por texto).
+  const [debouncedFilters] = useDebounce(filters, 400);
 
   // Solo se aplica la respuesta de la última petición.
   const lastRequestId = useRef(0);
@@ -54,7 +58,7 @@ export default function EppPage() {
       manufacturingPlantId,
       page: page + 1,
       limit: rowsPerPage,
-      search: debouncedSearch,
+      ...debouncedFilters,
       ...(orderBy && { orderBy, order }),
     })
       .then(({ data, count }) => {
@@ -76,7 +80,7 @@ export default function EppPage() {
     manufacturingPlantId,
     page,
     rowsPerPage,
-    debouncedSearch,
+    debouncedFilters,
     order,
     orderBy,
   ]);
@@ -88,7 +92,7 @@ export default function EppPage() {
   // Cualquier cambio de filtro, orden o tamaño vuelve a la primera página.
   useEffect(() => {
     setPage(0);
-  }, [manufacturingPlantId, debouncedSearch, order, orderBy, rowsPerPage]);
+  }, [manufacturingPlantId, debouncedFilters, order, orderBy, rowsPerPage]);
 
   useEffect(() => {
     if (manufacturingPlants.length) {
@@ -119,22 +123,20 @@ export default function EppPage() {
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
+      <FiltersEpp
+        manufacturingPlantId={manufacturingPlantId}
+        onManufacturingPlantChange={(nextPlantId) => {
+          if (nextPlantId === manufacturingPlantId) return;
+          setManufacturingPlantId(nextPlantId);
+          // Los equipos son por planta.
+          setFilters((prev) => ({ ...prev, equipmentId: "" }));
+        }}
+        manufacturingPlants={manufacturingPlants}
+        filters={filters}
+        setFilters={setFilters}
+        count={count}
+      />
       <Grid container spacing={2}>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
-          <SelectDefault
-            data={manufacturingPlants}
-            label="Planta"
-            value={manufacturingPlantId}
-            onChange={(e) => setManufacturingPlantId(e.target.value)}
-            validationEmpty
-          />
-        </Grid>
         <Grid
           size={{
             xs: 12,
@@ -142,19 +144,17 @@ export default function EppPage() {
             md: 12,
           }}
         >
-          {/* La tabla no se desmonta al cargar: así la búsqueda conserva el foco. */}
           <TableEpps
             rows={rows}
             count={count}
             isLoading={isLoading}
             page={page}
             rowsPerPage={rowsPerPage}
-            search={search}
+            hasFilters={Object.values(filters).some(Boolean)}
             order={order}
             orderBy={orderBy}
             onPageChange={setPage}
             onRowsPerPageChange={setRowsPerPage}
-            onSearchChange={setSearch}
             onSortChange={(nextOrder, nextOrderBy) => {
               setOrder(nextOrder);
               setOrderBy(nextOrderBy);

@@ -1,13 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 import SelectDefault from "@components/SelectDefault";
+import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import { EmployeesService } from "@services";
 import { CatalogEmployee } from "@interfaces";
 
 import FilterBar from "@shared/components/FilterBar";
+import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 
+// Filtros de EmployeesService.findAll (lo usan otras pantallas).
 export interface IFiltersEmployees {
   manufacturingPlantId?: number;
   name?: string;
@@ -17,14 +20,34 @@ export interface IFiltersEmployees {
   isActive?: string;
 }
 
+// Filtros del listado de colaboradores (valores de los selects).
+export interface IFiltersEmployeesList {
+  // Nombre o número de colaborador.
+  name: string;
+  manufacturingPlantId: string;
+  areaId: string;
+  positionId: string;
+  genreId: string;
+  isActive: string;
+}
+
+export const DEFAULT_FILTERS_EMPLOYEES: IFiltersEmployeesList = {
+  name: "",
+  manufacturingPlantId: "",
+  areaId: "",
+  positionId: "",
+  genreId: "",
+  isActive: "true",
+};
+
 const STATUS_OPTIONS = [
   { id: "true", name: "Activos" },
   { id: "false", name: "Inactivos" },
 ];
 
 interface Props {
-  filters: IFiltersEmployees;
-  setFilters: (filters: IFiltersEmployees) => void;
+  filters: IFiltersEmployeesList;
+  setFilters: (filters: IFiltersEmployeesList) => void;
   count: number;
 }
 
@@ -35,144 +58,76 @@ const FiltersEmployees = ({ filters, setFilters, count }: Props) => {
     EmployeesService.catalogs().then(setCatalogs);
   }, []);
 
-  const areaOptions = useMemo(
-    () =>
-      (catalogs?.areas || []).map((item) => ({
-        id: String(item.id),
-        name: item.name,
-      })),
-    [catalogs],
-  );
-
-  const positionOptions = useMemo(
-    () =>
-      (catalogs?.positions || []).map((item) => ({
-        id: String(item.id),
-        name: item.name,
-      })),
-    [catalogs],
-  );
+  const hasFiltersToClear = (
+    Object.keys(DEFAULT_FILTERS_EMPLOYEES) as (keyof IFiltersEmployeesList)[]
+  ).some((key) => filters[key] !== DEFAULT_FILTERS_EMPLOYEES[key]);
 
   return (
     <FilterBar count={count}>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 4,
-          md: 2,
-        }}
-      >
+      <ClearFiltersButton
+        visible={hasFiltersToClear}
+        onClick={() => setFilters(DEFAULT_FILTERS_EMPLOYEES)}
+      />
+      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         <TextField
           fullWidth
           label="Nombre o código"
           variant="outlined"
           value={filters.name}
           autoComplete="off"
-          onChange={(e) => {
-            setFilters({
-              ...filters,
-              name: e.target.value,
-            });
-          }}
+          onChange={(e) => setFilters({ ...filters, name: e.target.value })}
         />
       </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 4,
-          md: 2,
-        }}
-      >
+      <SelectManufacturingPlantsOwn
+        value={filters.manufacturingPlantId}
+        onChange={(e) =>
+          setFilters({ ...filters, manufacturingPlantId: e.target.value })
+        }
+        isFilter={true}
+      />
+      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         <SelectDefault
-          data={areaOptions}
+          data={catalogs?.areas || []}
           label="Área"
-          value={filters.areaId ? String(filters.areaId) : ""}
-          onChange={(e) =>
-            setFilters({
-              ...filters,
-              areaId: e.target.value ? Number(e.target.value) : undefined,
-            })
-          }
+          value={filters.areaId}
+          onChange={(e) => setFilters({ ...filters, areaId: e.target.value })}
           isFilter={true}
         />
       </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 4,
-          md: 2,
-        }}
-      >
+      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         <SelectDefault
-          data={positionOptions}
+          data={catalogs?.positions || []}
           label="Puesto"
-          value={filters.positionId ? String(filters.positionId) : ""}
+          value={filters.positionId}
           onChange={(e) =>
-            setFilters({
-              ...filters,
-              positionId: e.target.value ? Number(e.target.value) : undefined,
-            })
+            setFilters({ ...filters, positionId: e.target.value })
           }
           isFilter={true}
         />
       </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 4,
-          md: 2,
-        }}
-      >
+      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <SelectDefault
+          data={catalogs?.genres || []}
+          label="Género"
+          value={filters.genreId}
+          onChange={(e) => setFilters({ ...filters, genreId: e.target.value })}
+          isFilter={true}
+        />
+      </Grid>
+      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         <SelectDefault
           data={STATUS_OPTIONS}
           label="Estado"
-          value={filters.isActive || "true"}
+          value={filters.isActive}
           onChange={(e) =>
             setFilters({
               ...filters,
-              isActive: e.target.value,
+              // Sin selección vuelve a "Activos", como antes.
+              isActive: e.target.value || "true",
             })
           }
-          isFilter={true}
         />
       </Grid>
-      {/*<Grid item xs={12} sm={4} md={2}>
-        <SelectManufacturingPlants
-          value={filters.manufacturingPlantId}
-          onChange={(e) =>
-            setFilters({
-              ...filters,
-              manufacturingPlantId: e.target.value,
-            })
-          }
-          isFilter={true}
-        />
-      </Grid>
-      <Grid item xs={12} sm={4} md={2}>
-        <SelectRules
-          value={filters.rule}
-          onChange={(e) =>
-            setFilters({
-              ...filters,
-              rule: e.target.value,
-            })
-          }
-          isFilter={true}
-        />
-      </Grid>
-      <Grid item xs={12} sm={4} md={2}>
-        <SelectZones
-          value={filters.zoneId}
-          onChange={(e) =>
-            setFilters({
-              ...filters,
-              zoneId: e.target.value,
-            })
-          }
-          isFilter={true}
-          manufacturingPlantId={filters.manufacturingPlantId}
-        />
-          </Grid>*/}
     </FilterBar>
   );
 };

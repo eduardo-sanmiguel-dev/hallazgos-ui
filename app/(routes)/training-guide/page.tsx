@@ -29,9 +29,6 @@ import { TablePagination } from "@mui/material";
 import { Grid } from "@mui/material";
 import { Button } from "@mui/material";
 import { Toolbar } from "@mui/material";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import { ButtonGroup } from "@mui/material";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import { TextField } from "@mui/material";
 import { Dialog } from "@mui/material";
 import { ListItemText } from "@mui/material";
@@ -75,7 +72,12 @@ import {
 } from "@interfaces";
 import LoadingLinear from "@shared/components/LoadingLinear";
 import { notify, stringToDateWithTime } from "@shared/utils";
-import SelectDefault from "@components/SelectDefault";
+import PageHeader from "@shared/components/PageHeader";
+import RefreshButton from "@shared/components/RefreshButton";
+import FiltersTrainingGuide, {
+  DEFAULT_FILTERS_TRAINING_GUIDE,
+  type IFiltersTrainingGuide,
+} from "./_components/FiltersTrainingGuide";
 import { useUserSessionStore } from "@store";
 import {
   StyledTableRow,
@@ -1066,6 +1068,7 @@ function ScreenEdition({
 
 const TrainingGuidePage = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [count, setCount] = useState<number>(0);
   const [page, setPage] = useState<number>(0);
   const [rowsPerPage, setRowsPerPage] = useState<number>(5);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -1075,22 +1078,18 @@ const TrainingGuidePage = () => {
   const router = useRouter();
   const employeeName = searchParams.get("employee");
 
-  const [filters, setFilters] = useState<{
-    name: string;
-    manufacturingPlantId: string;
-  }>({
-    manufacturingPlantId: "",
-    name: "",
-  });
+  const [filters, setFilters] = useState<IFiltersTrainingGuide>(
+    DEFAULT_FILTERS_TRAINING_GUIDE,
+  );
 
-  const {
-    manufacturingPlants,
-    email,
-    id: userSessionId,
-  } = useUserSessionStore(useShallow((state) => state));
+  const { email, id: userSessionId } = useUserSessionStore(
+    useShallow((state) => state),
+  );
 
   const emptyRows =
-    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - employees.length) : 0;
+    page > 0 && rowsPerPage > 0
+      ? Math.max(0, rowsPerPage - employees.length)
+      : 0;
 
   const handleChangePage = (
     _: MouseEvent<HTMLButtonElement> | null,
@@ -1108,22 +1107,36 @@ const TrainingGuidePage = () => {
 
   const getData = useDebouncedCallback(() => {
     setIsLoading(true);
-    EmployeesService.findAll({
+    EmployeesService.findAllPaginated({
+      page: page + 1,
+      limit: rowsPerPage,
       manufacturingPlantId: Number(filters.manufacturingPlantId || 0),
       name: filters.name,
+      areaId: filters.areaId,
+      positionId: filters.positionId,
+      signatureStatus: filters.signatureStatus,
       ...(!emailsEditors.includes(email) && { assignedUserId: userSessionId }),
     })
-      .then(setEmployees)
+      .then(({ data, count }) => {
+        setEmployees(data);
+        setCount(count);
+      })
       .finally(() => setIsLoading(false));
   }, 500);
 
   useEffect(() => {
     getData();
-  }, [getData, filters]);
+  }, [getData, filters, page, rowsPerPage]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [filters]);
 
   useEffect(() => {
     if (employeeName && employees.length) {
-      setFilters((prev) => ({ ...prev, name: employeeName }));
+      setFilters((prev) =>
+        prev.name === employeeName ? prev : { ...prev, name: employeeName },
+      );
 
       const employeeFound = employees.find(
         (employee) =>
@@ -1159,127 +1172,15 @@ const TrainingGuidePage = () => {
           }}
         />
       )}
+      <PageHeader title="Guías de entrenamiento">
+        <RefreshButton onClick={() => getData()} />
+      </PageHeader>
+      <FiltersTrainingGuide
+        filters={filters}
+        setFilters={setFilters}
+        count={count}
+      />
       <Grid container>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 12,
-            md: 12,
-          }}
-        >
-          <Typography
-            variant="h4"
-            gutterBottom
-            sx={{
-              color: (theme) =>
-                theme.palette.mode === "light"
-                  ? theme.palette.common.black
-                  : theme.palette.common.white,
-            }}
-          >
-            Guías de entrenamiento
-          </Typography>
-        </Grid>
-
-        <Grid
-          size={{
-            xs: 12,
-            sm: 12,
-            md: 12,
-          }}
-        >
-          <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid
-              size={{
-                xs: 12,
-                sm: 12,
-                md: 12,
-              }}
-            >
-              <Typography
-                variant="subtitle1"
-                gutterBottom
-                sx={{
-                  color: (theme) =>
-                    theme.palette.mode === "light"
-                      ? theme.palette.common.black
-                      : theme.palette.common.white,
-                }}
-              >
-                <FilterListIcon sx={{ pt: 1 }} /> Filtros ({employees.length})
-              </Typography>
-            </Grid>
-            <Grid
-              size={{
-                xs: 12,
-                sm: 12,
-                md: 12,
-              }}
-            >
-              <Toolbar>
-                <Box sx={{ flexGrow: 1 }}>
-                  <Grid container spacing={2}>
-                    <Grid
-                      size={{
-                        xs: 12,
-                        sm: 6,
-                        md: 2,
-                      }}
-                    >
-                      <SelectDefault
-                        data={manufacturingPlants}
-                        label="Planta"
-                        isFilter={true}
-                        value={filters.manufacturingPlantId}
-                        onChange={(e) => {
-                          setFilters({
-                            ...filters,
-                            manufacturingPlantId: e.target.value,
-                          });
-                        }}
-                      />
-                    </Grid>
-                    <Grid
-                      size={{
-                        xs: 12,
-                        sm: 6,
-                        md: 4,
-                      }}
-                    >
-                      <Paper>
-                        <TextField
-                          label="Nombre"
-                          fullWidth
-                          variant="outlined"
-                          value={filters.name}
-                          autoComplete="off"
-                          onChange={(e) => {
-                            setFilters({
-                              ...filters,
-                              name: e.target.value,
-                            });
-                          }}
-                        />
-                      </Paper>
-                    </Grid>
-                  </Grid>
-                </Box>
-
-                <ButtonGroup
-                  variant="contained"
-                  aria-label="outlined primary button group"
-                >
-                  <Button
-                    variant="contained"
-                    startIcon={<RefreshIcon />}
-                    onClick={() => getData()}
-                  ></Button>
-                </ButtonGroup>
-              </Toolbar>
-            </Grid>
-          </Grid>
-        </Grid>
-
         <Grid
           size={{
             xs: 12,
@@ -1315,13 +1216,7 @@ const TrainingGuidePage = () => {
                   </StyledTableRow>
                 </TableHead>
                 <TableBody>
-                  {(rowsPerPage > 0
-                    ? employees.slice(
-                        page * rowsPerPage,
-                        page * rowsPerPage + rowsPerPage,
-                      )
-                    : employees
-                  ).map((row) => (
+                  {employees.map((row) => (
                     <Row
                       key={row.name}
                       row={row}
@@ -1344,7 +1239,7 @@ const TrainingGuidePage = () => {
                         { label: "Todos", value: -1 },
                       ]}
                       colSpan={colSpan}
-                      count={employees.length}
+                      count={count}
                       rowsPerPage={rowsPerPage}
                       page={page}
                       slotProps={{

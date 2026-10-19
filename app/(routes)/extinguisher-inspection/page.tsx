@@ -15,29 +15,43 @@ import { ExtinguisherInspectionsService } from "@services";
 import { ExtinguisherInspection } from "@interfaces";
 import ExtinguisherInspectionsTable from "./_components/ExtinguisherInspectionsTable";
 import FiltersExtinguisherInspections, {
+  DEFAULT_FILTERS_EXTINGUISHER_INSPECTIONS,
   IFiltersExtinguisherInspections,
 } from "./_components/FiltersExtinguisherInspections";
 
 const ExtinguisherInspectionPage = () => {
   const [data, setData] = useState<ExtinguisherInspection[]>([]);
+  const [count, setCount] = useState<number>(0);
+  const [page, setPage] = useState<number>(0);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [filters, setFilters] = useState<IFiltersExtinguisherInspections>({
-    search: "",
-    manufacturingPlantId: "",
-  });
+  const [filters, setFilters] = useState<IFiltersExtinguisherInspections>(
+    DEFAULT_FILTERS_EXTINGUISHER_INSPECTIONS,
+  );
 
   const router = useRouter();
 
   const getData = useDebouncedCallback(() => {
     setIsLoading(true);
-    ExtinguisherInspectionsService.findAll(filters)
-      .then(setData)
+    ExtinguisherInspectionsService.findAllPaginated({
+      ...filters,
+      page: page + 1,
+      limit: rowsPerPage,
+    })
+      .then(({ data, count }) => {
+        setData(data);
+        setCount(count);
+      })
       .finally(() => setIsLoading(false));
   }, 500);
 
   useEffect(() => {
     getData();
-  }, [getData, filters]);
+  }, [getData, filters, page, rowsPerPage]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [filters]);
 
   return (
     <>
@@ -54,12 +68,19 @@ const ExtinguisherInspectionPage = () => {
       <FiltersExtinguisherInspections
         filters={filters}
         setFilters={setFilters}
-        count={data.length}
+        count={count}
       />
       {isLoading ? (
         <LoadingLinear />
       ) : (
-        <ExtinguisherInspectionsTable rows={data} />
+        <ExtinguisherInspectionsTable
+          rows={data}
+          page={page}
+          setPage={setPage}
+          rowsPerPage={rowsPerPage}
+          setRowsPerPage={setRowsPerPage}
+          count={count}
+        />
       )}
     </>
   );

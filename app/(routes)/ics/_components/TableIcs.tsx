@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 //import { useRouter } from "next/navigation";
 
 //import EditIcon from "@mui/icons-material/Edit";
@@ -8,15 +8,21 @@ import { notify } from "@shared/utils";
 import { ICSData } from "@interfaces";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { DeleteAction, RowActions } from "@shared/components/RowActions";
-import TableDefault, {
+import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
+import TableDefaultServer from "@shared/components/TableDefaultServer";
 import { IcsService } from "@services";
 
 interface Props {
   rows: ICSData[];
   getData: () => void;
+  page: number;
+  setPage: Dispatch<SetStateAction<number>>;
+  rowsPerPage: number;
+  setRowsPerPage: Dispatch<SetStateAction<number>>;
+  count: number;
 }
 
 const columns = [
@@ -33,7 +39,15 @@ const columns = [
   "Acciones",
 ];
 
-export default function TableIcs({ rows, getData }: Props) {
+export default function TableIcs({
+  rows,
+  getData,
+  page,
+  setPage,
+  rowsPerPage,
+  setRowsPerPage,
+  count,
+}: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   //const router = useRouter();
@@ -63,9 +77,14 @@ export default function TableIcs({ rows, getData }: Props) {
 
   return (
     <>
-      <TableDefault
+      <TableDefaultServer
         rows={rows}
         columns={columns}
+        page={page}
+        setPage={setPage}
+        rowsPerPage={rowsPerPage}
+        setRowsPerPage={setRowsPerPage}
+        count={count}
         paintRows={(row: ICSData) => {
           return (
             <StyledTableRow key={row.id}>

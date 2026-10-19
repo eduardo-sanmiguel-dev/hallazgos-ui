@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -10,16 +10,22 @@ import {
   EditAction,
   RowActions,
 } from "@shared/components/RowActions";
-import TableDefault, {
+import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
+import TableDefaultServer from "@shared/components/TableDefaultServer";
 import { Area } from "@interfaces";
 import { AreasService } from "@services";
 
 interface Props {
   rows: Area[];
   getData: () => void;
+  page: number;
+  setPage: Dispatch<SetStateAction<number>>;
+  rowsPerPage: number;
+  setRowsPerPage: Dispatch<SetStateAction<number>>;
+  count: number;
 }
 
 const columns = [
@@ -33,7 +39,15 @@ const columns = [
   "Acciones",
 ];
 
-export default function TableAreas({ rows, getData }: Props) {
+export default function TableAreas({
+  rows,
+  getData,
+  page,
+  setPage,
+  rowsPerPage,
+  setRowsPerPage,
+  count,
+}: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const router = useRouter();
@@ -62,9 +76,14 @@ export default function TableAreas({ rows, getData }: Props) {
 
   return (
     <>
-      <TableDefault
+      <TableDefaultServer
         rows={rows}
         columns={columns}
+        page={page}
+        setPage={setPage}
+        rowsPerPage={rowsPerPage}
+        setRowsPerPage={setRowsPerPage}
+        count={count}
         paintRows={(row: Area) => (
           <StyledTableRow key={row.id}>
             <StyledTableCell component="th" scope="row">
