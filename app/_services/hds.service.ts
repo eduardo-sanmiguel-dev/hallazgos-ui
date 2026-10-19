@@ -33,7 +33,9 @@ const findAllPaginated = async ({
 };
 
 const downloadFile = async (name: string) => {
-  const { data } = await api.get<Blob>(`download?name=${name}`, {
+  // Como parámetro para que se codifique (nombres con "&", "#", espacios...).
+  const { data } = await api.get<Blob>("download", {
+    params: { name },
     responseType: "blob",
   });
   const file = new Blob([data], { type: "application/pdf" });
