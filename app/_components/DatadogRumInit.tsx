@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { datadogRum } from "@datadog/browser-rum";
+
 import { reactPlugin } from "@datadog/browser-rum-react";
 
 const DatadogRumInit = () => {
