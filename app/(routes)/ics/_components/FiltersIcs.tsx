@@ -1,14 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 
+import { EMPTY_CATALOG, useIcsCatalogs } from "@hooks";
 import FilterBar from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 import SelectDefault from "@components/SelectDefault";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
-import { CatalogICS } from "@interfaces";
-import { IcsService } from "@services";
 
 export interface IFiltersIcs {
   // Busca por regla de vida o estándar de comportamiento.
@@ -30,11 +29,7 @@ interface Props {
 }
 
 const FiltersIcs = ({ filters, setFilters, count }: Props) => {
-  const [catalogs, setCatalogs] = useState<CatalogICS[]>([]);
-
-  useEffect(() => {
-    IcsService.catalogs().then(setCatalogs);
-  }, []);
+  const catalogs = useIcsCatalogs().data ?? EMPTY_CATALOG;
 
   // Las áreas cuelgan de cada estándar; se aplanan sin repetir.
   const areasOfBehavior = useMemo(() => {

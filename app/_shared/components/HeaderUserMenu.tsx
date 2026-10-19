@@ -19,6 +19,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import FactoryOutlinedIcon from "@mui/icons-material/FactoryOutlined";
 
 import { useUserSessionStore } from "@store";
+import { useShallow } from "zustand/shallow";
 import { ROLE_ADMINISTRADOR } from "@shared/constants";
 import { notify } from "@shared/utils";
 import { AuthService } from "@services";
@@ -44,7 +45,15 @@ export default function HeaderUserMenu() {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   const { name, email, role, manufacturingPlants, resetSession } =
-    useUserSessionStore();
+    useUserSessionStore(
+      useShallow((state) => ({
+        name: state.name,
+        email: state.email,
+        role: state.role,
+        manufacturingPlants: state.manufacturingPlants,
+        resetSession: state.resetSession,
+      })),
+    );
 
   const displayName = name || email;
   const roleLabel = role === ROLE_ADMINISTRADOR ? "Administrador" : "Usuario";

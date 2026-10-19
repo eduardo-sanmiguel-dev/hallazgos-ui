@@ -1,16 +1,13 @@
-import { useEffect, useState } from "react";
-
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 import dayjs from "dayjs";
 
+import { EMPTY_CATALOG, useTypesOfEvents, useZones } from "@hooks";
 import SelectDefault from "@components/SelectDefault";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import DateFieldDMY from "@routes/gemba-walk/calendar/_components/DateFieldDMY";
 import FilterBar from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
-import { TypeOfEvent, Zone } from "@interfaces";
-import { TypesOfEventsService, ZonesService } from "@services";
 
 export interface IFiltersCiaels {
   manufacturingPlantId: string;
@@ -39,24 +36,13 @@ interface Props {
 }
 
 const FiltersCiaels = ({ filters, setFilters, count }: Props) => {
-  const [typesOfEvents, setTypesOfEvents] = useState<TypeOfEvent[]>([]);
-  const [zones, setZones] = useState<Zone[]>([]);
-
-  useEffect(() => {
-    TypesOfEventsService.findAll().then(setTypesOfEvents);
-  }, []);
-
+  const typesOfEvents = useTypesOfEvents().data ?? EMPTY_CATALOG;
   // Las zonas dependen de la planta elegida.
-  useEffect(() => {
-    if (!filters.manufacturingPlantId) {
-      setZones([]);
-      return;
-    }
-
-    ZonesService.findAll({
-      manufacturingPlantId: filters.manufacturingPlantId,
-    }).then(setZones);
-  }, [filters.manufacturingPlantId]);
+  const zones =
+    useZones(
+      { manufacturingPlantId: filters.manufacturingPlantId },
+      { enabled: !!filters.manufacturingPlantId },
+    ).data ?? EMPTY_CATALOG;
 
   const hasFiltersToClear = (
     Object.keys(DEFAULT_FILTERS_CIAELS) as (keyof IFiltersCiaels)[]

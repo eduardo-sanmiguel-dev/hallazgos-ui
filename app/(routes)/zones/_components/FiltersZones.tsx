@@ -1,12 +1,11 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 
+import { useAreas } from "@hooks";
 import SelectDefault from "@components/SelectDefault";
 import SelectManufacturingPlants from "@components/SelectManufacturingPlants";
-import { AreasService } from "@services";
-import { Area } from "@interfaces";
 
 import FilterBar from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
@@ -30,20 +29,18 @@ interface Props {
 }
 
 const FiltersZones = ({ filters, setFilters, count }: Props) => {
-  const [areas, setAreas] = useState<Area[]>([]);
-
   // Las zonas (areas) se acotan a la planta elegida.
-  useEffect(() => {
-    AreasService.findAll({
-      manufacturingPlantId: filters.manufacturingPlantId,
-    }).then((data) => {
-      const orderedAreas = [...data].sort((a, b) =>
-        a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
-      );
+  const { data: areasData } = useAreas({
+    manufacturingPlantId: filters.manufacturingPlantId,
+  });
 
-      setAreas(orderedAreas);
-    });
-  }, [filters.manufacturingPlantId]);
+  const areas = useMemo(
+    () =>
+      [...(areasData ?? [])].sort((a, b) =>
+        a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
+      ),
+    [areasData],
+  );
 
   const hasFiltersToClear = (
     Object.keys(DEFAULT_FILTERS_ZONES) as (keyof IFiltersZones)[]

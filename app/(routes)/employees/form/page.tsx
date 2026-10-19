@@ -1,5 +1,6 @@
 "use client";
 
+
 export const dynamic = "force-dynamic";
 
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
@@ -18,8 +19,8 @@ import { esES } from "@mui/x-date-pickers/locales";
 import dayjs, { Dayjs } from "dayjs";
 import "dayjs/locale/es";
 
+import { useEmployeeCatalogs } from "@hooks";
 import { EmployeesService } from "@services";
-import { CatalogEmployee } from "@interfaces";
 import SelectDefault from "@components/SelectDefault";
 import { SelectChangeEvent } from "@mui/material";
 import MultiSelectManufacturingPlants from "@components/MultiSelectManufacturingPlants";
@@ -31,7 +32,7 @@ import FormActions from "@shared/components/FormActions";
 const EmployeesFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [idCurrent, setIdCurrent] = useState<number>(0);
-  const [catalogs, setCatalogs] = useState<CatalogEmployee | null>(null);
+  const { data: catalogs } = useEmployeeCatalogs();
   const [form, setForm] = useState<{
     code: string;
     name: string;
@@ -63,10 +64,6 @@ const EmployeesFormPage = () => {
     | "position"
     | "manufacturingPlantNames"
   >(form);
-
-  useEffect(() => {
-    EmployeesService.catalogs().then((data) => setCatalogs(data));
-  }, []);
 
   const save = () => {
     const codeClean = form.code.trim();

@@ -1,3 +1,4 @@
+import { withCatalogInvalidation } from "@shared/libs/catalogKeys";
 import axiosWrapper from "./axiosWrapper";
 import { Processes, Zone } from "@interfaces";
 
@@ -74,9 +75,9 @@ const findAllPaginated = async (filters: {
 
 export const ProcessesService = {
   findAllPaginated,
-  create,
+  create: withCatalogInvalidation(create, "processes"),
   findAll,
   findOne,
-  update,
-  remove,
+  update: withCatalogInvalidation(update, "processes"),
+  remove: withCatalogInvalidation(remove, "processes"),
 };

@@ -1,14 +1,11 @@
-import { useEffect, useState } from "react";
-
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 
+import { useEmployeeCatalogs } from "@hooks";
 import SelectDefault from "@components/SelectDefault";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import FilterBar from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
-import { CatalogEmployee } from "@interfaces";
-import { EmployeesService } from "@services";
 
 export interface IFiltersTrainingGuide {
   // Nombre o número de colaborador.
@@ -41,11 +38,7 @@ interface Props {
 }
 
 const FiltersTrainingGuide = ({ filters, setFilters, count }: Props) => {
-  const [catalogs, setCatalogs] = useState<CatalogEmployee>();
-
-  useEffect(() => {
-    EmployeesService.catalogs().then(setCatalogs);
-  }, []);
+  const { data: catalogs } = useEmployeeCatalogs();
 
   const hasFiltersToClear = (
     Object.keys(

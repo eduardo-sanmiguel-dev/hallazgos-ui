@@ -35,6 +35,7 @@ import CloseEvidence from "./CloseEvidence";
 import StartProcessEvidence from "./StartProcessEvidence";
 import ReassignResponsiblesEvidence from "./ReassignResponsiblesEvidence";
 import { useUserSessionStore } from "@store";
+import { useShallow } from "zustand/shallow";
 import { EvidencesService } from "@services";
 import { EvidenceGraphql } from "@hooks";
 import TableDefaultServer from "@shared/components/TableDefaultServer";
@@ -98,7 +99,13 @@ export default function TableEvidences({
     useState<EvidenceGraphql | null>(null);
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [menuRowId, setMenuRowId] = useState<number | null>(null);
-  const { id: userId, role, email } = useUserSessionStore();
+  const { userId, role, email } = useUserSessionStore(
+    useShallow((state) => ({
+      userId: state.id,
+      role: state.role,
+      email: state.email,
+    })),
+  );
 
   useEffect(() => {
     EvidencesService.getPermissionsConfig()

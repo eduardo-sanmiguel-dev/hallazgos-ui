@@ -72,10 +72,12 @@ export default function SelectDefault({
         getOptionLabel={(option) => option.name || ""}
         isOptionEqualToValue={(option, value) => option.id === value?.id}
         renderOption={(props, option, { selected }) => {
-          const { key, ...optionProps } = props;
+          // Por id: puede haber nombres repetidos (p. ej. zonas de distintas
+          // plantas) y MUI usa la etiqueta como key.
+          const { key: _key, ...optionProps } = props;
 
           return (
-            <li key={key} {...optionProps}>
+            <li key={option.id} {...optionProps}>
               {multiple && (
                 <Checkbox
                   icon={icon}

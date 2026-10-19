@@ -1,12 +1,9 @@
-import { useEffect, useState } from "react";
-
 import { InputLabel } from "@mui/material";
 import { MenuItem } from "@mui/material";
 import { FormControl } from "@mui/material";
 import { Select, SelectChangeEvent } from "@mui/material";
 
-import { ManufacturingPlantsService } from "@services";
-import { ManufacturingPlant } from "@interfaces";
+import { useManufacturingPlants } from "@hooks";
 
 interface Props {
   value: string;
@@ -19,13 +16,7 @@ const SelectManufacturingPlants = ({
   onChange,
   isFilter = false,
 }: Props) => {
-  const [manufacturingPlants, setManufacturingPlants] = useState<
-    ManufacturingPlant[]
-  >([]);
-
-  useEffect(() => {
-    ManufacturingPlantsService.findAll({}).then(setManufacturingPlants);
-  }, []);
+  const { data: manufacturingPlants = [] } = useManufacturingPlants();
 
   return (
     <FormControl fullWidth>

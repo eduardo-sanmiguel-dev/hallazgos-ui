@@ -12,10 +12,10 @@ import { TextField } from "@mui/material";
 import { toast } from "sonner";
 import { FormHelperText } from "@mui/material";
 
-import { AreasService, ZonesService } from "@services";
+import { ZonesService } from "@services";
 import SelectManufacturingPlants from "@components/SelectManufacturingPlants";
 import SelectDefault from "@components/SelectDefault";
-import { Area } from "@interfaces";
+import { useAreas } from "@hooks";
 import { useFieldErrors } from "@hooks/useFieldErrors";
 import PageHeader from "@shared/components/PageHeader";
 import FormSection from "@shared/components/FormSection";
@@ -28,7 +28,6 @@ const ZonesFormPage = () => {
     manufacturingPlantId: "",
     areaId: "",
   });
-  const [areas, setAreas] = useState<Area[]>([]);
   const [idCurrent, setIdCurrent] = useState<number>(0);
 
   const router = useRouter();
@@ -102,15 +101,14 @@ const ZonesFormPage = () => {
     });
   }, [searchParams]);
 
-  useEffect(() => {
-    AreasService.findAll({}).then((data) => {
-      const orderedAreas = [...data].sort((a, b) =>
+  const { data: allAreas } = useAreas();
+  const areas = useMemo(
+    () =>
+      [...(allAreas ?? [])].sort((a, b) =>
         a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
-      );
-
-      setAreas(orderedAreas);
-    });
-  }, []);
+      ),
+    [allAreas],
+  );
 
   return (
     <>

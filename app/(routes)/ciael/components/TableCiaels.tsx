@@ -4,36 +4,33 @@ import { TableContainer } from "@mui/material";
 import { TableHead } from "@mui/material";
 import { Paper } from "@mui/material";
 import { TableCell, TableRow } from "@mui/material";
-import { ChangeEvent, Dispatch, SetStateAction } from "react";
+import { Box, LinearProgress } from "@mui/material";
+import { ChangeEvent } from "react";
 
 import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
 import TableFooterDefault from "@shared/components/TableFooterDefault";
+import type { ServerPagination } from "@shared/components/TableDefaultServer";
 import EmptyState from "@shared/components/EmptyState";
 import { Ciael } from "@interfaces";
 import { stringToDate, stringToDateWithTime } from "@shared/utils";
 
 interface Props {
   data: Ciael[];
-  page: number;
-  setPage: Dispatch<SetStateAction<number>>;
-  rowsPerPage: number;
-  setRowsPerPage: Dispatch<SetStateAction<number>>;
-  count: number;
+  pagination: ServerPagination;
 }
 
-export default function TableCiaels({
-  data,
-  page,
-  setPage,
-  rowsPerPage,
-  setRowsPerPage,
-  count,
-}: Props) {
+export default function TableCiaels({ data, pagination }: Props) {
+  const { page, setPage, rowsPerPage, setRowsPerPage, count, isFetching } =
+    pagination;
+
   return (
-    <TableContainer component={Paper}>
+    <TableContainer component={Paper} aria-busy={isFetching}>
+      <Box sx={{ height: 4 }}>
+        {isFetching && <LinearProgress aria-label="Actualizando" />}
+      </Box>
       <Table
         sx={{ minWidth: data.length ? 650 : undefined }}
         aria-label="Registros CIAEL"
@@ -87,7 +84,6 @@ export default function TableCiaels({
             event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
           ) => {
             setRowsPerPage(parseInt(event.target.value, 10));
-            setPage(0);
           }}
           colSpan={8}
           count={count}

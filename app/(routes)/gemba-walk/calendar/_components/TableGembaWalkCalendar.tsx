@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useState } from "react";
+import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -17,18 +17,16 @@ import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
-import TableDefaultServer from "@shared/components/TableDefaultServer";
+import TableDefaultServer, {
+  type ServerPagination,
+} from "@shared/components/TableDefaultServer";
 import { GembaWalkCalendar } from "@interfaces";
 import { GembaWalkCalendarService } from "@services";
 
 interface Props {
   rows: GembaWalkCalendar[];
   getData: () => void;
-  page: number;
-  setPage: Dispatch<SetStateAction<number>>;
-  rowsPerPage: number;
-  setRowsPerPage: Dispatch<SetStateAction<number>>;
-  count: number;
+  pagination: ServerPagination;
 }
 
 // Los eventos cuya fecha y hora ya pasó no se editan ni se eliminan.
@@ -52,11 +50,7 @@ const columns = [
 export default function TableGembaWalkCalendar({
   rows,
   getData,
-  page,
-  setPage,
-  rowsPerPage,
-  setRowsPerPage,
-  count,
+  pagination,
 }: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -95,11 +89,7 @@ export default function TableGembaWalkCalendar({
       <TableDefaultServer
         rows={rows}
         columns={columns}
-        page={page}
-        setPage={setPage}
-        rowsPerPage={rowsPerPage}
-        setRowsPerPage={setRowsPerPage}
-        count={count}
+        {...pagination}
         paintRows={(row: GembaWalkCalendar) => (
           <StyledTableRow key={row.id}>
             <StyledTableCell component="th" scope="row">

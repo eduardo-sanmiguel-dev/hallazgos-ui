@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useState } from "react";
+import { useState } from "react";
 //import { useRouter } from "next/navigation";
 
 //import EditIcon from "@mui/icons-material/Edit";
@@ -12,17 +12,15 @@ import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
-import TableDefaultServer from "@shared/components/TableDefaultServer";
+import TableDefaultServer, {
+  type ServerPagination,
+} from "@shared/components/TableDefaultServer";
 import { IcsService } from "@services";
 
 interface Props {
   rows: ICSData[];
   getData: () => void;
-  page: number;
-  setPage: Dispatch<SetStateAction<number>>;
-  rowsPerPage: number;
-  setRowsPerPage: Dispatch<SetStateAction<number>>;
-  count: number;
+  pagination: ServerPagination;
 }
 
 const columns = [
@@ -42,11 +40,7 @@ const columns = [
 export default function TableIcs({
   rows,
   getData,
-  page,
-  setPage,
-  rowsPerPage,
-  setRowsPerPage,
-  count,
+  pagination,
 }: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -80,11 +74,7 @@ export default function TableIcs({
       <TableDefaultServer
         rows={rows}
         columns={columns}
-        page={page}
-        setPage={setPage}
-        rowsPerPage={rowsPerPage}
-        setRowsPerPage={setRowsPerPage}
-        count={count}
+        {...pagination}
         paintRows={(row: ICSData) => {
           return (
             <StyledTableRow key={row.id}>

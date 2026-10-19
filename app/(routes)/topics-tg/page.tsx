@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from "react";
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 import { Button } from "@mui/material";
-import { useDebouncedCallback } from "use-debounce";
 import AddIcon from "@mui/icons-material/Add";
 import { DialogTitle } from "@mui/material";
 import { DialogContent } from "@mui/material";
@@ -21,6 +20,7 @@ import { toast } from "sonner";
 
 import MultiSelectManufacturingPlants from "@components/MultiSelectManufacturingPlants";
 import { BootstrapDialog } from "@routes/hallazgos/_components/CloseEvidence";
+import { usePaginatedList } from "@hooks";
 import LoadingLinear from "@shared/components/LoadingLinear";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
@@ -327,11 +327,6 @@ const DEFAULT_FILTERS = {
 };
 
 export default function TopicTg() {
-  const [rows, setRows] = useState<Topic[]>([]);
-  const [count, setCount] = useState<number>(0);
-  const [page, setPage] = useState<number>(0);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [currentId, setCurrentId] = useState<number>(0);
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
@@ -343,27 +338,22 @@ export default function TopicTg() {
 
   const { confirm, confirmDialog } = useConfirmDialog();
 
-  const getData = useDebouncedCallback(() => {
-    setIsLoading(true);
-    TopicsService.findAllPaginated({
-      page: page + 1,
-      limit: rowsPerPage,
-      ...filters,
-    })
-      .then(({ data, count }) => {
-        setRows(data);
-        setCount(count);
-      })
-      .finally(() => setIsLoading(false));
-  }, 500);
-
-  useEffect(() => {
-    getData();
-  }, [getData, filters, page, rowsPerPage]);
-
-  useEffect(() => {
-    setPage(0);
-  }, [filters]);
+  const {
+    rows: rows,
+    count,
+    pagination,
+    isLoading,
+    refresh: getData,
+  } = usePaginatedList({
+    key: "topics-tg",
+    filters,
+    fetcher: (filters, { page, limit }) =>
+      TopicsService.findAllPaginated({
+    page,
+    limit,
+    ...filters,
+      }),
+  });
 
   // Solo se lee la lista de plantas para no re-renderizar con cada cambio de
   // la sesión.
@@ -484,11 +474,7 @@ export default function TopicTg() {
         <TableDefaultServer
           rows={rows}
           columns={columns}
-          page={page}
-          setPage={setPage}
-          rowsPerPage={rowsPerPage}
-          setRowsPerPage={setRowsPerPage}
-          count={count}
+          {...pagination}
           ariaLabel="Temas de guías de entrenamiento"
           paintRows={(row) => (
             <StyledTableRow key={row.name}>

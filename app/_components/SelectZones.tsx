@@ -1,13 +1,10 @@
-import { useEffect, useState } from "react";
-
 import { InputLabel } from "@mui/material";
 import { MenuItem } from "@mui/material";
 import { FormControl } from "@mui/material";
 import { FormHelperText } from "@mui/material";
 import { Select, SelectChangeEvent } from "@mui/material";
 
-import { ZonesService } from "@services";
-import { Zone } from "@interfaces";
+import { useZones } from "@hooks";
 
 interface Props {
   value: string;
@@ -22,14 +19,10 @@ const SelectZones = ({
   isFilter = false,
   manufacturingPlantId,
 }: Props) => {
-  const [zones, setZones] = useState<Zone[]>([]);
-
-  useEffect(() => {
-    if (!manufacturingPlantId) return;
-    ZonesService.findAll({
-      manufacturingPlantId: manufacturingPlantId,
-    }).then(setZones);
-  }, [manufacturingPlantId]);
+  const { data: zones = [] } = useZones(
+    { manufacturingPlantId },
+    { enabled: !!manufacturingPlantId },
+  );
 
   return (
     <FormControl fullWidth>

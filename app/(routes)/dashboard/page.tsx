@@ -33,9 +33,10 @@ import { toast } from "sonner";
 
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
-import { Area, ResponseDashboardHeatmapByFilters, User } from "@interfaces";
-import { AreasService, DashboardService, UsersService } from "@services";
-import { useCategoriesStore, useUserSessionStore } from "@store";
+import { ResponseDashboardHeatmapByFilters, User } from "@interfaces";
+import { DashboardService, UsersService } from "@services";
+import { useUserSessionStore } from "@store";
+import { EMPTY_CATALOG, useAreas, useMainTypes } from "@hooks";
 import { useHighchartsTheme } from "@hooks/useHighchartsTheme";
 import AreaImageCoordinateSelector from "../areas/_components/AreaImageCoordinateSelector";
 import AreasChart from "./charts/AreasChart";
@@ -102,7 +103,6 @@ const DashboardPage = () => {
     mainTypeIds: [],
     mainTypeNames: [],
   });
-  const [areas, setAreas] = useState<Area[]>([]);
   const [responsibles, setResponsibles] = useState<User[]>([]);
   const [isHistoricalView, setIsHistoricalView] = useState(false);
   const [isHeatmapView, setIsHeatmapView] = useState(false);
@@ -120,7 +120,7 @@ const DashboardPage = () => {
   const shouldHideProjectionCharts =
     filters.areaIds.length > 1 || filters.responsibleIds.length > 1;
 
-  const { mainTypes } = useCategoriesStore();
+  const mainTypes = useMainTypes().data ?? EMPTY_CATALOG;
   const excludedMainTypeNames = [
     "Comportamiento inseguro",
     "Condición insegura",
@@ -158,15 +158,15 @@ const DashboardPage = () => {
     }));
   };
 
-  useEffect(() => {
-    if (!filters.manufacturingPlantId) {
-      setAreas([]);
-      return;
-    }
+  // Zonas de la planta elegida (caché compartida).
+  const areas =
+    useAreas(
+      { manufacturingPlantId: filters.manufacturingPlantId },
+      { enabled: !!filters.manufacturingPlantId },
+    ).data ?? EMPTY_CATALOG;
 
-    AreasService.findAll({
-      manufacturingPlantId: filters.manufacturingPlantId,
-    }).then(setAreas);
+  useEffect(() => {
+    if (!filters.manufacturingPlantId) return;
 
     setFilters((prev) => ({
       ...prev,

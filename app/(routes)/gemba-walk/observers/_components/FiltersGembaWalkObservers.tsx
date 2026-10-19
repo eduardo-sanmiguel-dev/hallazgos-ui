@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 
+import { useGembaWalkZones } from "@hooks";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
-import { GembaWalkZonesService } from "@services";
 
 import FilterBar from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
@@ -32,25 +32,19 @@ const FiltersGembaWalkObservers = ({
   canClear = false,
   onClear,
 }: Props) => {
-  const [zones, setZones] = useState<{ id: number; name: string }[]>([]);
+  const { data: gembaZones } = useGembaWalkZones(
+    { manufacturingPlantId: filters.manufacturingPlantId },
+    { enabled: !!filters.manufacturingPlantId },
+  );
 
-  useEffect(() => {
-    if (!filters.manufacturingPlantId) {
-      setZones([]);
-      return;
-    }
-
-    GembaWalkZonesService.findAll({
-      manufacturingPlantId: filters.manufacturingPlantId,
-    }).then((data) =>
-      setZones(
-        data.map((zone) => ({
-          id: zone.id,
-          name: `${zone.nameZone} - ${zone.nameLocation}`,
-        })),
-      ),
-    );
-  }, [filters.manufacturingPlantId]);
+  const zones = useMemo(
+    () =>
+      (gembaZones ?? []).map((zone) => ({
+        id: zone.id,
+        name: `${zone.nameZone} - ${zone.nameLocation}`,
+      })),
+    [gembaZones],
+  );
 
   return (
     <FilterBar count={count}>

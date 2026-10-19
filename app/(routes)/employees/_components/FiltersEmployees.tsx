@@ -1,11 +1,8 @@
-import { useEffect, useState } from "react";
-
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
+import { useEmployeeCatalogs } from "@hooks";
 import SelectDefault from "@components/SelectDefault";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
-import { EmployeesService } from "@services";
-import { CatalogEmployee } from "@interfaces";
 
 import FilterBar from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
@@ -52,11 +49,7 @@ interface Props {
 }
 
 const FiltersEmployees = ({ filters, setFilters, count }: Props) => {
-  const [catalogs, setCatalogs] = useState<CatalogEmployee | null>(null);
-
-  useEffect(() => {
-    EmployeesService.catalogs().then(setCatalogs);
-  }, []);
+  const { data: catalogs } = useEmployeeCatalogs();
 
   const hasFiltersToClear = (
     Object.keys(DEFAULT_FILTERS_EMPLOYEES) as (keyof IFiltersEmployeesList)[]

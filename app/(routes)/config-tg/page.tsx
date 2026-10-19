@@ -17,7 +17,6 @@ import { Typography } from "@mui/material";
 import { Grid } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Button } from "@mui/material";
-import { useDebouncedCallback } from "use-debounce";
 import AddIcon from "@mui/icons-material/Add";
 import { IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
@@ -37,6 +36,7 @@ import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 
 import { Transition } from "@routes/hallazgos/_components/EvidencePreview";
+import { EMPTY_CATALOG, usePaginatedList, usePositions } from "@hooks";
 import LoadingLinear from "@shared/components/LoadingLinear";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
@@ -57,12 +57,7 @@ import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
-import {
-  ConfigTgService,
-  EmployeesService,
-  TopicsService,
-  UsersService,
-} from "@services";
+import { ConfigTgService, TopicsService, UsersService } from "@services";
 import {
   BasicData,
   ConfigTg,
@@ -649,13 +644,8 @@ const DEFAULT_FILTERS = {
 };
 
 export default function TopicTg() {
-  const [rows, setRows] = useState<ConfigTg[]>([]);
-  const [count, setCount] = useState<number>(0);
-  const [page, setPage] = useState<number>(0);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
-  const [positions, setPositions] = useState<BasicData[]>([]);
+  const positions = usePositions().data ?? EMPTY_CATALOG;
   const [filterUsers, setFilterUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [currentId, setCurrentId] = useState<number>(0);
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
@@ -668,31 +658,18 @@ export default function TopicTg() {
 
   const { confirm, confirmDialog } = useConfirmDialog();
 
-  const getData = useDebouncedCallback(() => {
-    setIsLoading(true);
-    ConfigTgService.findAllPaginated({
-      page: page + 1,
-      limit: rowsPerPage,
-      ...filters,
-    })
-      .then(({ data, count }) => {
-        setRows(data);
-        setCount(count);
-      })
-      .finally(() => setIsLoading(false));
-  }, 500);
-
-  useEffect(() => {
-    getData();
-  }, [getData, filters, page, rowsPerPage]);
-
-  useEffect(() => {
-    setPage(0);
-  }, [filters]);
-
-  useEffect(() => {
-    EmployeesService.findPositions().then(setPositions);
-  }, []);
+  const {
+    rows,
+    count,
+    pagination,
+    isLoading,
+    refresh: getData,
+  } = usePaginatedList({
+    key: "config-tg",
+    filters,
+    fetcher: (filters, { page, limit }) =>
+      ConfigTgService.findAllPaginated({ page, limit, ...filters }),
+  });
 
   // Jefes disponibles para filtrar: usuarios de la planta elegida.
   useEffect(() => {
@@ -843,11 +820,7 @@ export default function TopicTg() {
         <TableDefaultServer
           rows={rows}
           columns={columns}
-          page={page}
-          setPage={setPage}
-          rowsPerPage={rowsPerPage}
-          setRowsPerPage={setRowsPerPage}
-          count={count}
+          {...pagination}
           ariaLabel="Configuraciones de guías de entrenamiento"
           paintRows={(row) => (
             <StyledTableRow key={row.id}>

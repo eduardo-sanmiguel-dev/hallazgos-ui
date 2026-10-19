@@ -1,15 +1,13 @@
-import { useEffect, useState } from "react";
-
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 
+import { EMPTY_CATALOG, useProcesses } from "@hooks";
 import SelectDefault from "@components/SelectDefault";
 import SelectManufacturingPlants from "@components/SelectManufacturingPlants";
 import SelectRules from "@components/SelectRules";
 import SelectZones from "@components/SelectZones";
 import FilterBar from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
-import { ProcessesService } from "@services";
 
 export interface IFiltersUsers {
   // Nombre o correo electrónico.
@@ -36,21 +34,12 @@ interface Props {
 }
 
 const FiltersUsers = ({ filters, setFilters, count }: Props) => {
-  const [processes, setProcesses] = useState<{ id: number; name: string }[]>(
-    [],
-  );
-
   // Zonas y procesos dependen de la planta.
-  useEffect(() => {
-    if (!filters.manufacturingPlantId) {
-      setProcesses([]);
-      return;
-    }
-
-    ProcessesService.findAll({
-      manufacturingPlantId: filters.manufacturingPlantId,
-    }).then(setProcesses);
-  }, [filters.manufacturingPlantId]);
+  const processes =
+    useProcesses(
+      { manufacturingPlantId: filters.manufacturingPlantId },
+      { enabled: !!filters.manufacturingPlantId },
+    ).data ?? EMPTY_CATALOG;
 
   const hasFiltersToClear = (
     Object.keys(DEFAULT_FILTERS_USERS) as (keyof IFiltersUsers)[]

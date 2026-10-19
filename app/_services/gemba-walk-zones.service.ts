@@ -1,3 +1,4 @@
+import { withCatalogInvalidation } from "@shared/libs/catalogKeys";
 import axiosWrapper from "./axiosWrapper";
 import { GembaWalkZone } from "@interfaces";
 
@@ -79,9 +80,9 @@ const findAllPaginated = async ({
 
 export const GembaWalkZonesService = {
   findAllPaginated,
-  create,
+  create: withCatalogInvalidation(create, "gembaWalkZones"),
   findAll,
   findOne,
-  update,
-  remove,
+  update: withCatalogInvalidation(update, "gembaWalkZones"),
+  remove: withCatalogInvalidation(remove, "gembaWalkZones"),
 };

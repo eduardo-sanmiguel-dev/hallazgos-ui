@@ -1,12 +1,9 @@
-import { useEffect, useState } from "react";
-
 import { InputLabel } from "@mui/material";
 import { MenuItem } from "@mui/material";
 import { FormControl } from "@mui/material";
 import { Select, SelectChangeEvent } from "@mui/material";
 
-import { MainTypesService } from "@services";
-import { MainType } from "@interfaces";
+import { useMainTypes } from "@hooks";
 
 interface Props {
   value: string;
@@ -15,11 +12,7 @@ interface Props {
 }
 
 const SelectMainTypes = ({ value, onChange, isFilter = false }: Props) => {
-  const [mainTypes, setMainTypes] = useState<MainType[]>([]);
-
-  useEffect(() => {
-    MainTypesService.findAll({}).then(setMainTypes);
-  }, []);
+  const { data: mainTypes = [] } = useMainTypes();
 
   return (
     <FormControl fullWidth>

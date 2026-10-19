@@ -11,13 +11,10 @@ import { Grid } from "@mui/material";
 import { toast } from "sonner";
 import { FormHelperText } from "@mui/material";
 
-import {
-  GembaWalkObserversService,
-  UsersService,
-  GembaWalkZonesService,
-} from "@services";
+import { GembaWalkObserversService, UsersService } from "@services";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
+import { useCatalog, useGembaWalkZones } from "@hooks";
 import { useFieldErrors } from "@hooks/useFieldErrors";
 import PageHeader from "@shared/components/PageHeader";
 import FormSection from "@shared/components/FormSection";
@@ -30,8 +27,6 @@ interface Option {
 
 const GembaWalkObserversFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [zones, setZones] = useState<Option[]>([]);
-  const [users, setUsers] = useState<Option[]>([]);
   const [form, setForm] = useState<{
     manufacturingPlantId: string;
     gembaWalkZoneId: string;
@@ -128,34 +123,38 @@ const GembaWalkObserversFormPage = () => {
     });
   }, [searchParams]);
 
-  useEffect(() => {
-    setZones([]);
-    setUsers([]);
+  // Zonas y usuarios de la planta elegida (caché compartida).
+  const { manufacturingPlantId } = form;
+  const { data: gembaWalkZones } = useGembaWalkZones(
+    { manufacturingPlantId },
+    { enabled: !!manufacturingPlantId },
+  );
+  const { data: plantUsers } = useCatalog(
+    "users",
+    () => UsersService.findAll({ manufacturingPlantId }),
+    { enabled: !!manufacturingPlantId, params: { manufacturingPlantId } },
+  );
 
-    if (!form.manufacturingPlantId) return;
-
-    GembaWalkZonesService.findAll({
-      manufacturingPlantId: form.manufacturingPlantId,
-    }).then((data) =>
-      setZones(
-        data.map((zone) => ({
-          id: zone.id,
-          name: `${zone.nameZone} - ${zone.nameLocation}`,
-        })),
-      ),
-    );
-
-    UsersService.findAll({
-      manufacturingPlantId: form.manufacturingPlantId,
-    }).then((data) =>
-      setUsers(
-        data.map((user) => ({
-          id: user.id,
-          name: `${user.name} - ${user.email}`,
-        })),
-      ),
-    );
-  }, [form.manufacturingPlantId]);
+  const zones = useMemo<Option[]>(
+    () =>
+      manufacturingPlantId && gembaWalkZones
+        ? gembaWalkZones.map((zone) => ({
+            id: zone.id,
+            name: `${zone.nameZone} - ${zone.nameLocation}`,
+          }))
+        : [],
+    [manufacturingPlantId, gembaWalkZones],
+  );
+  const users = useMemo<Option[]>(
+    () =>
+      manufacturingPlantId && plantUsers
+        ? plantUsers.map((user) => ({
+            id: user.id,
+            name: `${user.name} - ${user.email}`,
+          }))
+        : [],
+    [manufacturingPlantId, plantUsers],
+  );
 
   return (
     <>

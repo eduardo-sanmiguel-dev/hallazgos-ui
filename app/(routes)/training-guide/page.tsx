@@ -14,6 +14,7 @@ import {
 
 import { styled } from "@mui/material/styles";
 import { Box } from "@mui/material";
+import { LinearProgress } from "@mui/material";
 import { Collapse } from "@mui/material";
 import { IconButton } from "@mui/material";
 import { Table } from "@mui/material";
@@ -37,7 +38,6 @@ import { List } from "@mui/material";
 import { Divider } from "@mui/material";
 import { AppBar } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import { useDebouncedCallback } from "use-debounce";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -70,6 +70,7 @@ import {
   ResponseTrainingGuide,
   TypesOfEvaluations,
 } from "@interfaces";
+import { usePaginatedList } from "@hooks";
 import LoadingLinear from "@shared/components/LoadingLinear";
 import { notify, stringToDateWithTime } from "@shared/utils";
 import PageHeader from "@shared/components/PageHeader";
@@ -415,7 +416,9 @@ function ScreenEdition({
     type: string;
   }>();
 
-  const { id: userSessionId, email } = useUserSessionStore();
+  const { userSessionId, email } = useUserSessionStore(
+    useShallow((state) => ({ userSessionId: state.id, email: state.email })),
+  );
 
   useEffect(() => {
     if (responseTrainingGuide) {
@@ -1067,11 +1070,6 @@ function ScreenEdition({
 }
 
 const TrainingGuidePage = () => {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [count, setCount] = useState<number>(0);
-  const [page, setPage] = useState<number>(0);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [currentEmployee, setCurrentEmployee] = useState<Employee>();
 
   const searchParams = useSearchParams();
@@ -1082,9 +1080,33 @@ const TrainingGuidePage = () => {
     DEFAULT_FILTERS_TRAINING_GUIDE,
   );
 
-  const { email, id: userSessionId } = useUserSessionStore(
-    useShallow((state) => state),
+  const { email, userSessionId } = useUserSessionStore(
+    useShallow((state) => ({ email: state.email, userSessionId: state.id })),
   );
+
+  const {
+    rows: employees,
+    count,
+    pagination: { page, setPage, rowsPerPage, setRowsPerPage, isFetching },
+    isLoading,
+    refresh: getData,
+  } = usePaginatedList({
+    key: "training-guide",
+    filters,
+    fetcher: (filters, { page, limit }) =>
+      EmployeesService.findAllPaginated({
+        page,
+        limit,
+        manufacturingPlantId: Number(filters.manufacturingPlantId || 0),
+        name: filters.name,
+        areaId: filters.areaId,
+        positionId: filters.positionId,
+        signatureStatus: filters.signatureStatus,
+        ...(!emailsEditors.includes(email) && {
+          assignedUserId: userSessionId,
+        }),
+      }),
+  });
 
   const emptyRows =
     page > 0 && rowsPerPage > 0
@@ -1102,35 +1124,7 @@ const TrainingGuidePage = () => {
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
   };
-
-  const getData = useDebouncedCallback(() => {
-    setIsLoading(true);
-    EmployeesService.findAllPaginated({
-      page: page + 1,
-      limit: rowsPerPage,
-      manufacturingPlantId: Number(filters.manufacturingPlantId || 0),
-      name: filters.name,
-      areaId: filters.areaId,
-      positionId: filters.positionId,
-      signatureStatus: filters.signatureStatus,
-      ...(!emailsEditors.includes(email) && { assignedUserId: userSessionId }),
-    })
-      .then(({ data, count }) => {
-        setEmployees(data);
-        setCount(count);
-      })
-      .finally(() => setIsLoading(false));
-  }, 500);
-
-  useEffect(() => {
-    getData();
-  }, [getData, filters, page, rowsPerPage]);
-
-  useEffect(() => {
-    setPage(0);
-  }, [filters]);
 
   useEffect(() => {
     if (employeeName && employees.length) {
@@ -1191,7 +1185,10 @@ const TrainingGuidePage = () => {
           {isLoading ? (
             <LoadingLinear />
           ) : (
-            <TableContainer component={Paper}>
+            <TableContainer component={Paper} aria-busy={isFetching}>
+              <Box sx={{ height: 4 }}>
+                {isFetching && <LinearProgress aria-label="Actualizando" />}
+              </Box>
               <Table
                 sx={{ minWidth: 500 }}
                 aria-label="custom pagination table"

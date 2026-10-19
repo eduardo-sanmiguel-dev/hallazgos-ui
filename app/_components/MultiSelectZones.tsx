@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Theme, useTheme } from "@mui/material/styles";
 import { Box } from "@mui/material";
@@ -10,7 +10,7 @@ import { Select, SelectChangeEvent } from "@mui/material";
 import { Chip } from "@mui/material";
 import type { MenuProps as MuiMenuProps } from "@mui/material";
 
-import { ZonesService } from "@services";
+import { useZones } from "@hooks";
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -47,18 +47,17 @@ export default function MultiSelectZones({
   manufacturingPlantNames,
 }: Props) {
   const theme = useTheme();
-  const [names, setNames] = useState<string[]>([]);
   const [labelSelectAll, setLabelSelectAll] = useState("Todos");
 
-  useEffect(() => {
-    ZonesService.findAll({
-      manufacturingPlantNames,
-    }).then((zones) => {
-      setNames(
-        zones.map((zone) => `${zone.manufacturingPlant.name} - ${zone.name}`),
-      );
-    });
-  }, [manufacturingPlantNames]);
+  const { data: zones } = useZones({ manufacturingPlantNames });
+
+  const names = useMemo(
+    () =>
+      (zones ?? []).map(
+        (zone) => `${zone.manufacturingPlant.name} - ${zone.name}`,
+      ),
+    [zones],
+  );
 
   useEffect(() => {
     if (!values.length) {

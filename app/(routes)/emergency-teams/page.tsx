@@ -7,9 +7,9 @@ import { useRouter } from "next/navigation";
 import Button from "@mui/material/Button";
 import Add from "@mui/icons-material/Add";
 import PrintIcon from "@mui/icons-material/Print";
-import { useDebouncedCallback } from "use-debounce";
 import QRCode from "qrcode";
 
+import { usePaginatedList } from "@hooks";
 import LoadingLinear from "@shared/components/LoadingLinear";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
@@ -23,47 +23,40 @@ import FiltersEmergencyTeams, {
 } from "./_components/FiltersEmergencyTeams";
 
 const EmergencyTeamsPage = () => {
-  const [data, setData] = useState<EmergencyTeam[]>([]);
-  const [count, setCount] = useState<number>(0);
-  const [page, setPage] = useState<number>(0);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   // Filas ya cargadas por id: la selección puede abarcar varias páginas y
   // la API solo devuelve la actual.
   const [rowsById, setRowsById] = useState<Record<number, EmergencyTeam>>({});
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [filters, setFilters] = useState<IFiltersEmergencyTeams>(
     DEFAULT_FILTERS_EMERGENCY_TEAMS,
   );
 
   const router = useRouter();
 
-  const getData = useDebouncedCallback(() => {
-    setIsLoading(true);
-    EmergencyTeamsService.findAllPaginated({
-      ...filters,
-      page: page + 1,
-      limit: rowsPerPage,
-    })
-      .then(({ data, count }) => {
-        setData(data);
-        setCount(count);
-        setRowsById((prev) => ({
-          ...prev,
-          ...Object.fromEntries(data.map((row) => [row.id, row])),
-        }));
-      })
-      .finally(() => setIsLoading(false));
-  }, 500);
+  const {
+    rows: data,
+    count,
+    pagination,
+    isLoading,
+    refresh: getData,
+  } = usePaginatedList({
+    key: "emergency-teams",
+    filters,
+    fetcher: (filters, { page, limit }) =>
+      EmergencyTeamsService.findAllPaginated({ ...filters, page, limit }),
+  });
 
+  // Cada página recibida se agrega al caché de filas para imprimir.
   useEffect(() => {
-    getData();
-  }, [getData, filters, page, rowsPerPage]);
+    setRowsById((prev) => ({
+      ...prev,
+      ...Object.fromEntries(data.map((row) => [row.id, row])),
+    }));
+  }, [data]);
 
-  // Al cambiar los filtros se vuelve a la primera página y la selección se
-  // limpia (antes se conservaban solo los registros del nuevo resultado).
+  // Al cambiar los filtros la selección se limpia (la página vuelve a la 1 en
+  // usePaginatedList).
   useEffect(() => {
-    setPage(0);
     setSelectedIds([]);
   }, [filters]);
 
@@ -259,10 +252,10 @@ const EmergencyTeamsPage = () => {
           selectedIds={selectedIds}
           setSelectedIds={setSelectedIds}
           getData={getData}
-          page={page}
-          setPage={setPage}
-          rowsPerPage={rowsPerPage}
-          setRowsPerPage={setRowsPerPage}
+          page={pagination.page}
+          setPage={pagination.setPage}
+          rowsPerPage={pagination.rowsPerPage}
+          setRowsPerPage={pagination.setRowsPerPage}
           count={count}
         />
       )}

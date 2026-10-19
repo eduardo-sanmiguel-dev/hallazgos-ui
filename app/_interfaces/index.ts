@@ -4,7 +4,6 @@ export * from "./areas.interfaces";
 export * from "./at-agents.interfaces";
 export * from "./at-mechanisms.interfaces";
 export * from "./body-part.interfaces";
-export * from "./categories.interfaces";
 export * from "./ciaels.interfaces";
 export * from "./cie-diagnoses.interfaces";
 export * from "./dashboard.interfaces";

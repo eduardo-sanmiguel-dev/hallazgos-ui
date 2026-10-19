@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Theme, useTheme } from "@mui/material/styles";
 import { Box } from "@mui/material";
@@ -10,7 +10,7 @@ import { Select, SelectChangeEvent } from "@mui/material";
 import { Chip } from "@mui/material";
 import type { MenuProps as MuiMenuProps } from "@mui/material";
 
-import { ManufacturingPlantsService } from "@services";
+import { useManufacturingPlants } from "@hooks";
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -45,14 +45,14 @@ export default function MultiSelectManufacturingPlants({
   onChange,
 }: Props) {
   const theme = useTheme();
-  const [names, setNames] = useState<string[]>([]);
   const [labelSelectAll, setLabelSelectAll] = useState("Todos");
 
-  useEffect(() => {
-    ManufacturingPlantsService.findAll({}).then((manufacturingPlants) =>
-      setNames(manufacturingPlants.map((plant) => plant.name)),
-    );
-  }, []);
+  const { data: manufacturingPlants } = useManufacturingPlants();
+
+  const names = useMemo(
+    () => (manufacturingPlants ?? []).map((plant) => plant.name),
+    [manufacturingPlants],
+  );
 
   useEffect(() => {
     if (!values.length) {

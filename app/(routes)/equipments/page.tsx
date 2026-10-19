@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from "react";
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 import { Button } from "@mui/material";
-import { useDebouncedCallback } from "use-debounce";
 import AddIcon from "@mui/icons-material/Add";
 import { DialogTitle } from "@mui/material";
 import { DialogContent } from "@mui/material";
@@ -17,6 +16,7 @@ import { toast } from "sonner";
 
 import { BootstrapDialog } from "@routes/hallazgos/_components/CloseEvidence";
 import SelectManufacturingPlants from "@components/SelectManufacturingPlants";
+import { usePaginatedList } from "@hooks";
 import LoadingLinear from "@shared/components/LoadingLinear";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
@@ -310,11 +310,6 @@ const ScreenForm = ({
 };
 
 export default function EquipmentsPage() {
-  const [rows, setRows] = useState<Equipment[]>([]);
-  const [count, setCount] = useState<number>(0);
-  const [page, setPage] = useState<number>(0);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [currentId, setCurrentId] = useState<number>(0);
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
@@ -328,28 +323,23 @@ export default function EquipmentsPage() {
 
   const { confirm, confirmDialog } = useConfirmDialog();
 
-  const getData = useDebouncedCallback(() => {
-    setIsLoading(true);
-    EquipmentsService.findAllPaginated({
-      page: page + 1,
-      limit: rowsPerPage,
-      manufacturingPlantId: filters.manufacturingPlantId,
-      name: filters.name,
-    })
-      .then(({ data, count }) => {
-        setRows(data);
-        setCount(count);
-      })
-      .finally(() => setIsLoading(false));
-  }, 500);
-
-  useEffect(() => {
-    getData();
-  }, [getData, filters, page, rowsPerPage]);
-
-  useEffect(() => {
-    setPage(0);
-  }, [filters]);
+  const {
+    rows: rows,
+    count,
+    pagination,
+    isLoading,
+    refresh: getData,
+  } = usePaginatedList({
+    key: "equipments",
+    filters,
+    fetcher: (filters, { page, limit }) =>
+      EquipmentsService.findAllPaginated({
+        page,
+        limit,
+        manufacturingPlantId: filters.manufacturingPlantId,
+        name: filters.name,
+      }),
+  });
 
   const manufacturingPlants = useUserSessionStore(
     (state) => state.manufacturingPlants,
@@ -457,11 +447,7 @@ export default function EquipmentsPage() {
         <TableDefaultServer
           rows={rows}
           columns={columns}
-          page={page}
-          setPage={setPage}
-          rowsPerPage={rowsPerPage}
-          setRowsPerPage={setRowsPerPage}
-          count={count}
+          {...pagination}
           ariaLabel="Equipos de protección personal"
           paintRows={(row) => (
             <StyledTableRow key={row.name}>

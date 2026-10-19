@@ -1,5 +1,6 @@
 "use client";
 
+
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState } from "react";
@@ -16,8 +17,9 @@ import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import { v4 as uuidv4 } from "uuid";
 
+import { EMPTY_CATALOG, useIcsCatalogs } from "@hooks";
 import { EmployeesService, IcsService } from "@services";
-import { CatalogICS, Employee } from "@interfaces";
+import { Employee } from "@interfaces";
 import SelectDefault from "@components/SelectDefault";
 import { Paper, SelectChangeEvent, TextField } from "@mui/material";
 import { useUserSessionStore } from "@store";
@@ -31,7 +33,7 @@ import FormActions from "@shared/components/FormActions";
 const IcsFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [idCurrent, setIdCurrent] = useState<number>(0);
-  const [catalogs, setCatalogs] = useState<CatalogICS[]>([]);
+  const catalogs = useIcsCatalogs().data ?? EMPTY_CATALOG;
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [image, setImage] = useState<string>("");
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
@@ -65,10 +67,6 @@ const IcsFormPage = () => {
   const manufacturingPlants = useUserSessionStore(
     (state) => state.manufacturingPlants,
   );
-
-  useEffect(() => {
-    IcsService.catalogs().then((data) => setCatalogs(data));
-  }, []);
 
   const save = () => {
     const manufacturingPlantId = form.manufacturingPlant;

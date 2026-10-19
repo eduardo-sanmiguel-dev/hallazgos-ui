@@ -1,18 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
 import { Button } from "@mui/material";
 import Add from "@mui/icons-material/Add";
-import { useDebouncedCallback } from "use-debounce";
 
+import { usePaginatedList } from "@hooks";
 import LoadingLinear from "@shared/components/LoadingLinear";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { GembaWalkObserversService } from "@services";
-import { GembaWalkObserver } from "@interfaces";
 import TableGembaWalkObservers from "./_components/TableGembaWalkObservers";
 import FiltersGembaWalkObservers, {
   IFiltersGembaWalkObservers,
@@ -26,37 +25,27 @@ const defaultFilters = (): IFiltersGembaWalkObservers => ({
 });
 
 const GembaWalkObserversPage = () => {
-  const [data, setData] = useState<GembaWalkObserver[]>([]);
-  const [count, setCount] = useState<number>(0);
-  const [page, setPage] = useState<number>(0);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [filters, setFilters] =
     useState<IFiltersGembaWalkObservers>(defaultFilters);
 
   const router = useRouter();
 
-  const getData = useDebouncedCallback(() => {
-    setIsLoading(true);
-    GembaWalkObserversService.findAllPaginated({
-      ...filters,
-      page: page + 1,
-      limit: rowsPerPage,
-    })
-      .then(({ data, count }) => {
-        setData(data);
-        setCount(count);
-      })
-      .finally(() => setIsLoading(false));
-  }, 500);
-
-  useEffect(() => {
-    getData();
-  }, [getData, filters, page, rowsPerPage]);
-
-  useEffect(() => {
-    setPage(0);
-  }, [filters]);
+  const {
+    rows: data,
+    count,
+    pagination,
+    isLoading,
+    refresh: getData,
+  } = usePaginatedList({
+    key: "gemba-walk/observers",
+    filters,
+    fetcher: (filters, { page, limit }) =>
+      GembaWalkObserversService.findAllPaginated({
+        ...filters,
+        page,
+        limit,
+      }),
+  });
 
   return (
     <>
@@ -83,11 +72,7 @@ const GembaWalkObserversPage = () => {
         <TableGembaWalkObservers
           rows={data}
           getData={getData}
-          page={page}
-          setPage={setPage}
-          rowsPerPage={rowsPerPage}
-          setRowsPerPage={setRowsPerPage}
-          count={count}
+          pagination={pagination}
         />
       )}
     </>

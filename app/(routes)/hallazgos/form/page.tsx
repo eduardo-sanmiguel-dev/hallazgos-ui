@@ -15,7 +15,8 @@ import { Grid } from "@mui/material";
 import { v4 as uuidv4 } from "uuid";
 
 import { EvidencesService, handleErrorResponse, UsersService } from "@services";
-import { useCategoriesStore, useUserSessionStore } from "@store";
+import { useUserSessionStore } from "@store";
+import { EMPTY_CATALOG, useMainTypes, useProcesses, useZones } from "@hooks";
 import ImageORCamera from "@shared/components/ImageORCamera";
 import { dataURLtoFile, notify } from "@shared/utils";
 import SelectDefault from "@components/SelectDefault";
@@ -44,7 +45,9 @@ export default function HallazgosFormPage() {
   const [description, setDescription] = useState<string>("");
   const [priorityDays, setPriorityDays] = useState<string>("");
 
-  const { mainTypes, zones, processes } = useCategoriesStore();
+  const mainTypes = useMainTypes().data ?? EMPTY_CATALOG;
+  const zones = useZones().data ?? EMPTY_CATALOG;
+  const processes = useProcesses().data ?? EMPTY_CATALOG;
 
   useEffect(() => {
     UsersService.findAllSupervisors().then(setSupervisors);

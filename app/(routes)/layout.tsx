@@ -187,7 +187,8 @@ export default function MainLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const { id: userId, setSession } = useUserSessionStore();
+  const userId = useUserSessionStore((state) => state.id);
+  const setSession = useUserSessionStore((state) => state.setSession);
 
   useEffect(() => {
     if (!userId) {

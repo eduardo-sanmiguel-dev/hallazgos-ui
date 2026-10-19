@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useState } from "react";
+import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -15,18 +15,16 @@ import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
-import TableDefaultServer from "@shared/components/TableDefaultServer";
+import TableDefaultServer, {
+  type ServerPagination,
+} from "@shared/components/TableDefaultServer";
 import { User } from "@interfaces";
 import { UsersService } from "@services";
 
 interface Props {
   rows: User[];
   getData: () => void;
-  page: number;
-  setPage: Dispatch<SetStateAction<number>>;
-  rowsPerPage: number;
-  setRowsPerPage: Dispatch<SetStateAction<number>>;
-  count: number;
+  pagination: ServerPagination;
 }
 
 const columns = [
@@ -45,11 +43,7 @@ const columns = [
 export default function TableUsers({
   rows,
   getData,
-  page,
-  setPage,
-  rowsPerPage,
-  setRowsPerPage,
-  count,
+  pagination,
 }: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -90,11 +84,7 @@ export default function TableUsers({
       <TableDefaultServer
         rows={rows}
         columns={columns}
-        page={page}
-        setPage={setPage}
-        rowsPerPage={rowsPerPage}
-        setRowsPerPage={setRowsPerPage}
-        count={count}
+        {...pagination}
         paintRows={(row: User) => {
           const zonesName = row.zones
             .map(

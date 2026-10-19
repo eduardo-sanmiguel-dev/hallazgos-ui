@@ -1,3 +1,4 @@
+import { withCatalogInvalidation } from "@shared/libs/catalogKeys";
 import axiosWrapper from "./axiosWrapper";
 import { MainType } from "@interfaces";
 
@@ -67,9 +68,9 @@ const findAllPaginated = async ({
 
 export const MainTypesService = {
   findAllPaginated,
-  create,
+  create: withCatalogInvalidation(create, "mainTypes"),
   findAll,
   findOne,
-  update,
-  remove,
+  update: withCatalogInvalidation(update, "mainTypes"),
+  remove: withCatalogInvalidation(remove, "mainTypes"),
 };

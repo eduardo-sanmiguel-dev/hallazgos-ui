@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useDebounce } from "use-debounce";
+import { useEffect, useState } from "react";
 
 import { Button, Grid } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -12,87 +11,55 @@ import FiltersEpp, {
   DEFAULT_FILTERS_EPP,
   type IFiltersEpp,
 } from "./_components/FiltersEpp";
+import { usePaginatedList } from "@hooks";
 import { useUserSessionStore } from "@store";
 import { EppService } from "@services";
-import { Epp, EppSortableColumn } from "@interfaces";
+import { EppSortableColumn } from "@interfaces";
 import { SortOrder } from "@shared/utils";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 
 export default function EppPage() {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [rows, setRows] = useState<Epp[]>([]);
-  const [count, setCount] = useState<number>(0);
   const [open, setOpen] = useState<boolean>(false);
   const [manufacturingPlantId, setManufacturingPlantId] = useState<string>("");
-
-  // Estado de la consulta paginada (page es 0-based, como TablePagination).
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [order, setOrder] = useState<SortOrder>("asc");
   const [orderBy, setOrderBy] = useState<EppSortableColumn | null>(null);
   const [filters, setFilters] = useState<IFiltersEpp>(DEFAULT_FILTERS_EPP);
-  // Un solo debounce para todos los filtros (incluida la búsqueda por texto).
-  const [debouncedFilters] = useDebounce(filters, 400);
-
-  // Solo se aplica la respuesta de la última petición.
-  const lastRequestId = useRef(0);
 
   const manufacturingPlants = useUserSessionStore(
     (state) => state.manufacturingPlants,
   );
 
-  const getData = useCallback(() => {
-    const requestId = ++lastRequestId.current;
+  // Planta, filtros y orden forman la consulta: cualquier cambio vuelve a la
+  // página 1 y las respuestas viejas se descartan (usePaginatedList).
+  const {
+    rows,
+    count,
+    pagination: { page, setPage, rowsPerPage, setRowsPerPage, isFetching },
+    isLoading,
+    refresh: getData,
+  } = usePaginatedList({
+    key: "epp",
+    filters: { manufacturingPlantId, ...filters, order, orderBy },
+    fetcher: ({ order, orderBy, ...query }, { page, limit }) =>
+      EppService.findPaginated({
+        ...query,
+        page,
+        limit,
+        ...(orderBy && { orderBy, order }),
+      }),
+    initialRowsPerPage: 10,
+    debounceMs: 400,
+    enabled: !!manufacturingPlantId,
+  });
 
-    if (!manufacturingPlantId) {
-      setRows([]);
-      setCount(0);
-      setIsLoading(false);
-      return;
+  // Si la página quedó vacía (p. ej. se borró el último registro), ir a la
+  // última con datos.
+  useEffect(() => {
+    if (!rows.length && count > 0 && page > 0) {
+      setPage(Math.max(0, Math.ceil(count / rowsPerPage) - 1));
     }
-
-    setIsLoading(true);
-
-    EppService.findPaginated({
-      manufacturingPlantId,
-      page: page + 1,
-      limit: rowsPerPage,
-      ...debouncedFilters,
-      ...(orderBy && { orderBy, order }),
-    })
-      .then(({ data, count }) => {
-        if (requestId !== lastRequestId.current) return;
-
-        // Si la página quedó vacía (ej. se borró el último registro), ir a la última con datos.
-        if (!data.length && count > 0 && page > 0) {
-          setPage(Math.max(0, Math.ceil(count / rowsPerPage) - 1));
-          return;
-        }
-
-        setRows(data);
-        setCount(count);
-      })
-      .finally(() => {
-        if (requestId === lastRequestId.current) setIsLoading(false);
-      });
-  }, [
-    manufacturingPlantId,
-    page,
-    rowsPerPage,
-    debouncedFilters,
-    order,
-    orderBy,
-  ]);
-
-  useEffect(() => {
-    getData();
-  }, [getData]);
-
-  // Cualquier cambio de filtro, orden o tamaño vuelve a la primera página.
-  useEffect(() => {
-    setPage(0);
-  }, [manufacturingPlantId, debouncedFilters, order, orderBy, rowsPerPage]);
+  }, [rows, count, page, rowsPerPage, setPage]);
 
   useEffect(() => {
     if (manufacturingPlants.length) {
@@ -147,7 +114,7 @@ export default function EppPage() {
           <TableEpps
             rows={rows}
             count={count}
-            isLoading={isLoading}
+            isLoading={isLoading || isFetching}
             page={page}
             rowsPerPage={rowsPerPage}
             hasFilters={Object.values(filters).some(Boolean)}

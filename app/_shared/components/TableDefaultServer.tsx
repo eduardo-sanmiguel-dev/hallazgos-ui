@@ -1,32 +1,40 @@
-import {
-  ChangeEvent,
-  Dispatch,
-  MouseEvent,
-  ReactNode,
-  SetStateAction,
-  useEffect,
-  useState,
-} from "react";
+import { ChangeEvent, MouseEvent, ReactNode, useState } from "react";
 
 import { Table } from "@mui/material";
 import { TableBody } from "@mui/material";
 import { TableContainer } from "@mui/material";
 import { TableHead } from "@mui/material";
 import { Paper } from "@mui/material";
+import { Box } from "@mui/material";
+import { LinearProgress } from "@mui/material";
 
 import TableFooterDefault from "./TableFooterDefault";
 import { StyledTableCell, StyledTableRow } from "./TableDefault";
+
+/** Paginación controlada (la que devuelve usePaginatedList). */
+export interface ServerPagination {
+  page: number;
+  setPage: (page: number) => void;
+  rowsPerPage: number;
+  setRowsPerPage: (rowsPerPage: number) => void;
+  count: number;
+  isFetching?: boolean;
+}
 
 interface Props<T> {
   rows: T[];
   // Firma de método para aceptar los `paintRows={(row: X) => ...}` existentes.
   paintRows(value: T, index: number, array: T[]): ReactNode;
   columns: string[];
+  // Con setPage/setRowsPerPage la paginación es controlada por el padre;
+  // sin ellos, la tabla la maneja internamente.
   page?: number;
-  setPage?: Dispatch<SetStateAction<number>>;
+  setPage?: (page: number) => void;
   rowsPerPage?: number;
-  setRowsPerPage?: Dispatch<SetStateAction<number>>;
+  setRowsPerPage?: (rowsPerPage: number) => void;
   count?: number;
+  // Recarga en curso con datos visibles: barra fina sin desmontar la tabla.
+  isFetching?: boolean;
   // Nombre accesible de la tabla.
   ariaLabel?: string;
 }
@@ -40,23 +48,21 @@ const TableDefaultServer = <T,>({
   rowsPerPage: rowsPerPageCtrl,
   setRowsPerPage: setRowsPerPageCtrl,
   count,
+  isFetching = false,
   ariaLabel = "Tabla de registros",
 }: Props<T>) => {
-  const [page, setPage] = useState(pageCtrl || 0);
-  const [rowsPerPage, setRowsPerPage] = useState(rowsPerPageCtrl || 5);
+  const [pageLocal, setPageLocal] = useState(pageCtrl || 0);
+  const [rowsPerPageLocal, setRowsPerPageLocal] = useState(
+    rowsPerPageCtrl || 5,
+  );
   const [colSpan] = useState(columns.length);
 
-  useEffect(() => {
-    if (setPageCtrl) {
-      setPageCtrl(page);
-    }
-  }, [page, setPageCtrl]);
-
-  useEffect(() => {
-    if (setRowsPerPageCtrl) {
-      setRowsPerPageCtrl(rowsPerPage);
-    }
-  }, [rowsPerPage, setRowsPerPageCtrl]);
+  const page = setPageCtrl ? (pageCtrl ?? 0) : pageLocal;
+  const rowsPerPage = setRowsPerPageCtrl
+    ? (rowsPerPageCtrl ?? 5)
+    : rowsPerPageLocal;
+  const setPage = setPageCtrl ?? setPageLocal;
+  const setRowsPerPage = setRowsPerPageCtrl ?? setRowsPerPageLocal;
 
   const handleChangePage = (
     _: MouseEvent<HTMLButtonElement> | null,
@@ -73,7 +79,10 @@ const TableDefaultServer = <T,>({
   };
 
   return (
-    <TableContainer component={Paper}>
+    <TableContainer component={Paper} aria-busy={isFetching}>
+      <Box sx={{ height: 4 }}>
+        {isFetching && <LinearProgress aria-label="Actualizando" />}
+      </Box>
       <Table sx={{ minWidth: 500 }} aria-label={ariaLabel}>
         <TableHead>
           <StyledTableRow>

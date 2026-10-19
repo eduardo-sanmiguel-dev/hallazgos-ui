@@ -37,7 +37,8 @@ import type {
   EventInput,
 } from "@fullcalendar/core";
 
-import { GembaWalkCalendarService, GembaWalkZonesService } from "@services";
+import { useGembaWalkZones } from "@hooks";
+import { GembaWalkCalendarService } from "@services";
 import { GembaWalkCalendar } from "@interfaces";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import PageHeader from "@shared/components/PageHeader";
@@ -109,7 +110,6 @@ const GembaWalkCalendarFormPage = () => {
   const [manufacturingPlantId, setManufacturingPlantId] = useState<string>(
     searchParams.get("manufacturingPlantId") || "",
   );
-  const [zones, setZones] = useState<CalendarOption[]>([]);
   const [range, setRange] = useState<{ start: string; end: string } | null>(
     null,
   );
@@ -122,6 +122,22 @@ const GembaWalkCalendarFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isCancelConfirmOpen, setIsCancelConfirmOpen] =
     useState<boolean>(false);
+
+  // Zonas Gemba de la planta elegida (caché compartida).
+  const { data: gembaWalkZones } = useGembaWalkZones(
+    { manufacturingPlantId },
+    { enabled: !!manufacturingPlantId },
+  );
+  const zones = useMemo<CalendarOption[]>(
+    () =>
+      manufacturingPlantId && gembaWalkZones
+        ? gembaWalkZones.map((zone) => ({
+            id: zone.id,
+            name: `${zone.nameZone} - ${zone.nameLocation}`,
+          }))
+        : [],
+    [manufacturingPlantId, gembaWalkZones],
+  );
 
   const calendarRef = useRef<FullCalendar>(null);
   const newKeyCounter = useRef(0);
@@ -153,21 +169,6 @@ const GembaWalkCalendarFormPage = () => {
   useEffect(() => {
     getSavedEvents();
   }, [getSavedEvents]);
-
-  useEffect(() => {
-    setZones([]);
-
-    if (!manufacturingPlantId) return;
-
-    GembaWalkZonesService.findAll({ manufacturingPlantId }).then((data) =>
-      setZones(
-        data.map((zone) => ({
-          id: zone.id,
-          name: `${zone.nameZone} - ${zone.nameLocation}`,
-        })),
-      ),
-    );
-  }, [manufacturingPlantId]);
 
   const savedById = useMemo(
     () => new Map(savedEvents.map((event) => [event.id, event])),

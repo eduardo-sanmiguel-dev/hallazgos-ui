@@ -1,3 +1,4 @@
+import { withCatalogInvalidation } from "@shared/libs/catalogKeys";
 import axiosWrapper from "./axiosWrapper";
 import { User } from "@interfaces";
 
@@ -100,12 +101,12 @@ const findAllSupervisors = async () => {
 };
 
 export const UsersService = {
-  create,
+  create: withCatalogInvalidation(create, "users"),
   findAll,
   findAllPaginated,
   getInformationCurrentUser,
   findOne,
-  update,
-  remove,
+  update: withCatalogInvalidation(update, "users"),
+  remove: withCatalogInvalidation(remove, "users"),
   findAllSupervisors,
 };

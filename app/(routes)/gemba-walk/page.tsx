@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -9,14 +9,13 @@ import { Grid } from "@mui/material";
 import { Button } from "@mui/material";
 import Add from "@mui/icons-material/Add";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import { useDebouncedCallback } from "use-debounce";
 import moment from "moment-timezone";
 
+import { EMPTY_CATALOG, useGembaWalkZones, usePaginatedList } from "@hooks";
 import LoadingLinear from "@shared/components/LoadingLinear";
 import SelectDefault from "@components/SelectDefault";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
-import { GembaWalksService, GembaWalkZonesService } from "@services";
-import { GembaWalk, GembaWalkZone } from "@interfaces";
+import { GembaWalksService } from "@services";
 import { useUserSessionStore } from "@store";
 import GembaWalkAccessGuard from "./_components/GembaWalkAccessGuard";
 import PageHeader from "@shared/components/PageHeader";
@@ -48,12 +47,6 @@ const defaultFilters = () => ({
 });
 
 const GembaWalksList = () => {
-  const [data, setData] = useState<GembaWalk[]>([]);
-  const [count, setCount] = useState<number>(0);
-  const [page, setPage] = useState<number>(0);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
-  const [zones, setZones] = useState<GembaWalkZone[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [filters, setFilters] = useState(defaultFilters);
 
   const hasFiltersToClear = useMemo(() => {
@@ -67,11 +60,9 @@ const GembaWalksList = () => {
 
   const userPlants = useUserSessionStore((state) => state.manufacturingPlants);
 
-  useEffect(() => {
-    GembaWalkZonesService.findAll({
-      manufacturingPlantId: filters.manufacturingPlantId,
-    }).then(setZones);
-  }, [filters.manufacturingPlantId]);
+  const zones =
+    useGembaWalkZones({ manufacturingPlantId: filters.manufacturingPlantId })
+      .data ?? EMPTY_CATALOG;
 
   // Solo zonas de las plantas del usuario.
   const ownZones = useMemo(() => {
@@ -100,39 +91,34 @@ const GembaWalksList = () => {
     [ownZones, filters.nameZone],
   );
 
-  const getData = useDebouncedCallback(() => {
-    setIsLoading(true);
-    // Días locales del filtro; endDate se envía exclusivo (día siguiente).
-    GembaWalksService.findAllPaginated({
-      page: page + 1,
-      limit: rowsPerPage,
-      manufacturingPlantId: filters.manufacturingPlantId,
-      nameZone: filters.nameZone,
-      nameLocation: filters.nameLocation,
-      isAdditional: filters.isAdditional,
-      ...(filters.startDate && {
-        startDate: moment(filters.startDate, "YYYY-MM-DD").toISOString(),
+  const {
+    rows: data,
+    count,
+    pagination,
+    isLoading,
+    refresh: getData,
+  } = usePaginatedList({
+    key: "gemba-walk",
+    filters,
+    fetcher: (filters, { page, limit }) =>
+      // Días locales del filtro; endDate se envía exclusivo (día siguiente).
+      GembaWalksService.findAllPaginated({
+    page,
+    limit,
+    manufacturingPlantId: filters.manufacturingPlantId,
+    nameZone: filters.nameZone,
+    nameLocation: filters.nameLocation,
+    isAdditional: filters.isAdditional,
+    ...(filters.startDate && {
+      startDate: moment(filters.startDate, "YYYY-MM-DD").toISOString(),
+    }),
+    ...(filters.endDate && {
+      endDate: moment(filters.endDate, "YYYY-MM-DD")
+        .add(1, "day")
+        .toISOString(),
+    }),
       }),
-      ...(filters.endDate && {
-        endDate: moment(filters.endDate, "YYYY-MM-DD")
-          .add(1, "day")
-          .toISOString(),
-      }),
-    })
-      .then(({ data, count }) => {
-        setData(data);
-        setCount(count);
-      })
-      .finally(() => setIsLoading(false));
-  }, 500);
-
-  useEffect(() => {
-    getData();
-  }, [getData, filters, page, rowsPerPage]);
-
-  useEffect(() => {
-    setPage(0);
-  }, [filters]);
+  });
 
   return (
     <>
@@ -244,11 +230,7 @@ const GembaWalksList = () => {
       ) : (
         <TableGembaWalks
           rows={data}
-          page={page}
-          setPage={setPage}
-          rowsPerPage={rowsPerPage}
-          setRowsPerPage={setRowsPerPage}
-          count={count}
+          pagination={pagination}
         />
       )}
     </>

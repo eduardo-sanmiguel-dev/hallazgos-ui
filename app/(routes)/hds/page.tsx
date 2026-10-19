@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
-import { useDebouncedCallback } from "use-debounce";
 
 import SelectDefault from "@components/SelectDefault";
+import { usePaginatedList } from "@hooks";
 import LoadingLinear from "@shared/components/LoadingLinear";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
@@ -40,35 +40,24 @@ const ORDER_OPTIONS = [
 const columns = ["Nombre", "Visualizar archivo"];
 
 const HdsPage = () => {
-  const [data, setData] = useState<Hds[]>([]);
-  const [count, setCount] = useState<number>(0);
-  const [page, setPage] = useState<number>(0);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
   const [filters, setFilters] = useState<IFiltersHds>(DEFAULT_FILTERS_HDS);
 
-  const getData = useDebouncedCallback(() => {
-    setIsLoading(true);
-    HdsService.findAllPaginated({
-      ...filters,
-      page: page + 1,
-      limit: rowsPerPage,
-    })
-      .then(({ data, count }) => {
-        setData(data);
-        setCount(count);
-      })
-      .finally(() => setIsLoading(false));
-  }, 500);
-
-  useEffect(() => {
-    getData();
-  }, [getData, filters, page, rowsPerPage]);
-
-  useEffect(() => {
-    setPage(0);
-  }, [filters]);
+  const {
+    rows: data,
+    count,
+    pagination,
+    isLoading,
+    refresh: getData,
+  } = usePaginatedList({
+    key: "hds",
+    filters,
+    fetcher: (filters, { page, limit }) =>
+      HdsService.findAllPaginated({
+        ...filters,
+        page,
+        limit,
+      }),
+  });
 
   return (
     <>
@@ -123,11 +112,7 @@ const HdsPage = () => {
         <TableDefaultServer
           rows={data}
           columns={columns}
-          page={page}
-          setPage={setPage}
-          rowsPerPage={rowsPerPage}
-          setRowsPerPage={setRowsPerPage}
-          count={count}
+          {...pagination}
           ariaLabel="Hojas de datos de seguridad"
           paintRows={(row: Hds) => (
             <StyledTableRow key={row.name}>

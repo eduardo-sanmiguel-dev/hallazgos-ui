@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 import { ApolloWrapper } from "@shared/libs/apollo-wrapper";
+import QueryProvider from "@shared/components/QueryProvider";
 
 import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
@@ -29,7 +30,9 @@ export default function RootLayout({
         {/* Cada layout o página define su propio <main>. */}
         {/* <DatadogRumInit /> */}
         <ThemeRegistry options={{ key: "mui" }}>
-          <ApolloWrapper>{children}</ApolloWrapper>
+          <QueryProvider>
+            <ApolloWrapper>{children}</ApolloWrapper>
+          </QueryProvider>
         </ThemeRegistry>
         <Toaster position="top-right" expand={true} richColors closeButton />
       </body>

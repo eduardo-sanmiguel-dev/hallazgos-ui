@@ -4,7 +4,6 @@ import {
   Fragment,
   MouseEvent,
   ReactNode,
-  useCallback,
   useEffect,
   useRef,
   useState,
@@ -58,15 +57,10 @@ import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import RouteIcon from "@mui/icons-material/Route";
 import PersonSearchIcon from "@mui/icons-material/PersonSearch";
 
-import { useCategoriesStore, useUserSessionStore } from "@store";
+import { useUserSessionStore } from "@store";
 import { ROLE_ADMINISTRADOR } from "@shared/constants";
 import { primaryTextColor } from "../../theme";
-import {
-  GembaWalksService,
-  MainTypesService,
-  ProcessesService,
-  ZonesService,
-} from "@services";
+import { GembaWalksService } from "@services";
 
 // Usuarios que solo usan EPP: ven EPP e inspección de extintores, pero no
 // Guías de entrenamiento ni HDS.
@@ -685,26 +679,6 @@ export const MainListItems = ({
   const pathname = usePathname();
 
   const isAdmin = role === ROLE_ADMINISTRADOR;
-
-  const { setCategories } = useCategoriesStore();
-
-  const initialCategories = useCallback(async () => {
-    const [mainTypes, zones, processes] = await Promise.all([
-      MainTypesService.findAll({}),
-      ZonesService.findAll({}),
-      ProcessesService.findAll({}),
-    ]);
-
-    setCategories({
-      mainTypes,
-      zones,
-      processes,
-    });
-  }, [setCategories]);
-
-  useEffect(() => {
-    initialCategories();
-  }, [initialCategories]);
 
   // El módulo de recorridos se muestra a los observadores de Gemba Walk y al
   // administrador.

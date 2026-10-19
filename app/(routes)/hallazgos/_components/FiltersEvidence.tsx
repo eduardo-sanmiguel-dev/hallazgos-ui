@@ -15,7 +15,8 @@ import { esES } from "@mui/x-date-pickers/locales";
 import "dayjs/locale/es";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { useCategoriesStore, useUserSessionStore } from "@store";
+import { useUserSessionStore } from "@store";
+import { EMPTY_CATALOG, useMainTypes, useZones } from "@hooks";
 import SelectDefault from "@components/SelectDefault";
 import { SecondaryType, User } from "@interfaces";
 import { UsersService } from "@services";
@@ -71,7 +72,8 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
     (state) => state.manufacturingPlants,
   );
 
-  const { mainTypes, zones } = useCategoriesStore();
+  const mainTypes = useMainTypes().data ?? EMPTY_CATALOG;
+  const zones = useZones().data ?? EMPTY_CATALOG;
 
   const clearAllFilters = () => {
     setLocalEvidenceId("");

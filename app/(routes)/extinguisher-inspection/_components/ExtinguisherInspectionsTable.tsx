@@ -1,5 +1,3 @@
-import { Dispatch, SetStateAction } from "react";
-
 import SimCardDownloadIcon from "@mui/icons-material/SimCardDownload";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutlineOutlined";
 import IconButton from "@mui/material/IconButton";
@@ -16,15 +14,13 @@ import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
-import TableDefaultServer from "@shared/components/TableDefaultServer";
+import TableDefaultServer, {
+  type ServerPagination,
+} from "@shared/components/TableDefaultServer";
 
 interface Props {
   rows: ExtinguisherInspection[];
-  page: number;
-  setPage: Dispatch<SetStateAction<number>>;
-  rowsPerPage: number;
-  setRowsPerPage: Dispatch<SetStateAction<number>>;
-  count: number;
+  pagination: ServerPagination;
 }
 
 const columns = [
@@ -40,11 +36,7 @@ const columns = [
 
 export default function ExtinguisherInspectionsTable({
   rows,
-  page,
-  setPage,
-  rowsPerPage,
-  setRowsPerPage,
-  count,
+  pagination,
 }: Props) {
   const router = useRouter();
 
@@ -52,11 +44,7 @@ export default function ExtinguisherInspectionsTable({
     <TableDefaultServer
       rows={rows}
       columns={columns}
-      page={page}
-      setPage={setPage}
-      rowsPerPage={rowsPerPage}
-      setRowsPerPage={setRowsPerPage}
-      count={count}
+      {...pagination}
       paintRows={(row: ExtinguisherInspection) => (
         <StyledTableRow key={row.id} hover>
           <StyledTableCell>{row.id}</StyledTableCell>

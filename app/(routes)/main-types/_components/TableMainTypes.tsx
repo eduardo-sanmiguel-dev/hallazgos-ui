@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useState } from "react";
+import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -13,18 +13,16 @@ import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
-import TableDefaultServer from "@shared/components/TableDefaultServer";
+import TableDefaultServer, {
+  type ServerPagination,
+} from "@shared/components/TableDefaultServer";
 import { MainType } from "@interfaces";
 import { MainTypesService } from "@services";
 
 interface Props {
   rows: MainType[];
   getData: () => void;
-  page: number;
-  setPage: Dispatch<SetStateAction<number>>;
-  rowsPerPage: number;
-  setRowsPerPage: Dispatch<SetStateAction<number>>;
-  count: number;
+  pagination: ServerPagination;
 }
 
 const columns = [
@@ -35,15 +33,7 @@ const columns = [
   "Acciones",
 ];
 
-export default function TableMainTypes({
-  rows,
-  getData,
-  page,
-  setPage,
-  rowsPerPage,
-  setRowsPerPage,
-  count,
-}: Props) {
+export default function TableMainTypes({ rows, getData, pagination }: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const router = useRouter();
@@ -75,11 +65,7 @@ export default function TableMainTypes({
       <TableDefaultServer
         rows={rows}
         columns={columns}
-        page={page}
-        setPage={setPage}
-        rowsPerPage={rowsPerPage}
-        setRowsPerPage={setRowsPerPage}
-        count={count}
+        {...pagination}
         paintRows={(row: MainType) => (
           <StyledTableRow key={row.id}>
             <StyledTableCell component="th" scope="row">

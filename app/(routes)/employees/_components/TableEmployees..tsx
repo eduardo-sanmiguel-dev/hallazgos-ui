@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
@@ -17,17 +17,15 @@ import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
-import TableDefaultServer from "@shared/components/TableDefaultServer";
+import TableDefaultServer, {
+  type ServerPagination,
+} from "@shared/components/TableDefaultServer";
 import { EmployeesService } from "@services";
 
 interface Props {
   rows: Employee[];
   getData: () => void;
-  page: number;
-  setPage: Dispatch<SetStateAction<number>>;
-  rowsPerPage: number;
-  setRowsPerPage: Dispatch<SetStateAction<number>>;
-  count: number;
+  pagination: ServerPagination;
 }
 
 const columns = [
@@ -43,15 +41,7 @@ const columns = [
   "Acciones",
 ];
 
-export default function TableEmployees({
-  rows,
-  getData,
-  page,
-  setPage,
-  rowsPerPage,
-  setRowsPerPage,
-  count,
-}: Props) {
+export default function TableEmployees({ rows, getData, pagination }: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const router = useRouter();
@@ -83,11 +73,7 @@ export default function TableEmployees({
       <TableDefaultServer
         rows={rows}
         columns={columns}
-        page={page}
-        setPage={setPage}
-        rowsPerPage={rowsPerPage}
-        setRowsPerPage={setRowsPerPage}
-        count={count}
+        {...pagination}
         paintRows={(row: Employee) => {
           return (
             <StyledTableRow key={row.id}>

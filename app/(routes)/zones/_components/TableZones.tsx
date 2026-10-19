@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useState } from "react";
+import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -14,18 +14,16 @@ import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
-import TableDefaultServer from "@shared/components/TableDefaultServer";
+import TableDefaultServer, {
+  type ServerPagination,
+} from "@shared/components/TableDefaultServer";
 import { Zone } from "@interfaces";
 import { ZonesService } from "@services";
 
 interface Props {
   rows: Zone[];
   getData: () => void;
-  page: number;
-  setPage: Dispatch<SetStateAction<number>>;
-  rowsPerPage: number;
-  setRowsPerPage: Dispatch<SetStateAction<number>>;
-  count: number;
+  pagination: ServerPagination;
 }
 
 const columns = [
@@ -43,11 +41,7 @@ const columns = [
 export default function TableZones({
   rows,
   getData,
-  page,
-  setPage,
-  rowsPerPage,
-  setRowsPerPage,
-  count,
+  pagination,
 }: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -80,11 +74,7 @@ export default function TableZones({
       <TableDefaultServer
         rows={rows}
         columns={columns}
-        page={page}
-        setPage={setPage}
-        rowsPerPage={rowsPerPage}
-        setRowsPerPage={setRowsPerPage}
-        count={count}
+        {...pagination}
         paintRows={(row: Zone) => (
           <StyledTableRow key={row.id}>
             <StyledTableCell component="th" scope="row">

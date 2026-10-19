@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { TextField } from "@mui/material";
@@ -26,24 +26,7 @@ import { TypeOfLinksService } from "_services/type-of-links.service";
 import SelectDefault from "@components/SelectDefault";
 import { useFieldErrors } from "@hooks/useFieldErrors";
 import { useUserSessionStore } from "@store";
-import {
-  AccidentPosition,
-  AssociatedTask,
-  AtAgent,
-  AtMechanism,
-  BodyPart,
-  CieDiagnosis,
-  Employee,
-  Machine,
-  NatureOfEvent,
-  RiskFactor,
-  TypeOfEvent,
-  TypeOfInjury,
-  TypeOfLink,
-  User,
-  WorkingDay,
-  Zone,
-} from "@interfaces";
+import { EMPTY_CATALOG, useCatalog, useTypesOfEvents, useZones } from "@hooks";
 import {
   AccidentPositionsService,
   AtAgentsService,
@@ -56,10 +39,8 @@ import {
   NatureOfEventsService,
   RiskFactorsService,
   TypeOfInjuriesService,
-  TypesOfEventsService,
   UsersService,
   WorkingDaysService,
-  ZonesService,
 } from "@services";
 
 interface Props {
@@ -133,28 +114,86 @@ const trueFalseOptions = [
 ];
 
 export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
-  const [typesOfEvents, setTypesOfEvents] = useState<TypeOfEvent[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [cieDiagnoses, setCieDiagnoses] = useState<CieDiagnosis[]>([]);
-  const [zones, setZones] = useState<Zone[]>([]);
-  const [bodyParts, setBodyParts] = useState<BodyPart[]>([]);
-  const [atAgents, setAtAgents] = useState<AtAgent[]>([]);
-  const [accidentPositions, setAccidentPositions] = useState<
-    AccidentPosition[]
-  >([]);
-  const [typeOfInjuries, setTypeOfInjuries] = useState<TypeOfInjury[]>([]);
-  const [atMechanisms, setAtMechanisms] = useState<AtMechanism[]>([]);
-  const [workingDays, setWorkingDays] = useState<WorkingDay[]>([]);
-  const [typesOfLinks, setTypesOfLinks] = useState<TypeOfLink[]>([]);
-  const [machines, setMachines] = useState<Machine[]>([]);
-  const [associatedTasks, setAssociatedTasks] = useState<AssociatedTask[]>([]);
-  const [areaLeaders, setAreaLeaders] = useState<User[]>([]);
-  const [riskFactors, setRiskFactors] = useState<RiskFactor[]>([]);
-  const [natureOfEvents, setNatureOfEvents] = useState<NatureOfEvent[]>([]);
-  const [managersOnDuty, setManagersOnDuty] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const [form, setForm] = useState<FormProps>(initialForm);
+
+  // Catálogos compartidos por toda la app (caché de React Query).
+  const typesOfEvents = useTypesOfEvents().data ?? EMPTY_CATALOG;
+  const cieDiagnoses =
+    useCatalog("cieDiagnoses", CieDiagnosesService.findAll).data ??
+    EMPTY_CATALOG;
+  const bodyParts =
+    useCatalog("bodyParts", BodyPartsService.findAll).data ?? EMPTY_CATALOG;
+  const atAgents =
+    useCatalog("atAgents", AtAgentsService.findAll).data ?? EMPTY_CATALOG;
+  const typeOfInjuries =
+    useCatalog("typeOfInjuries", TypeOfInjuriesService.findAll).data ??
+    EMPTY_CATALOG;
+  const atMechanisms =
+    useCatalog("atMechanisms", AtMechanismsService.findAll).data ??
+    EMPTY_CATALOG;
+  const workingDays =
+    useCatalog("workingDays", WorkingDaysService.findAll).data ?? EMPTY_CATALOG;
+  const typesOfLinks =
+    useCatalog("typesOfLinks", TypeOfLinksService.findAll).data ??
+    EMPTY_CATALOG;
+  const riskFactors =
+    useCatalog("riskFactors", RiskFactorsService.findAll).data ?? EMPTY_CATALOG;
+  const natureOfEvents =
+    useCatalog("natureOfEvents", NatureOfEventsService.findAll).data ??
+    EMPTY_CATALOG;
+  const { data: users } = useCatalog("users", () => UsersService.findAll({}));
+  const managersOnDuty = useMemo(
+    () => [...(users ?? [])].sort((a, b) => a.name.localeCompare(b.name)),
+    [users],
+  );
+
+  // Dependen de la planta elegida.
+  const manufacturingPlantId = form.manufacturingPlant;
+  const byPlant = {
+    enabled: !!manufacturingPlantId,
+    params: { manufacturingPlantId },
+  };
+  const employees =
+    useCatalog(
+      "employees",
+      () =>
+        EmployeesService.findAll({
+          manufacturingPlantId: Number(manufacturingPlantId),
+        }),
+      byPlant,
+    ).data ?? EMPTY_CATALOG;
+  const zones =
+    useZones(
+      { manufacturingPlantId, withArea: true },
+      { enabled: !!manufacturingPlantId },
+    ).data ?? EMPTY_CATALOG;
+  const accidentPositions =
+    useCatalog(
+      "accidentPositions",
+      () => AccidentPositionsService.findAll({ manufacturingPlantId }),
+      byPlant,
+    ).data ?? EMPTY_CATALOG;
+  const machines =
+    useCatalog(
+      "machines",
+      () => MachinesService.findAll({ manufacturingPlantId }),
+      byPlant,
+    ).data ?? EMPTY_CATALOG;
+  const associatedTasks =
+    useCatalog(
+      "associatedTasks",
+      () => AssociatedTasksService.findAll({ manufacturingPlantId }),
+      byPlant,
+    ).data ?? EMPTY_CATALOG;
+
+  // Líderes de la zona elegida.
+  const areaLeaders =
+    useCatalog("users", () => UsersService.findAll({ zoneId: form.zone }), {
+      enabled: !!form.zone,
+      params: { zoneId: form.zone },
+    }).data ?? EMPTY_CATALOG;
   const { fail, errorOf, fieldProps } = useFieldErrors<
     | "manufacturingPlant"
     | "typeOfEvent"
@@ -186,48 +225,6 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
   const manufacturingPlants = useUserSessionStore(
     (state) => state.manufacturingPlants,
   );
-
-  useEffect(() => {
-    TypesOfEventsService.findAll().then(setTypesOfEvents);
-    CieDiagnosesService.findAll().then(setCieDiagnoses);
-    BodyPartsService.findAll().then(setBodyParts);
-    AtAgentsService.findAll().then(setAtAgents);
-    TypeOfInjuriesService.findAll().then(setTypeOfInjuries);
-    AtMechanismsService.findAll().then(setAtMechanisms);
-    WorkingDaysService.findAll().then(setWorkingDays);
-    TypeOfLinksService.findAll().then(setTypesOfLinks);
-    RiskFactorsService.findAll().then(setRiskFactors);
-    NatureOfEventsService.findAll().then(setNatureOfEvents);
-    UsersService.findAll({}).then((users) =>
-      setManagersOnDuty(users.sort((a, b) => a.name.localeCompare(b.name))),
-    );
-  }, []);
-
-  useEffect(() => {
-    if (form.manufacturingPlant) {
-      const manufacturingPlantId = form.manufacturingPlant;
-      EmployeesService.findAll({
-        manufacturingPlantId: Number(manufacturingPlantId),
-      }).then(setEmployees);
-      ZonesService.findAll({ manufacturingPlantId, withArea: true }).then(
-        setZones,
-      );
-      AccidentPositionsService.findAll({ manufacturingPlantId }).then(
-        setAccidentPositions,
-      );
-      MachinesService.findAll({ manufacturingPlantId }).then(setMachines);
-      AssociatedTasksService.findAll({ manufacturingPlantId }).then(
-        setAssociatedTasks,
-      );
-    }
-  }, [form.manufacturingPlant]);
-
-  useEffect(() => {
-    if (form.zone) {
-      const zoneId = form.zone;
-      UsersService.findAll({ zoneId }).then(setAreaLeaders);
-    }
-  }, [form.zone]);
 
   const handleClose = () => {
     setOpen(false);

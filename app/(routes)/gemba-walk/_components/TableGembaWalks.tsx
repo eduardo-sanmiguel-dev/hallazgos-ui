@@ -1,5 +1,3 @@
-import { Dispatch, SetStateAction } from "react";
-
 import { useRouter } from "next/navigation";
 
 import { Chip } from "@mui/material";
@@ -11,17 +9,15 @@ import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
-import TableDefaultServer from "@shared/components/TableDefaultServer";
+import TableDefaultServer, {
+  type ServerPagination,
+} from "@shared/components/TableDefaultServer";
 import { GembaWalk } from "@interfaces";
 import { formatDuration } from "./formatDuration";
 
 interface Props {
   rows: GembaWalk[];
-  page: number;
-  setPage: Dispatch<SetStateAction<number>>;
-  rowsPerPage: number;
-  setRowsPerPage: Dispatch<SetStateAction<number>>;
-  count: number;
+  pagination: ServerPagination;
 }
 
 const columns = [
@@ -52,25 +48,14 @@ export const complianceOf = (gembaWalk: GembaWalk) => {
   };
 };
 
-export default function TableGembaWalks({
-  rows,
-  page,
-  setPage,
-  rowsPerPage,
-  setRowsPerPage,
-  count,
-}: Props) {
+export default function TableGembaWalks({ rows, pagination }: Props) {
   const router = useRouter();
 
   return (
     <TableDefaultServer
       rows={rows}
       columns={columns}
-      page={page}
-      setPage={setPage}
-      rowsPerPage={rowsPerPage}
-      setRowsPerPage={setRowsPerPage}
-      count={count}
+      {...pagination}
       paintRows={(row: GembaWalk) => {
         const { compliant, nonCompliant, percent } = complianceOf(row);
         const zone = row.gembaWalkCalendar?.gembaWalkZone;

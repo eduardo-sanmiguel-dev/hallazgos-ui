@@ -4,12 +4,13 @@ import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 import dayjs from "dayjs";
 
+import { useEmployeeCatalogs } from "@hooks";
 import SelectDefault from "@components/SelectDefault";
 import DateFieldDMY from "@routes/gemba-walk/calendar/_components/DateFieldDMY";
 import FilterBar from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
-import { CatalogEmployee, Equipment } from "@interfaces";
-import { EmployeesService, EquipmentsService } from "@services";
+import { Equipment } from "@interfaces";
+import { EquipmentsService } from "@services";
 
 export interface IFiltersEpp {
   // Nombre o cédula del colaborador (área y cargo tienen su propio select).
@@ -48,12 +49,8 @@ const FiltersEpp = ({
   setFilters,
   count,
 }: Props) => {
-  const [catalogs, setCatalogs] = useState<CatalogEmployee>();
+  const { data: catalogs } = useEmployeeCatalogs();
   const [equipments, setEquipments] = useState<Equipment[]>([]);
-
-  useEffect(() => {
-    EmployeesService.catalogs().then(setCatalogs);
-  }, []);
 
   // Los equipos dependen de la planta.
   useEffect(() => {
