@@ -142,13 +142,18 @@ export default function TableEvidences({
     if (confirmed) removeEvicence(row.id);
   };
 
+  // Cerrado y Cancelado son finales: el API responde 409 a cerrar, cancelar o
+  // reasignar fuera de Abierto / En progreso.
+  const isActiveStatus = (row: EvidenceGraphql) =>
+    row.status === STATUS_OPEN || row.status === STATUS_IN_PROGRESS;
+
   // !Atention: Force close evidence if the user is a supervisor
   const validateSupervisor = (row: EvidenceGraphql) => {
     if (supervisorOverrideEmails.includes(email)) {
       return true;
     }
     return (
-      row.status === STATUS_OPEN &&
+      isActiveStatus(row) &&
       role === ROLE_SUPERVISOR &&
       (row.supervisors
         .map((supervisor) => Number(supervisor.id))
@@ -602,7 +607,7 @@ export default function TableEvidences({
                     </MenuItem>
                   )}
 
-                {validateSupervisor(row) && row.status !== STATUS_CLOSED && (
+                {validateSupervisor(row) && isActiveStatus(row) && (
                   <MenuItem
                     onClick={() => {
                       closeActionsMenu();
@@ -617,7 +622,7 @@ export default function TableEvidences({
                   </MenuItem>
                 )}
 
-                {canReassignEvidence(row) && row.status !== STATUS_CLOSED && (
+                {canReassignEvidence(row) && isActiveStatus(row) && (
                   <MenuItem
                     onClick={() => {
                       closeActionsMenu();
@@ -631,7 +636,7 @@ export default function TableEvidences({
                   </MenuItem>
                 )}
 
-                {row.status === STATUS_OPEN &&
+                {isActiveStatus(row) &&
                   (role === ROLE_ADMINISTRADOR ||
                     cancelEvidenceEmails.includes(email)) && (
                     <MenuItem
