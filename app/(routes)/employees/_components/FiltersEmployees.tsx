@@ -13,7 +13,6 @@ export interface IFiltersEmployees {
   name?: string;
   positionId?: number;
   areaId?: number;
-  assignedUserId?: number;
   isActive?: string;
 }
 

@@ -9,7 +9,7 @@ import { Grid } from "@mui/material";
 import { Button } from "@mui/material";
 import Add from "@mui/icons-material/Add";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import moment from "moment-timezone";
+import dayjs, { toISOStringOrNull } from "@shared/libs/dayjs";
 
 import { EMPTY_CATALOG, useGembaWalkZones, usePaginatedList } from "@hooks";
 import LoadingLinear from "@shared/components/LoadingLinear";
@@ -39,8 +39,8 @@ const toOptions = (names: string[]) =>
 // Filtros por defecto: mes en curso, sin más criterios.
 const defaultFilters = () => ({
   manufacturingPlantId: "",
-  startDate: moment().startOf("month").format("YYYY-MM-DD"),
-  endDate: moment().endOf("month").format("YYYY-MM-DD"),
+  startDate: dayjs().startOf("month").format("YYYY-MM-DD"),
+  endDate: dayjs().endOf("month").format("YYYY-MM-DD"),
   nameZone: "",
   nameLocation: "",
   isAdditional: "",
@@ -103,20 +103,20 @@ const GembaWalksList = () => {
     fetcher: (filters, { page, limit }) =>
       // Días locales del filtro; endDate se envía exclusivo (día siguiente).
       GembaWalksService.findAllPaginated({
-    page,
-    limit,
-    manufacturingPlantId: filters.manufacturingPlantId,
-    nameZone: filters.nameZone,
-    nameLocation: filters.nameLocation,
-    isAdditional: filters.isAdditional,
-    ...(filters.startDate && {
-      startDate: moment(filters.startDate, "YYYY-MM-DD").toISOString(),
-    }),
-    ...(filters.endDate && {
-      endDate: moment(filters.endDate, "YYYY-MM-DD")
-        .add(1, "day")
-        .toISOString(),
-    }),
+        page,
+        limit,
+        manufacturingPlantId: filters.manufacturingPlantId,
+        nameZone: filters.nameZone,
+        nameLocation: filters.nameLocation,
+        isAdditional: filters.isAdditional,
+        ...(filters.startDate && {
+          startDate: toISOStringOrNull(dayjs(filters.startDate, "YYYY-MM-DD")),
+        }),
+        ...(filters.endDate && {
+          endDate: toISOStringOrNull(
+            dayjs(filters.endDate, "YYYY-MM-DD").add(1, "day"),
+          ),
+        }),
       }),
   });
 
@@ -182,9 +182,7 @@ const GembaWalksList = () => {
           <DateFieldDMY
             label="Hasta"
             value={filters.endDate}
-            onChange={(endDate) =>
-              setFilters((prev) => ({ ...prev, endDate }))
-            }
+            onChange={(endDate) => setFilters((prev) => ({ ...prev, endDate }))}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -228,10 +226,7 @@ const GembaWalksList = () => {
       {isLoading ? (
         <LoadingLinear />
       ) : (
-        <TableGembaWalks
-          rows={data}
-          pagination={pagination}
-        />
+        <TableGembaWalks rows={data} pagination={pagination} />
       )}
     </>
   );

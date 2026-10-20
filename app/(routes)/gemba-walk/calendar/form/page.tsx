@@ -22,7 +22,7 @@ import type { Theme } from "@mui/material/styles";
 import SaveIcon from "@mui/icons-material/Save";
 import CloseIcon from "@mui/icons-material/Close";
 import { toast } from "sonner";
-import moment from "moment-timezone";
+import dayjs, { toISOStringOrNull } from "@shared/libs/dayjs";
 
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -57,7 +57,7 @@ interface DraftEvent {
 const DEFAULT_TIME = "08:00";
 
 const toScheduledAt = (date: string, time: string) =>
-  moment(`${date} ${time}`, "YYYY-MM-DD HH:mm").toISOString();
+  toISOStringOrNull(dayjs(`${date} ${time}`, "YYYY-MM-DD HH:mm"));
 
 // No se crean ni editan eventos en el pasado.
 const isPast = (scheduledAt: string | Date) =>
@@ -102,9 +102,7 @@ const GembaWalkCalendarFormPage = () => {
 
   const initialDate = useMemo(() => {
     const date = searchParams.get("date");
-    return date && moment(date, "YYYY-MM-DD", true).isValid()
-      ? date
-      : undefined;
+    return date && dayjs(date, "YYYY-MM-DD", true).isValid() ? date : undefined;
   }, [searchParams]);
 
   const [manufacturingPlantId, setManufacturingPlantId] = useState<string>(
@@ -296,24 +294,25 @@ const GembaWalkCalendarFormPage = () => {
     }
 
     const dates: string[] = [];
-    const end = moment(arg.end);
+    const end = dayjs(arg.end);
 
     if (arg.allDay) {
+      // dayjs es inmutable: add devuelve una fecha nueva.
       for (
-        const day = moment(arg.start);
+        let day = dayjs(arg.start);
         day.isBefore(end);
-        day.add(1, "day")
+        day = day.add(1, "day")
       ) {
         dates.push(day.format("YYYY-MM-DD"));
       }
     } else {
-      dates.push(moment(arg.start).format("YYYY-MM-DD"));
+      dates.push(dayjs(arg.start).format("YYYY-MM-DD"));
     }
 
     setDialogState({
       mode: "create",
       dates,
-      time: arg.allDay ? DEFAULT_TIME : moment(arg.start).format("HH:mm"),
+      time: arg.allDay ? DEFAULT_TIME : dayjs(arg.start).format("HH:mm"),
     });
   };
 
@@ -328,7 +327,7 @@ const GembaWalkCalendarFormPage = () => {
       return;
     }
 
-    const start = moment(current.scheduledAt);
+    const start = dayjs(current.scheduledAt);
 
     setDialogState({
       mode: "edit",
@@ -678,12 +677,12 @@ const GembaWalkCalendarFormPage = () => {
               eventDrop={handleEventDrop}
               selectAllow={(info) =>
                 info.allDay
-                  ? !moment(info.start).isBefore(moment().startOf("day"))
+                  ? !dayjs(info.start).isBefore(dayjs().startOf("day"))
                   : !isPast(info.start)
               }
               eventAllow={(dropInfo) =>
                 dropInfo.allDay
-                  ? !moment(dropInfo.start).isBefore(moment().startOf("day"))
+                  ? !dayjs(dropInfo.start).isBefore(dayjs().startOf("day"))
                   : !isPast(dropInfo.start)
               }
             />

@@ -22,7 +22,7 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import type { Theme } from "@mui/material/styles";
 import { toast } from "sonner";
-import moment from "moment-timezone";
+import dayjs from "@shared/libs/dayjs";
 
 import { GembaWalkEvaluationsService, GembaWalksService } from "@services";
 import { GembaWalkCalendar, GembaWalkEvaluation } from "@interfaces";
@@ -46,13 +46,13 @@ interface Answer {
 const TOLERANCE_MINUTES = 15;
 
 const deadlineOf = (event: GembaWalkCalendar) =>
-  moment(event.scheduledAt).add(TOLERANCE_MINUTES, "minutes");
+  dayjs(event.scheduledAt).add(TOLERANCE_MINUTES, "minute");
 
 const isOutOfTime = (event: GembaWalkCalendar, now: Date) =>
-  moment(now).isAfter(deadlineOf(event));
+  dayjs(now).isAfter(deadlineOf(event));
 
 const eventLabel = (event: GembaWalkCalendar, now: Date) =>
-  `${moment(event.scheduledAt).format("HH:mm")} · ${event.gembaWalkZone.nameZone} - ${event.gembaWalkZone.nameLocation}${event.isAdditional ? " (Adicional)" : ""}${isOutOfTime(event, now) ? " — Fuera de tiempo" : ""}`;
+  `${dayjs(event.scheduledAt).format("HH:mm")} · ${event.gembaWalkZone.nameZone} - ${event.gembaWalkZone.nameLocation}${event.isAdditional ? " (Adicional)" : ""}${isOutOfTime(event, now) ? " — Fuera de tiempo" : ""}`;
 
 const textColor = { color: (theme: Theme) => theme.palette.text.primary };
 const secondaryTextColor = {
@@ -210,7 +210,7 @@ const GembaWalkForm = () => {
           <AccessTimeIcon sx={secondaryTextColor} />
           <Typography variant="body1" sx={textColor}>
             Fecha y hora actual:{" "}
-            <strong>{moment(now).format("DD/MM/YYYY HH:mm")}</strong>
+            <strong>{dayjs(now).format("DD/MM/YYYY HH:mm")}</strong>
           </Typography>
         </Stack>
       </Grid>
@@ -252,14 +252,14 @@ const GembaWalkForm = () => {
           {started ? (
             <Alert severity="success">
               Recorrido iniciado a las{" "}
-              <strong>{moment(started.startedAt).format("HH:mm:ss")}</strong> ·
+              <strong>{dayjs(started.startedAt).format("HH:mm:ss")}</strong> ·
               Tiempo transcurrido:{" "}
               <ElapsedTimer startedAt={started.startedAt} />
             </Alert>
           ) : selectedOutOfTime ? (
             <Alert severity="error">
               <strong>Fuera de tiempo.</strong> El recorrido estaba programado a
-              las {moment(selectedEvent.scheduledAt).format("HH:mm")} y la
+              las {dayjs(selectedEvent.scheduledAt).format("HH:mm")} y la
               tolerancia de {TOLERANCE_MINUTES} minutos para iniciarlo terminó a
               las {deadlineOf(selectedEvent).format("HH:mm")}. Ya no se puede
               realizar.

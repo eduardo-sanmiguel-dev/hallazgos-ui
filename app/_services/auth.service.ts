@@ -5,6 +5,11 @@ interface PayloadLogin {
   password: string;
 }
 
+// El API exige el token del enlace del correo de recuperación.
+interface PayloadRestorePassword extends PayloadLogin {
+  token: string;
+}
+
 const api = axiosWrapper({
   baseURL: "/auth",
 });
@@ -14,7 +19,7 @@ const login = async (payload: PayloadLogin) => {
   return data;
 };
 
-const loginRestorePassword = async (payload: PayloadLogin) => {
+const loginRestorePassword = async (payload: PayloadRestorePassword) => {
   const { data } = await api.post<{ message: string }>(
     "/login-restore-password",
     payload

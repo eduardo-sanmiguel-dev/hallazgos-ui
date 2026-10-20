@@ -1,9 +1,9 @@
 import { EvidenceGraphql } from "@hooks";
 import { STATUS_CLOSED } from "@shared/constants";
-import moment from "moment-timezone";
+import dayjs from "@shared/libs/dayjs";
 import { toast } from "sonner";
 
-export const nowDateWithTime = () => moment().format("DD/MM/YYYY h:mm a");
+export const nowDateWithTime = () => dayjs().format("DD/MM/YYYY h:mm a");
 
 export const notify = (message: string, success?: boolean) => {
   if (success) {
@@ -57,12 +57,12 @@ export const baseUrlImage = (image: string, path?: string) => {
 };
 
 export const stringToDateWithTime = (date: string | Date) => {
-  return moment(date).format("DD/MM/YYYY h:mm a");
+  return dayjs(date).format("DD/MM/YYYY h:mm a");
 };
 
 // Format 05 - January - 2024
 export const stringToDate = (date: string | Date) =>
-  moment(date).format("DD MMMM YYYY");
+  dayjs(date).format("DD MMMM YYYY");
 
 export const durantionToTime = (row: EvidenceGraphql) => {
   const { createdAt, solutionDate, status } = row;
@@ -71,7 +71,7 @@ export const durantionToTime = (row: EvidenceGraphql) => {
 
   const totalSeconds = Math.max(
     0,
-    moment(solutionDate).diff(moment(createdAt), "seconds"),
+    dayjs(solutionDate).diff(dayjs(createdAt), "second"),
   );
 
   const days = Math.floor(totalSeconds / (24 * 60 * 60));

@@ -27,7 +27,6 @@ export * from "./nature-of-events.interfaces";
 export * from "./processes.interfaces";
 export * from "./risk-factors.interfaces";
 export * from "./secondary-types.interfaces";
-export * from "./training-guides.interfaces";
 export * from "./type-of-injury.interfaces";
 export * from "./type-of-links.interfaces";
 export * from "./types-of-events.interfaces";

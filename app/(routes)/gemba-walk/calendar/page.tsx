@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@mui/material";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import moment from "moment-timezone";
+import dayjs, { toISOStringOrNull } from "@shared/libs/dayjs";
 
 import { usePaginatedList } from "@hooks";
 import LoadingLinear from "@shared/components/LoadingLinear";
@@ -22,8 +22,8 @@ import FiltersGembaWalkCalendar, {
 const defaultFilters = (): IFiltersGembaWalkCalendar => ({
   manufacturingPlantId: "",
   gembaWalkZoneId: "",
-  startDate: moment().startOf("month").format("YYYY-MM-DD"),
-  endDate: moment().endOf("month").format("YYYY-MM-DD"),
+  startDate: dayjs().startOf("month").format("YYYY-MM-DD"),
+  endDate: dayjs().endOf("month").format("YYYY-MM-DD"),
   isAdditional: "",
 });
 
@@ -51,15 +51,14 @@ const GembaWalkCalendarPage = () => {
         gembaWalkZoneId: filters.gembaWalkZoneId,
         isAdditional: filters.isAdditional,
         ...(filters.startDate && {
-          startDate: moment(filters.startDate, "YYYY-MM-DD")
-            .startOf("day")
-            .toISOString(),
+          startDate: toISOStringOrNull(
+            dayjs(filters.startDate, "YYYY-MM-DD").startOf("day"),
+          ),
         }),
         ...(filters.endDate && {
-          endDate: moment(filters.endDate, "YYYY-MM-DD")
-            .add(1, "day")
-            .startOf("day")
-            .toISOString(),
+          endDate: toISOStringOrNull(
+            dayjs(filters.endDate, "YYYY-MM-DD").add(1, "day").startOf("day"),
+          ),
         }),
       }),
   });

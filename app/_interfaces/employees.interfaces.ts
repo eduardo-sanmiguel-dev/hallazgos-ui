@@ -1,5 +1,4 @@
 import { ManufacturingPlant } from "./manufacturing-plants.interfaces";
-import { TrainingGuideEmployee } from "./training-guides.interfaces";
 
 export interface Employee {
   id: number;
@@ -14,7 +13,6 @@ export interface Employee {
   position: Area;
   gender: Area;
   manufacturingPlants: ManufacturingPlant[];
-  trainingGuides: TrainingGuideEmployee[];
 }
 
 interface Area {
@@ -30,4 +28,10 @@ export interface CatalogEmployee {
   positions: Area[];
   manufacturingPlants: ManufacturingPlant[];
   genres: Area[];
+}
+
+/** Catálogo simple (id + nombre), p. ej. puestos. */
+export interface BasicData {
+  id: number;
+  name: string;
 }

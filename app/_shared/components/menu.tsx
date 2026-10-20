@@ -32,13 +32,11 @@ import CategoryIcon from "@mui/icons-material/Category";
 import PlaceIcon from "@mui/icons-material/Place";
 import SchemaIcon from "@mui/icons-material/Schema";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
-import SchoolIcon from "@mui/icons-material/School";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import BadgeIcon from "@mui/icons-material/Badge";
 import FireExtinguisherIcon from "@mui/icons-material/FireExtinguisher";
 import HealthAndSafetyIcon from "@mui/icons-material/HealthAndSafety";
 import MapIcon from "@mui/icons-material/Map";
-import MenuBookIcon from "@mui/icons-material/MenuBook";
 import DirectionsWalkIcon from "@mui/icons-material/DirectionsWalk";
 import GridViewIcon from "@mui/icons-material/GridView";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
@@ -52,8 +50,6 @@ import EngineeringIcon from "@mui/icons-material/Engineering";
 import ScienceIcon from "@mui/icons-material/Science";
 import LabelIcon from "@mui/icons-material/Label";
 import LocalFireDepartmentIcon from "@mui/icons-material/LocalFireDepartment";
-import ModelTrainingIcon from "@mui/icons-material/ModelTraining";
-import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import RouteIcon from "@mui/icons-material/Route";
 import PersonSearchIcon from "@mui/icons-material/PersonSearch";
 
@@ -63,7 +59,7 @@ import { primaryTextColor } from "../../theme";
 import { GembaWalksService } from "@services";
 
 // Usuarios que solo usan EPP: ven EPP e inspección de extintores, pero no
-// Guías de entrenamiento ni HDS.
+// HDS.
 const EPP_USER_EMAILS = ["malonso@hadainternational.com"];
 
 // Cuenta que en la navegación principal solo tiene acceso a HDS.
@@ -193,12 +189,6 @@ const MENU_SECTIONS: MenuSection[] = [
         icon: <EngineeringIcon />,
         visible: eppAccess,
       },
-      {
-        url: "/training-guide",
-        title: "Guías de entrenamiento",
-        icon: <SchoolIcon />,
-        visible: notEppUser,
-      },
       { ...HDS_LINK, visible: notEppUser },
     ],
   },
@@ -284,27 +274,6 @@ const MENU_SECTIONS: MenuSection[] = [
             url: "/emergency-teams",
             title: "Equipos de emergencia",
             icon: <LocalFireDepartmentIcon />,
-            visible: adminOnly,
-          },
-        ],
-      },
-      {
-        id: "training",
-        title: "Entrenamiento",
-        icon: <ModelTrainingIcon />,
-        items: [
-          {
-            url: "/topics-tg",
-            title: "Temas",
-            tooltip: "Temas - Guías de entrenamiento",
-            icon: <MenuBookIcon />,
-            visible: adminOnly,
-          },
-          {
-            url: "/config-tg",
-            title: "Configuración",
-            tooltip: "Configuración - Guías de entrenamiento",
-            icon: <AssignmentIndIcon />,
             visible: adminOnly,
           },
         ],

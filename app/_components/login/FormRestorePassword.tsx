@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@mui/material";
 import { TextField } from "@mui/material";
@@ -26,6 +26,8 @@ const FormRestorePassword = () => {
   );
 
   const router = useRouter();
+  // Token del enlace del correo (?token=...): el API lo exige.
+  const token = useSearchParams().get("token") || "";
 
   const login = async () => {
     const emailClear = email.trim();
@@ -55,6 +57,7 @@ const FormRestorePassword = () => {
     AuthService.loginRestorePassword({
       email,
       password,
+      token,
     }).then(({ message }) => {
       notify(message, true);
       router.push("/dashboard");

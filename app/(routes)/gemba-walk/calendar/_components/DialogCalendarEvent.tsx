@@ -9,9 +9,8 @@ import { Grid } from "@mui/material";
 import { Typography } from "@mui/material";
 import { Switch } from "@mui/material";
 import { FormControlLabel } from "@mui/material";
-import moment from "moment-timezone";
 
-import dayjs from "dayjs";
+import dayjs from "@shared/libs/dayjs";
 
 import SelectDefault from "@components/SelectDefault";
 import DateFieldDMY from "./DateFieldDMY";
@@ -64,8 +63,8 @@ interface Props {
 
 const formatDates = (dates: string[]) =>
   dates.length === 1
-    ? moment(dates[0], "YYYY-MM-DD").format("DD/MM/YYYY")
-    : `${dates.length} días: ${moment(dates[0], "YYYY-MM-DD").format("DD/MM/YYYY")} al ${moment(dates[dates.length - 1], "YYYY-MM-DD").format("DD/MM/YYYY")}`;
+    ? dayjs(dates[0], "YYYY-MM-DD").format("DD/MM/YYYY")
+    : `${dates.length} días: ${dayjs(dates[0], "YYYY-MM-DD").format("DD/MM/YYYY")} al ${dayjs(dates[dates.length - 1], "YYYY-MM-DD").format("DD/MM/YYYY")}`;
 
 export default function DialogCalendarEvent({
   state,

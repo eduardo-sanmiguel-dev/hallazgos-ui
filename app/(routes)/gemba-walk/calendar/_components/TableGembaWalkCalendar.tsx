@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 
 import { Chip } from "@mui/material";
 import { toast } from "sonner";
-import moment from "moment-timezone";
+import dayjs from "@shared/libs/dayjs";
 
 import { notify, stringToDateWithTime } from "@shared/utils";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
@@ -130,7 +130,7 @@ export default function TableGembaWalkCalendar({
                   <EditAction
                     onClick={() =>
                       router.push(
-                        `/gemba-walk/calendar/form?manufacturingPlantId=${row.gembaWalkZone?.manufacturingPlant?.id}&date=${moment(row.scheduledAt).format("YYYY-MM-DD")}`,
+                        `/gemba-walk/calendar/form?manufacturingPlantId=${row.gembaWalkZone?.manufacturingPlant?.id}&date=${dayjs(row.scheduledAt).format("YYYY-MM-DD")}`,
                       )
                     }
                   />

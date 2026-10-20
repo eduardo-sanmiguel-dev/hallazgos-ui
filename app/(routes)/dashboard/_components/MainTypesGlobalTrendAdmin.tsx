@@ -1,11 +1,7 @@
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import TrendingDownIcon from "@mui/icons-material/TrendingDown";
-import TrendingFlatIcon from "@mui/icons-material/TrendingFlat";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import {
-  Box,
   Button,
   Chip,
   Grid,
@@ -14,16 +10,7 @@ import {
   Skeleton,
   Stack,
   Tab,
-  Table,
-  TableBody,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
-  TableSortLabel,
   Tabs,
-  TextField,
-  Tooltip,
   Typography,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
@@ -34,102 +21,24 @@ import {
   MainTypesGlobalTrendDetailsZone,
 } from "@interfaces";
 import { DashboardService } from "@services";
-import { StyledTableCell } from "@shared/components/TableDefault";
 import { resolveTriStateSort } from "@shared/utils";
+import {
+  Order,
+  SortableColumn,
+  cardsViewAnimationSx,
+  detailsViewAnimationSx,
+  formatMetric,
+  formatPercentage,
+  getTrendColor,
+  getTrendIcon,
+  parseNumber,
+} from "./mainTypesGlobalTrend.helpers";
+import { MainTypesResponsiblesTab } from "./MainTypesResponsiblesTab";
+import { MainTypesZonesTab } from "./MainTypesZonesTab";
 
 interface Props {
   manufacturingPlantId: string;
 }
-
-type Order = "asc" | "desc";
-type SortableColumn =
-  | "responsable_id"
-  | "responsable"
-  | "total_asignadas"
-  | "abiertas"
-  | "cerradas"
-  | "canceladas"
-  | "pct_resolucion"
-  | "promedio_dias_resolucion"
-  | "criticos_mas_90_dias"
-  | "asignadas_mes_anterior"
-  | "asignadas_mes_actual"
-  | "max_dias_sin_resolver";
-
-const cardsViewAnimationSx = {
-  animation: "cardsViewIn 220ms ease",
-  "@keyframes cardsViewIn": {
-    from: { opacity: 0, transform: "translateY(8px)" },
-    to: { opacity: 1, transform: "translateY(0)" },
-  },
-  "@media (prefers-reduced-motion: reduce)": {
-    animation: "none",
-  },
-};
-
-const detailsViewAnimationSx = {
-  animation: "detailsViewIn 220ms ease",
-  "@keyframes detailsViewIn": {
-    from: { opacity: 0, transform: "translateY(8px)" },
-    to: { opacity: 1, transform: "translateY(0)" },
-  },
-  "@media (prefers-reduced-motion: reduce)": {
-    animation: "none",
-  },
-};
-
-const parseNumber = (value: string | number | null | undefined) => {
-  if (typeof value === "number") return value;
-  const parsed = Number(
-    String(value ?? "")
-      .replace(/,/g, "")
-      .trim(),
-  );
-  return Number.isNaN(parsed) ? 0 : parsed;
-};
-
-const formatMetric = (value: string | number) => {
-  return new Intl.NumberFormat("es-MX").format(parseNumber(value));
-};
-
-const formatPercentage = (value: string | number) => {
-  const text = String(value ?? "").trim();
-  if (!text) return "0%";
-  if (text.includes("%")) return text;
-  return `${text}%`;
-};
-
-const getTrendColor = (
-  value: string | number,
-): "success" | "error" | "default" => {
-  const numeric = parseNumber(value);
-  if (numeric > 0) return "success";
-  if (numeric < 0) return "error";
-  return "default";
-};
-
-const getTrendIcon = (value: string | number) => {
-  const numeric = parseNumber(value);
-  if (numeric > 0) return <TrendingUpIcon fontSize="small" />;
-  if (numeric < 0) return <TrendingDownIcon fontSize="small" />;
-  return <TrendingFlatIcon fontSize="small" />;
-};
-
-const getComplianceLevel = (value: string | number) => {
-  const numeric = parseNumber(value);
-  if (numeric >= 90) return "Alto";
-  if (numeric >= 80) return "Medio";
-  return "Bajo";
-};
-
-const getComplianceColor = (
-  value: string | number,
-): "success" | "warning" | "error" => {
-  const numeric = parseNumber(value);
-  if (numeric >= 90) return "success";
-  if (numeric >= 80) return "warning";
-  return "error";
-};
 
 const MainTypesGlobalTrendAdmin = ({ manufacturingPlantId }: Props) => {
   const [cardsData, setCardsData] = useState<MainTypesGlobalTrend[]>([]);
@@ -404,454 +313,29 @@ const MainTypesGlobalTrendAdmin = ({ manufacturingPlantId }: Props) => {
             <Tab label="Detalle por responsables" />
           </Tabs>
 
-          <Box role="tabpanel" hidden={detailTab !== 0}>
-            {detailTab === 0 && (
-              <Stack spacing={2}>
-                <Stack
-                  direction={{ xs: "column", sm: "row" }}
-                  spacing={1}
-                  sx={{
-                    justifyContent: "space-between",
-                    alignItems: { xs: "flex-start", sm: "center" },
-                  }}
-                >
-                  <Typography variant="h6">Cumplimiento por zona </Typography>
-                  {!!sortedZoneCards.length && (
-                    <Chip
-                      label={`Promedio cumplimiento mes actual: ${formatPercentage(avgZoneComplianceCurrent.toFixed(1))}`}
-                      color={getComplianceColor(avgZoneComplianceCurrent)}
-                      size="small"
-                    />
-                  )}
-                </Stack>
+          <MainTypesZonesTab
+            detailTab={detailTab}
+            isZoneLoading={isZoneLoading}
+            sortedZoneCards={sortedZoneCards}
+            avgZoneComplianceCurrent={avgZoneComplianceCurrent}
+          />
 
-                <Grid container spacing={{ xs: 1.5, md: 2 }}>
-                  {isZoneLoading
-                    ? Array.from({ length: 4 }, (_, index) => (
-                        <Grid
-                          key={`zone-summary-skeleton-${index}`}
-                          size={{ xs: 12, sm: 6, xl: 3 }}
-                        >
-                          <Paper
-                            variant="outlined"
-                            sx={{ p: 2, height: "100%" }}
-                          >
-                            <Stack spacing={1.25}>
-                              <Skeleton
-                                variant="text"
-                                height={30}
-                                width="55%"
-                              />
-                              <Skeleton
-                                variant="text"
-                                height={38}
-                                width="40%"
-                              />
-                              <Skeleton
-                                variant="text"
-                                height={20}
-                                width="85%"
-                              />
-                              <Skeleton
-                                variant="rounded"
-                                width={170}
-                                height={28}
-                              />
-                            </Stack>
-                          </Paper>
-                        </Grid>
-                      ))
-                    : sortedZoneCards.map((item) => (
-                        <Grid key={item.zona} size={{ xs: 12, sm: 6, xl: 3 }}>
-                          <Paper
-                            variant="outlined"
-                            sx={{
-                              p: 2,
-                              height: "100%",
-                              borderColor: "divider",
-                              bgcolor: "background.default",
-                            }}
-                          >
-                            <Stack spacing={1.25}>
-                              <Typography
-                                variant="subtitle2"
-                                color="text.secondary"
-                              >
-                                {item.zona}
-                              </Typography>
-                              <Typography
-                                variant="h4"
-                                sx={{ fontSize: { xs: 30, md: 34 } }}
-                              >
-                                {formatMetric(item.total_hallazgos)}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                {`Cerradas: ${formatMetric(item.cerradas)} · Abiertas: ${formatMetric(item.abiertas)} · Canceladas: ${formatMetric(item.canceladas)}`}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                {`Criticos +90 dias: ${formatMetric(item.criticos_mas_90_dias)} · Promedio dias: ${formatMetric(item.promedio_dias_resolucion)}`}
-                              </Typography>
-                              <Chip
-                                size="small"
-                                icon={getTrendIcon(
-                                  item.pct_cumplimiento_mes_actual,
-                                )}
-                                label={`Mes actual: ${formatPercentage(item.pct_cumplimiento_mes_actual)} · Nivel ${getComplianceLevel(item.pct_cumplimiento_mes_actual)}`}
-                                color={getComplianceColor(
-                                  item.pct_cumplimiento_mes_actual,
-                                )}
-                                variant="filled"
-                                sx={{ alignSelf: "flex-start" }}
-                              />
-                              <Chip
-                                size="small"
-                                label={`Historico: ${formatPercentage(item.pct_cumplimiento_historico)} · Mes anterior: ${formatPercentage(item.pct_cumplimiento_mes_anterior)}`}
-                                variant="outlined"
-                                sx={{ alignSelf: "flex-start" }}
-                              />
-                            </Stack>
-                          </Paper>
-                        </Grid>
-                      ))}
-
-                  {!isZoneLoading && !sortedZoneCards.length && (
-                    <Grid size={{ xs: 12 }}>
-                      <Paper
-                        variant="outlined"
-                        sx={{
-                          p: 2,
-                          textAlign: "center",
-                          color: "text.secondary",
-                        }}
-                      >
-                        <Typography variant="body2">
-                          No hay informacion de cumplimiento por zona para el
-                          tipo seleccionado.
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  )}
-                </Grid>
-              </Stack>
-            )}
-          </Box>
-
-          <Box role="tabpanel" hidden={detailTab !== 1}>
-            {detailTab === 1 && (
-              <Stack spacing={2}>
-                <Typography variant="body2" color="text.secondary">
-                  {`${detailsData.length} responsables`}
-                </Typography>
-
-                <Box
-                  sx={{
-                    p: 1,
-                    border: 1,
-                    borderColor: "divider",
-                    borderRadius: 1,
-                    bgcolor: "action.hover",
-                  }}
-                >
-                  <TextField
-                    fullWidth
-                    size="small"
-                    variant="filled"
-                    label="Buscar en todas las columnas"
-                    placeholder="Ej. responsable, abiertas, % resolución, días..."
-                    value={searchTerm}
-                    onChange={(event) => setSearchTerm(event.target.value)}
-                  />
-                </Box>
-
-                <TableContainer>
-                  <Table size="small" aria-label="Detalle por tipo principal">
-                    <TableHead>
-                      <TableRow>
-                        <StyledTableCell
-                          sortDirection={
-                            orderBy === "responsable_id" ? order : false
-                          }
-                        >
-                          <TableSortLabel
-                            active={orderBy === "responsable_id"}
-                            direction={
-                              orderBy === "responsable_id" ? order : "asc"
-                            }
-                            onClick={() => handleRequestSort("responsable_id")}
-                          >
-                            ID
-                          </TableSortLabel>
-                        </StyledTableCell>
-                        <StyledTableCell
-                          sortDirection={
-                            orderBy === "responsable" ? order : false
-                          }
-                        >
-                          <TableSortLabel
-                            active={orderBy === "responsable"}
-                            direction={
-                              orderBy === "responsable" ? order : "asc"
-                            }
-                            onClick={() => handleRequestSort("responsable")}
-                          >
-                            Responsable
-                          </TableSortLabel>
-                        </StyledTableCell>
-                        <StyledTableCell
-                          sortDirection={
-                            orderBy === "total_asignadas" ? order : false
-                          }
-                        >
-                          <TableSortLabel
-                            active={orderBy === "total_asignadas"}
-                            direction={
-                              orderBy === "total_asignadas" ? order : "asc"
-                            }
-                            onClick={() => handleRequestSort("total_asignadas")}
-                          >
-                            Total asignadas
-                          </TableSortLabel>
-                        </StyledTableCell>
-                        <StyledTableCell
-                          sortDirection={orderBy === "abiertas" ? order : false}
-                        >
-                          <TableSortLabel
-                            active={orderBy === "abiertas"}
-                            direction={orderBy === "abiertas" ? order : "asc"}
-                            onClick={() => handleRequestSort("abiertas")}
-                          >
-                            Abiertas
-                          </TableSortLabel>
-                        </StyledTableCell>
-                        <StyledTableCell
-                          sortDirection={orderBy === "cerradas" ? order : false}
-                        >
-                          <TableSortLabel
-                            active={orderBy === "cerradas"}
-                            direction={orderBy === "cerradas" ? order : "asc"}
-                            onClick={() => handleRequestSort("cerradas")}
-                          >
-                            Cerradas
-                          </TableSortLabel>
-                        </StyledTableCell>
-                        <StyledTableCell
-                          sortDirection={
-                            orderBy === "canceladas" ? order : false
-                          }
-                        >
-                          <TableSortLabel
-                            active={orderBy === "canceladas"}
-                            direction={orderBy === "canceladas" ? order : "asc"}
-                            onClick={() => handleRequestSort("canceladas")}
-                          >
-                            Canceladas
-                          </TableSortLabel>
-                        </StyledTableCell>
-                        <StyledTableCell
-                          sortDirection={
-                            orderBy === "pct_resolucion" ? order : false
-                          }
-                        >
-                          <TableSortLabel
-                            active={orderBy === "pct_resolucion"}
-                            direction={
-                              orderBy === "pct_resolucion" ? order : "asc"
-                            }
-                            onClick={() => handleRequestSort("pct_resolucion")}
-                          >
-                            % Resolucion
-                          </TableSortLabel>
-                        </StyledTableCell>
-                        <StyledTableCell
-                          sortDirection={
-                            orderBy === "promedio_dias_resolucion"
-                              ? order
-                              : false
-                          }
-                        >
-                          <TableSortLabel
-                            active={orderBy === "promedio_dias_resolucion"}
-                            direction={
-                              orderBy === "promedio_dias_resolucion"
-                                ? order
-                                : "asc"
-                            }
-                            onClick={() =>
-                              handleRequestSort("promedio_dias_resolucion")
-                            }
-                          >
-                            Promedio dias resolucion
-                          </TableSortLabel>
-                        </StyledTableCell>
-                        <StyledTableCell
-                          sortDirection={
-                            orderBy === "criticos_mas_90_dias" ? order : false
-                          }
-                        >
-                          <TableSortLabel
-                            active={orderBy === "criticos_mas_90_dias"}
-                            direction={
-                              orderBy === "criticos_mas_90_dias" ? order : "asc"
-                            }
-                            onClick={() =>
-                              handleRequestSort("criticos_mas_90_dias")
-                            }
-                          >
-                            Criticos +90 dias
-                          </TableSortLabel>
-                        </StyledTableCell>
-                        <StyledTableCell
-                          sortDirection={
-                            orderBy === "asignadas_mes_anterior" ? order : false
-                          }
-                        >
-                          <TableSortLabel
-                            active={orderBy === "asignadas_mes_anterior"}
-                            direction={
-                              orderBy === "asignadas_mes_anterior"
-                                ? order
-                                : "asc"
-                            }
-                            onClick={() =>
-                              handleRequestSort("asignadas_mes_anterior")
-                            }
-                          >
-                            Asignadas mes anterior
-                          </TableSortLabel>
-                        </StyledTableCell>
-                        <StyledTableCell
-                          sortDirection={
-                            orderBy === "asignadas_mes_actual" ? order : false
-                          }
-                        >
-                          <TableSortLabel
-                            active={orderBy === "asignadas_mes_actual"}
-                            direction={
-                              orderBy === "asignadas_mes_actual" ? order : "asc"
-                            }
-                            onClick={() =>
-                              handleRequestSort("asignadas_mes_actual")
-                            }
-                          >
-                            Asignadas mes actual
-                          </TableSortLabel>
-                        </StyledTableCell>
-                        <StyledTableCell
-                          sortDirection={
-                            orderBy === "max_dias_sin_resolver" ? order : false
-                          }
-                        >
-                          <TableSortLabel
-                            active={orderBy === "max_dias_sin_resolver"}
-                            direction={
-                              orderBy === "max_dias_sin_resolver"
-                                ? order
-                                : "asc"
-                            }
-                            onClick={() =>
-                              handleRequestSort("max_dias_sin_resolver")
-                            }
-                          >
-                            Max dias sin resolver
-                          </TableSortLabel>
-                        </StyledTableCell>
-                      </TableRow>
-                    </TableHead>
-
-                    <TableBody>
-                      {isDetailsLoading && (
-                        <TableRow>
-                          <StyledTableCell colSpan={12}>
-                            Cargando detalle del tipo principal...
-                          </StyledTableCell>
-                        </TableRow>
-                      )}
-
-                      {!isDetailsLoading && !filteredDetails.length && (
-                        <TableRow>
-                          <StyledTableCell colSpan={12}>
-                            <Typography variant="body2" color="text.secondary">
-                              {detailsData.length
-                                ? "No se encontraron resultados con la busqueda actual."
-                                : "No hay detalle para el tipo principal seleccionado."}
-                            </Typography>
-                          </StyledTableCell>
-                        </TableRow>
-                      )}
-
-                      {!isDetailsLoading &&
-                        paginatedDetails.map((item, index) => (
-                          <TableRow key={`${item.responsable_id}-${index}`}>
-                            <StyledTableCell>
-                              {item.responsable_id}
-                            </StyledTableCell>
-                            <StyledTableCell sx={{ maxWidth: 220 }}>
-                              <Tooltip title={item.responsable || ""} arrow>
-                                <Typography
-                                  variant="body2"
-                                  noWrap
-                                  sx={{
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                  }}
-                                >
-                                  {item.responsable}
-                                </Typography>
-                              </Tooltip>
-                            </StyledTableCell>
-                            <StyledTableCell>
-                              {item.total_asignadas}
-                            </StyledTableCell>
-                            <StyledTableCell>{item.abiertas}</StyledTableCell>
-                            <StyledTableCell>{item.cerradas}</StyledTableCell>
-                            <StyledTableCell>{item.canceladas}</StyledTableCell>
-                            <StyledTableCell>
-                              {item.pct_resolucion}
-                            </StyledTableCell>
-                            <StyledTableCell>
-                              {item.promedio_dias_resolucion}
-                            </StyledTableCell>
-                            <StyledTableCell>
-                              {item.criticos_mas_90_dias}
-                            </StyledTableCell>
-                            <StyledTableCell>
-                              {item.asignadas_mes_anterior}
-                            </StyledTableCell>
-                            <StyledTableCell>
-                              {item.asignadas_mes_actual}
-                            </StyledTableCell>
-                            <StyledTableCell>
-                              {item.max_dias_sin_resolver}
-                            </StyledTableCell>
-                          </TableRow>
-                        ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-
-                {!isDetailsLoading && !!filteredDetails.length && (
-                  <TablePagination
-                    component="div"
-                    count={filteredDetails.length}
-                    page={page}
-                    onPageChange={handleChangePage}
-                    rowsPerPage={rowsPerPage}
-                    onRowsPerPageChange={handleChangeRowsPerPage}
-                    rowsPerPageOptions={[5, 10, 25]}
-                    labelRowsPerPage="Filas por pagina"
-                    showFirstButton
-                    showLastButton
-                  />
-                )}
-              </Stack>
-            )}
-          </Box>
+          <MainTypesResponsiblesTab
+            detailTab={detailTab}
+            detailsData={detailsData}
+            filteredDetails={filteredDetails}
+            paginatedDetails={paginatedDetails}
+            isDetailsLoading={isDetailsLoading}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            order={order}
+            orderBy={orderBy}
+            page={page}
+            rowsPerPage={rowsPerPage}
+            handleRequestSort={handleRequestSort}
+            handleChangePage={handleChangePage}
+            handleChangeRowsPerPage={handleChangeRowsPerPage}
+          />
         </Stack>
       </Paper>
     );
