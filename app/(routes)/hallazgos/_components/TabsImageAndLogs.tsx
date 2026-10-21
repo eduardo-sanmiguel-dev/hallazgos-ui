@@ -186,6 +186,7 @@ export default function TabsImageAndLogs({
                   }
                 >
                   <Image
+                    unoptimized
                     src={baseUrlImage(evidenceCurrent.imgEvidence || "")}
                     alt="Hallazgo imagen"
                     width={0}
@@ -218,6 +219,7 @@ export default function TabsImageAndLogs({
                   }
                 >
                   <Image
+                    unoptimized
                     src={baseUrlImage(evidenceCurrent?.imgProcess || "")}
                     alt="Imagen en progreso"
                     width={0}
@@ -250,6 +252,7 @@ export default function TabsImageAndLogs({
                   }
                 >
                   <Image
+                    unoptimized
                     src={baseUrlImage(evidenceCurrent?.imgSolution || "")}
                     alt="Imagen Solución"
                     width={0}
@@ -341,6 +344,7 @@ export default function TabsImageAndLogs({
 
           {!!imageDialog.src && (
             <Image
+              unoptimized
               src={imageDialog.src}
               alt={imageDialog.title || "Imagen"}
               fill

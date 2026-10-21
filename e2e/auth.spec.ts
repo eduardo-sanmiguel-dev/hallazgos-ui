@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./support/fixtures";
 
 import { e2eCredentials } from "./support/env";
 import { expectLoggedIn, loginWithForm } from "./support/login";

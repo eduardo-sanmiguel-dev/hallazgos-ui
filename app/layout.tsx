@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 
 import { Toaster } from "sonner";
 import ThemeRegistry from "ThemeRegistry";
-//import DatadogRumInit from "@components/DatadogRumInit";
 
 export const metadata: Metadata = {
   title: "HADA",
@@ -28,13 +27,22 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body suppressHydrationWarning>
         {/* Cada layout o página define su propio <main>. */}
-        {/* <DatadogRumInit /> */}
         <ThemeRegistry options={{ key: "mui" }}>
           <QueryProvider>
             <ApolloWrapper>{children}</ApolloWrapper>
           </QueryProvider>
         </ThemeRegistry>
-        <Toaster position="top-right" expand={true} richColors closeButton />
+        {/* Debajo de la barra superior (64px; 56px en móvil): encima tapaban
+            el menú de usuario y el botón Guardar de los diálogos de pantalla
+            completa. */}
+        <Toaster
+          position="top-right"
+          offset={{ top: 88 }}
+          mobileOffset={{ top: 72 }}
+          expand={true}
+          richColors
+          closeButton
+        />
       </body>
     </html>
   );

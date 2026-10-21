@@ -1,4 +1,5 @@
-import { expect, test } from "@playwright/test";
+import { captureWrites } from "./support/api";
+import { expect, test } from "./support/fixtures";
 
 import { pickOption, recordCount, toast, trackPageErrors } from "./support/ui";
 
@@ -93,5 +94,33 @@ test.describe("Hallazgos", () => {
     expect(body).toMatch(/filename="[0-9a-f-]{36}-evidence\.png"/);
 
     expect(errors).toEqual([]);
+  });
+
+  test("un comportamiento inseguro con prioridad no exige imagen (sin guardar)", async ({
+    page,
+  }) => {
+    const writes = await captureWrites(page);
+    await page.goto("/hallazgos/form");
+    const create = page.getByRole("button", { name: "Crear hallazgo" });
+
+    await pickOption(page, "Planta");
+    await pickOption(page, "Hallazgo", /[Cc]omportamiento inseguro/);
+    await pickOption(page, "Tipo");
+    await pickOption(page, "Lugar");
+    await pickOption(page, "Proceso");
+    await pickOption(page, "Supervisor");
+    const priority = await pickOption(page, "Prioridad (opcional)", /Corto plazo/);
+    expect(priority).toMatch(/Corto plazo/);
+    await page
+      .locator("#description-multiline")
+      .fill("Comportamiento inseguro e2e (no se guarda)");
+
+    await expect(create).toBeEnabled();
+    await create.click();
+    await expect(toast(page, "Hallazgo creado correctamente")).toBeVisible();
+
+    const body = String(writes[0].body);
+    expect(body).toMatch(/name="priorityDays"\r\n\r\n8\r\n/);
+    expect(body).not.toContain('name="file"');
   });
 });

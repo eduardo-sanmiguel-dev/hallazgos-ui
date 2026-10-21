@@ -1,7 +1,8 @@
 import { readFileSync } from "fs";
 
-import { expect, test, type Download } from "@playwright/test";
+import type { Download } from "@playwright/test";
 
+import { expect, test } from "./support/fixtures";
 import { recordCount, toast } from "./support/ui";
 
 /** Un .xlsx es un zip: debe empezar con "PK" y no estar vacío. */

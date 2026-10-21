@@ -211,7 +211,11 @@ const AreaRangeLineChart = ({ filters }: Props) => {
             {
               type: "arearange",
               name: "Rango esperado",
-              data: chartData?.rangeSeries || [],
+              // Los meses sin rango llegan en null; Highcharts truena al
+              // actualizar un arearange con null y espera [null, null].
+              data: (chartData?.rangeSeries || []).map(
+                (point) => point ?? [null, null],
+              ),
               color: "rgba(59, 130, 246, 0.22)",
               fillOpacity: 0.22,
               zIndex: 1,

@@ -14,7 +14,6 @@ export const catalogKeys = {
   manufacturingPlants: () => ["catalogs", "manufacturingPlants"] as const,
   areas: (filters: object = {}) => ["catalogs", "areas", filters] as const,
   employeeCatalogs: () => ["catalogs", "employeeCatalogs"] as const,
-  positions: () => ["catalogs", "positions"] as const,
   gembaWalkZones: (filters: object = {}) =>
     ["catalogs", "gembaWalkZones", filters] as const,
   icsCatalogs: () => ["catalogs", "icsCatalogs"] as const,

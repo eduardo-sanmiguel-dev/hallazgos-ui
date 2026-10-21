@@ -16,8 +16,11 @@ const baseURL = process.env.E2E_BASE_URL || "http://localhost:3000";
 export default defineConfig({
   testDir: "./e2e",
   outputDir: "./test-results",
-  fullyParallel: false,
-  workers: 1,
+  // Las pruebas son independientes (las escrituras se interceptan), así que
+  // corren en paralelo. E2E_WORKERS=1 vuelve a una a la vez si el API o el
+  // dev server no aguantan la carga.
+  fullyParallel: true,
+  workers: Number(process.env.E2E_WORKERS) || 3,
   retries: 0,
   timeout: 60_000,
   expect: { timeout: 15_000 },

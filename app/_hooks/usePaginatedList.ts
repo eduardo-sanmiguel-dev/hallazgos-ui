@@ -31,8 +31,8 @@ interface Options<TFilters, TItem> {
   ) => Promise<PaginatedResponse<TItem>>;
   initialRowsPerPage?: number;
   debounceMs?: number;
-  /** false: no se pide (p. ej. falta un filtro obligatorio). */
-  enabled?: boolean;
+  /** Valida los filtros efectivos tras el debounce antes de pedir datos. */
+  enabled?: boolean | ((filters: TFilters) => boolean);
 }
 
 const EMPTY_ROWS: never[] = [];
@@ -56,6 +56,12 @@ export function usePaginatedList<TFilters, TItem>({
 }: Options<TFilters, TItem>) {
   const [debouncedFilters] = useDebounce(filters, debounceMs);
   const filtersKey = JSON.stringify(debouncedFilters);
+  // Mientras el debounce conserva filtros anteriores, no consultar ni
+  // recargar esa consulta por paginación, foco de ventana o refresh.
+  const filtersAreCurrent = filtersKey === JSON.stringify(filters);
+  const isEnabled =
+    filtersAreCurrent &&
+    (typeof enabled === "function" ? enabled(debouncedFilters) : enabled);
 
   // La página se guarda junto a los filtros con los que se eligió: si los
   // filtros cambian, la página efectiva vuelve a 0 en el mismo render.
@@ -80,7 +86,7 @@ export function usePaginatedList<TFilters, TItem>({
     // Las listas siempre se revalidan al volver a la pantalla (pudo crearse
     // o editarse algo); mientras, se muestra lo que había.
     staleTime: 0,
-    enabled,
+    enabled: isEnabled,
   });
 
   const count = query.data?.count ?? 0;
@@ -98,10 +104,10 @@ export function usePaginatedList<TFilters, TItem>({
       isFetching: query.isFetching && !query.isPending,
     } satisfies ServerPagination,
     /** Primera carga (aún no hay datos que mostrar). */
-    isLoading: query.isPending && enabled,
+    isLoading: query.isPending && isEnabled,
     /** Cualquier petición en curso, incluida una recarga con datos visibles. */
     isFetching: query.isFetching,
     /** Vuelve a pedir la página actual (p. ej. tras eliminar un registro). */
-    refresh: () => query.refetch(),
+    refresh: () => (isEnabled ? query.refetch() : undefined),
   };
 }

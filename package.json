@@ -11,6 +11,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report",
+    "test:e2e:coverage": "playwright test -c playwright.coverage.config.ts",
     "typecheck": "next typegen && node node_modules/typescript7/bin/tsc --noEmit",
     "typecheck:ts6": "next typegen && node node_modules/typescript/bin/tsc --noEmit",
     "prepare": "husky"
@@ -18,8 +19,6 @@
   "dependencies": {
     "@apollo/client": "^4.2.0",
     "@apollo/client-integration-nextjs": "^0.14.5",
-    "@datadog/browser-rum": "^7.1.0",
-    "@datadog/browser-rum-react": "^7.1.0",
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
@@ -73,6 +72,7 @@
     "eslint": "^10.4.0",
     "eslint-config-next": "^16.2.6",
     "husky": "^9.1.7",
+    "monocart-coverage-reports": "^3.0.0",
     "typescript": "^6.0.3",
     "typescript7": "npm:typescript@^7.0.2"
   },

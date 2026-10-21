@@ -50,7 +50,10 @@ export default function EppPage() {
       }),
     initialRowsPerPage: 10,
     debounceMs: 400,
-    enabled: !!manufacturingPlantId,
+    // La planta seleccionada debe estar también en los filtros del debounce.
+    enabled: (query) =>
+      !!query.manufacturingPlantId &&
+      query.manufacturingPlantId === manufacturingPlantId,
   });
 
   // Si la página quedó vacía (p. ej. se borró el último registro), ir a la
@@ -62,7 +65,7 @@ export default function EppPage() {
   }, [rows, count, page, rowsPerPage, setPage]);
 
   useEffect(() => {
-    if (manufacturingPlants.length) {
+    if (manufacturingPlants.length === 1) {
       setManufacturingPlantId(manufacturingPlants[0].id.toString());
     }
   }, [manufacturingPlants]);

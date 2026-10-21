@@ -1,5 +1,5 @@
 import { IFiltersEmployees } from "@routes/employees/_components/FiltersEmployees";
-import { BasicData, CatalogEmployee, Employee } from "@interfaces";
+import { CatalogEmployee, Employee } from "@interfaces";
 import axiosWrapper from "./axiosWrapper";
 import { withCatalogInvalidation } from "@shared/libs/catalogKeys";
 
@@ -84,11 +84,6 @@ const remove = async (id: number) => {
   return data;
 };
 
-const findPositions = async () => {
-  const { data } = await api.get<BasicData[]>(`/positions`);
-  return data;
-};
-
 export const EmployeesService = {
   findAll,
   findAllPaginated,
@@ -97,5 +92,4 @@ export const EmployeesService = {
   findOne,
   catalogs,
   remove: withCatalogInvalidation(remove, "employees"),
-  findPositions,
 };

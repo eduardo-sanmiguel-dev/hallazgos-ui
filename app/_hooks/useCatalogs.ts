@@ -108,13 +108,6 @@ export const useEmployeeCatalogs = () =>
     staleTime: CATALOG_STALE_TIME,
   });
 
-export const usePositions = () =>
-  useQuery({
-    queryKey: catalogKeys.positions(),
-    queryFn: () => EmployeesService.findPositions(),
-    staleTime: CATALOG_STALE_TIME,
-  });
-
 export const useGembaWalkZones = (
   filters: GembaWalkZonesFilters = {},
   { enabled = true }: CatalogOptions = {},

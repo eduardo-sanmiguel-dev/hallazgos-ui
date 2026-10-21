@@ -111,12 +111,15 @@ export const DashboardFiltersBar = ({
               format="DD/MM/YYYY"
               value={parseDate(filters.startDate)}
               maxDate={parseDate(filters.endDate) || dayjs().endOf("month")}
-              onChange={(newValue: Dayjs | null) =>
+              onChange={(newValue: Dayjs | null) => {
+                // Al escribirla, la fecha pasa por valores incompletos
+                // ("Invalid Date") que el API rechaza: se ignoran.
+                if (newValue && !newValue.isValid()) return;
                 setFilters((prev) => ({
                   ...prev,
                   startDate: newValue ? newValue.format("DD/MM/YYYY") : "",
-                }))
-              }
+                }));
+              }}
               slotProps={{
                 field: {
                   clearable: true,
@@ -156,12 +159,13 @@ export const DashboardFiltersBar = ({
               value={parseDate(filters.endDate)}
               minDate={parseDate(filters.startDate) || undefined}
               maxDate={dayjs()}
-              onChange={(newValue: Dayjs | null) =>
+              onChange={(newValue: Dayjs | null) => {
+                if (newValue && !newValue.isValid()) return;
                 setFilters((prev) => ({
                   ...prev,
                   endDate: newValue ? newValue.format("DD/MM/YYYY") : "",
-                }))
-              }
+                }));
+              }}
               slotProps={{
                 field: {
                   clearable: true,
