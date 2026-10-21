@@ -47,6 +47,10 @@ pnpm test:e2e:report   # reporte HTML de la última corrida
 pnpm test:e2e:coverage # todas, midiendo coverage (reporte en coverage/)
 ```
 
+Antes de cada `git push`, el hook `.husky/pre-push` corre typecheck, lint y
+estas pruebas; si algo falla, no se sube. Necesita el API levantado. En una
+emergencia: `git push --no-verify`.
+
 Corren en paralelo con 3 workers. Si el API o el dev server se saturan,
 `E2E_WORKERS=1 pnpm test:e2e` las corre una a la vez (en Windows con Git
 Bash, `npx cross-env E2E_WORKERS=1 pnpm test:e2e`).

@@ -1,1 +1,13 @@
 pnpm typecheck
+pnpm lint
+
+# Las e2e corren contra el API local; sin él fallarían en el login.
+if ! curl -s -o /dev/null -m 5 http://localhost:4000/; then
+  echo ""
+  echo "pre-push: el API no responde en http://localhost:4000."
+  echo "Levántalo (pnpm start:dev en hallazgos-api) o, en una emergencia,"
+  echo "sube sin pruebas con: git push --no-verify"
+  exit 1
+fi
+
+pnpm test:e2e
