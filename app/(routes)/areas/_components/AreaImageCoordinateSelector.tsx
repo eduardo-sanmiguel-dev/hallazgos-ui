@@ -6,6 +6,7 @@ import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { Box, Button, Paper, Stack, Tooltip, Typography } from "@mui/material";
+
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 
 export type AreaMarkedPoint = {
