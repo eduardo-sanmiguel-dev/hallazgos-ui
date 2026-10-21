@@ -1,7 +1,13 @@
 import { captureWrites } from "./support/api";
 import { expect, test } from "./support/fixtures";
 
-import { pickOption, recordCount, toast, trackPageErrors } from "./support/ui";
+import {
+  pickOption,
+  recordCount,
+  sessionPlants,
+  toast,
+  trackPageErrors,
+} from "./support/ui";
 
 // PNG de 1x1 para la evidencia.
 const PNG_1X1 = Buffer.from(
@@ -46,6 +52,8 @@ test.describe("Hallazgos", () => {
     });
 
     await page.goto("/hallazgos/form");
+    // Al cargar la sesión el formulario reinicia la planta: se espera antes.
+    await sessionPlants(page);
 
     const create = page.getByRole("button", { name: "Crear hallazgo" });
     await expect(create).toBeDisabled();
@@ -101,6 +109,8 @@ test.describe("Hallazgos", () => {
   }) => {
     const writes = await captureWrites(page);
     await page.goto("/hallazgos/form");
+    // Al cargar la sesión el formulario reinicia la planta: se espera antes.
+    await sessionPlants(page);
     const create = page.getByRole("button", { name: "Crear hallazgo" });
 
     await pickOption(page, "Planta");

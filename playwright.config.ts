@@ -31,7 +31,9 @@ export default defineConfig({
     channel: "chrome",
     storageState: "e2e/.auth/user.json",
     acceptDownloads: true,
-    trace: "retain-on-failure",
+    // En Windows, con varios workers, grabar traces a veces falla al cerrar
+    // (ENOENT en .playwright-artifacts). Para depurar: E2E_TRACE=1.
+    trace: process.env.E2E_TRACE ? "retain-on-failure" : "off",
     screenshot: "only-on-failure",
     locale: "es-MX",
     timezoneId: "America/Mexico_City",

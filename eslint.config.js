@@ -10,6 +10,10 @@ const espree = require(
 module.exports = [
   ...nextConfig,
   {
+    // Reportes que generan las pruebas e2e (traen JS minificado).
+    ignores: ["coverage/**", "playwright-report/**", "test-results/**"],
+  },
+  {
     // eslint-plugin-react 7 no puede autodetectar la versión de React con
     // ESLint 10 (usa context.getFilename, que ya no existe); se fija aquí.
     settings: {
