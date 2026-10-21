@@ -7,8 +7,8 @@ import { InputLabel } from "@mui/material";
 import { MenuItem } from "@mui/material";
 import { FormControl } from "@mui/material";
 import { Select, SelectChangeEvent } from "@mui/material";
-import { Chip } from "@mui/material";
 import type { MenuProps as MuiMenuProps } from "@mui/material";
+import { Chip } from "@mui/material";
 
 import { useManufacturingPlants } from "@hooks";
 
