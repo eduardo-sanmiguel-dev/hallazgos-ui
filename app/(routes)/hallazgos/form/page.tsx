@@ -63,13 +63,14 @@ export default function HallazgosFormPage() {
 
   const router = useRouter();
 
+  // Por contenido y no por referencia: cada setSession trae un arreglo nuevo
+  // (aunque sea igual) y no debe borrar la planta ya elegida.
+  const plantsCurrentKey = manufacturingPlantsCurrent.join(",");
+
   useEffect(() => {
-    if (manufacturingPlantsCurrent.length === 1) {
-      setManufacturingPlantId(`${manufacturingPlantsCurrent[0]}`);
-    } else {
-      setManufacturingPlantId("");
-    }
-  }, [manufacturingPlantsCurrent]);
+    const plants = plantsCurrentKey ? plantsCurrentKey.split(",") : [];
+    setManufacturingPlantId(plants.length === 1 ? plants[0] : "");
+  }, [plantsCurrentKey]);
 
   useEffect(() => {
     if (typeHallazgo) {
