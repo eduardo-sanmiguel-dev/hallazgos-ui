@@ -6,7 +6,12 @@ import { EMPTY_CATALOG, useTypesOfEvents, useZones } from "@hooks";
 import SelectDefault from "@components/SelectDefault";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import DateFieldDMY from "@routes/gemba-walk/calendar/_components/DateFieldDMY";
-import FilterBar from "@shared/components/FilterBar";
+import { useUserSessionStore } from "@store";
+import FilterBar, {
+  compactFilters,
+  formatDateDMY,
+  optionLabel,
+} from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 
 export interface IFiltersCiaels {
@@ -48,8 +53,56 @@ const FiltersCiaels = ({ filters, setFilters, count }: Props) => {
     Object.keys(DEFAULT_FILTERS_CIAELS) as (keyof IFiltersCiaels)[]
   ).some((key) => filters[key] !== DEFAULT_FILTERS_CIAELS[key]);
 
+  const manufacturingPlants = useUserSessionStore(
+    (state) => state.manufacturingPlants,
+  );
+
+  const activeFilters = compactFilters(
+    !!filters.manufacturingPlantId && {
+      key: "manufacturingPlantId",
+      label: "Planta",
+      value: optionLabel(filters.manufacturingPlantId, manufacturingPlants),
+      onRemove: () =>
+        setFilters({ ...filters, manufacturingPlantId: "", zoneId: "" }),
+    },
+    !!filters.zoneId && {
+      key: "zoneId",
+      label: "Zona",
+      value: optionLabel(filters.zoneId, zones),
+      onRemove: () => setFilters({ ...filters, zoneId: "" }),
+    },
+    !!filters.typeOfEventId && {
+      key: "typeOfEventId",
+      label: "Tipo de evento",
+      value: optionLabel(filters.typeOfEventId, typesOfEvents),
+      onRemove: () => setFilters({ ...filters, typeOfEventId: "" }),
+    },
+    !!filters.employee && {
+      key: "employee",
+      label: "Colaborador",
+      value: filters.employee,
+      onRemove: () => setFilters({ ...filters, employee: "" }),
+    },
+    !!filters.startDate && {
+      key: "startDate",
+      label: "Desde",
+      value: formatDateDMY(filters.startDate),
+      onRemove: () => setFilters({ ...filters, startDate: "" }),
+    },
+    !!filters.endDate && {
+      key: "endDate",
+      label: "Hasta",
+      value: formatDateDMY(filters.endDate),
+      onRemove: () => setFilters({ ...filters, endDate: "" }),
+    },
+  );
+
   return (
-    <FilterBar count={count}>
+    <FilterBar
+      count={count}
+      activeFilters={activeFilters}
+      onClearAll={() => setFilters(DEFAULT_FILTERS_CIAELS)}
+    >
       <ClearFiltersButton
         visible={hasFiltersToClear}
         onClick={() => setFilters(DEFAULT_FILTERS_CIAELS)}

@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  ReactNode,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 
 import {
   AppBar as MuiAppBar,
@@ -15,8 +8,6 @@ import {
 } from "@mui/material";
 import { alpha, useTheme, ThemeProvider } from "@mui/material/styles";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import Brightness4Icon from "@mui/icons-material/Brightness4";
-import Brightness7Icon from "@mui/icons-material/Brightness7";
 import { CssBaseline } from "@mui/material";
 import { IconButton } from "@mui/material";
 import { Typography } from "@mui/material";
@@ -30,13 +21,14 @@ import { Box } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
 
 import Image from "next/image";
-import { Tooltip } from "@mui/material";
 
 import { MainListItems } from "@shared/components/menu";
 import HeaderUserMenu from "@shared/components/HeaderUserMenu";
 import Copyright from "@shared/components/Copyright";
+import HalloweenSpider from "@shared/components/HalloweenSpider";
+import ThemeSelector from "@shared/components/ThemeSelector";
 import { useUserSessionStore } from "@store";
-import { createAppTheme } from "../theme";
+import { AppThemeName, createAppTheme, isAppThemeName } from "../theme";
 import { UsersService } from "@services";
 
 // Ancho suficiente para que ninguna etiqueta del menú se corte.
@@ -101,36 +93,8 @@ const Drawer = styled(MuiDrawer, {
   },
 }));
 
-const ColorModeContext = createContext({ toggleColorMode: () => {} });
-
-function BtnChangeMode() {
-  const theme = useTheme();
-  const colorMode = useContext(ColorModeContext);
-
-  const modeCurrent = theme.palette.mode;
-
-  const isLight = modeCurrent === "light";
-  const isDark = modeCurrent === "dark";
-
-  const handleToggleColorMode = () => {
-    colorMode.toggleColorMode();
-    localStorage.setItem("colorMode", isLight ? "dark" : "light");
-  };
-
-  const label = isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro";
-
-  return (
-    <Tooltip title={label}>
-      <IconButton
-        onClick={handleToggleColorMode}
-        aria-label={label}
-        sx={{ color: "text.secondary" }}
-      >
-        {isDark ? <Brightness7Icon /> : <Brightness4Icon />}
-      </IconButton>
-    </Tooltip>
-  );
-}
+// Clave de localStorage con el tema elegido ("light" | "dark" | "halloween").
+const THEME_STORAGE_KEY = "colorMode";
 
 // Marca: logo y nombre del producto. En modo oscuro el logo va en blanco
 // monocromo; sus partes grises no se distinguen sobre fondo oscuro.
@@ -183,7 +147,7 @@ function Brand() {
 }
 
 export default function MainLayout({ children }: { children: ReactNode }) {
-  const [mode, setMode] = useState<"light" | "dark">("light");
+  const [themeName, setThemeName] = useState<AppThemeName>("light");
   const [open, setOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -203,17 +167,13 @@ export default function MainLayout({ children }: { children: ReactNode }) {
     }
   }, [userId, setSession]);
 
-  const colorMode = useMemo(
-    () => ({
-      toggleColorMode: () => {
-        setMode((prevMode) => (prevMode === "light" ? "dark" : "light"));
-      },
-    }),
-    [],
-  );
+  const changeTheme = (name: AppThemeName) => {
+    setThemeName(name);
+    localStorage.setItem(THEME_STORAGE_KEY, name);
+  };
 
-  // El theme solo se crea de nuevo al cambiar de modo.
-  const theme = useMemo(() => createAppTheme(mode), [mode]);
+  // El theme solo se crea de nuevo al cambiar de tema.
+  const theme = useMemo(() => createAppTheme(themeName), [themeName]);
 
   // En móvil y tablet el menú es temporal (se superpone al contenido).
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -274,120 +234,120 @@ export default function MainLayout({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    const colorModeCurrent = localStorage.getItem("colorMode") as
-      "light" | "dark";
-    if (colorModeCurrent) {
-      setMode(colorModeCurrent);
+    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    if (isAppThemeName(saved)) {
+      setThemeName(saved);
     }
   }, []);
 
   return (
-    <ColorModeContext.Provider value={colorMode}>
-      <ThemeProvider theme={theme}>
+    <ThemeProvider theme={theme}>
+      <Box
+        sx={{
+          display: "flex",
+          height: "100vh",
+          overflow: "hidden",
+          // Scrollbars y controles nativos acordes al modo (se hereda).
+          colorScheme: theme.palette.mode,
+        }}
+      >
+        <CssBaseline />
         <Box
-          sx={{
-            display: "flex",
-            height: "100vh",
-            overflow: "hidden",
-            // Scrollbars y controles nativos acordes al modo (se hereda).
-            colorScheme: mode,
-          }}
+          component="a"
+          href="#contenido"
+          sx={(theme) => ({
+            position: "absolute",
+            left: 8,
+            top: -64,
+            zIndex: theme.zIndex.tooltip,
+            px: 2,
+            py: 1,
+            borderRadius: `${theme.tokens.radius.md}px`,
+            backgroundColor: "background.paper",
+            color: "text.primary",
+            boxShadow: 3,
+            textDecoration: "none",
+            fontWeight: 600,
+            "&:focus": { top: 8 },
+          })}
         >
-          <CssBaseline />
-          <Box
-            component="a"
-            href="#contenido"
-            sx={(theme) => ({
-              position: "absolute",
-              left: 8,
-              top: -64,
-              zIndex: theme.zIndex.tooltip,
-              px: 2,
-              py: 1,
-              borderRadius: `${theme.tokens.radius.md}px`,
-              backgroundColor: "background.paper",
-              color: "text.primary",
-              boxShadow: 3,
-              textDecoration: "none",
-              fontWeight: 600,
-              "&:focus": { top: 8 },
-            })}
-          >
-            Saltar al contenido
-          </Box>
-          <AppBar position="absolute" open={open && !isMobile}>
-            <Toolbar sx={{ gap: 1, px: { xs: 1.5, sm: 2.5 } }}>
-              <IconButton
-                edge="start"
-                aria-label="Abrir menú"
-                onClick={toggleDrawer}
-                sx={{
-                  color: "text.secondary",
-                  ...(open && !isMobile && { display: "none" }),
-                }}
-              >
-                <MenuIcon />
-              </IconButton>
-              {/* Con el menú lateral abierto la marca vive arriba del menú. */}
-              {!(open && !isMobile) && <Brand />}
-              <Box sx={{ flexGrow: 1 }} />
-              <BtnChangeMode />
-              <Divider
-                orientation="vertical"
-                flexItem
-                sx={{ my: 1.5, mx: 0.5 }}
-              />
-              <HeaderUserMenu />
-            </Toolbar>
-          </AppBar>
-          {isMobile ? (
-            <MuiDrawer
-              variant="temporary"
-              open={mobileOpen}
-              onClose={closeMobileDrawer}
-              keepMounted
-              slotProps={{
-                paper: {
-                  sx: {
-                    width: drawerWidth,
-                    maxWidth: "85vw",
-                    display: "flex",
-                    flexDirection: "column",
-                    overflow: "hidden",
-                  },
-                },
+          Saltar al contenido
+        </Box>
+        <AppBar position="absolute" open={open && !isMobile}>
+          <Toolbar sx={{ gap: 1, px: { xs: 1.5, sm: 2.5 } }}>
+            <IconButton
+              edge="start"
+              aria-label="Abrir menú"
+              onClick={toggleDrawer}
+              sx={{
+                color: "text.secondary",
+                ...(open && !isMobile && { display: "none" }),
               }}
             >
-              {drawerContent}
-            </MuiDrawer>
-          ) : (
-            <Drawer variant="permanent" open={open}>
-              {drawerContent}
-            </Drawer>
-          )}
-          <Box
-            component="main"
-            id="contenido"
-            tabIndex={-1}
-            sx={{
-              "&:focus": { outline: "none" },
-              backgroundColor: (theme) =>
-                theme.palette.mode === "light"
-                  ? theme.palette.grey[100]
-                  : theme.palette.grey[900],
-              flexGrow: 1,
-              height: "100vh",
-              overflow: "auto",
+              <MenuIcon />
+            </IconButton>
+            {/* Con el menú lateral abierto la marca vive arriba del menú. */}
+            {!(open && !isMobile) && <Brand />}
+            {themeName === "halloween" && <HalloweenSpider />}
+            <Box sx={{ flexGrow: 1 }} />
+            <ThemeSelector value={themeName} onChange={changeTheme} />
+            <Divider
+              orientation="vertical"
+              flexItem
+              sx={{ my: 1.5, mx: 0.5 }}
+            />
+            <HeaderUserMenu />
+          </Toolbar>
+        </AppBar>
+        {isMobile ? (
+          <MuiDrawer
+            variant="temporary"
+            open={mobileOpen}
+            onClose={closeMobileDrawer}
+            keepMounted
+            slotProps={{
+              paper: {
+                sx: {
+                  width: drawerWidth,
+                  maxWidth: "85vw",
+                  display: "flex",
+                  flexDirection: "column",
+                  overflow: "hidden",
+                },
+              },
             }}
           >
-            <Toolbar />
-            <Container maxWidth={false} sx={{ mt: 4, mb: 4 }}>
-              {children}
-              <Copyright sx={{ pt: 4 }} />
-            </Container>
-          </Box>
+            {drawerContent}
+          </MuiDrawer>
+        ) : (
+          <Drawer variant="permanent" open={open}>
+            {drawerContent}
+          </Drawer>
+        )}
+        <Box
+          component="main"
+          id="contenido"
+          tabIndex={-1}
+          sx={{
+            "&:focus": { outline: "none" },
+            backgroundColor: (theme) =>
+              ({
+                light: theme.palette.grey[100],
+                dark: theme.palette.grey[900],
+                halloween: theme.palette.background.default,
+              })[theme.appTheme],
+            flexGrow: 1,
+            height: "100vh",
+            overflow: "auto",
+          }}
+        >
+          <Toolbar />
+          <Container maxWidth={false} sx={{ mt: 4, mb: 4 }}>
+            {children}
+            <Copyright sx={{ pt: 4 }} />
+          </Container>
         </Box>
-      </ThemeProvider>
-    </ColorModeContext.Provider>
+      </Box>
+    </ThemeProvider>
   );
 }

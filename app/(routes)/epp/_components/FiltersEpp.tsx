@@ -7,7 +7,11 @@ import dayjs from "dayjs";
 import { useEmployeeCatalogs } from "@hooks";
 import SelectDefault from "@components/SelectDefault";
 import DateFieldDMY from "@routes/gemba-walk/calendar/_components/DateFieldDMY";
-import FilterBar from "@shared/components/FilterBar";
+import FilterBar, {
+  compactFilters,
+  formatDateDMY,
+  optionLabel,
+} from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 import { Equipment } from "@interfaces";
 import { EquipmentsService } from "@services";
@@ -66,8 +70,57 @@ const FiltersEpp = ({
     Object.keys(DEFAULT_FILTERS_EPP) as (keyof IFiltersEpp)[]
   ).some((key) => filters[key] !== DEFAULT_FILTERS_EPP[key]);
 
+  const activeFilters = compactFilters(
+    // Planta obligatoria: se muestra, pero no se puede quitar.
+    !!manufacturingPlantId && {
+      key: "manufacturingPlantId",
+      label: "Planta",
+      value: optionLabel(manufacturingPlantId, manufacturingPlants),
+    },
+    !!filters.search && {
+      key: "search",
+      label: "Colaborador",
+      value: filters.search,
+      onRemove: () => setFilters({ ...filters, search: "" }),
+    },
+    !!filters.areaId && {
+      key: "areaId",
+      label: "Área",
+      value: optionLabel(filters.areaId, catalogs?.areas ?? []),
+      onRemove: () => setFilters({ ...filters, areaId: "" }),
+    },
+    !!filters.positionId && {
+      key: "positionId",
+      label: "Cargo",
+      value: optionLabel(filters.positionId, catalogs?.positions ?? []),
+      onRemove: () => setFilters({ ...filters, positionId: "" }),
+    },
+    !!filters.equipmentId && {
+      key: "equipmentId",
+      label: "Equipo",
+      value: optionLabel(filters.equipmentId, equipments),
+      onRemove: () => setFilters({ ...filters, equipmentId: "" }),
+    },
+    !!filters.startDate && {
+      key: "startDate",
+      label: "Desde",
+      value: formatDateDMY(filters.startDate),
+      onRemove: () => setFilters({ ...filters, startDate: "" }),
+    },
+    !!filters.endDate && {
+      key: "endDate",
+      label: "Hasta",
+      value: formatDateDMY(filters.endDate),
+      onRemove: () => setFilters({ ...filters, endDate: "" }),
+    },
+  );
+
   return (
-    <FilterBar count={count}>
+    <FilterBar
+      count={count}
+      activeFilters={activeFilters}
+      onClearAll={() => setFilters(DEFAULT_FILTERS_EPP)}
+    >
       <ClearFiltersButton
         visible={hasFiltersToClear}
         onClick={() => setFilters(DEFAULT_FILTERS_EPP)}

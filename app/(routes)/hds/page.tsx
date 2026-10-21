@@ -10,7 +10,10 @@ import { usePaginatedList } from "@hooks";
 import LoadingLinear from "@shared/components/LoadingLinear";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
-import FilterBar from "@shared/components/FilterBar";
+import FilterBar, {
+  compactFilters,
+  optionLabel,
+} from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 import { RowActions, ViewAction } from "@shared/components/RowActions";
 import {
@@ -64,7 +67,24 @@ const HdsPage = () => {
       <PageHeader title="Hoja de datos de seguridad">
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
-      <FilterBar count={count}>
+      <FilterBar
+        count={count}
+        activeFilters={compactFilters(
+          !!filters.name && {
+            key: "name",
+            label: "Nombre",
+            value: filters.name,
+            onRemove: () => setFilters({ ...filters, name: "" }),
+          },
+          !!filters.order && {
+            key: "order",
+            label: "Orden",
+            value: optionLabel(filters.order, ORDER_OPTIONS),
+            onRemove: () => setFilters({ ...filters, order: "" }),
+          },
+        )}
+        onClearAll={() => setFilters(DEFAULT_FILTERS_HDS)}
+      >
         <ClearFiltersButton
           visible={!!filters.name || !!filters.order}
           onClick={() => setFilters(DEFAULT_FILTERS_HDS)}

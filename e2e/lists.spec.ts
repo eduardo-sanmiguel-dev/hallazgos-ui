@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 
 import { captureWrites } from "./support/api";
 import { expect, test } from "./support/fixtures";
-import { trackPageErrors } from "./support/ui";
+import { openFilters, trackPageErrors } from "./support/ui";
 
 // Listados: cada filtro de la barra "Filtros", limpiar filtros, paginar y
 // eliminar el primer registro tras confirmar. Las eliminaciones se
@@ -35,6 +35,7 @@ const LISTS = [
 const exerciseFilters = async (page: Page) => {
   const bar = page.getByRole("region", { name: "Filtros" });
   if (!(await bar.count())) return;
+  await openFilters(page);
 
   const textboxes = bar.getByRole("textbox");
   for (let i = 0; i < (await textboxes.count()); i++) {

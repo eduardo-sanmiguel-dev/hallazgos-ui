@@ -1,8 +1,12 @@
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
+import { useUserSessionStore } from "@store";
 
-import FilterBar from "@shared/components/FilterBar";
+import FilterBar, {
+  compactFilters,
+  optionLabel,
+} from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 
 export interface IFiltersGembaWalkZones {
@@ -27,8 +31,33 @@ const FiltersGembaWalkZones = ({
   canClear = false,
   onClear,
 }: Props) => {
+  const manufacturingPlants = useUserSessionStore(
+    (state) => state.manufacturingPlants,
+  );
+
+  const activeFilters = compactFilters(
+    !!filters.manufacturingPlantId && {
+      key: "manufacturingPlantId",
+      label: "Planta",
+      value: optionLabel(filters.manufacturingPlantId, manufacturingPlants),
+      onRemove: () => setFilters({ ...filters, manufacturingPlantId: "" }),
+    },
+    !!filters.nameZone && {
+      key: "nameZone",
+      label: "Zona",
+      value: filters.nameZone,
+      onRemove: () => setFilters({ ...filters, nameZone: "" }),
+    },
+    !!filters.nameLocation && {
+      key: "nameLocation",
+      label: "Ubicación",
+      value: filters.nameLocation,
+      onRemove: () => setFilters({ ...filters, nameLocation: "" }),
+    },
+  );
+
   return (
-    <FilterBar count={count}>
+    <FilterBar count={count} activeFilters={activeFilters} onClearAll={onClear}>
       <ClearFiltersButton visible={canClear} onClick={() => onClear?.()} />
       <SelectManufacturingPlantsOwn
         value={filters.manufacturingPlantId}

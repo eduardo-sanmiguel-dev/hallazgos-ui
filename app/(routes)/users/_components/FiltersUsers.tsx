@@ -1,12 +1,20 @@
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 
-import { EMPTY_CATALOG, useProcesses } from "@hooks";
+import {
+  EMPTY_CATALOG,
+  useManufacturingPlants,
+  useProcesses,
+  useZones,
+} from "@hooks";
 import SelectDefault from "@components/SelectDefault";
 import SelectManufacturingPlants from "@components/SelectManufacturingPlants";
 import SelectRules from "@components/SelectRules";
 import SelectZones from "@components/SelectZones";
-import FilterBar from "@shared/components/FilterBar";
+import FilterBar, {
+  compactFilters,
+  optionLabel,
+} from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 
 export interface IFiltersUsers {
@@ -41,12 +49,62 @@ const FiltersUsers = ({ filters, setFilters, count }: Props) => {
       { enabled: !!filters.manufacturingPlantId },
     ).data ?? EMPTY_CATALOG;
 
+  const manufacturingPlants = useManufacturingPlants().data ?? EMPTY_CATALOG;
+  const zones =
+    useZones(
+      { manufacturingPlantId: filters.manufacturingPlantId },
+      { enabled: !!filters.manufacturingPlantId },
+    ).data ?? EMPTY_CATALOG;
+
   const hasFiltersToClear = (
     Object.keys(DEFAULT_FILTERS_USERS) as (keyof IFiltersUsers)[]
   ).some((key) => filters[key] !== DEFAULT_FILTERS_USERS[key]);
 
+  const activeFilters = compactFilters(
+    !!filters.search && {
+      key: "search",
+      label: "Nombre o correo",
+      value: filters.search,
+      onRemove: () => setFilters({ ...filters, search: "" }),
+    },
+    !!filters.rule && {
+      key: "rule",
+      label: "Rol",
+      value: filters.rule,
+      onRemove: () => setFilters({ ...filters, rule: "" }),
+    },
+    !!filters.manufacturingPlantId && {
+      key: "manufacturingPlantId",
+      label: "Planta",
+      value: optionLabel(filters.manufacturingPlantId, manufacturingPlants),
+      onRemove: () =>
+        setFilters({
+          ...filters,
+          manufacturingPlantId: "",
+          zoneId: "",
+          processId: "",
+        }),
+    },
+    !!filters.zoneId && {
+      key: "zoneId",
+      label: "Zona",
+      value: optionLabel(filters.zoneId, zones),
+      onRemove: () => setFilters({ ...filters, zoneId: "" }),
+    },
+    !!filters.processId && {
+      key: "processId",
+      label: "Proceso",
+      value: optionLabel(filters.processId, processes),
+      onRemove: () => setFilters({ ...filters, processId: "" }),
+    },
+  );
+
   return (
-    <FilterBar count={count}>
+    <FilterBar
+      count={count}
+      activeFilters={activeFilters}
+      onClearAll={() => setFilters(DEFAULT_FILTERS_USERS)}
+    >
       <ClearFiltersButton
         visible={hasFiltersToClear}
         onClick={() => setFilters(DEFAULT_FILTERS_USERS)}

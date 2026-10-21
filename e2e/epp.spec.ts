@@ -3,6 +3,7 @@ import type { Locator, Page } from "@playwright/test";
 import { captureWrites, mockGet } from "./support/api";
 import { expect, test } from "./support/fixtures";
 import {
+  openFilters,
   pickOption,
   sessionPlants,
   toast,
@@ -245,6 +246,7 @@ test.describe("EPP: lista de entregas", () => {
     );
     // La lista se consulta por planta.
     const filters = page.getByRole("region", { name: "Filtros" });
+    await openFilters(page);
     if (await filters.getByRole("combobox", { name: "Planta" }).isVisible()) {
       await pickOption(page, "Planta", plant.name);
     }

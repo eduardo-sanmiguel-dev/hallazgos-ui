@@ -20,7 +20,10 @@ import { EMPTY_CATALOG, useMainTypes, useZones } from "@hooks";
 import SelectDefault from "@components/SelectDefault";
 import { SecondaryType, User } from "@interfaces";
 import { UsersService } from "@services";
-import FilterBar from "@shared/components/FilterBar";
+import FilterBar, {
+  ActiveFilter,
+  joinNames,
+} from "@shared/components/FilterBar";
 
 export interface FiltersEvidences {
   evidenceId: string;
@@ -276,18 +279,17 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
         .map((option) => option.name);
     };
 
-    const formatValues = (values: string[]) => {
-      if (values.length <= 2) return values.join(", ");
-      return `${values.slice(0, 2).join(", ")} +${values.length - 2}`;
-    };
-
-    const chips: Array<{ key: string; label: string }> = [];
+    const chips: ActiveFilter[] = [];
 
     if (filters.evidenceId) {
-      const labelPrefix = filters.evidenceId.includes(",") ? "IDs" : "ID";
       chips.push({
         key: "evidenceId",
-        label: `${labelPrefix}: ${filters.evidenceId}`,
+        label: filters.evidenceId.includes(",") ? "IDs" : "ID",
+        value: filters.evidenceId,
+        onRemove: () => {
+          setLocalEvidenceId("");
+          setFilters((prev) => ({ ...prev, evidenceId: "" }));
+        },
       });
     }
 
@@ -297,7 +299,20 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
       );
 
       if (plant) {
-        chips.push({ key: "plant", label: `Planta: ${plant.name}` });
+        chips.push({
+          key: "plant",
+          label: "Planta",
+          value: plant.name,
+          // Igual que al cambiar la planta en su select.
+          onRemove: () =>
+            setFilters((prev) => ({
+              ...prev,
+              manufacturingPlantId: "",
+              areaIds: [],
+              zoneIds: [],
+              responsibleIds: [],
+            })),
+        });
       }
     }
 
@@ -305,7 +320,14 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
     if (mainTypeNames.length) {
       chips.push({
         key: "mainTypes",
-        label: `Clasificación: ${formatValues(mainTypeNames)}`,
+        label: "Clasificación",
+        value: joinNames(mainTypeNames),
+        onRemove: () =>
+          setFilters((prev) => ({
+            ...prev,
+            mainTypeIds: [],
+            secondaryTypeIds: [],
+          })),
       });
     }
 
@@ -316,18 +338,38 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
     if (secondaryTypeNames.length) {
       chips.push({
         key: "secondaryTypes",
-        label: `Tipo: ${formatValues(secondaryTypeNames)}`,
+        label: "Tipo",
+        value: joinNames(secondaryTypeNames),
+        onRemove: () =>
+          setFilters((prev) => ({ ...prev, secondaryTypeIds: [] })),
       });
     }
 
     const areaNames = getNamesByIds(filters.areaIds, areaOptions);
     if (areaNames.length) {
-      chips.push({ key: "areas", label: `Zonas: ${formatValues(areaNames)}` });
+      chips.push({
+        key: "areas",
+        label: "Zonas",
+        value: joinNames(areaNames),
+        onRemove: () =>
+          setFilters((prev) => ({
+            ...prev,
+            areaIds: [],
+            zoneIds: [],
+            responsibleIds: [],
+          })),
+      });
     }
 
     const zoneNames = getNamesByIds(filters.zoneIds, filteredZones);
     if (zoneNames.length) {
-      chips.push({ key: "zones", label: `Lugar: ${formatValues(zoneNames)}` });
+      chips.push({
+        key: "zones",
+        label: "Lugar",
+        value: joinNames(zoneNames),
+        onRemove: () =>
+          setFilters((prev) => ({ ...prev, zoneIds: [], responsibleIds: [] })),
+      });
     }
 
     const responsibleNames = getNamesByIds(
@@ -337,7 +379,9 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
     if (responsibleNames.length) {
       chips.push({
         key: "responsibles",
-        label: `Responsables: ${formatValues(responsibleNames)}`,
+        label: "Responsables",
+        value: joinNames(responsibleNames),
+        onRemove: () => setFilters((prev) => ({ ...prev, responsibleIds: [] })),
       });
     }
 
@@ -345,16 +389,28 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
     if (stateNames.length) {
       chips.push({
         key: "states",
-        label: `Estatus: ${formatValues(stateNames)}`,
+        label: "Estatus",
+        value: joinNames(stateNames),
+        onRemove: () => setFilters((prev) => ({ ...prev, states: [] })),
       });
     }
 
     if (filters.startDate) {
-      chips.push({ key: "startDate", label: `Desde: ${filters.startDate}` });
+      chips.push({
+        key: "startDate",
+        label: "Desde",
+        value: filters.startDate,
+        onRemove: () => setFilters((prev) => ({ ...prev, startDate: "" })),
+      });
     }
 
     if (filters.endDate) {
-      chips.push({ key: "endDate", label: `Hasta: ${filters.endDate}` });
+      chips.push({
+        key: "endDate",
+        label: "Hasta",
+        value: filters.endDate,
+        onRemove: () => setFilters((prev) => ({ ...prev, endDate: "" })),
+      });
     }
 
     return chips;
@@ -366,6 +422,7 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
     mainTypes,
     manufacturingPlants,
     secondaryTypes,
+    setFilters,
   ]);
 
   const hasFiltersToClear = useMemo(
@@ -397,7 +454,11 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
   );
 
   return (
-    <FilterBar count={count}>
+    <FilterBar
+      count={count}
+      activeFilters={selectedFilterChips}
+      onClearAll={clearAllFilters}
+    >
       <Grid
         size={{
           xs: 12,
@@ -416,7 +477,7 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
             selectedFilterChips.map((chip) => (
               <Chip
                 key={chip.key}
-                label={chip.label}
+                label={`${chip.label}: ${chip.value}`}
                 size="small"
                 variant="filled"
                 color="primary"
@@ -457,9 +518,7 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
           autoComplete="off"
           onChange={(event) =>
             setLocalEvidenceId(
-              event.target.value
-                .replace(/[^\d,]/g, "")
-                .replace(/,{2,}/g, ","),
+              event.target.value.replace(/[^\d,]/g, "").replace(/,{2,}/g, ","),
             )
           }
           placeholder="IDs separadas por coma"

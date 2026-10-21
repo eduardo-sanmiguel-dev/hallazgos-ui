@@ -4,8 +4,12 @@ import TextField from "@mui/material/TextField";
 import SelectDefault from "@components/SelectDefault";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import { ExtinguisherType } from "@interfaces";
+import { useUserSessionStore } from "@store";
 
-import FilterBar from "@shared/components/FilterBar";
+import FilterBar, {
+  compactFilters,
+  optionLabel,
+} from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 
 export interface IFiltersEmergencyTeams {
@@ -31,8 +35,37 @@ interface Props {
 }
 
 const FiltersEmergencyTeams = ({ filters, setFilters, count }: Props) => {
+  const manufacturingPlants = useUserSessionStore(
+    (state) => state.manufacturingPlants,
+  );
+
+  const activeFilters = compactFilters(
+    !!filters.manufacturingPlantId && {
+      key: "manufacturingPlantId",
+      label: "Planta",
+      value: optionLabel(filters.manufacturingPlantId, manufacturingPlants),
+      onRemove: () => setFilters({ ...filters, manufacturingPlantId: "" }),
+    },
+    !!filters.search && {
+      key: "search",
+      label: "Ubicación o N. Extintor",
+      value: filters.search,
+      onRemove: () => setFilters({ ...filters, search: "" }),
+    },
+    !!filters.typeOfExtinguisher && {
+      key: "typeOfExtinguisher",
+      label: "Tipo de extintor",
+      value: filters.typeOfExtinguisher,
+      onRemove: () => setFilters({ ...filters, typeOfExtinguisher: "" }),
+    },
+  );
+
   return (
-    <FilterBar count={count}>
+    <FilterBar
+      count={count}
+      activeFilters={activeFilters}
+      onClearAll={() => setFilters(DEFAULT_FILTERS_EMERGENCY_TEAMS)}
+    >
       <ClearFiltersButton
         visible={Object.values(filters).some(Boolean)}
         onClick={() => setFilters(DEFAULT_FILTERS_EMERGENCY_TEAMS)}

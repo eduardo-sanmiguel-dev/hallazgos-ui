@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 
 import { mockGet } from "./support/api";
 import { expect, test } from "./support/fixtures";
-import { sessionPlants } from "./support/ui";
+import { openFilters, sessionPlants } from "./support/ui";
 
 // Usuarios con reglas especiales por correo (solo HDS, EPP, dashboard
 // restringido) y fallas al consultar permisos. La sesión se simula.
@@ -53,6 +53,7 @@ test.describe("Usuarios especiales", () => {
   }) => {
     await asUser(page, "glora@hadainternational.com", "Administrador");
     await page.goto("/dashboard");
+    await openFilters(page);
     await page.getByRole("combobox", { name: "Clasificación" }).click();
     const options = page.getByRole("listbox").getByRole("option");
     await expect(options.first()).toBeVisible();

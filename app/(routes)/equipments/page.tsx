@@ -20,7 +20,10 @@ import { usePaginatedList } from "@hooks";
 import LoadingLinear from "@shared/components/LoadingLinear";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
-import FilterBar from "@shared/components/FilterBar";
+import FilterBar, {
+  compactFilters,
+  optionLabel,
+} from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import {
@@ -394,7 +397,28 @@ export default function EquipmentsPage() {
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
-      <FilterBar count={count}>
+      <FilterBar
+        count={count}
+        activeFilters={compactFilters(
+          !!filters.manufacturingPlantId && {
+            key: "manufacturingPlantId",
+            label: "Planta",
+            value: optionLabel(
+              filters.manufacturingPlantId,
+              manufacturingPlants,
+            ),
+            onRemove: () =>
+              setFilters({ ...filters, manufacturingPlantId: "" }),
+          },
+          !!filters.name && {
+            key: "name",
+            label: "Nombre",
+            value: filters.name,
+            onRemove: () => setFilters({ ...filters, name: "" }),
+          },
+        )}
+        onClearAll={() => setFilters({ manufacturingPlantId: "", name: "" })}
+      >
         <ClearFiltersButton
           visible={!!filters.name || !!filters.manufacturingPlantId}
           onClick={() => setFilters({ manufacturingPlantId: "", name: "" })}

@@ -1,11 +1,27 @@
 import { expect, type Page } from "@playwright/test";
 
+/**
+ * Despliega la barra "Filtros" (inicia cerrada). Sin barra visible (p. ej. en
+ * un formulario o detrás de un diálogo) no hace nada.
+ */
+export const openFilters = async (page: Page) => {
+  const toggle = page
+    .getByRole("region", { name: "Filtros" })
+    .getByRole("button", { name: /^Filtros/ });
+  if (!(await toggle.count())) return;
+  if ((await toggle.getAttribute("aria-expanded")) === "false") {
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  }
+};
+
 /** Elige una opción de un SelectDefault (Autocomplete de MUI) por su etiqueta. */
 export const pickOption = async (
   page: Page,
   label: string,
   option?: string | RegExp,
 ) => {
+  await openFilters(page);
   const input = page.getByRole("combobox", { name: label, exact: true });
   await expect(input).toBeEnabled();
   await input.click();
@@ -47,6 +63,7 @@ export const trackPageErrors = (page: Page) => {
 
 /** Elige las primeras `count` opciones de un multiselect de MUI y lo cierra. */
 export const pickMany = async (page: Page, label: string, count = 1) => {
+  await openFilters(page);
   await page.getByRole("combobox", { name: label, exact: true }).click();
 
   // "Todos" / "Ninguno" seleccionan o limpian todo: no cuentan.
@@ -68,6 +85,7 @@ export const pickMany = async (page: Page, label: string, count = 1) => {
 
 /** Escribe una fecha DD/MM/AAAA en un DatePicker de MUI X. */
 export const fillDate = async (page: Page, label: string, date: string) => {
+  await openFilters(page);
   await page
     .getByRole("group", { name: label })
     .getByRole("spinbutton")
@@ -78,6 +96,7 @@ export const fillDate = async (page: Page, label: string, date: string) => {
 
 /** Elige planta en SelectManufacturingPlantsOwn (con una sola, se elige sola). */
 export const choosePlant = async (page: Page) => {
+  await openFilters(page);
   const input = page.getByRole("combobox", { name: "Planta", exact: true });
   // SelectDefault pinta la opción elegida junto al input (renderValue), no
   // dentro de él: se revisa el texto del Autocomplete.

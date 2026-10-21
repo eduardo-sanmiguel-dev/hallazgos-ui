@@ -4,8 +4,12 @@ import { TextField } from "@mui/material";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
 import { GEMBA_WALK_EVALUATION_CATEGORIES } from "@interfaces";
+import { useUserSessionStore } from "@store";
 
-import FilterBar from "@shared/components/FilterBar";
+import FilterBar, {
+  compactFilters,
+  optionLabel,
+} from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 
 export interface IFiltersGembaWalkEvaluations {
@@ -35,8 +39,33 @@ const FiltersGembaWalkEvaluations = ({
   canClear = false,
   onClear,
 }: Props) => {
+  const manufacturingPlants = useUserSessionStore(
+    (state) => state.manufacturingPlants,
+  );
+
+  const activeFilters = compactFilters(
+    !!filters.manufacturingPlantId && {
+      key: "manufacturingPlantId",
+      label: "Planta",
+      value: optionLabel(filters.manufacturingPlantId, manufacturingPlants),
+      onRemove: () => setFilters({ ...filters, manufacturingPlantId: "" }),
+    },
+    !!filters.category && {
+      key: "category",
+      label: "Categoría",
+      value: filters.category,
+      onRemove: () => setFilters({ ...filters, category: "" }),
+    },
+    !!filters.search && {
+      key: "search",
+      label: "Área o descripción",
+      value: filters.search,
+      onRemove: () => setFilters({ ...filters, search: "" }),
+    },
+  );
+
   return (
-    <FilterBar count={count}>
+    <FilterBar count={count} activeFilters={activeFilters} onClearAll={onClear}>
       <ClearFiltersButton visible={canClear} onClick={() => onClear?.()} />
       <SelectManufacturingPlantsOwn
         value={filters.manufacturingPlantId}

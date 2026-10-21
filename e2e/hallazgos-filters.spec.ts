@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "./support/fixtures";
 import {
   fillDate,
+  openFilters,
   pickMany,
   pickOption,
   sessionPlants,
@@ -28,6 +29,7 @@ test.describe("Hallazgos: filtros", () => {
     test.setTimeout(120_000);
     const errors = trackPageErrors(page);
     await page.goto("/hallazgos");
+    await openFilters(page);
     await expect(chip(page, "Sin filtros seleccionados")).toBeVisible();
 
     // IDs: se normalizan las comas y se aplican tras una pausa.
@@ -104,6 +106,10 @@ test.describe("Hallazgos: filtros", () => {
       `/hallazgos?manufacturingPlantId=${plant.id}&startDate=01/01/2026&endDate=31/12/2026&mainTypeIds=1,2&areaIds=1&responsibleIds=1`,
     );
     await query;
-    await expect(chip(page, `Planta: ${plant.name}`)).toBeVisible();
+    // Con la barra cerrada, el resumen muestra los filtros recibidos.
+    const summary = page.getByRole("group", { name: "Filtros aplicados" });
+    await expect(
+      summary.locator(".MuiChip-root").filter({ hasText: `Planta: ${plant.name}` }),
+    ).toBeVisible();
   });
 });

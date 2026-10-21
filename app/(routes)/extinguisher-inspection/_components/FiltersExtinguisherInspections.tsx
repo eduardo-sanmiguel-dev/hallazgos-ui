@@ -4,8 +4,13 @@ import dayjs from "dayjs";
 
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import DateFieldDMY from "@routes/gemba-walk/calendar/_components/DateFieldDMY";
+import { useUserSessionStore } from "@store";
 
-import FilterBar from "@shared/components/FilterBar";
+import FilterBar, {
+  compactFilters,
+  formatDateDMY,
+  optionLabel,
+} from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 
 export interface IFiltersExtinguisherInspections {
@@ -35,8 +40,43 @@ const FiltersExtinguisherInspections = ({
   setFilters,
   count,
 }: Props) => {
+  const manufacturingPlants = useUserSessionStore(
+    (state) => state.manufacturingPlants,
+  );
+
+  const activeFilters = compactFilters(
+    !!filters.manufacturingPlantId && {
+      key: "manufacturingPlantId",
+      label: "Planta",
+      value: optionLabel(filters.manufacturingPlantId, manufacturingPlants),
+      onRemove: () => setFilters({ ...filters, manufacturingPlantId: "" }),
+    },
+    !!filters.search && {
+      key: "search",
+      label: "ID o Responsable",
+      value: filters.search,
+      onRemove: () => setFilters({ ...filters, search: "" }),
+    },
+    !!filters.startDate && {
+      key: "startDate",
+      label: "Desde",
+      value: formatDateDMY(filters.startDate),
+      onRemove: () => setFilters({ ...filters, startDate: "" }),
+    },
+    !!filters.endDate && {
+      key: "endDate",
+      label: "Hasta",
+      value: formatDateDMY(filters.endDate),
+      onRemove: () => setFilters({ ...filters, endDate: "" }),
+    },
+  );
+
   return (
-    <FilterBar count={count}>
+    <FilterBar
+      count={count}
+      activeFilters={activeFilters}
+      onClearAll={() => setFilters(DEFAULT_FILTERS_EXTINGUISHER_INSPECTIONS)}
+    >
       <ClearFiltersButton
         visible={
           !!filters.search ||

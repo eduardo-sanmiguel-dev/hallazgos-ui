@@ -24,6 +24,10 @@ import { esES } from "@mui/x-date-pickers/locales";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
 import { User } from "@interfaces";
+import FilterBar, {
+  compactFilters,
+  joinNames,
+} from "@shared/components/FilterBar";
 import "dayjs/locale/es";
 
 export interface DashboardFilters {
@@ -74,17 +78,147 @@ export const DashboardFiltersBar = ({
   handleBackToInitialCharts,
   handleGoToHallazgos,
   handleDownloadDashboardPdf,
-}: DashboardFiltersBarProps) => (
-  <Paper
-    sx={{
-      p: 1,
-      backdropFilter: "blur(8px)",
-      bgcolor: "background.paper",
-      border: "2px solid",
-      borderColor: "primary.main",
-    }}
-  >
-    <Grid container spacing={2} sx={{ alignItems: "center" }}>
+}: DashboardFiltersBarProps) => {
+  const activeFilters = compactFilters(
+    !!filters.manufacturingPlantId && {
+      key: "manufacturingPlantId",
+      label: "Planta",
+      value: filters.manufacturingPlantName || "…",
+      onRemove: () =>
+        handlePlantChange({
+          target: { value: "" },
+        } as SelectChangeEvent<string>),
+    },
+    !!filters.startDate && {
+      key: "startDate",
+      label: "Desde",
+      value: filters.startDate,
+      onRemove: () => setFilters((prev) => ({ ...prev, startDate: "" })),
+    },
+    !!filters.endDate && {
+      key: "endDate",
+      label: "Hasta",
+      value: filters.endDate,
+      onRemove: () => setFilters((prev) => ({ ...prev, endDate: "" })),
+    },
+    filters.areaIds.length > 0 && {
+      key: "areaIds",
+      label: "Zonas",
+      value: joinNames(filters.areaNames),
+      onRemove: () =>
+        setFilters((prev) => ({
+          ...prev,
+          areaIds: [],
+          areaNames: [],
+          responsibleIds: [],
+          responsibleNames: [],
+        })),
+    },
+    filters.responsibleIds.length > 0 && {
+      key: "responsibleIds",
+      label: "Responsables",
+      value: joinNames(filters.responsibleNames),
+      onRemove: () =>
+        setFilters((prev) => ({
+          ...prev,
+          responsibleIds: [],
+          responsibleNames: [],
+        })),
+    },
+    filters.mainTypeIds.length > 0 && {
+      key: "mainTypeIds",
+      label: "Clasificación",
+      value: joinNames(filters.mainTypeNames),
+      onRemove: () =>
+        setFilters((prev) => ({
+          ...prev,
+          mainTypeIds: [],
+          mainTypeNames: [],
+        })),
+    },
+  );
+
+  return (
+    <FilterBar
+      activeFilters={activeFilters}
+      sx={{ mb: 0, bgcolor: "background.paper" }}
+      actions={
+        <Stack
+          direction="row"
+          spacing={{ xs: 0, sm: 1 }}
+          sx={{ justifyContent: "flex-end" }}
+        >
+          <Tooltip title="Ir a Hallazgos" arrow>
+            <IconButton
+              color="primary"
+              aria-label="Ir a Hallazgos"
+              onClick={handleGoToHallazgos}
+            >
+              <AssignmentOutlinedIcon />
+            </IconButton>
+          </Tooltip>
+
+          {!!filters.manufacturingPlantId && (
+            <Tooltip
+              title={
+                isDownloadingPdfReport
+                  ? "Generando informe..."
+                  : "Descargar informe PDF"
+              }
+              arrow
+            >
+              <IconButton
+                color="primary"
+                aria-label="Descargar informe PDF"
+                onClick={handleDownloadDashboardPdf}
+                disabled={isDownloadingPdfReport}
+              >
+                {isDownloadingPdfReport ? (
+                  <CircularProgress size={22} color="inherit" />
+                ) : (
+                  <PictureAsPdfOutlinedIcon />
+                )}
+              </IconButton>
+            </Tooltip>
+          )}
+
+          <Tooltip title="Histórico" arrow>
+            <IconButton
+              color="primary"
+              aria-label="Histórico"
+              onClick={() => {
+                setIsHeatmapView(false);
+                setIsHistoricalView(true);
+              }}
+            >
+              <HistoryOutlinedIcon />
+            </IconButton>
+          </Tooltip>
+
+          {!isHeatmapView ? (
+            <Tooltip title="Mapa de calor" arrow>
+              <IconButton
+                color="primary"
+                aria-label="Mapa de calor"
+                onClick={handleToggleHeatmapView}
+              >
+                <WhatshotOutlinedIcon />
+              </IconButton>
+            </Tooltip>
+          ) : (
+            <Tooltip title="Gráficas" arrow>
+              <IconButton
+                color="primary"
+                aria-label="Gráficas"
+                onClick={handleBackToInitialCharts}
+              >
+                <BarChartOutlinedIcon />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Stack>
+      }
+    >
       <SelectManufacturingPlantsOwn
         value={filters.manufacturingPlantId}
         onChange={handlePlantChange}
@@ -187,90 +321,6 @@ export const DashboardFiltersBar = ({
       <Grid
         size={{
           xs: 12,
-          sm: 6,
-          md: 1,
-        }}
-        sx={{
-          ml: { md: "auto" },
-          display: "flex",
-          justifyContent: { xs: "flex-end", md: "flex-end" },
-        }}
-      >
-        <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
-          <Tooltip title="Ir a Hallazgos" arrow>
-            <IconButton
-              color="primary"
-              aria-label="Ir a Hallazgos"
-              onClick={handleGoToHallazgos}
-            >
-              <AssignmentOutlinedIcon />
-            </IconButton>
-          </Tooltip>
-
-          {!!filters.manufacturingPlantId && (
-            <Tooltip
-              title={
-                isDownloadingPdfReport
-                  ? "Generando informe..."
-                  : "Descargar informe PDF"
-              }
-              arrow
-            >
-              <IconButton
-                color="primary"
-                aria-label="Descargar informe PDF"
-                onClick={handleDownloadDashboardPdf}
-                disabled={isDownloadingPdfReport}
-              >
-                {isDownloadingPdfReport ? (
-                  <CircularProgress size={22} color="inherit" />
-                ) : (
-                  <PictureAsPdfOutlinedIcon />
-                )}
-              </IconButton>
-            </Tooltip>
-          )}
-
-          <Tooltip title="Histórico" arrow>
-            <IconButton
-              color="primary"
-              aria-label="Histórico"
-              onClick={() => {
-                setIsHeatmapView(false);
-                setIsHistoricalView(true);
-              }}
-            >
-              <HistoryOutlinedIcon />
-            </IconButton>
-          </Tooltip>
-
-          {!isHeatmapView ? (
-            <Tooltip title="Mapa de calor" arrow>
-              <IconButton
-                color="primary"
-                aria-label="Mapa de calor"
-                onClick={handleToggleHeatmapView}
-              >
-                <WhatshotOutlinedIcon />
-              </IconButton>
-            </Tooltip>
-          ) : (
-            <Tooltip title="Gráficas" arrow>
-              <IconButton
-                color="primary"
-                aria-label="Gráficas"
-                onClick={handleBackToInitialCharts}
-              >
-                <BarChartOutlinedIcon />
-              </IconButton>
-            </Tooltip>
-          )}
-        </Stack>
-      </Grid>
-
-      <Grid
-        size={{
-          xs: 12,
         }}
       >
         <Grid container spacing={2}>
@@ -364,6 +414,6 @@ export const DashboardFiltersBar = ({
           </Grid>
         </Grid>
       </Grid>
-    </Grid>
-  </Paper>
-);
+    </FilterBar>
+  );
+};

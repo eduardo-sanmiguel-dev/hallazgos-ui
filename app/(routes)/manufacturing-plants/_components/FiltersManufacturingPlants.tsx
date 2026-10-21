@@ -19,7 +19,22 @@ interface Props {
 
 const FiltersManufacturingPlants = ({ filters, setFilters, count }: Props) => {
   return (
-    <FilterBar count={count}>
+    <FilterBar
+      count={count}
+      activeFilters={
+        filters.name
+          ? [
+              {
+                key: "name",
+                label: "Nombre",
+                value: filters.name,
+                onRemove: () => setFilters({ ...filters, name: "" }),
+              },
+            ]
+          : []
+      }
+      onClearAll={() => setFilters(DEFAULT_FILTERS_MANUFACTURING_PLANTS)}
+    >
       <ClearFiltersButton
         visible={!!filters.name}
         onClick={() => setFilters(DEFAULT_FILTERS_MANUFACTURING_PLANTS)}

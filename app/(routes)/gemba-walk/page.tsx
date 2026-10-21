@@ -20,7 +20,11 @@ import { useUserSessionStore } from "@store";
 import GembaWalkAccessGuard from "./_components/GembaWalkAccessGuard";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
-import FilterBar from "@shared/components/FilterBar";
+import FilterBar, {
+  compactFilters,
+  formatDateDMY,
+  optionLabel,
+} from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 import TableGembaWalks from "./_components/TableGembaWalks";
 import DateFieldDMY from "./calendar/_components/DateFieldDMY";
@@ -148,7 +152,61 @@ const GembaWalksList = () => {
         <Box sx={{ flexGrow: 1 }} />
         <RefreshButton onClick={() => getData()} />
       </Box>
-      <FilterBar count={count}>
+      <FilterBar
+        count={count}
+        activeFilters={compactFilters(
+          !!filters.manufacturingPlantId && {
+            key: "manufacturingPlantId",
+            label: "Planta",
+            value: optionLabel(filters.manufacturingPlantId, userPlants ?? []),
+            onRemove: () =>
+              setFilters((prev) => ({
+                ...prev,
+                manufacturingPlantId: "",
+                nameZone: "",
+                nameLocation: "",
+              })),
+          },
+          !!filters.startDate && {
+            key: "startDate",
+            label: "Desde",
+            value: formatDateDMY(filters.startDate),
+            onRemove: () => setFilters((prev) => ({ ...prev, startDate: "" })),
+          },
+          !!filters.endDate && {
+            key: "endDate",
+            label: "Hasta",
+            value: formatDateDMY(filters.endDate),
+            onRemove: () => setFilters((prev) => ({ ...prev, endDate: "" })),
+          },
+          !!filters.nameZone && {
+            key: "nameZone",
+            label: "Zona",
+            value: filters.nameZone,
+            onRemove: () =>
+              setFilters((prev) => ({
+                ...prev,
+                nameZone: "",
+                nameLocation: "",
+              })),
+          },
+          !!filters.nameLocation && {
+            key: "nameLocation",
+            label: "Ubicación",
+            value: filters.nameLocation,
+            onRemove: () =>
+              setFilters((prev) => ({ ...prev, nameLocation: "" })),
+          },
+          !!filters.isAdditional && {
+            key: "isAdditional",
+            label: "Adicional",
+            value: optionLabel(filters.isAdditional, ADDITIONAL_OPTIONS),
+            onRemove: () =>
+              setFilters((prev) => ({ ...prev, isAdditional: "" })),
+          },
+        )}
+        onClearAll={() => setFilters(defaultFilters())}
+      >
         <ClearFiltersButton
           visible={hasFiltersToClear}
           onClick={() => setFilters(defaultFilters())}

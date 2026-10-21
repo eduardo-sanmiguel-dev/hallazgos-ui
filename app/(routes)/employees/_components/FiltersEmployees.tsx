@@ -3,8 +3,12 @@ import { TextField } from "@mui/material";
 import { useEmployeeCatalogs } from "@hooks";
 import SelectDefault from "@components/SelectDefault";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
+import { useUserSessionStore } from "@store";
 
-import FilterBar from "@shared/components/FilterBar";
+import FilterBar, {
+  compactFilters,
+  optionLabel,
+} from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 
 // Filtros de EmployeesService.findAll (lo usan otras pantallas).
@@ -50,12 +54,67 @@ interface Props {
 const FiltersEmployees = ({ filters, setFilters, count }: Props) => {
   const { data: catalogs } = useEmployeeCatalogs();
 
+  const manufacturingPlants = useUserSessionStore(
+    (state) => state.manufacturingPlants,
+  );
+
   const hasFiltersToClear = (
     Object.keys(DEFAULT_FILTERS_EMPLOYEES) as (keyof IFiltersEmployeesList)[]
   ).some((key) => filters[key] !== DEFAULT_FILTERS_EMPLOYEES[key]);
 
+  const activeFilters = compactFilters(
+    !!filters.name && {
+      key: "name",
+      label: "Nombre o código",
+      value: filters.name,
+      onRemove: () => setFilters({ ...filters, name: "" }),
+    },
+    !!filters.manufacturingPlantId && {
+      key: "manufacturingPlantId",
+      label: "Planta",
+      value: optionLabel(filters.manufacturingPlantId, manufacturingPlants),
+      onRemove: () => setFilters({ ...filters, manufacturingPlantId: "" }),
+    },
+    !!filters.areaId && {
+      key: "areaId",
+      label: "Área",
+      value: optionLabel(filters.areaId, catalogs?.areas ?? []),
+      onRemove: () => setFilters({ ...filters, areaId: "" }),
+    },
+    !!filters.positionId && {
+      key: "positionId",
+      label: "Puesto",
+      value: optionLabel(filters.positionId, catalogs?.positions ?? []),
+      onRemove: () => setFilters({ ...filters, positionId: "" }),
+    },
+    !!filters.genreId && {
+      key: "genreId",
+      label: "Género",
+      value: optionLabel(filters.genreId, catalogs?.genres ?? []),
+      onRemove: () => setFilters({ ...filters, genreId: "" }),
+    },
+    {
+      key: "isActive",
+      label: "Estado",
+      value: optionLabel(filters.isActive, STATUS_OPTIONS),
+      // "Activos" es el valor por defecto: no hay nada que quitar.
+      onRemove:
+        filters.isActive === DEFAULT_FILTERS_EMPLOYEES.isActive
+          ? undefined
+          : () =>
+              setFilters({
+                ...filters,
+                isActive: DEFAULT_FILTERS_EMPLOYEES.isActive,
+              }),
+    },
+  );
+
   return (
-    <FilterBar count={count}>
+    <FilterBar
+      count={count}
+      activeFilters={activeFilters}
+      onClearAll={() => setFilters(DEFAULT_FILTERS_EMPLOYEES)}
+    >
       <ClearFiltersButton
         visible={hasFiltersToClear}
         onClick={() => setFilters(DEFAULT_FILTERS_EMPLOYEES)}

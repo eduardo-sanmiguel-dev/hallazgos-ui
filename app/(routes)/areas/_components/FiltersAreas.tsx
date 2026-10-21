@@ -2,7 +2,11 @@ import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 
-import FilterBar from "@shared/components/FilterBar";
+import { useUserSessionStore } from "@store";
+import FilterBar, {
+  compactFilters,
+  optionLabel,
+} from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 
 export interface IFiltersAreas {
@@ -22,8 +26,31 @@ interface Props {
 }
 
 const FiltersAreas = ({ filters, setFilters, count }: Props) => {
+  const manufacturingPlants = useUserSessionStore(
+    (state) => state.manufacturingPlants,
+  );
+
+  const activeFilters = compactFilters(
+    !!filters.name && {
+      key: "name",
+      label: "Nombre",
+      value: filters.name,
+      onRemove: () => setFilters({ ...filters, name: "" }),
+    },
+    !!filters.manufacturingPlantId && {
+      key: "manufacturingPlantId",
+      label: "Planta",
+      value: optionLabel(filters.manufacturingPlantId, manufacturingPlants),
+      onRemove: () => setFilters({ ...filters, manufacturingPlantId: "" }),
+    },
+  );
+
   return (
-    <FilterBar count={count}>
+    <FilterBar
+      count={count}
+      activeFilters={activeFilters}
+      onClearAll={() => setFilters(DEFAULT_FILTERS_AREAS)}
+    >
       <ClearFiltersButton
         visible={!!filters.name || !!filters.manufacturingPlantId}
         onClick={() => setFilters(DEFAULT_FILTERS_AREAS)}

@@ -1,9 +1,13 @@
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 
+import { EMPTY_CATALOG, useManufacturingPlants } from "@hooks";
 import SelectManufacturingPlants from "@components/SelectManufacturingPlants";
 
-import FilterBar from "@shared/components/FilterBar";
+import FilterBar, {
+  compactFilters,
+  optionLabel,
+} from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 
 export interface IFiltersProcesses {
@@ -23,8 +27,29 @@ interface Props {
 }
 
 const FiltersProcesses = ({ filters, setFilters, count }: Props) => {
+  const manufacturingPlants = useManufacturingPlants().data ?? EMPTY_CATALOG;
+
+  const activeFilters = compactFilters(
+    !!filters.name && {
+      key: "name",
+      label: "Nombre",
+      value: filters.name,
+      onRemove: () => setFilters({ ...filters, name: "" }),
+    },
+    !!filters.manufacturingPlantId && {
+      key: "manufacturingPlantId",
+      label: "Planta",
+      value: optionLabel(filters.manufacturingPlantId, manufacturingPlants),
+      onRemove: () => setFilters({ ...filters, manufacturingPlantId: "" }),
+    },
+  );
+
   return (
-    <FilterBar count={count}>
+    <FilterBar
+      count={count}
+      activeFilters={activeFilters}
+      onClearAll={() => setFilters(DEFAULT_FILTERS_PROCESSES)}
+    >
       <ClearFiltersButton
         visible={!!filters.name || !!filters.manufacturingPlantId}
         onClick={() => setFilters(DEFAULT_FILTERS_PROCESSES)}

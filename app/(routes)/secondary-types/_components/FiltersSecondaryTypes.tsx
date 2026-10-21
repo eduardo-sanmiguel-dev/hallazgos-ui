@@ -1,9 +1,13 @@
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 
+import { EMPTY_CATALOG, useMainTypes } from "@hooks";
 import SelectMainTypes from "@components/SelectMainTypes";
 
-import FilterBar from "@shared/components/FilterBar";
+import FilterBar, {
+  compactFilters,
+  optionLabel,
+} from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 
 export interface IFiltersSecondaryTypes {
@@ -27,8 +31,25 @@ const FiltersSecondaryTypes = ({
   canClear = false,
   onClear,
 }: Props) => {
+  const mainTypes = useMainTypes().data ?? EMPTY_CATALOG;
+
+  const activeFilters = compactFilters(
+    !!filters.name && {
+      key: "name",
+      label: "Nombre",
+      value: filters.name,
+      onRemove: () => setFilters({ ...filters, name: "" }),
+    },
+    !!filters.mainTypeId && {
+      key: "mainTypeId",
+      label: "Criterio",
+      value: optionLabel(filters.mainTypeId, mainTypes),
+      onRemove: () => setFilters({ ...filters, mainTypeId: "" }),
+    },
+  );
+
   return (
-    <FilterBar count={count}>
+    <FilterBar count={count} activeFilters={activeFilters} onClearAll={onClear}>
       <ClearFiltersButton visible={canClear} onClick={() => onClear?.()} />
       <Grid
         size={{

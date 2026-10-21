@@ -1,9 +1,48 @@
 import { alpha, createTheme, darken } from "@mui/material/styles";
-import type { PaletteMode, Theme } from "@mui/material/styles";
+import type { Theme, ThemeOptions } from "@mui/material/styles";
 
 // Color de marca (verde HADA). Es el único color fijo del sistema; todo lo
 // demás se deriva del theme.
 export const BRAND_PRIMARY = "#71BF44";
+
+// Temas que el usuario puede elegir en el header.
+export type AppThemeName = "light" | "dark" | "halloween";
+
+export const APP_THEME_NAMES: readonly AppThemeName[] = [
+  "light",
+  "dark",
+  "halloween",
+];
+
+export const isAppThemeName = (value: unknown): value is AppThemeName =>
+  APP_THEME_NAMES.includes(value as AppThemeName);
+
+// Halloween es un tema oscuro: gráficas, logo y demás piezas que revisan
+// `palette.mode` se adaptan solas. Calabaza, morado y fondo de noche.
+const HALLOWEEN_PALETTE: ThemeOptions["palette"] = {
+  mode: "dark",
+  primary: {
+    main: "#FF7A1A",
+    light: "#FFA057",
+    dark: "#D45A00",
+    contrastText: "#1A0F00",
+  },
+  secondary: {
+    main: "#A66BFF",
+    light: "#C29BFF",
+    dark: "#7A3FD6",
+    contrastText: "#0F0816",
+  },
+  background: {
+    default: "#120C1A",
+    paper: "#1C1426",
+  },
+  text: {
+    primary: "#F6EBDD",
+    secondary: "rgba(246, 235, 221, 0.72)",
+  },
+  divider: "rgba(255, 122, 26, 0.18)",
+};
 
 // Radios y transiciones propios del sistema de diseño. `shape.borderRadius`
 // se deja en el valor por defecto (4) porque los `sx={{ borderRadius: n }}`
@@ -25,9 +64,11 @@ type DesignTokens = typeof tokens;
 declare module "@mui/material/styles" {
   interface Theme {
     tokens: DesignTokens;
+    appTheme: AppThemeName;
   }
   interface ThemeOptions {
     tokens?: DesignTokens;
+    appTheme?: AppThemeName;
   }
 }
 
@@ -40,17 +81,24 @@ export const primaryTextColor = (theme: Theme) =>
 
 // Fondo tenue en color primario (item activo del menú, encabezados de tabla).
 export const primarySoftBackground = (theme: Theme) =>
-  alpha(theme.palette.primary.main, theme.palette.mode === "light" ? 0.12 : 0.2);
+  alpha(
+    theme.palette.primary.main,
+    theme.palette.mode === "light" ? 0.12 : 0.2,
+  );
 
-export const createAppTheme = (mode: PaletteMode) =>
+export const createAppTheme = (appTheme: AppThemeName) =>
   createTheme({
     tokens,
-    palette: {
-      mode,
-      primary: {
-        main: BRAND_PRIMARY,
-      },
-    },
+    appTheme,
+    palette:
+      appTheme === "halloween"
+        ? HALLOWEEN_PALETTE
+        : {
+            mode: appTheme,
+            primary: {
+              main: BRAND_PRIMARY,
+            },
+          },
     typography: {
       h4: { fontWeight: 600 },
       button: { textTransform: "none", fontWeight: 600 },

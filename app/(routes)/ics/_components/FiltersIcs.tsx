@@ -4,10 +4,14 @@ import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 
 import { EMPTY_CATALOG, useIcsCatalogs } from "@hooks";
-import FilterBar from "@shared/components/FilterBar";
+import FilterBar, {
+  compactFilters,
+  optionLabel,
+} from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 import SelectDefault from "@components/SelectDefault";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
+import { useUserSessionStore } from "@store";
 
 export interface IFiltersIcs {
   // Busca por regla de vida o estándar de comportamiento.
@@ -44,8 +48,37 @@ const FiltersIcs = ({ filters, setFilters, count }: Props) => {
     return [...areas.values()].sort((a, b) => a.name.localeCompare(b.name));
   }, [catalogs]);
 
+  const manufacturingPlants = useUserSessionStore(
+    (state) => state.manufacturingPlants,
+  );
+
+  const activeFilters = compactFilters(
+    !!filters.manufacturingPlantId && {
+      key: "manufacturingPlantId",
+      label: "Planta",
+      value: optionLabel(filters.manufacturingPlantId, manufacturingPlants),
+      onRemove: () => setFilters({ ...filters, manufacturingPlantId: "" }),
+    },
+    !!filters.areaOfBehaviorId && {
+      key: "areaOfBehaviorId",
+      label: "Área",
+      value: optionLabel(filters.areaOfBehaviorId, areasOfBehavior),
+      onRemove: () => setFilters({ ...filters, areaOfBehaviorId: "" }),
+    },
+    !!filters.name && {
+      key: "name",
+      label: "Regla / Estándar",
+      value: filters.name,
+      onRemove: () => setFilters({ ...filters, name: "" }),
+    },
+  );
+
   return (
-    <FilterBar count={count}>
+    <FilterBar
+      count={count}
+      activeFilters={activeFilters}
+      onClearAll={() => setFilters(DEFAULT_FILTERS_ICS)}
+    >
       <ClearFiltersButton
         visible={
           !!filters.name ||

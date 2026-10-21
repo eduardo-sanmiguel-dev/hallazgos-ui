@@ -25,7 +25,22 @@ const FiltersMainTypes = ({
   onClear,
 }: Props) => {
   return (
-    <FilterBar count={count}>
+    <FilterBar
+      count={count}
+      activeFilters={
+        filters.name
+          ? [
+              {
+                key: "name",
+                label: "Nombre",
+                value: filters.name,
+                onRemove: () => setFilters({ ...filters, name: "" }),
+              },
+            ]
+          : []
+      }
+      onClearAll={onClear}
+    >
       <ClearFiltersButton visible={canClear} onClick={() => onClear?.()} />
       <Grid
         size={{

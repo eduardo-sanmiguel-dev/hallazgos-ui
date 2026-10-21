@@ -3,11 +3,14 @@ import { useMemo } from "react";
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 
-import { useAreas } from "@hooks";
+import { EMPTY_CATALOG, useAreas, useManufacturingPlants } from "@hooks";
 import SelectDefault from "@components/SelectDefault";
 import SelectManufacturingPlants from "@components/SelectManufacturingPlants";
 
-import FilterBar from "@shared/components/FilterBar";
+import FilterBar, {
+  compactFilters,
+  optionLabel,
+} from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 
 export interface IFiltersZones {
@@ -42,12 +45,40 @@ const FiltersZones = ({ filters, setFilters, count }: Props) => {
     [areasData],
   );
 
+  const manufacturingPlants = useManufacturingPlants().data ?? EMPTY_CATALOG;
+
   const hasFiltersToClear = (
     Object.keys(DEFAULT_FILTERS_ZONES) as (keyof IFiltersZones)[]
   ).some((key) => filters[key] !== DEFAULT_FILTERS_ZONES[key]);
 
+  const activeFilters = compactFilters(
+    !!filters.name && {
+      key: "name",
+      label: "Nombre",
+      value: filters.name,
+      onRemove: () => setFilters({ ...filters, name: "" }),
+    },
+    !!filters.manufacturingPlantId && {
+      key: "manufacturingPlantId",
+      label: "Planta",
+      value: optionLabel(filters.manufacturingPlantId, manufacturingPlants),
+      onRemove: () =>
+        setFilters({ ...filters, manufacturingPlantId: "", areaId: "" }),
+    },
+    !!filters.areaId && {
+      key: "areaId",
+      label: "Zona",
+      value: optionLabel(filters.areaId, areas),
+      onRemove: () => setFilters({ ...filters, areaId: "" }),
+    },
+  );
+
   return (
-    <FilterBar count={count}>
+    <FilterBar
+      count={count}
+      activeFilters={activeFilters}
+      onClearAll={() => setFilters(DEFAULT_FILTERS_ZONES)}
+    >
       <ClearFiltersButton
         visible={hasFiltersToClear}
         onClick={() => setFilters(DEFAULT_FILTERS_ZONES)}

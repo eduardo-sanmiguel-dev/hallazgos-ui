@@ -5,9 +5,14 @@ import { Grid } from "@mui/material";
 import { useGembaWalkZones } from "@hooks";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
+import { useUserSessionStore } from "@store";
 import DateFieldDMY from "./DateFieldDMY";
 
-import FilterBar from "@shared/components/FilterBar";
+import FilterBar, {
+  compactFilters,
+  formatDateDMY,
+  optionLabel,
+} from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 
 export interface IFiltersGembaWalkCalendar {
@@ -55,8 +60,50 @@ const FiltersGembaWalkCalendar = ({
     [gembaZones],
   );
 
+  const manufacturingPlants = useUserSessionStore(
+    (state) => state.manufacturingPlants,
+  );
+
+  const activeFilters = compactFilters(
+    !!filters.manufacturingPlantId && {
+      key: "manufacturingPlantId",
+      label: "Planta",
+      value: optionLabel(filters.manufacturingPlantId, manufacturingPlants),
+      onRemove: () =>
+        setFilters({
+          ...filters,
+          manufacturingPlantId: "",
+          gembaWalkZoneId: "",
+        }),
+    },
+    !!filters.gembaWalkZoneId && {
+      key: "gembaWalkZoneId",
+      label: "Zona",
+      value: optionLabel(filters.gembaWalkZoneId, zones),
+      onRemove: () => setFilters({ ...filters, gembaWalkZoneId: "" }),
+    },
+    !!filters.startDate && {
+      key: "startDate",
+      label: "Desde",
+      value: formatDateDMY(filters.startDate),
+      onRemove: () => setFilters({ ...filters, startDate: "" }),
+    },
+    !!filters.endDate && {
+      key: "endDate",
+      label: "Hasta",
+      value: formatDateDMY(filters.endDate),
+      onRemove: () => setFilters({ ...filters, endDate: "" }),
+    },
+    !!filters.isAdditional && {
+      key: "isAdditional",
+      label: "Adicional",
+      value: optionLabel(filters.isAdditional, ADDITIONAL_OPTIONS),
+      onRemove: () => setFilters({ ...filters, isAdditional: "" }),
+    },
+  );
+
   return (
-    <FilterBar count={count}>
+    <FilterBar count={count} activeFilters={activeFilters} onClearAll={onClear}>
       <ClearFiltersButton visible={canClear} onClick={() => onClear?.()} />
       <SelectManufacturingPlantsOwn
         value={filters.manufacturingPlantId}

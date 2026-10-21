@@ -54,16 +54,28 @@ test.describe("Navegación", () => {
     await expect(nav).toBeHidden();
   });
 
-  test("el tema oscuro se conserva al recargar", async ({ page }) => {
+  test("el tema elegido se conserva al recargar", async ({ page }) => {
+    const themeButton = (label: string) =>
+      page.getByRole("button", { name: `Cambiar tema (actual: ${label})` });
+    const chooseTheme = async (from: string, to: string) => {
+      await themeButton(from).click();
+      await page.getByRole("menuitemradio", { name: to }).click();
+      await expect(themeButton(to)).toBeVisible();
+    };
+
     await page.goto("/dashboard");
-    await page.getByRole("button", { name: "Cambiar a modo oscuro" }).click();
+    await chooseTheme("Claro", "Oscuro");
     await page.reload();
-    const toLight = page.getByRole("button", { name: "Cambiar a modo claro" });
-    await expect(toLight).toBeVisible();
-    await toLight.click();
-    await expect(
-      page.getByRole("button", { name: "Cambiar a modo oscuro" }),
-    ).toBeVisible();
+    await expect(themeButton("Oscuro")).toBeVisible();
+
+    // Halloween agrega la araña al header.
+    await chooseTheme("Oscuro", "Halloween");
+    await expect(page.getByRole("img", { name: "Araña de Halloween" })).toBeVisible();
+    await page.reload();
+    await expect(themeButton("Halloween")).toBeVisible();
+
+    await chooseTheme("Halloween", "Claro");
+    await expect(page.getByRole("img", { name: "Araña de Halloween" })).toHaveCount(0);
   });
 
   for (const role of ["General", "Supervisor"]) {
