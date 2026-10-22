@@ -38,6 +38,7 @@ const GembaWalkObserversPage = () => {
     refresh: getData,
   } = usePaginatedList({
     key: "gemba-walk/observers",
+    allowAllRows: true,
     filters,
     fetcher: (filters, { page, limit }) =>
       GembaWalkObserversService.findAllPaginated({

@@ -6,8 +6,9 @@ import { MenuItem } from "@mui/material";
 import { ListItemIcon } from "@mui/material";
 import { ListItemText } from "@mui/material";
 import InfoIcon from "@mui/icons-material/Info";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import { Stack } from "@mui/material";
+import { Tooltip } from "@mui/material";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutlineOutlined";
@@ -70,7 +71,7 @@ interface Props {
   page: number;
   setPage: Dispatch<SetStateAction<number>>;
   rowsPerPage: number;
-  setRowsPerPage: Dispatch<SetStateAction<number>>;
+  setRowsPerPage: (rowsPerPage: number) => void;
   countEvidence: number;
 }
 
@@ -249,7 +250,21 @@ export default function TableEvidences({
         rows={rows}
         columns={columns}
         paintRows={(row: EvidenceGraphql) => (
-          <StyledTableRow key={row.id}>
+          <StyledTableRow
+            key={row.id}
+            hover
+            sx={{ cursor: "pointer" }}
+            // RUM mostraba clics "muertos" en las filas: se esperaba que
+            // abrieran el detalle. Se ignoran los clics en controles propios
+            // (chip, menú de acciones y sus portales) y al seleccionar texto.
+            onClick={(event) => {
+              const target = event.target as HTMLElement;
+              if (!event.currentTarget.contains(target)) return;
+              if (target.closest("button, a, input, [role='button']")) return;
+              if (window.getSelection()?.toString()) return;
+              setEvidenceCurrent(row);
+            }}
+          >
             <StyledTableCell
               component="th"
               scope="row"
@@ -495,17 +510,22 @@ export default function TableEvidences({
                     row.solutionDate,
                     row.priorityDays,
                   );
-
-                  if (!resolution) {
-                    return null;
-                  }
+                  // Tiempo exacto (antes solo en el menú de acciones).
+                  const duration = durantionToTime(row);
 
                   return (
                     <>
-                      <span>
-                        <b>Resuelto en:</b> {formatDayLabel(resolution.days)}
-                      </span>
-                      {resolution.isOnTime !== null && (
+                      {resolution && (
+                        <span>
+                          <b>Resuelto en:</b> {formatDayLabel(resolution.days)}
+                        </span>
+                      )}
+                      {duration && (
+                        <span>
+                          <b>Duración:</b> {duration}
+                        </span>
+                      )}
+                      {resolution && resolution.isOnTime !== null && (
                         <Chip
                           label={
                             resolution.isOnTime
@@ -554,14 +574,28 @@ export default function TableEvidences({
               </Stack>
             </StyledTableCell>
             <StyledTableCell>
-              <IconButton
-                size="small"
-                aria-label={`Acciones del hallazgo ${row.id}`}
-                aria-haspopup="menu"
-                onClick={(event) => openActionsMenu(event, row.id)}
-              >
-                <MoreVertIcon />
-              </IconButton>
+              {/* Cerrado y Cancelado ya no tienen acciones: el ojo deja claro
+                  que solo queda consultar el detalle. */}
+              {!isActiveStatus(row) ? (
+                <Tooltip title="Ver detalles">
+                  <IconButton
+                    size="small"
+                    aria-label={`Ver detalles del hallazgo ${row.id}`}
+                    onClick={() => setEvidenceCurrent(row)}
+                  >
+                    <VisibilityIcon />
+                  </IconButton>
+                </Tooltip>
+              ) : (
+                <IconButton
+                  size="small"
+                  aria-label={`Acciones del hallazgo ${row.id}`}
+                  aria-haspopup="menu"
+                  onClick={(event) => openActionsMenu(event, row.id)}
+                >
+                  <MoreVertIcon />
+                </IconButton>
+              )}
 
               <Menu
                 anchorEl={menuAnchorEl}
@@ -577,17 +611,9 @@ export default function TableEvidences({
                   }}
                 >
                   <ListItemIcon sx={{ color: "primary.main" }}>
-                    {row.status === STATUS_CLOSED ? (
-                      <AccessTimeIcon fontSize="small" />
-                    ) : (
-                      <InfoIcon fontSize="small" />
-                    )}
+                    <InfoIcon fontSize="small" />
                   </ListItemIcon>
-                  <ListItemText>
-                    {row.status === STATUS_CLOSED
-                      ? `${durantionToTime(row)}`
-                      : "Ver detalles"}
-                  </ListItemText>
+                  <ListItemText>Ver detalles</ListItemText>
                 </MenuItem>
 
                 {(role === ROLE_ADMINISTRADOR || validateSupervisor(row)) &&

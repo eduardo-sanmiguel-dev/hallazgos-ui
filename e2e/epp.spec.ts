@@ -110,7 +110,10 @@ test.describe("EPP: equipos", () => {
     });
 
     await page.getByRole("button", { name: "Crear", exact: true }).click();
-    await page.getByRole("dialog").getByRole("button", { name: "Cerrar" }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Cerrar" })
+      .click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
   });
 });
@@ -157,8 +160,14 @@ test.describe("EPP: entregas", () => {
     await expect(save).toBeDisabled();
 
     await dialog.getByRole("button", { name: "Firmar" }).click();
-    const signature = page.getByRole("dialog").filter({ hasText: "Firma electrónica" });
+    const signature = page
+      .getByRole("dialog")
+      .filter({ hasText: "Firma electrónica" });
     const canvas = signature.locator("canvas");
+    // El trazo lleva el nombre de acción que el RUM descarta (no es rage click).
+    await expect(
+      signature.locator('[data-dd-action-name="firma-trazo"] canvas'),
+    ).toHaveCount(1);
     await sign(page, canvas);
     await signature.getByRole("button", { name: "Limpiar" }).click();
     await sign(page, canvas);
@@ -182,13 +191,69 @@ test.describe("EPP: entregas", () => {
     expect(errors).toEqual([]);
   });
 
+  test("Agregar muestra el spinner mientras valida y se recupera si falla la red", async ({
+    page,
+  }) => {
+    const errors = trackPageErrors(page);
+    await mockGet(page, "/equipments", EQUIPMENTS);
+    await mockGet(page, "/employees", [
+      { id: 9801, code: 501, name: "E2E Colaborador" },
+    ]);
+
+    // 1.ª validación: falla la red. 2.ª: se retiene hasta liberarla.
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => (release = resolve));
+    let calls = 0;
+    await page.route(
+      "**/api/v1/epps/validate-delivery-frequency**",
+      async (route) => {
+        calls++;
+        if (calls === 1) return route.abort("failed");
+        await held;
+        await route.fulfill({
+          json: { canDeliver: true, message: "El equipo puede ser entregado." },
+        });
+      },
+    );
+
+    await page.goto("/epp");
+    await page.getByRole("button", { name: "Crear registro" }).click();
+    const dialog = page.getByRole("dialog");
+    const [plant] = await sessionPlants(page);
+    await pickOption(page, "Planta", plant.name);
+    await pickOption(page, "Colaborador", "501 - E2E Colaborador");
+    await pickOption(page, "Equipo", "E2E Casco");
+    const add = dialog.getByRole("button", { name: "Agregar" });
+    const quitar = dialog.getByRole("button", { name: "Quitar E2E Casco" });
+
+    // Falla la red: aviso de error, no se agrega y el botón vuelve a estar listo.
+    await add.click();
+    await expect(
+      toast(page, /Se produjo un error al procesar su solicitud/),
+    ).toBeVisible();
+    await expect(quitar).toHaveCount(0);
+    await expect(add).toBeEnabled();
+
+    // Mientras valida queda bloqueado (sin clics repetidos).
+    await add.click();
+    await expect(add).toBeDisabled();
+    release();
+    await expect(quitar).toBeVisible();
+    await expect(add).toBeEnabled();
+    expect(calls).toBe(2);
+    expect(errors).toEqual([]);
+  });
+
   test("cerrar sin firmar no registra nada", async ({ page }) => {
     const writes = await captureWrites(page);
     await page.goto("/epp");
     await page.getByRole("button", { name: "Crear registro" }).click();
     const [plant] = await sessionPlants(page);
     await pickOption(page, "Planta", plant.name);
-    await page.getByRole("dialog").getByRole("button", { name: "Cerrar" }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Cerrar" })
+      .click();
     await expect(page.getByText("Registro de EPP")).toHaveCount(0);
     expect(writes).toEqual([]);
   });
@@ -233,11 +298,15 @@ test.describe("EPP: lista de entregas", () => {
       () => JSON.parse(sessionStorage.getItem("user-session")!).state.id,
     );
     await page.route(
-      (url) => url.pathname.endsWith("/api/v1/epps") && url.searchParams.has("page"),
+      (url) =>
+        url.pathname.endsWith("/api/v1/epps") && url.searchParams.has("page"),
       (route) =>
         route.fulfill({
           json: {
-            data: [employee(9901, "E2E Ana", userId), employee(9902, "E2E Beto", 0)],
+            data: [
+              employee(9901, "E2E Ana", userId),
+              employee(9902, "E2E Beto", 0),
+            ],
             count: 2,
             page: 1,
             limit: 5,
@@ -259,21 +328,42 @@ test.describe("EPP: lista de entregas", () => {
     }
     await page.getByRole("button", { name: "Cédula" }).click();
 
-    await page.getByRole("button", { name: "Ver historial de E2E Ana" }).click();
-    await expect(page.getByRole("table", { name: "Historial de entrega de E2E Ana" })).toBeVisible();
-    await page.getByRole("button", { name: "Eliminar registro del historial" }).click();
-    await page.getByRole("dialog").getByRole("button", { name: "Eliminar" }).click();
+    await page
+      .getByRole("button", { name: "Ver historial de E2E Ana" })
+      .click();
+    await expect(
+      page.getByRole("table", { name: "Historial de entrega de E2E Ana" }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Eliminar registro del historial" })
+      .click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Eliminar" })
+      .click();
     await expect.poll(() => writes.length).toBe(1);
-    expect(writes[0]).toMatchObject({ method: "DELETE", path: "/epps/history/99010" });
-    await page.getByRole("button", { name: "Ocultar historial de E2E Ana" }).click();
+    expect(writes[0]).toMatchObject({
+      method: "DELETE",
+      path: "/epps/history/99010",
+    });
+    await page
+      .getByRole("button", { name: "Ocultar historial de E2E Ana" })
+      .click();
 
     // Sin Content-Disposition: EPP_{código}_fecha.xlsx
     await page.route(/\/api\/v1\/epps\/download\/file\/\d+/, (route) =>
-      route.fulfill({ body: Buffer.from("PK e2e"), contentType: "application/octet-stream" }),
+      route.fulfill({
+        body: Buffer.from("PK e2e"),
+        contentType: "application/octet-stream",
+      }),
     );
     const download = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Descargar archivo de E2E Ana" }).click();
-    expect((await download).suggestedFilename()).toMatch(/^EPP_9901_\d{4}-\d{2}-\d{2}_/);
+    await page
+      .getByRole("button", { name: "Descargar archivo de E2E Ana" })
+      .click();
+    expect((await download).suggestedFilename()).toMatch(
+      /^EPP_9901_\d{4}-\d{2}-\d{2}_/,
+    );
     expect(errors).toEqual([]);
   });
 });

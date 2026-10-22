@@ -37,6 +37,7 @@ const SecondaryTypesPage = () => {
     refresh: getData,
   } = usePaginatedList({
     key: "secondary-types",
+    allowAllRows: true,
     filters,
     fetcher: (filters, { page, limit }) =>
       SecondaryTypesService.findAllPaginated({

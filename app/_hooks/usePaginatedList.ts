@@ -4,6 +4,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useDebounce } from "use-debounce";
 
 import type { ServerPagination } from "@shared/components/TableDefaultServer";
+import { useRowsPerPage } from "./useRowsPerPage";
 
 export interface PaginatedResponse<TItem> {
   data: TItem[];
@@ -30,6 +31,8 @@ interface Options<TFilters, TItem> {
     pagination: PaginationParams,
   ) => Promise<PaginatedResponse<TItem>>;
   initialRowsPerPage?: number;
+  /** Ofrece "Todos" en el selector de filas (solo catálogos chicos). */
+  allowAllRows?: boolean;
   debounceMs?: number;
   /** Valida los filtros efectivos tras el debounce antes de pedir datos. */
   enabled?: boolean | ((filters: TFilters) => boolean);
@@ -50,7 +53,8 @@ export function usePaginatedList<TFilters, TItem>({
   key,
   filters,
   fetcher,
-  initialRowsPerPage = 5,
+  initialRowsPerPage,
+  allowAllRows = false,
   debounceMs = 500,
   enabled = true,
 }: Options<TFilters, TItem>) {
@@ -59,14 +63,25 @@ export function usePaginatedList<TFilters, TItem>({
   // Mientras el debounce conserva filtros anteriores, no consultar ni
   // recargar esa consulta por paginación, foco de ventana o refresh.
   const filtersAreCurrent = filtersKey === JSON.stringify(filters);
-  const isEnabled =
+  const canQuery =
     filtersAreCurrent &&
     (typeof enabled === "function" ? enabled(debouncedFilters) : enabled);
+  // Filas por página recordadas por tabla; se espera a leerlas para no
+  // pedir dos veces la primera página.
+  const {
+    rowsPerPage,
+    setRowsPerPage: saveRowsPerPage,
+    ready: rowsPerPageReady,
+    rowsPerPageOptions,
+  } = useRowsPerPage(key, {
+    allowAll: allowAllRows,
+    initial: initialRowsPerPage,
+  });
+  const isEnabled = canQuery && rowsPerPageReady;
 
   // La página se guarda junto a los filtros con los que se eligió: si los
   // filtros cambian, la página efectiva vuelve a 0 en el mismo render.
   const [pagination, setPagination] = useState({ page: 0, filtersKey });
-  const [rowsPerPage, setRowsPerPageState] = useState(initialRowsPerPage);
 
   const page = pagination.filtersKey === filtersKey ? pagination.page : 0;
 
@@ -74,7 +89,7 @@ export function usePaginatedList<TFilters, TItem>({
     setPagination({ page: nextPage, filtersKey });
 
   const setRowsPerPage = (nextRowsPerPage: number) => {
-    setRowsPerPageState(nextRowsPerPage);
+    saveRowsPerPage(nextRowsPerPage);
     setPagination({ page: 0, filtersKey });
   };
 
@@ -100,11 +115,12 @@ export function usePaginatedList<TFilters, TItem>({
       setPage,
       rowsPerPage,
       setRowsPerPage,
+      rowsPerPageOptions,
       count,
       isFetching: query.isFetching && !query.isPending,
     } satisfies ServerPagination,
     /** Primera carga (aún no hay datos que mostrar). */
-    isLoading: query.isPending && isEnabled,
+    isLoading: query.isPending && canQuery,
     /** Cualquier petición en curso, incluida una recarga con datos visibles. */
     isFetching: query.isFetching,
     /** Vuelve a pedir la página actual (p. ej. tras eliminar un registro). */

@@ -8,8 +8,11 @@ import { Paper } from "@mui/material";
 import { Box } from "@mui/material";
 import { LinearProgress } from "@mui/material";
 
+import { constants } from "@constants";
 import TableFooterDefault from "./TableFooterDefault";
 import { StyledTableCell, StyledTableRow } from "./TableDefault";
+
+type RowsPerPageOptions = (number | { label: string; value: number })[];
 
 /** Paginación controlada (la que devuelve usePaginatedList). */
 export interface ServerPagination {
@@ -17,6 +20,7 @@ export interface ServerPagination {
   setPage: (page: number) => void;
   rowsPerPage: number;
   setRowsPerPage: (rowsPerPage: number) => void;
+  rowsPerPageOptions?: RowsPerPageOptions;
   count: number;
   isFetching?: boolean;
 }
@@ -32,6 +36,7 @@ interface Props<T> {
   setPage?: (page: number) => void;
   rowsPerPage?: number;
   setRowsPerPage?: (rowsPerPage: number) => void;
+  rowsPerPageOptions?: RowsPerPageOptions;
   count?: number;
   // Recarga en curso con datos visibles: barra fina sin desmontar la tabla.
   isFetching?: boolean;
@@ -47,19 +52,20 @@ const TableDefaultServer = <T,>({
   setPage: setPageCtrl,
   rowsPerPage: rowsPerPageCtrl,
   setRowsPerPage: setRowsPerPageCtrl,
+  rowsPerPageOptions,
   count,
   isFetching = false,
   ariaLabel = "Tabla de registros",
 }: Props<T>) => {
   const [pageLocal, setPageLocal] = useState(pageCtrl || 0);
   const [rowsPerPageLocal, setRowsPerPageLocal] = useState(
-    rowsPerPageCtrl || 5,
+    rowsPerPageCtrl || constants.pagination.defaultRowsPerPage,
   );
   const [colSpan] = useState(columns.length);
 
   const page = setPageCtrl ? (pageCtrl ?? 0) : pageLocal;
   const rowsPerPage = setRowsPerPageCtrl
-    ? (rowsPerPageCtrl ?? 5)
+    ? (rowsPerPageCtrl ?? constants.pagination.defaultRowsPerPage)
     : rowsPerPageLocal;
   const setPage = setPageCtrl ?? setPageLocal;
   const setRowsPerPage = setRowsPerPageCtrl ?? setRowsPerPageLocal;
@@ -108,6 +114,7 @@ const TableDefaultServer = <T,>({
           handleChangeRowsPerPage={handleChangeRowsPerPage}
           colSpan={colSpan}
           count={count}
+          rowsPerPageOptions={rowsPerPageOptions}
         />
       </Table>
     </TableContainer>

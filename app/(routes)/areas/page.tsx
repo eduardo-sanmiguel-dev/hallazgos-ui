@@ -31,6 +31,7 @@ const AreasPage = () => {
     refresh: getData,
   } = usePaginatedList({
     key: "areas",
+    allowAllRows: true,
     filters,
     fetcher: (filters, { page, limit }) =>
       AreasService.findAllPaginated({

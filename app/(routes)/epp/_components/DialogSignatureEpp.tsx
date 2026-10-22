@@ -14,6 +14,7 @@ import { useTheme } from "@mui/material/styles";
 import SignatureCanvas from "react-signature-canvas";
 
 import { Transition } from "@routes/hallazgos/_components/EvidencePreview";
+import { constants } from "@constants";
 
 interface Props {
   open: boolean;
@@ -74,12 +75,19 @@ export default function DialogSignatureEpp({
           estira, el trazo queda desplazado respecto al puntero o al dedo. */}
       <Paper
         elevation={3}
-        sx={{ p: 2, width: "fit-content", maxWidth: "100%", mx: "auto", mt: 10 }}
+        sx={{
+          p: 2,
+          width: "fit-content",
+          maxWidth: "100%",
+          mx: "auto",
+          mt: 10,
+        }}
       >
         <Typography variant="h6" gutterBottom>
           Firma electrónica
         </Typography>
         <Box
+          data-dd-action-name={constants.rum.ignoredClickName}
           sx={{
             border: 1,
             borderColor: "divider",

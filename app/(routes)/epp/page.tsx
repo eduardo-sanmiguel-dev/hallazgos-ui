@@ -48,7 +48,6 @@ export default function EppPage() {
         limit,
         ...(orderBy && { orderBy, order }),
       }),
-    initialRowsPerPage: 10,
     debounceMs: 400,
     // La planta seleccionada debe estar también en los filtros del debounce.
     enabled: (query) =>

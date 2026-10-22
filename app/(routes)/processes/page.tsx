@@ -33,6 +33,7 @@ const ProcessesPage = () => {
     refresh: getData,
   } = usePaginatedList({
     key: "processes",
+    allowAllRows: true,
     filters,
     fetcher: (filters, { page, limit }) =>
       ProcessesService.findAllPaginated({

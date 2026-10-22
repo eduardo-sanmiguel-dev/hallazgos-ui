@@ -66,6 +66,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
   }>(formInitial);
   const [openSignature, setOpenSignature] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isAdding, setIsAdding] = useState<boolean>(false);
   const [manufacturingPlantId, setManufacturingPlantId] = useState<string>("");
 
   const manufacturingPlants = useUserSessionStore(
@@ -159,15 +160,23 @@ export default function DialogCreateEpp({ open, create }: Props) {
         let notCanDeliver = false;
 
         if (deliveryFrequency) {
-          const { canDeliver, message } =
-            await EppService.validateDeliveryFrequency({
-              equipmentId: Number(equipment),
-              employeeId: Number(employee),
-            });
+          setIsAdding(true);
+          try {
+            const { canDeliver, message } =
+              await EppService.validateDeliveryFrequency({
+                equipmentId: Number(equipment),
+                employeeId: Number(employee),
+              });
 
-          if (!canDeliver) {
-            notify(message);
-            notCanDeliver = true;
+            if (!canDeliver) {
+              notify(message);
+              notCanDeliver = true;
+            }
+          } catch {
+            // El error ya lo notifica el servicio; el equipo no se agrega.
+            return;
+          } finally {
+            setIsAdding(false);
           }
         }
 
@@ -315,6 +324,9 @@ export default function DialogCreateEpp({ open, create }: Props) {
                         startIcon={<AddIcon />}
                         fullWidth
                         onClick={() => handleAddEquipment()}
+                        loading={isAdding}
+                        loadingPosition="start"
+                        disabled={isAdding}
                       >
                         Agregar
                       </Button>

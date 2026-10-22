@@ -124,9 +124,21 @@ const openList = async (page: Page, { asSupervisor = false } = {}) => {
 };
 
 const openActions = async (page: Page, id: number) => {
-  await page.getByRole("button", { name: `Acciones del hallazgo ${id}` }).click();
+  await page
+    .getByRole("button", { name: `Acciones del hallazgo ${id}` })
+    .click();
   return page.getByRole("menu");
 };
+
+/** Cerrado y Cancelado no tienen acciones: un ojo abre el detalle. */
+const viewDetails = (page: Page, id: number) =>
+  page.getByRole("button", { name: `Ver detalles del hallazgo ${id}` }).click();
+
+/** Fila de la tabla por el id del hallazgo (primera columna). */
+const rowOf = (page: Page, id: number) =>
+  page.getByRole("row").filter({
+    has: page.getByRole("rowheader", { name: String(id), exact: true }),
+  });
 
 test.describe("Hallazgos: acciones", () => {
   test("muestra el detalle de cada estado y agrega un comentario (sin guardar)", async ({
@@ -152,19 +164,27 @@ test.describe("Hallazgos: acciones", () => {
     await openList(page);
 
     // Abierto (comportamiento inseguro, vencido).
-    await (await openActions(page, 9001))
+    await (
+      await openActions(page, 9001)
+    )
       .getByRole("menuitem", { name: "Ver detalles" })
       .click();
     const dialog = page.getByRole("dialog");
-    await expect(dialog.getByText("E2E descripción del hallazgo").first()).toBeVisible();
+    await expect(
+      dialog.getByText("E2E descripción del hallazgo").first(),
+    ).toBeVisible();
     await dialog.getByRole("img").first().click();
     await page.getByRole("button", { name: "Cerrar imagen" }).click();
 
     await dialog.getByRole("tab", { name: /Comentarios/ }).click();
     await expect(dialog.getByText("E2E comentario previo")).toBeVisible();
     await dialog.getByLabel("Agregar comentario").fill("E2E comentario nuevo");
-    await dialog.getByRole("button", { name: /Agregar|Comentar|Enviar/ }).click();
-    await expect(toast(page, "Comentario agregado correctamente")).toBeVisible();
+    await dialog
+      .getByRole("button", { name: /Agregar|Comentar|Enviar/ })
+      .click();
+    await expect(
+      toast(page, "Comentario agregado correctamente"),
+    ).toBeVisible();
     await expect(dialog.getByText("E2E comentario nuevo")).toBeVisible();
     expect(writes).toEqual([
       {
@@ -175,18 +195,25 @@ test.describe("Hallazgos: acciones", () => {
     ]);
     await dialog.getByRole("button", { name: "Cerrar" }).click();
 
-    // En progreso, Cerrado (la acción muestra el tiempo) y Cancelado.
-    for (const [id, item] of [
-      [9002, "Ver detalles"],
-      [9003, /\d/],
-      [9004, "Ver detalles"],
-    ] as const) {
-      await (await openActions(page, id))
-        .getByRole("menuitem", { name: item })
-        .first()
-        .click();
+    // En progreso desde el menú; Cerrado y Cancelado desde el ojo.
+    await (
+      await openActions(page, 9002)
+    )
+      .getByRole("menuitem", { name: "Ver detalles" })
+      .click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Cerrar" })
+      .click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    for (const id of [9003, 9004]) {
+      await viewDetails(page, id);
       await expect(page.getByRole("dialog")).toBeVisible();
-      await page.getByRole("dialog").getByRole("button", { name: "Cerrar" }).click();
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: "Cerrar" })
+        .click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
     }
 
@@ -202,7 +229,9 @@ test.describe("Hallazgos: acciones", () => {
     const writes = await captureWrites(page);
     await openList(page);
 
-    await (await openActions(page, 9001))
+    await (
+      await openActions(page, 9001)
+    )
       .getByRole("menuitem", { name: "En progreso" })
       .click();
     const dialog = page.getByRole("dialog", {
@@ -217,11 +246,15 @@ test.describe("Hallazgos: acciones", () => {
     });
     await expect(dialog.getByAltText("Mountains")).toBeVisible();
     await save.click();
-    await expect(toast(page, "Estatus actualizado a En progreso")).toBeVisible();
+    await expect(
+      toast(page, "Estatus actualizado a En progreso"),
+    ).toBeVisible();
 
     expect(writes).toHaveLength(1);
     expect(writes[0].path).toBe("/evidences/process/9001");
-    expect(String(writes[0].body)).toMatch(/filename="[0-9a-f-]{36}-process\.png"/);
+    expect(String(writes[0].body)).toMatch(
+      /filename="[0-9a-f-]{36}-process\.png"/,
+    );
   });
 
   test("un supervisor cierra un hallazgo de comportamiento inseguro (sin guardar)", async ({
@@ -230,7 +263,9 @@ test.describe("Hallazgos: acciones", () => {
     const writes = await captureWrites(page);
     await openList(page, { asSupervisor: true });
 
-    await (await openActions(page, 9001))
+    await (
+      await openActions(page, 9001)
+    )
       .getByRole("menuitem", { name: "Cerrar hallazgo" })
       .click();
     const dialog = page.getByRole("dialog", { name: /Imagen la solución/ });
@@ -239,7 +274,9 @@ test.describe("Hallazgos: acciones", () => {
     ).toBeVisible();
     const save = dialog.getByRole("button", { name: "Guardar imagen" });
     await expect(save).toBeDisabled();
-    await dialog.locator("#description-multiline-solution").fill("E2E se habló con el equipo");
+    await dialog
+      .locator("#description-multiline-solution")
+      .fill("E2E se habló con el equipo");
     await save.click();
     await expect(toast(page, "Hallazgo cerrado correctamente")).toBeVisible();
 
@@ -254,7 +291,9 @@ test.describe("Hallazgos: acciones", () => {
     const writes = await captureWrites(page);
     await openList(page, { asSupervisor: true });
 
-    await (await openActions(page, 9002))
+    await (
+      await openActions(page, 9002)
+    )
       .getByRole("menuitem", { name: "Cerrar hallazgo" })
       .click();
     const dialog = page.getByRole("dialog", { name: /Imagen la solución/ });
@@ -266,20 +305,28 @@ test.describe("Hallazgos: acciones", () => {
     await expect(dialog.getByAltText("Mountains")).toBeVisible();
     await dialog.getByRole("button", { name: "Guardar imagen" }).click();
     await expect(toast(page, "Hallazgo cerrado correctamente")).toBeVisible();
-    expect(String(writes[0].body)).toMatch(/filename="[0-9a-f-]{36}-solution\.png"/);
+    expect(String(writes[0].body)).toMatch(
+      /filename="[0-9a-f-]{36}-solution\.png"/,
+    );
   });
 
   test("reasigna responsables (sin guardar)", async ({ page }) => {
     const writes = await captureWrites(page);
     await openList(page);
 
-    await (await openActions(page, 9001))
+    await (
+      await openActions(page, 9001)
+    )
       .getByRole("menuitem", { name: "Reasignar" })
       .click();
     const dialog = page.getByRole("dialog", { name: "Reasignar responsables" });
     // Sin responsables asignados, parte de los supervisores.
-    await dialog.getByRole("button", { name: `Quitar a ${SUPERVISOR.name}` }).click();
-    await expect(dialog.getByRole("button", { name: "Guardar" })).toBeDisabled();
+    await dialog
+      .getByRole("button", { name: `Quitar a ${SUPERVISOR.name}` })
+      .click();
+    await expect(
+      dialog.getByRole("button", { name: "Guardar" }),
+    ).toBeDisabled();
 
     await pickOption(page, "Responsable", OTHER.name);
     await pickOption(page, "Responsable", OTHER.name);
@@ -304,7 +351,9 @@ test.describe("Hallazgos: acciones", () => {
     const writes = await captureWrites(page);
     await openList(page);
 
-    await (await openActions(page, 9002))
+    await (
+      await openActions(page, 9002)
+    )
       .getByRole("menuitem", { name: "Cancelar" })
       .click();
     const confirm = page.getByRole("dialog", { name: "Confirmar cancelación" });
@@ -312,7 +361,9 @@ test.describe("Hallazgos: acciones", () => {
     await confirm.getByRole("button", { name: "Volver" }).click();
     expect(writes).toEqual([]);
 
-    await (await openActions(page, 9002))
+    await (
+      await openActions(page, 9002)
+    )
       .getByRole("menuitem", { name: "Cancelar" })
       .click();
     await confirm.getByRole("button", { name: "Cancelar hallazgo" }).click();
@@ -327,8 +378,7 @@ test.describe("Hallazgos: acciones", () => {
     await openList(page);
     const request = page.waitForRequest(
       (r) =>
-        r.url().includes("/graphql") &&
-        r.postDataJSON()?.variables?.page === 2,
+        r.url().includes("/graphql") && r.postDataJSON()?.variables?.page === 2,
     );
     await page.getByRole("button", { name: "Página siguiente" }).click();
     await request;
@@ -356,9 +406,15 @@ test.describe("Hallazgos: acciones", () => {
     await openList(page);
 
     const menu = await openActions(page, 9002);
-    await expect(menu.getByRole("menuitem", { name: "Cerrar hallazgo" })).toBeVisible();
-    await expect(menu.getByRole("menuitem", { name: "Reasignar" })).toBeVisible();
-    await expect(menu.getByRole("menuitem", { name: "Cancelar" })).toBeVisible();
+    await expect(
+      menu.getByRole("menuitem", { name: "Cerrar hallazgo" }),
+    ).toBeVisible();
+    await expect(
+      menu.getByRole("menuitem", { name: "Reasignar" }),
+    ).toBeVisible();
+    await expect(
+      menu.getByRole("menuitem", { name: "Cancelar" }),
+    ).toBeVisible();
   });
 
   test("amplía las imágenes de cada etapa de un hallazgo cerrado", async ({
@@ -366,16 +422,87 @@ test.describe("Hallazgos: acciones", () => {
   }) => {
     const errors = trackPageErrors(page);
     await openList(page);
-    await (await openActions(page, 9003))
-      .getByRole("menuitem")
-      .first()
-      .click();
+    await viewDetails(page, 9003);
     const dialog = page.getByRole("dialog");
-    for (const alt of ["Hallazgo imagen", "Imagen en progreso", "Imagen Solución"]) {
+    for (const alt of [
+      "Hallazgo imagen",
+      "Imagen en progreso",
+      "Imagen Solución",
+    ]) {
       await dialog.getByAltText(alt).click();
       await page.getByRole("button", { name: "Cerrar imagen" }).click();
-      await expect(page.getByRole("button", { name: "Cerrar imagen" })).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: "Cerrar imagen" }),
+      ).toHaveCount(0);
     }
+    expect(errors).toEqual([]);
+  });
+  test("cerrados y cancelados muestran un ojo en lugar del menú de acciones", async ({
+    page,
+  }) => {
+    await openList(page);
+
+    for (const id of [9001, 9002]) {
+      await expect(
+        page.getByRole("button", { name: `Acciones del hallazgo ${id}` }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: `Ver detalles del hallazgo ${id}` }),
+      ).toHaveCount(0);
+    }
+    for (const id of [9003, 9004]) {
+      await expect(
+        page.getByRole("button", { name: `Ver detalles del hallazgo ${id}` }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: `Acciones del hallazgo ${id}` }),
+      ).toHaveCount(0);
+    }
+  });
+
+  test("un hallazgo cerrado muestra la duración exacta junto a la resolución", async ({
+    page,
+  }) => {
+    await openList(page);
+
+    // Creado hace 6 días y cerrado hace 3: duración exacta de 3 días.
+    const closed = rowOf(page, 9003);
+    await expect(closed).toContainText("Resuelto en:");
+    await expect(
+      closed.getByText("Duración: 3d", { exact: true }),
+    ).toBeVisible();
+    await expect(closed.getByText("En tiempo")).toBeVisible();
+
+    // Los que no están cerrados no tienen duración.
+    for (const id of [9001, 9002, 9004]) {
+      await expect(rowOf(page, id)).not.toContainText("Duración:");
+    }
+  });
+
+  test("clic en la fila abre el detalle; el menú de acciones no", async ({
+    page,
+  }) => {
+    const errors = trackPageErrors(page);
+    await openList(page);
+
+    await rowOf(page, 9001).getByText("E2E Lugar").click();
+    const dialog = page.getByRole("dialog");
+    await expect(
+      dialog.getByText("E2E descripción del hallazgo").first(),
+    ).toBeVisible();
+    await dialog.getByRole("button", { name: "Cerrar" }).click();
+    await expect(dialog).toHaveCount(0);
+
+    // El botón de acciones abre su menú, sin abrir también el detalle.
+    const menu = await openActions(page, 9001);
+    await expect(menu).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    // Elegir una opción del menú (en un portal) tampoco dispara la fila.
+    await menu.getByRole("menuitem", { name: "Reasignar" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "Reasignar responsables" }),
+    ).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(1);
     expect(errors).toEqual([]);
   });
 });

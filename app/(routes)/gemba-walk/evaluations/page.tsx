@@ -38,6 +38,7 @@ const GembaWalkEvaluationsPage = () => {
     refresh: getData,
   } = usePaginatedList({
     key: "gemba-walk/evaluations",
+    allowAllRows: true,
     filters,
     fetcher: (filters, { page, limit }) =>
       GembaWalkEvaluationsService.findAllPaginated({

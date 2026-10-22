@@ -31,6 +31,7 @@ const ZonesPage = () => {
     refresh: getData,
   } = usePaginatedList({
     key: "zones",
+    allowAllRows: true,
     filters,
     fetcher: (filters, { page, limit }) =>
       ZonesService.findAllPaginated({

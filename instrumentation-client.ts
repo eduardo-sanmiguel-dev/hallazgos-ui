@@ -6,6 +6,7 @@ import { openobserveLogs } from "@openobserve/browser-logs";
 import { openobserveRum } from "@openobserve/browser-rum";
 
 import { useUserSessionStore } from "@store";
+import { shouldSendRumEvent } from "@shared/utils/rum";
 
 const site = process.env.NEXT_PUBLIC_OPENOBSERVE_SITE;
 const clientToken = process.env.NEXT_PUBLIC_OPENOBSERVE_CLIENT_TOKEN;
@@ -46,6 +47,7 @@ if (process.env.NODE_ENV === "production" && site && clientToken && !isBot) {
       trackUserInteractions: true,
       trackResources: true,
       trackLongTasks: true,
+      beforeSend: shouldSendRumEvent,
       // Enlaza cada llamada a la API con su traza del servidor.
       ...(apiOrigin && {
         allowedTracingUrls: [

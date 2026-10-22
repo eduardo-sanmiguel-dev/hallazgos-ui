@@ -5,6 +5,7 @@ import { TableRow } from "@mui/material";
 import { TablePagination } from "@mui/material";
 
 import TablePaginationActions from "@shared/components/TablePaginationActions";
+import { constants } from "@constants";
 
 interface Props {
   rows: readonly unknown[];
@@ -12,13 +13,15 @@ interface Props {
   rowsPerPage: number;
   handleChangePage: (
     _: MouseEvent<HTMLButtonElement> | null,
-    newPage: number
+    newPage: number,
   ) => void;
   handleChangeRowsPerPage: (
-    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => void;
   colSpan: number;
   count?: number;
+  /** Por omisión 10/25/50, sin "Todos" (ver useRowsPerPage). */
+  rowsPerPageOptions?: (number | { label: string; value: number })[];
 }
 
 const TableFooterDefault = ({
@@ -29,12 +32,13 @@ const TableFooterDefault = ({
   handleChangeRowsPerPage,
   colSpan,
   count,
+  rowsPerPageOptions = constants.pagination.rowsPerPageOptions,
 }: Props) => {
   return (
     <TableFooter>
       <TableRow>
         <TablePagination
-          rowsPerPageOptions={[5, 10, 25, { label: "Todos", value: -1 }]}
+          rowsPerPageOptions={rowsPerPageOptions}
           colSpan={colSpan}
           count={count ?? rows.length}
           rowsPerPage={rowsPerPage}

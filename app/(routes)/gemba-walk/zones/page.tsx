@@ -38,6 +38,7 @@ const GembaWalkZonesPage = () => {
     refresh: getData,
   } = usePaginatedList({
     key: "gemba-walk/zones",
+    allowAllRows: true,
     filters,
     fetcher: (filters, { page, limit }) =>
       GembaWalkZonesService.findAllPaginated({

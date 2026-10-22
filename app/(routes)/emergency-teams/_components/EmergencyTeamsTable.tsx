@@ -24,6 +24,7 @@ import {
 } from "@shared/components/RowActions";
 import { EmergencyTeam } from "@interfaces";
 import { EmergencyTeamsService } from "@services";
+import { constants } from "@constants";
 import {
   StyledTableCell,
   StyledTableRow,
@@ -228,7 +229,7 @@ export default function EmergencyTeamsTable({
           <TableFooter>
             <StyledTableRow>
               <TablePagination
-                rowsPerPageOptions={[5, 10, 25, { label: "Todos", value: -1 }]}
+                rowsPerPageOptions={constants.pagination.rowsPerPageOptions}
                 colSpan={12}
                 count={count}
                 rowsPerPage={rowsPerPage}

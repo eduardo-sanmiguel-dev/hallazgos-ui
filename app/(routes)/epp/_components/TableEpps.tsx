@@ -29,6 +29,7 @@ import { useUserSessionStore } from "@store";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { EppService } from "@services";
 import { Epp, EppSortableColumn } from "@interfaces";
+import { constants } from "@constants";
 
 function Row({
   epp,
@@ -286,7 +287,7 @@ export default function TableEpps({
         onRowsPerPageChange={(event) =>
           onRowsPerPageChange(parseInt(event.target.value, 10))
         }
-        rowsPerPageOptions={[5, 10, 25]}
+        rowsPerPageOptions={constants.pagination.rowsPerPageOptions}
         labelRowsPerPage="Filas por página"
         labelDisplayedRows={({ from, to, count }) =>
           `${from}–${to} de ${count}`

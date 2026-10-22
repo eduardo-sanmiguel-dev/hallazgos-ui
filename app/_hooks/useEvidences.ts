@@ -4,6 +4,7 @@ import { gql } from "@apollo/client";
 import { useLazyQuery } from "@apollo/client/react";
 
 import { FiltersEvidences } from "@routes/hallazgos/_components/FiltersEvidence";
+import { useRowsPerPage } from "./useRowsPerPage";
 
 const query = gql`
   query Evidences(
@@ -150,7 +151,12 @@ interface IdAndName {
 
 export const useEvidences = () => {
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  // Sin "Todos": son miles de hallazgos.
+  const {
+    rowsPerPage,
+    setRowsPerPage,
+    ready: rowsPerPageReady,
+  } = useRowsPerPage("evidences");
 
   const getPageAndLimit = () => ({ page: page + 1, limit: rowsPerPage });
 
@@ -158,6 +164,9 @@ export const useEvidences = () => {
     useLazyQuery<ResponseEvidences>(query, { fetchPolicy: "no-cache" });
 
   const handleFindEvidences = (filters: FiltersEvidences) => {
+    // Hasta leer las filas por página guardadas: evita pedir dos veces.
+    if (!rowsPerPageReady) return;
+
     const evidenceIds = filters.evidenceId
       .split(",")
       .map((value) => Number(value.trim()))

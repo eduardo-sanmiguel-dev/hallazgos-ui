@@ -35,6 +35,7 @@ const MainTypesPage = () => {
     refresh: getData,
   } = usePaginatedList({
     key: "main-types",
+    allowAllRows: true,
     filters,
     fetcher: (filters, { page, limit }) =>
       MainTypesService.findAllPaginated({

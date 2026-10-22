@@ -33,6 +33,7 @@ const ManufacturingPlantsPage = () => {
     refresh: getData,
   } = usePaginatedList({
     key: "manufacturing-plants",
+    allowAllRows: true,
     filters,
     fetcher: (filters, { page, limit }) =>
       ManufacturingPlantsService.findAllPaginated({
