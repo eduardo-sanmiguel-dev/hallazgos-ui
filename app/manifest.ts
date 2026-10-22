@@ -2,7 +2,11 @@ import { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    theme_color: "#74B728",
+    // Barras del sistema al abrir la app (antes de cargar el tema elegido):
+    // blanco como el splash y el login. Con verde, Android ponía los botones
+    // de navegación en claro y se perdían sobre el fondo blanco. Después lo
+    // ajusta al tema el <meta name="theme-color"> de app/(routes)/layout.tsx.
+    theme_color: "#ffffff",
     // Fondo del splash de Android: blanco como los íconos y el login, para
     // que la transición al abrir la app no muestre recuadros ni saltos.
     background_color: "#ffffff",

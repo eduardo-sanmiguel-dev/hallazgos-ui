@@ -242,6 +242,11 @@ export default function MainLayout({ children }: { children: ReactNode }) {
 
   return (
     <ThemeProvider theme={theme}>
+      {/* Color de las barras del sistema (arriba y abajo en la app
+          instalada; la barra del navegador en móvil). Sigue al tema, igual
+          que la barra superior de la app, para que Android elija iconos
+          oscuros en claro y claros en oscuro. React lo coloca en <head>. */}
+      <meta name="theme-color" content={theme.palette.background.paper} />
       <Box
         sx={{
           display: "flex",
