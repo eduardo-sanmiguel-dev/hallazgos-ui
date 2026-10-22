@@ -33,6 +33,8 @@
     "@mui/lab": "9.0.0-beta.3",
     "@mui/material": "^9.0.1",
     "@mui/x-date-pickers": "^9.3.0",
+    "@openobserve/browser-logs": "^0.4.3",
+    "@openobserve/browser-rum": "^0.4.3",
     "@tanstack/react-query": "5.104.5",
     "@tanstack/react-query-devtools": "5.104.5",
     "axios": "^1.16.1",

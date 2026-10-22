@@ -217,6 +217,12 @@ importers:
       '@mui/x-date-pickers':
         specifier: ^9.3.0
         version: 9.14.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@mui/material@9.4.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@mui/system@9.4.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.0)(supports-color@7.2.0))(@types/react@19.3.0)(react@19.3.0))(@types/react@19.3.0)(dayjs@1.11.23)(moment@2.31.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@openobserve/browser-logs':
+        specifier: ^0.4.3
+        version: 0.4.3(@openobserve/browser-rum@0.4.3)
+      '@openobserve/browser-rum':
+        specifier: ^0.4.3
+        version: 0.4.3(@openobserve/browser-logs@0.4.3)
       '@tanstack/react-query':
         specifier: 5.104.5
         version: 5.104.5(@types/react@19.3.0)(react@19.3.0)
@@ -1088,6 +1094,31 @@ packages:
   '@nolyfill/is-core-module@1.0.39':
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
+
+  '@openobserve/browser-core@0.4.3':
+    resolution: {integrity: sha512-kfe+SWEs9YlhpmdTBAgNyMOurvUlLkghIlUwUhkWaJ+xqTAEcS862tN7awm+QnTsAVzA5QObpfjVfb7j5UdB0w==}
+
+  '@openobserve/browser-logs@0.4.3':
+    resolution: {integrity: sha512-rkTI1VDts3wZIV4mazuf2dkiZSFLAehRvo3BOANrRiOQe6PumPk8rBV247Sv9cZ7z1OwfV4yEtCVIN5oGpNMog==}
+    peerDependencies:
+      '@openobserve/browser-rum': 0.4.3
+    peerDependenciesMeta:
+      '@openobserve/browser-rum':
+        optional: true
+
+  '@openobserve/browser-rum-core@0.4.3':
+    resolution: {integrity: sha512-nLeG/1VWZrqWNw3DVTg1TnH8Q/8R8rWaK5jghzl8/H9q+l+k0eH99DUoDNRWqEj6vkkrbnuQsobn+VWWzyNEwg==}
+
+  '@openobserve/browser-rum@0.4.3':
+    resolution: {integrity: sha512-aRhI0SWJ0VFLduHaRQG0WSjOpXfxm2QatIx20MlRgefykds+s1jhMr0jbNyHmhSofiNgoml/DZ0nep8e6l8Ntw==}
+    peerDependencies:
+      '@openobserve/browser-logs': 0.4.3
+    peerDependenciesMeta:
+      '@openobserve/browser-logs':
+        optional: true
+
+  '@openobserve/js-core@0.4.3':
+    resolution: {integrity: sha512-TLxcxYzbkmyM+2YCiS6KvAP769HZxBRwhsvTvHD9EqLLgq0wEkQ7sc9ZS55JXM5sZGK/84EAy8CPz/EfMpIdCw==}
 
   '@playwright/test@1.64.1':
     resolution: {integrity: sha512-IaYGml/nSOiZWROfPtuIL7neuu9qDOZ3TNvNljUIrhDMxiGTgPjzj/g9p9RxpS2tSepPDRY+UwAaEeiKtUvIAg==}
@@ -4163,6 +4194,32 @@ snapshots:
       fastq: 1.20.3
 
   '@nolyfill/is-core-module@1.0.39': {}
+
+  '@openobserve/browser-core@0.4.3':
+    dependencies:
+      '@openobserve/js-core': 0.4.3
+
+  '@openobserve/browser-logs@0.4.3(@openobserve/browser-rum@0.4.3)':
+    dependencies:
+      '@openobserve/browser-core': 0.4.3
+      '@openobserve/js-core': 0.4.3
+    optionalDependencies:
+      '@openobserve/browser-rum': 0.4.3(@openobserve/browser-logs@0.4.3)
+
+  '@openobserve/browser-rum-core@0.4.3':
+    dependencies:
+      '@openobserve/browser-core': 0.4.3
+      '@openobserve/js-core': 0.4.3
+
+  '@openobserve/browser-rum@0.4.3(@openobserve/browser-logs@0.4.3)':
+    dependencies:
+      '@openobserve/browser-core': 0.4.3
+      '@openobserve/browser-rum-core': 0.4.3
+      '@openobserve/js-core': 0.4.3
+    optionalDependencies:
+      '@openobserve/browser-logs': 0.4.3(@openobserve/browser-rum@0.4.3)
+
+  '@openobserve/js-core@0.4.3': {}
 
   '@playwright/test@1.64.1':
     dependencies:
