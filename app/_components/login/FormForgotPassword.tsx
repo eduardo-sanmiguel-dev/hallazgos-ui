@@ -7,8 +7,8 @@ import { TextField } from "@mui/material";
 import { Box } from "@mui/material";
 
 import { AuthService } from "@services";
-import { constants } from "@constants";
 import { notify, isValidEmail } from "@shared/utils";
+import { constants } from "@constants";
 
 interface Props {
   setForgotPassword: (value: boolean) => void;
@@ -19,7 +19,7 @@ const FormForgotPassword = ({ setForgotPassword }: Props) => {
   const [email, setEmail] = useState(
     process.env.NODE_ENV === constants.environments.development
       ? "eduardo-266@hotmail.com"
-      : ""
+      : "",
   );
 
   const login = async () => {
