@@ -7,6 +7,11 @@ import { openobserveRum } from "@openobserve/browser-rum";
 
 import { useUserSessionStore } from "@store";
 import { shouldSendRumEvent } from "@shared/utils/rum";
+import { listenInstallPrompt } from "@shared/utils/installPrompt";
+
+// Botón "Instalar app": el navegador avisa una sola vez al cargar, así que
+// se escucha aquí, antes que cualquier componente (en todos los ambientes).
+listenInstallPrompt();
 
 const site = process.env.NEXT_PUBLIC_OPENOBSERVE_SITE;
 const clientToken = process.env.NEXT_PUBLIC_OPENOBSERVE_CLIENT_TOKEN;

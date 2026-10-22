@@ -17,7 +17,7 @@ export default function Copyright(props: any) {
     >
       {"Copyright © "}
       <Link color="inherit" href="https://grupohada.com" target="_blank">
-        Grupo Hada
+        Hada international
       </Link>{" "}
       {new Date().getFullYear()}
       {"."}

@@ -13,8 +13,8 @@ export const optionsChartDefault = {
     downloadSVG: "Descargar imagen SVG",
   },
   credits: {
-    enabled: false,
-    text: "Grupo Hada",
+    enabled: true,
+    text: "Hada international",
     href: 'javascript:window.open("https://grupohada.com", "_blank")',
   },
   responsive: {

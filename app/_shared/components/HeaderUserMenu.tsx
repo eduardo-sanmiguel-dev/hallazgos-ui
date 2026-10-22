@@ -6,8 +6,13 @@ import { useRouter } from "next/navigation";
 
 import { Avatar } from "@mui/material";
 import { Box } from "@mui/material";
+import { Button } from "@mui/material";
 import { ButtonBase } from "@mui/material";
 import { Chip } from "@mui/material";
+import { Dialog } from "@mui/material";
+import { DialogActions } from "@mui/material";
+import { DialogContent } from "@mui/material";
+import { DialogTitle } from "@mui/material";
 import { Divider } from "@mui/material";
 import { ListItemIcon } from "@mui/material";
 import { Menu } from "@mui/material";
@@ -17,12 +22,16 @@ import { alpha } from "@mui/material/styles";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import LogoutIcon from "@mui/icons-material/Logout";
 import FactoryOutlinedIcon from "@mui/icons-material/FactoryOutlined";
+import InstallMobileIcon from "@mui/icons-material/InstallMobile";
+import IosShareIcon from "@mui/icons-material/IosShare";
+import AddBoxOutlinedIcon from "@mui/icons-material/AddBoxOutlined";
 
 import { useUserSessionStore } from "@store";
 import { useShallow } from "zustand/shallow";
 import { ROLE_ADMINISTRADOR } from "@shared/constants";
 import { notify } from "@shared/utils";
 import { AuthService } from "@services";
+import { useInstallApp } from "@hooks";
 
 const initialsOf = (name: string, email: string) => {
   const words = name.trim().split(/\s+/).filter(Boolean);
@@ -43,6 +52,8 @@ export default function HeaderUserMenu() {
   const router = useRouter();
   const menuId = useId();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [isIosHelpOpen, setIsIosHelpOpen] = useState(false);
+  const { mode: installMode, promptInstall } = useInstallApp();
 
   const { name, email, role, manufacturingPlants, resetSession } =
     useUserSessionStore(
@@ -69,6 +80,15 @@ export default function HeaderUserMenu() {
         resetSession();
       }, 1000);
     });
+  };
+
+  const installApp = async () => {
+    setAnchorEl(null);
+    if (installMode === "ios") {
+      setIsIosHelpOpen(true);
+      return;
+    }
+    if (await promptInstall()) notify("App instalada", true);
   };
 
   const avatar = (size: number) => (
@@ -215,10 +235,19 @@ export default function HeaderUserMenu() {
         )}
 
         <Divider />
+        {/* Solo si el navegador permite instalarla y aún no lo está. */}
+        {installMode && (
+          <MenuItem onClick={installApp} sx={{ mt: 0.5, py: 1.25 }}>
+            <ListItemIcon>
+              <InstallMobileIcon fontSize="small" />
+            </ListItemIcon>
+            Instalar app
+          </MenuItem>
+        )}
         <MenuItem
           onClick={logout}
           sx={(theme) => ({
-            mt: 0.5,
+            mt: installMode ? 0 : 0.5,
             py: 1.25,
             "&:hover": {
               color: theme.palette.error.main,
@@ -233,6 +262,50 @@ export default function HeaderUserMenu() {
           Cerrar sesión
         </MenuItem>
       </Menu>
+
+      {/* Safari de iPhone/iPad no tiene diálogo de instalación. */}
+      <Dialog
+        open={isIosHelpOpen}
+        onClose={() => setIsIosHelpOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Instalar app</DialogTitle>
+        <DialogContent>
+          <Typography
+            component="ol"
+            sx={{ pl: 2.5, m: 0, "& li": { mb: 1.5 } }}
+          >
+            <li>
+              Toca <b>Compartir</b>{" "}
+              <IosShareIcon
+                fontSize="small"
+                aria-hidden
+                sx={{ verticalAlign: "text-bottom" }}
+              />{" "}
+              en la barra de Safari.
+            </li>
+            <li>
+              Elige <b>Agregar a inicio</b>{" "}
+              <AddBoxOutlinedIcon
+                fontSize="small"
+                aria-hidden
+                sx={{ verticalAlign: "text-bottom" }}
+              />
+              .
+            </li>
+            <li>
+              Toca <b>Agregar</b>: ComportArte aparecerá en tu pantalla de
+              inicio.
+            </li>
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button variant="contained" onClick={() => setIsIosHelpOpen(false)}>
+            Entendido
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
