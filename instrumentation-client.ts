@@ -23,7 +23,17 @@ const common = {
   insecureHTTP: false,
 };
 
-if (process.env.NODE_ENV === "production" && site && clientToken) {
+// Rastreadores (Googlebot, Bingbot...), Lighthouse y navegadores
+// automatizados ejecutan el JS y aparecían como sesiones "rebotadas" sin
+// usuario; no se monitorean para que las métricas sean solo de personas.
+const isBot =
+  typeof navigator !== "undefined" &&
+  (navigator.webdriver ||
+    /bot|crawl|spider|slurp|lighthouse|headlesschrome|google-inspectiontool|facebookexternalhit/i.test(
+      navigator.userAgent,
+    ));
+
+if (process.env.NODE_ENV === "production" && site && clientToken && !isBot) {
   // Un fallo del monitoreo nunca debe impedir que la app cargue.
   try {
     openobserveRum.init({

@@ -6,6 +6,9 @@ import ThemeRegistry from "ThemeRegistry";
 export const metadata: Metadata = {
   title: "HADA",
   description: "Hada ComportArte",
+  // App interna con login: no debe aparecer en buscadores. Sin robots.txt
+  // que bloquee, para que Google pueda leer este noindex y desindexarla.
+  robots: { index: false, follow: false },
 };
 
 export const dynamic = "force-dynamic";
