@@ -119,7 +119,7 @@ export default function TableEvidences({
       });
   }, []);
 
-  const removeEvicence = (id: number) => {
+  const removeEvidence = (id: number) => {
     setIsLoading(true);
     return EvidencesService.remove(id)
       .then(() => {
@@ -137,7 +137,7 @@ export default function TableEvidences({
       confirmLabel: "Cancelar hallazgo",
       cancelLabel: "Volver",
       tone: "danger",
-      action: () => removeEvicence(row.id),
+      action: () => removeEvidence(row.id),
     });
   };
 
