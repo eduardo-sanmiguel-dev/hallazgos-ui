@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 import { Toaster } from "sonner";
 import ThemeRegistry from "ThemeRegistry";
@@ -12,6 +12,16 @@ export const metadata: Metadata = {
   // Ícono al agregar la app a la pantalla de inicio del iPhone (iOS no usa
   // los del manifest).
   icons: { apple: "/icon-apple-180x180.png" },
+};
+
+// "cover": Chrome en Android (135+) dibuja la página detrás de la barra de
+// navegación del sistema; así debajo de sus botones se ve el fondo del tema
+// y no una franja blanca. Lo que va pegado abajo respeta la zona segura con
+// env(safe-area-inset-bottom).
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export const dynamic = "force-dynamic";

@@ -219,6 +219,8 @@ export default function MainLayout({ children }: { children: ReactNode }) {
           minHeight: 0,
           overflowY: "auto",
           overflowX: "hidden",
+          // Las últimas opciones no quedan detrás de los botones del sistema.
+          pb: "env(safe-area-inset-bottom, 0px)",
           scrollbarWidth: "thin",
           scrollbarColor: `${alpha(theme.palette.text.primary, 0.2)} transparent`,
           "&::-webkit-scrollbar": { width: 6 },
@@ -344,6 +346,9 @@ export default function MainLayout({ children }: { children: ReactNode }) {
             flexGrow: 1,
             height: "100vh",
             overflow: "auto",
+            // Lo último de la página se puede desplazar por encima de los
+            // botones del sistema; el fondo del tema queda debajo de ellos.
+            pb: "env(safe-area-inset-bottom, 0px)",
           }}
         >
           <Toolbar />

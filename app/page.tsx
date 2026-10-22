@@ -26,7 +26,12 @@ export default function SignIn() {
   }, [searchParams]);
 
   return (
-    <Container component="main" maxWidth="xs">
+    <Container
+      component="main"
+      maxWidth="xs"
+      // Zona segura de los botones del sistema (viewport-fit=cover).
+      sx={{ pb: "env(safe-area-inset-bottom, 0px)" }}
+    >
       <CssBaseline />
       <Box
         sx={{

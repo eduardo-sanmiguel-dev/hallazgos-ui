@@ -296,7 +296,14 @@ export default function TabsImageAndLogs({
         </TabPanel>
       )}
 
-      <Dialog fullScreen open={imageDialog.open} onClose={closeImageDialog}>
+      <Dialog
+        fullScreen
+        open={imageDialog.open}
+        onClose={closeImageDialog}
+        // Visor de borde a borde: negro también detrás de los botones del
+        // sistema (sin la zona segura que agregan los demás a pantalla completa).
+        slotProps={{ paper: { sx: { pb: 0 } } }}
+      >
         <Box
           sx={{
             position: "relative",

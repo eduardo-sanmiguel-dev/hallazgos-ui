@@ -106,6 +106,12 @@ export const createAppTheme = (appTheme: AppThemeName) =>
     components: {
       MuiCssBaseline: {
         styleOverrides: (theme: Theme) => ({
+          // Con viewport-fit=cover (app/layout.tsx), en horizontal la página
+          // podría quedar bajo el recorte de la cámara: se respeta a los lados.
+          body: {
+            paddingLeft: "env(safe-area-inset-left, 0px)",
+            paddingRight: "env(safe-area-inset-right, 0px)",
+          },
           // Foco visible con teclado en botones, links e items. `:where()` deja
           // la especificidad baja para que los estilos de cada componente manden.
           ":where(.MuiButtonBase-root).Mui-focusVisible": {
@@ -158,6 +164,11 @@ export const createAppTheme = (appTheme: AppThemeName) =>
         styleOverrides: {
           paper: {
             borderRadius: tokens.radius.xl,
+          },
+          // A pantalla completa, lo último no queda detrás de los botones del
+          // sistema (viewport-fit=cover en app/layout.tsx).
+          paperFullScreen: {
+            paddingBottom: "env(safe-area-inset-bottom, 0px)",
           },
         },
       },

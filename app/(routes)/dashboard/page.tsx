@@ -698,7 +698,11 @@ const DashboardPage = () => {
           sx={{
             position: "fixed",
             right: { xs: 16, sm: 24 },
-            bottom: { xs: 16, sm: 24 },
+            // Por encima de los botones del sistema (viewport-fit=cover).
+            bottom: {
+              xs: "calc(16px + env(safe-area-inset-bottom, 0px))",
+              sm: "calc(24px + env(safe-area-inset-bottom, 0px))",
+            },
             zIndex: (theme) => theme.zIndex.modal + 1,
           }}
         >
