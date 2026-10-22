@@ -3,13 +3,17 @@ import { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     theme_color: "#74B728",
-    background_color: "#eee",
+    // Fondo del splash de Android: blanco como los íconos y el login, para
+    // que la transición al abrir la app no muestre recuadros ni saltos.
+    background_color: "#ffffff",
     display: "standalone",
     scope: "/",
     start_url: "/",
     name: "ComportArte",
-    short_name: "cArte",
-    description: "ComportArte",
+    // Texto bajo el ícono en la pantalla de inicio (cabe completo).
+    short_name: "ComportArte",
+    description:
+      "Registro y seguimiento de hallazgos de seguridad, EPP, Gemba Walk e inspecciones de Hada International.",
     icons: [
       {
         src: "/icon-192x192.png",
@@ -30,6 +34,20 @@ export default function manifest(): MetadataRoute.Manifest {
         src: "/icon-512x512.png",
         sizes: "512x512",
         type: "image/png",
+      },
+      // Con más margen: Android los recorta en círculo u otras formas sin
+      // cortar el logo.
+      {
+        src: "/icon-maskable-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "maskable",
+      },
+      {
+        src: "/icon-maskable-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
       },
     ],
   };

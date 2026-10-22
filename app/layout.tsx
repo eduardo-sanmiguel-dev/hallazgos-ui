@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   // App interna con login: no debe aparecer en buscadores. Sin robots.txt
   // que bloquee, para que Google pueda leer este noindex y desindexarla.
   robots: { index: false, follow: false },
+  // Ícono al agregar la app a la pantalla de inicio del iPhone (iOS no usa
+  // los del manifest).
+  icons: { apple: "/icon-apple-180x180.png" },
 };
 
 export const dynamic = "force-dynamic";

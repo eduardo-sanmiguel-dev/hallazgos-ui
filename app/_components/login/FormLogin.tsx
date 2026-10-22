@@ -88,8 +88,10 @@ const FormLogin = ({ setForgotPassword }: Props) => {
       .catch(() => setIsLoading(false));
   };
 
+  // El margen negativo compensa el espacio transparente bajo el logo, que
+  // crece con su ancho (más chico en celular).
   return (
-    <Box sx={{ mt: -10 }}>
+    <Box sx={{ mt: { xs: -6, sm: -8 } }}>
       <TextField
         margin="normal"
         fullWidth
