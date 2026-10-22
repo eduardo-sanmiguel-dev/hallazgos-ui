@@ -65,7 +65,7 @@ export default function TableGembaWalkCalendar({
     }
 
     setIsLoading(true);
-    GembaWalkCalendarService.remove(row.id)
+    return GembaWalkCalendarService.remove(row.id)
       .then(() => {
         notify("Evento eliminado correctamente", true);
         getData();
@@ -74,14 +74,13 @@ export default function TableGembaWalkCalendar({
   };
 
   const confirmRemove = async (row: GembaWalkCalendar) => {
-    const confirmed = await confirm({
+    await confirm({
       title: "Confirmar eliminación",
       description: `¿Desea eliminar el evento #${row.id} (${row.gembaWalkZone?.nameZone} - ${stringToDateWithTime(row.scheduledAt)})?`,
       confirmLabel: "Eliminar",
       tone: "danger",
+      action: () => remove(row),
     });
-
-    if (confirmed) remove(row);
   };
 
   return (

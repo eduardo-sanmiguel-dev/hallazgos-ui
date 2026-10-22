@@ -8,6 +8,7 @@ import { DialogContent } from "@mui/material";
 import { DialogActions } from "@mui/material";
 import { IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import SaveIcon from "@mui/icons-material/Save";
 import { v4 as uuidv4 } from "uuid";
 
 import { dataURLtoFile, notify } from "@shared/utils";
@@ -67,7 +68,10 @@ export default function StartProcessEvidence({
 
   return (
     <BootstrapDialog
-      onClose={() => handleClose()}
+      // Mientras se guarda no se permite cerrar (backdrop / Escape).
+      onClose={() => {
+        if (!isLoading) handleClose();
+      }}
       aria-labelledby="start-process-dialog-title"
       open={isOpen}
       fullWidth={true}
@@ -79,6 +83,7 @@ export default function StartProcessEvidence({
       <IconButton
         aria-label="Cerrar"
         onClick={() => handleClose()}
+        disabled={isLoading}
         sx={{
           position: "absolute",
           right: 8,
@@ -100,9 +105,12 @@ export default function StartProcessEvidence({
         <Button
           onClick={saveProcessStart}
           variant="contained"
+          loading={isLoading}
+          loadingPosition="start"
+          startIcon={<SaveIcon />}
           disabled={isDisabled}
         >
-          Guardar imagen
+          {isLoading ? "Guardando inicio..." : "Guardar imagen"}
         </Button>
       </DialogActions>
     </BootstrapDialog>

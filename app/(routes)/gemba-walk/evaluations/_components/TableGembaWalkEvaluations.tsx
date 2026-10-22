@@ -2,7 +2,6 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-
 import { notify, stringToDateWithTime } from "@shared/utils";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import {
@@ -51,7 +50,7 @@ export default function TableGembaWalkEvaluations({
 
   const remove = (id: number) => {
     setIsLoading(true);
-    GembaWalkEvaluationsService.remove(id)
+    return GembaWalkEvaluationsService.remove(id)
       .then(() => {
         notify("Concepto eliminado correctamente", true);
         getData();
@@ -60,14 +59,13 @@ export default function TableGembaWalkEvaluations({
   };
 
   const confirmRemove = async (row: GembaWalkEvaluation) => {
-    const confirmed = await confirm({
+    await confirm({
       title: "Confirmar eliminación",
       description: `¿Desea eliminar el concepto #${row.id} (${row.category} - ${row.area})?`,
       confirmLabel: "Eliminar",
       tone: "danger",
+      action: () => remove(row.id),
     });
-
-    if (confirmed) remove(row.id);
   };
 
   return (

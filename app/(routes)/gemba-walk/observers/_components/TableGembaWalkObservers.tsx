@@ -2,7 +2,6 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-
 import { notify, stringToDateWithTime } from "@shared/utils";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import {
@@ -51,7 +50,7 @@ export default function TableGembaWalkObservers({
 
   const remove = (id: number) => {
     setIsLoading(true);
-    GembaWalkObserversService.remove(id)
+    return GembaWalkObserversService.remove(id)
       .then(() => {
         notify("Observador eliminado correctamente", true);
         getData();
@@ -60,14 +59,13 @@ export default function TableGembaWalkObservers({
   };
 
   const confirmRemove = async (row: GembaWalkObserver) => {
-    const confirmed = await confirm({
+    await confirm({
       title: "Confirmar eliminación",
       description: `¿Desea eliminar al observador #${row.id} (${row.user?.name})?`,
       confirmLabel: "Eliminar",
       tone: "danger",
+      action: () => remove(row.id),
     });
-
-    if (confirmed) remove(row.id);
   };
 
   return (

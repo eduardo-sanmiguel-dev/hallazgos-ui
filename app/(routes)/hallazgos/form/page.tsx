@@ -397,6 +397,8 @@ export default function HallazgosFormPage() {
               variant="contained"
               startIcon={<SaveIcon />}
               onClick={saveEvidence}
+              loading={isLoading}
+              loadingPosition="start"
               disabled={!isValidForm || isLoading}
             >
               Crear hallazgo

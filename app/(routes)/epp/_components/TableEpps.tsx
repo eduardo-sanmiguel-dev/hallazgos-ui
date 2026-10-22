@@ -43,17 +43,16 @@ function Row({
   const { confirm, confirmDialog } = useConfirmDialog();
 
   const confirmRemoveHistory = async (equipmentHistoryId: number) => {
-    const confirmed = await confirm({
+    await confirm({
       title: "Confirmar eliminación",
       description: "¿Desea eliminar este registro del historial?",
       confirmLabel: "Eliminar",
       tone: "danger",
+      action: async () => {
+        await EppService.removeHistory(equipmentHistoryId);
+        onHistoryDeleted();
+      },
     });
-
-    if (!confirmed) return;
-
-    await EppService.removeHistory(equipmentHistoryId);
-    onHistoryDeleted();
   };
 
   return (
@@ -99,7 +98,10 @@ function Row({
               <Typography variant="h6" gutterBottom component="div">
                 Historial de entrega
               </Typography>
-              <Table size="small" aria-label={`Historial de entrega de ${epp.name}`}>
+              <Table
+                size="small"
+                aria-label={`Historial de entrega de ${epp.name}`}
+              >
                 <TableHead>
                   <StyledTableRow>
                     <StyledTableCell>Epp</StyledTableCell>

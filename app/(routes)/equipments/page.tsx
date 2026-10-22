@@ -12,6 +12,7 @@ import { DialogActions } from "@mui/material";
 import { FormHelperText } from "@mui/material";
 import { IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import SaveIcon from "@mui/icons-material/Save";
 import { toast } from "sonner";
 
 import { BootstrapDialog } from "@routes/hallazgos/_components/CloseEvidence";
@@ -81,6 +82,7 @@ const ScreenForm = ({
     manufacturingPlantId: "",
     price: "",
   });
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   const { fail, errorOf, fieldProps } = useFieldErrors<
     "name" | "manufacturingPlantId"
   >(form);
@@ -111,20 +113,22 @@ const ScreenForm = ({
       price: priceCleaned > 0 ? priceCleaned : null,
     };
 
-    if (!currentId) {
-      EquipmentsService.create(payload).then(() => {
-        toast.success("Equipo creado correctamente");
-        closeDialog();
-      });
-    } else {
-      EquipmentsService.update(currentId, payload).then(() => {
-        toast.success("Equipo actualizado correctamente");
-        closeDialog();
-      });
-    }
+    setIsSaving(true);
+    const request = !currentId
+      ? EquipmentsService.create(payload).then(() => {
+          toast.success("Equipo creado correctamente");
+          closeDialog();
+        })
+      : EquipmentsService.update(currentId, payload).then(() => {
+          toast.success("Equipo actualizado correctamente");
+          closeDialog();
+        });
+    request.finally(() => setIsSaving(false));
   };
 
   const handleClose = (shouldSave: boolean) => {
+    if (isSaving) return;
+
     if (!shouldSave) {
       closeDialog();
       return;
@@ -301,10 +305,20 @@ const ScreenForm = ({
         </Grid>
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => handleClose(false)} variant="text">
+        <Button
+          onClick={() => handleClose(false)}
+          variant="text"
+          disabled={isSaving}
+        >
           Cancelar
         </Button>
-        <Button onClick={() => handleClose(true)} variant="contained">
+        <Button
+          onClick={() => handleClose(true)}
+          variant="contained"
+          loading={isSaving}
+          loadingPosition="start"
+          startIcon={<SaveIcon />}
+        >
           Guardar
         </Button>
       </DialogActions>
@@ -358,18 +372,16 @@ export default function EquipmentsPage() {
   }, [manufacturingPlants]);
 
   const confirmRemove = async (row: Equipment) => {
-    const confirmed = await confirm({
+    await confirm({
       title: "Confirmar eliminación",
       description: `¿Está seguro de eliminar el equipo "${row.name}"?`,
       confirmLabel: "Confirmar",
       tone: "danger",
-    });
-
-    if (!confirmed) return;
-
-    EquipmentsService.remove(row.id).then(() => {
-      toast.success("Equipo eliminado correctamente");
-      getData();
+      action: () =>
+        EquipmentsService.remove(row.id).then(() => {
+          toast.success("Equipo eliminado correctamente");
+          getData();
+        }),
     });
   };
 

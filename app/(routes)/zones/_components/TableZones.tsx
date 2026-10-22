@@ -2,7 +2,6 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-
 import { notify, stringToDateWithTime } from "@shared/utils";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import {
@@ -38,11 +37,7 @@ const columns = [
   "Acciones",
 ];
 
-export default function TableZones({
-  rows,
-  getData,
-  pagination,
-}: Props) {
+export default function TableZones({ rows, getData, pagination }: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const router = useRouter();
@@ -50,7 +45,7 @@ export default function TableZones({
 
   const remove = (id: number) => {
     setIsLoading(true);
-    ZonesService.remove(id)
+    return ZonesService.remove(id)
       .then(() => {
         notify("Lugar eliminado correctamente", true);
         getData();
@@ -59,14 +54,13 @@ export default function TableZones({
   };
 
   const confirmRemove = async (row: Zone) => {
-    const confirmed = await confirm({
+    await confirm({
       title: "Confirmar eliminación",
       description: `¿Desea eliminar el lugar #${row.id} (${row.name})?`,
       confirmLabel: "Eliminar",
       tone: "danger",
+      action: () => remove(row.id),
     });
-
-    if (confirmed) remove(row.id);
   };
 
   return (

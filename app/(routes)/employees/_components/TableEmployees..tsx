@@ -49,7 +49,7 @@ export default function TableEmployees({ rows, getData, pagination }: Props) {
 
   const remove = (id: number) => {
     setIsLoading(true);
-    EmployeesService.remove(id)
+    return EmployeesService.remove(id)
       .then(() => {
         notify("Colaborador desactivado correctamente", true);
         getData();
@@ -58,14 +58,13 @@ export default function TableEmployees({ rows, getData, pagination }: Props) {
   };
 
   const confirmRemove = async (row: Employee) => {
-    const confirmed = await confirm({
+    await confirm({
       title: "Desactivar colaborador",
       description: `¿Deseas desactivar al colaborador "${row.name}"?`,
       confirmLabel: "Desactivar",
       tone: "danger",
+      action: () => remove(row.id),
     });
-
-    if (confirmed) remove(row.id);
   };
 
   return (

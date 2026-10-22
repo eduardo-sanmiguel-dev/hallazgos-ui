@@ -37,11 +37,7 @@ const columns = [
   "Acciones",
 ];
 
-export default function TableIcs({
-  rows,
-  getData,
-  pagination,
-}: Props) {
+export default function TableIcs({ rows, getData, pagination }: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   //const router = useRouter();
@@ -50,7 +46,7 @@ export default function TableIcs({
 
   const remove = (id: number) => {
     setIsLoading(true);
-    IcsService.remove(id)
+    return IcsService.remove(id)
       .then(() => {
         notify("Ics eliminado correctamente", true);
         getData();
@@ -59,14 +55,13 @@ export default function TableIcs({
   };
 
   const confirmRemove = async (row: ICSData) => {
-    const confirmed = await confirm({
+    await confirm({
       title: "Eliminar registro de ICS",
       description: `¿Deseas eliminar el registro de ICS #${row.id}?`,
       confirmLabel: "Eliminar",
       tone: "danger",
+      action: () => remove(row.id),
     });
-
-    if (confirmed) remove(row.id);
   };
 
   return (
@@ -86,7 +81,9 @@ export default function TableIcs({
               <StyledTableCell>
                 {row.standardOfBehavior?.name || ""}
               </StyledTableCell>
-              <StyledTableCell>{row.areaOfBehavior?.name || ""}</StyledTableCell>
+              <StyledTableCell>
+                {row.areaOfBehavior?.name || ""}
+              </StyledTableCell>
               <StyledTableCell>{row.totalPeople}</StyledTableCell>
               <StyledTableCell>{row.totalCorrectPeople}</StyledTableCell>
               <StyledTableCell>{row.totalIncorrectPeople}</StyledTableCell>

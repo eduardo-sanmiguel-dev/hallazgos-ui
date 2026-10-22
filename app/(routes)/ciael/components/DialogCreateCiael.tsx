@@ -383,7 +383,9 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
     <Dialog
       fullScreen
       open={open}
-      onClose={handleClose}
+      onClose={() => {
+        if (!isLoading) handleClose();
+      }}
       slots={{ transition: Transition }}
     >
       <AppBar sx={{ position: "relative" }}>
@@ -392,6 +394,7 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
             edge="start"
             color="inherit"
             onClick={handleClose}
+            disabled={isLoading}
             aria-label="Cerrar"
           >
             <CloseIcon />
@@ -403,6 +406,7 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
             autoFocus
             color="inherit"
             onClick={saveCiael}
+            loading={isLoading}
             disabled={isLoading}
           >
             Guardar

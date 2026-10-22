@@ -16,18 +16,20 @@ const FormRestorePassword = () => {
   const [email, setEmail] = useState(
     process.env.NODE_ENV === constants.environments.development
       ? "eduardo-266@hotmail.com"
-      : ""
+      : "",
   );
   const [password, setPassword] = useState(
-    process.env.NODE_ENV === constants.environments.development ? "123" : ""
+    process.env.NODE_ENV === constants.environments.development ? "123" : "",
   );
   const [passwordConfirm, setPasswordConfirm] = useState(
-    process.env.NODE_ENV === constants.environments.development ? "123" : ""
+    process.env.NODE_ENV === constants.environments.development ? "123" : "",
   );
 
   const router = useRouter();
   // Token del enlace del correo (?token=...): el API lo exige.
   const token = useSearchParams().get("token") || "";
+
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const login = async () => {
     const emailClear = email.trim();
@@ -54,14 +56,19 @@ const FormRestorePassword = () => {
       return;
     }
 
+    setIsLoading(true);
+
     AuthService.loginRestorePassword({
       email,
       password,
       token,
-    }).then(({ message }) => {
-      notify(message, true);
-      router.push("/dashboard");
-    });
+    })
+      .then(({ message }) => {
+        notify(message, true);
+        // El spinner sigue mientras navega al dashboard.
+        router.push("/dashboard");
+      })
+      .catch(() => setIsLoading(false));
   };
 
   return (
@@ -98,6 +105,9 @@ const FormRestorePassword = () => {
         variant="contained"
         sx={{ mt: 3, mb: 2 }}
         onClick={login}
+        loading={isLoading}
+        loadingPosition="start"
+        disabled={isLoading}
       >
         Restablecer contraseña y entrar
       </Button>

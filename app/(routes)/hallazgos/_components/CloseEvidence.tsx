@@ -8,7 +8,9 @@ import { DialogContent } from "@mui/material";
 import { DialogActions } from "@mui/material";
 import { IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import SaveIcon from "@mui/icons-material/Save";
 import { v4 as uuidv4 } from "uuid";
+import confetti from "canvas-confetti";
 
 import { dataURLtoFile, notify } from "@shared/utils";
 import { EvidencesService, handleErrorResponse } from "@services";
@@ -26,6 +28,23 @@ export const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     padding: theme.spacing(1),
   },
 }));
+
+// Celebración sutil al cerrar: una sola ráfaga corta desde abajo al centro.
+// zIndex por encima de los diálogos de MUI (1300).
+const celebrateClose = () => {
+  confetti({
+    particleCount: 60,
+    spread: 60,
+    startVelocity: 30,
+    gravity: 1.2,
+    ticks: 150,
+    scalar: 0.8,
+    origin: { y: 0.75 },
+    zIndex: 2000,
+    disableForReducedMotion: true,
+    colors: ["#1976d2", "#2e7d32", "#ffb300", "#e91e63", "#9c27b0"],
+  });
+};
 
 interface Props {
   isOpen: boolean;
@@ -79,6 +98,7 @@ export default function CloseEvidence({
     EvidencesService.solution(idRow, formData)
       .then(() => {
         notify("Hallazgo cerrado correctamente", true);
+        celebrateClose();
         handleClose(true);
       })
       .catch(handleErrorResponse)
@@ -100,7 +120,11 @@ export default function CloseEvidence({
 
   return (
     <BootstrapDialog
-      onClose={() => handleClose()}
+      // Mientras se guarda no se permite cerrar (backdrop / Escape) para no
+      // perder la respuesta del API ni dejar al usuario sin saber el resultado.
+      onClose={() => {
+        if (!isLoading) handleClose();
+      }}
       aria-labelledby="customized-dialog-title"
       open={isOpen}
       fullWidth={true}
@@ -112,6 +136,7 @@ export default function CloseEvidence({
       <IconButton
         aria-label="Cerrar"
         onClick={() => handleClose()}
+        disabled={isLoading}
         sx={{
           position: "absolute",
           right: 8,
@@ -192,9 +217,12 @@ export default function CloseEvidence({
         <Button
           onClick={saveSolution}
           variant="contained"
+          loading={isLoading}
+          loadingPosition="start"
+          startIcon={<SaveIcon />}
           disabled={isDisabled}
         >
-          Guardar imagen
+          {isLoading ? "Guardando cierre..." : "Guardar imagen"}
         </Button>
       </DialogActions>
     </BootstrapDialog>

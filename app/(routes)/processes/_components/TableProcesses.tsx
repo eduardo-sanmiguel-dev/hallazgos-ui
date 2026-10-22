@@ -2,7 +2,6 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-
 import { notify, stringToDateWithTime } from "@shared/utils";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import {
@@ -35,11 +34,7 @@ const columns = [
   "Acciones",
 ];
 
-export default function TableProcess({
-  rows,
-  getData,
-  pagination,
-}: Props) {
+export default function TableProcess({ rows, getData, pagination }: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const router = useRouter();
@@ -47,7 +42,7 @@ export default function TableProcess({
 
   const remove = (id: number) => {
     setIsLoading(true);
-    ProcessesService.remove(id)
+    return ProcessesService.remove(id)
       .then(() => {
         notify("Proceso eliminado correctamente", true);
         getData();
@@ -56,14 +51,13 @@ export default function TableProcess({
   };
 
   const confirmRemove = async (row: Processes) => {
-    const confirmed = await confirm({
+    await confirm({
       title: "Eliminar proceso",
       description: `¿Deseas eliminar el proceso "${row.name}"?`,
       confirmLabel: "Eliminar",
       tone: "danger",
+      action: () => remove(row.id),
     });
-
-    if (confirmed) remove(row.id);
   };
 
   return (

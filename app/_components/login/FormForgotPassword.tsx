@@ -61,6 +61,8 @@ const FormForgotPassword = ({ setForgotPassword }: Props) => {
         variant="contained"
         sx={{ mt: 3, mb: 2 }}
         onClick={login}
+        loading={isLoading}
+        loadingPosition="start"
         disabled={isLoading}
       >
         Enviar correo de recuperación

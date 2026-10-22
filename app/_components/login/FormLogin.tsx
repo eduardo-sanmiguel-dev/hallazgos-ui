@@ -53,6 +53,8 @@ const FormLogin = ({ setForgotPassword }: Props) => {
 
   const handleClickShowPassword = () => setShowPassword((show) => !show);
 
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
   const login = async () => {
     const emailClear = email.trim();
     const passwordClear = password.trim();
@@ -72,13 +74,18 @@ const FormLogin = ({ setForgotPassword }: Props) => {
       return;
     }
 
+    setIsLoading(true);
+
     AuthService.login({
       email,
       password,
-    }).then(({ message }) => {
-      notify(message, true);
-      router.push("/dashboard");
-    });
+    })
+      .then(({ message }) => {
+        notify(message, true);
+        // El spinner sigue mientras navega al dashboard.
+        router.push("/dashboard");
+      })
+      .catch(() => setIsLoading(false));
   };
 
   return (
@@ -125,6 +132,9 @@ const FormLogin = ({ setForgotPassword }: Props) => {
         variant="contained"
         sx={{ mt: 3, mb: 2 }}
         onClick={login}
+        loading={isLoading}
+        loadingPosition="start"
+        disabled={isLoading}
       >
         Iniciar
       </Button>

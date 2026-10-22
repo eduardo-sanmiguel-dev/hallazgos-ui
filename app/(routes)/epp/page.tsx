@@ -77,7 +77,7 @@ export default function EppPage() {
         create={(form) => {
           const confirm = Object.keys(form).length > 0;
           if (!confirm) return setOpen(false);
-          EppService.create(form).then(() => {
+          return EppService.create(form).then(() => {
             setOpen(false);
             getData();
           });

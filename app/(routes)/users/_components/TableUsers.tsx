@@ -40,11 +40,7 @@ const columns = [
   "Acciones",
 ];
 
-export default function TableUsers({
-  rows,
-  getData,
-  pagination,
-}: Props) {
+export default function TableUsers({ rows, getData, pagination }: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const router = useRouter();
@@ -52,7 +48,7 @@ export default function TableUsers({
 
   const remove = (id: number) => {
     setIsLoading(true);
-    UsersService.remove(id)
+    return UsersService.remove(id)
       .then(() => {
         notify("Usuario eliminado correctamente", true);
         getData();
@@ -61,14 +57,13 @@ export default function TableUsers({
   };
 
   const confirmRemove = async (row: User) => {
-    const confirmed = await confirm({
+    await confirm({
       title: "Eliminar usuario",
       description: `¿Deseas eliminar al usuario "${row.name}"?`,
       confirmLabel: "Eliminar",
       tone: "danger",
+      action: () => remove(row.id),
     });
-
-    if (confirmed) remove(row.id);
   };
 
   const truncateText = (text: string) => {
@@ -89,14 +84,14 @@ export default function TableUsers({
           const zonesName = row.zones
             .map(
               ({ name, manufacturingPlant }) =>
-                `${name} (${manufacturingPlant.name})`
+                `${name} (${manufacturingPlant.name})`,
             )
             .join("\n");
 
           const processesName = row.processes
             .map(
               ({ name, manufacturingPlant }) =>
-                `${name} (${manufacturingPlant.name})`
+                `${name} (${manufacturingPlant.name})`,
             )
             .join("\n");
 

@@ -14,10 +14,14 @@ export interface ConfirmOptions {
   cancelLabel?: string;
   // "danger" pinta el botón de confirmar en rojo (eliminar, desactivar...).
   tone?: "danger" | "default";
+  // Si se pasa, el diálogo sigue abierto con spinner en el botón de confirmar
+  // hasta que la promesa termine (p. ej. la llamada al API de eliminar).
+  action?: () => Promise<unknown> | void;
 }
 
-interface ConfirmDialogProps extends ConfirmOptions {
+interface ConfirmDialogProps extends Omit<ConfirmOptions, "action"> {
   open: boolean;
+  isBusy?: boolean;
   onConfirm: () => void;
   onClose: () => void;
 }
@@ -31,6 +35,7 @@ export default function ConfirmDialog({
   confirmLabel = "Confirmar",
   cancelLabel = "Cancelar",
   tone = "default",
+  isBusy = false,
   onConfirm,
   onClose,
 }: ConfirmDialogProps) {
@@ -40,7 +45,9 @@ export default function ConfirmDialog({
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={() => {
+        if (!isBusy) onClose();
+      }}
       maxWidth="xs"
       fullWidth
       aria-labelledby={titleId}
@@ -49,17 +56,20 @@ export default function ConfirmDialog({
       <DialogTitle id={titleId}>{title}</DialogTitle>
       {description && (
         <DialogContent>
-          <DialogContentText id={descriptionId}>{description}</DialogContentText>
+          <DialogContentText id={descriptionId}>
+            {description}
+          </DialogContentText>
         </DialogContent>
       )}
       <DialogActions sx={{ px: 3, pb: 2.5 }}>
-        <Button onClick={onClose} autoFocus>
+        <Button onClick={onClose} autoFocus disabled={isBusy}>
           {cancelLabel}
         </Button>
         <Button
           variant="contained"
           color={tone === "danger" ? "error" : "primary"}
           onClick={onConfirm}
+          loading={isBusy}
         >
           {confirmLabel}
         </Button>
@@ -71,9 +81,12 @@ export default function ConfirmDialog({
 // Uso:
 //   const { confirm, confirmDialog } = useConfirmDialog();
 //   if (await confirm({ title: "¿Eliminar?", tone: "danger" })) { ... }
+//   // o, para mostrar el spinner mientras responde el API:
+//   await confirm({ title: "¿Eliminar?", action: () => remove(id) });
 //   return <>{...}{confirmDialog}</>;
 export function useConfirmDialog() {
   const [open, setOpen] = useState(false);
+  const [isBusy, setIsBusy] = useState(false);
   const [options, setOptions] = useState<ConfirmOptions>({ title: "" });
   const resolver = useRef<((confirmed: boolean) => void) | null>(null);
 
@@ -92,11 +105,31 @@ export function useConfirmDialog() {
     resolver.current = null;
   };
 
+  const handleConfirm = async () => {
+    if (!options.action) {
+      settle(true);
+      return;
+    }
+
+    setIsBusy(true);
+    try {
+      await options.action();
+    } catch {
+      // El error ya lo notifica el servicio; solo se cierra el diálogo.
+    } finally {
+      setIsBusy(false);
+      settle(true);
+    }
+  };
+
+  const { action: _action, ...dialogOptions } = options;
+
   const confirmDialog = (
     <ConfirmDialog
-      {...options}
+      {...dialogOptions}
       open={open}
-      onConfirm={() => settle(true)}
+      isBusy={isBusy}
+      onConfirm={handleConfirm}
       onClose={() => settle(false)}
     />
   );

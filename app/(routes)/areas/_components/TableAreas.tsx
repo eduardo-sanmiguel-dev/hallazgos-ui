@@ -2,7 +2,6 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-
 import { notify, stringToDateWithTime } from "@shared/utils";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import {
@@ -37,11 +36,7 @@ const columns = [
   "Acciones",
 ];
 
-export default function TableAreas({
-  rows,
-  getData,
-  pagination,
-}: Props) {
+export default function TableAreas({ rows, getData, pagination }: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const router = useRouter();
@@ -49,7 +44,7 @@ export default function TableAreas({
 
   const remove = (id: number) => {
     setIsLoading(true);
-    AreasService.remove(id)
+    return AreasService.remove(id)
       .then(() => {
         notify("Zona eliminada correctamente", true);
         getData();
@@ -58,14 +53,13 @@ export default function TableAreas({
   };
 
   const confirmRemove = async (row: Area) => {
-    const confirmed = await confirm({
+    await confirm({
       title: "Confirmar eliminación",
       description: `¿Desea eliminar la zona #${row.id} (${row.name})?`,
       confirmLabel: "Eliminar",
       tone: "danger",
+      action: () => remove(row.id),
     });
-
-    if (confirmed) remove(row.id);
   };
 
   return (

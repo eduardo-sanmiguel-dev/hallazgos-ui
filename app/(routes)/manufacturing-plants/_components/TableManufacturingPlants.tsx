@@ -2,7 +2,6 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-
 import { notify, stringToDateWithTime } from "@shared/utils";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import {
@@ -49,7 +48,7 @@ export default function TableManufacturingPlants({
 
   const remove = (id: number) => {
     setIsLoading(true);
-    ManufacturingPlantsService.remove(id)
+    return ManufacturingPlantsService.remove(id)
       .then(() => {
         notify("Planta eliminada correctamente", true);
         getData();
@@ -58,14 +57,13 @@ export default function TableManufacturingPlants({
   };
 
   const confirmRemove = async (row: ManufacturingPlant) => {
-    const confirmed = await confirm({
+    await confirm({
       title: "Eliminar planta",
       description: `¿Deseas eliminar la planta "${row.name}"?`,
       confirmLabel: "Eliminar",
       tone: "danger",
+      action: () => remove(row.id),
     });
-
-    if (confirmed) remove(row.id);
   };
 
   return (

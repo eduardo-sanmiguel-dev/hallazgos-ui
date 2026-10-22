@@ -2,7 +2,6 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-
 import { notify, stringToDateWithTime } from "@shared/utils";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import {
@@ -48,7 +47,7 @@ export default function TableSecondaryTypes({
 
   const remove = (id: number) => {
     setIsLoading(true);
-    SecondaryTypesService.remove(id)
+    return SecondaryTypesService.remove(id)
       .then(() => {
         notify("Tipo de criterio eliminado correctamente", true);
         getData();
@@ -57,14 +56,13 @@ export default function TableSecondaryTypes({
   };
 
   const confirmRemove = async (row: SecondaryType) => {
-    const confirmed = await confirm({
+    await confirm({
       title: "Eliminar tipo de criterio",
       description: `¿Deseas eliminar el tipo de criterio "${row.name}"?`,
       confirmLabel: "Eliminar",
       tone: "danger",
+      action: () => remove(row.id),
     });
-
-    if (confirmed) remove(row.id);
   };
 
   return (

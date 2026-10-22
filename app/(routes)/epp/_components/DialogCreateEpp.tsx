@@ -41,7 +41,9 @@ const formInitial = {
 };
 interface Props {
   open: boolean;
-  create: (form: PayloadCreateEpp) => void;
+  // Si devuelve una promesa, el botón Guardar muestra el spinner hasta que
+  // termine y el formulario solo se limpia cuando se guardó correctamente.
+  create: (form: PayloadCreateEpp) => Promise<unknown> | void;
 }
 
 export default function DialogCreateEpp({ open, create }: Props) {
@@ -63,6 +65,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
     observations: string;
   }>(formInitial);
   const [openSignature, setOpenSignature] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   const [manufacturingPlantId, setManufacturingPlantId] = useState<string>("");
 
   const manufacturingPlants = useUserSessionStore(
@@ -103,22 +106,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
     return !!employeeId && !!equipmentsNew.length && !!signature;
   }, [form, equipmentsNew, signature]);
 
-  const handleClose = (save: boolean) => {
-    const employeeId = Number(form.employee || 0);
-
-    create(
-      save && isDisabledSave
-        ? {
-            employeeId,
-            equipments: equipmentsNew.map(({ id, observations, quantity }) => ({
-              id,
-              observations,
-              quantity,
-            })),
-            signature,
-          }
-        : ({} as PayloadCreateEpp),
-    );
+  const resetForm = () => {
     setSignature("");
     setEquipmentsNew([]);
     setForm({
@@ -126,6 +114,33 @@ export default function DialogCreateEpp({ open, create }: Props) {
       equipment: "",
       observations: "",
     });
+  };
+
+  const handleClose = (save: boolean) => {
+    if (isSaving) return;
+
+    if (!(save && isDisabledSave)) {
+      create({} as PayloadCreateEpp);
+      resetForm();
+      return;
+    }
+
+    setIsSaving(true);
+    Promise.resolve(
+      create({
+        employeeId: Number(form.employee || 0),
+        equipments: equipmentsNew.map(({ id, observations, quantity }) => ({
+          id,
+          observations,
+          quantity,
+        })),
+        signature,
+      }),
+    )
+      .then(resetForm)
+      // El error ya lo notifica el servicio; se conservan los datos capturados.
+      .catch(() => {})
+      .finally(() => setIsSaving(false));
   };
 
   const handleAddEquipment = async () => {
@@ -190,6 +205,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
               edge="start"
               color="inherit"
               onClick={() => handleClose(false)}
+              disabled={isSaving}
               aria-label="Cerrar"
             >
               <CloseIcon />
@@ -202,6 +218,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
               color="inherit"
               onClick={() => handleClose(true)}
               disabled={!isDisabledSave}
+              loading={isSaving}
             >
               Guardar
             </Button>

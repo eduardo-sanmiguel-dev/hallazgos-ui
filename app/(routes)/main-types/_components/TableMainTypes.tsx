@@ -41,7 +41,7 @@ export default function TableMainTypes({ rows, getData, pagination }: Props) {
 
   const remove = (id: number) => {
     setIsLoading(true);
-    MainTypesService.remove(id)
+    return MainTypesService.remove(id)
       .then(() => {
         notify("Criterio eliminado correctamente", true);
         getData();
@@ -50,14 +50,13 @@ export default function TableMainTypes({ rows, getData, pagination }: Props) {
   };
 
   const confirmRemove = async (row: MainType) => {
-    const confirmed = await confirm({
+    await confirm({
       title: "Eliminar criterio",
       description: `¿Deseas eliminar el criterio "${row.name}"?`,
       confirmLabel: "Eliminar",
       tone: "danger",
+      action: () => remove(row.id),
     });
-
-    if (confirmed) remove(row.id);
   };
 
   return (

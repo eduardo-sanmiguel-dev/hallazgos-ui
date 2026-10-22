@@ -65,7 +65,7 @@ export default function EmergencyTeamsTable({
 
   const remove = (id: number) => {
     setIsLoading(true);
-    EmergencyTeamsService.remove(id)
+    return EmergencyTeamsService.remove(id)
       .then(() => {
         notify("Equipo de emergencia eliminado correctamente", true);
         getData();
@@ -74,14 +74,13 @@ export default function EmergencyTeamsTable({
   };
 
   const confirmRemove = async (row: EmergencyTeam) => {
-    const confirmed = await confirm({
+    await confirm({
       title: "Confirmar eliminación",
       description: `¿Desea eliminar el equipo #${row.id} (${row.location})?`,
       confirmLabel: "Eliminar",
       tone: "danger",
+      action: () => remove(row.id),
     });
-
-    if (confirmed) remove(row.id);
   };
 
   const isSelected = (id: number) => selectedIds.includes(id);

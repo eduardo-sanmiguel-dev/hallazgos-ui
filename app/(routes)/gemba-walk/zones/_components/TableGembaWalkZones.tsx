@@ -2,7 +2,6 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-
 import { notify, stringToDateWithTime } from "@shared/utils";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import {
@@ -50,7 +49,7 @@ export default function TableGembaWalkZones({
 
   const remove = (id: number) => {
     setIsLoading(true);
-    GembaWalkZonesService.remove(id)
+    return GembaWalkZonesService.remove(id)
       .then(() => {
         notify("Zona eliminada correctamente", true);
         getData();
@@ -59,14 +58,13 @@ export default function TableGembaWalkZones({
   };
 
   const confirmRemove = async (row: GembaWalkZone) => {
-    const confirmed = await confirm({
+    await confirm({
       title: "Confirmar eliminación",
       description: `¿Desea eliminar la zona #${row.id} (${row.nameZone} - ${row.nameLocation})?`,
       confirmLabel: "Eliminar",
       tone: "danger",
+      action: () => remove(row.id),
     });
-
-    if (confirmed) remove(row.id);
   };
 
   return (

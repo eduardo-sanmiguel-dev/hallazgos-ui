@@ -121,7 +121,7 @@ export default function TableEvidences({
 
   const removeEvicence = (id: number) => {
     setIsLoading(true);
-    EvidencesService.remove(id)
+    return EvidencesService.remove(id)
       .then(() => {
         notify("Hallazgo eliminado correctamente", true);
         getData();
@@ -131,15 +131,14 @@ export default function TableEvidences({
 
   // Antes los dos botones del aviso decían "Cancelar".
   const confirmRemoveEvidence = async (row: EvidenceGraphql) => {
-    const confirmed = await confirm({
+    await confirm({
       title: "Confirmar cancelación",
       description: `¿Desea cancelar/eliminar el hallazgo #${row.id}?`,
       confirmLabel: "Cancelar hallazgo",
       cancelLabel: "Volver",
       tone: "danger",
+      action: () => removeEvicence(row.id),
     });
-
-    if (confirmed) removeEvicence(row.id);
   };
 
   // Cerrado y Cancelado son finales: el API responde 409 a cerrar, cancelar o
