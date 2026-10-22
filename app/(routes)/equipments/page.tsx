@@ -40,7 +40,7 @@ import TableDefaultServer from "@shared/components/TableDefaultServer";
 import { useFieldErrors } from "@hooks/useFieldErrors";
 import { Equipment, ManufacturingPlant } from "@interfaces";
 import SelectDefault from "@components/SelectDefault";
-import { stringToDateWithTime } from "@shared/utils";
+import { stringToDateWithTime, updatedDateLabel } from "@shared/utils";
 import { useUserSessionStore } from "@store";
 import { EquipmentsService } from "@services";
 
@@ -501,7 +501,7 @@ export default function EquipmentsPage() {
               </StyledTableCell>
               <StyledTableCell>{row.createdBy.name}</StyledTableCell>
               <StyledTableCell>
-                {stringToDateWithTime(row.updatedAt)}
+                {updatedDateLabel(row.createdAt, row.updatedAt) ?? "-"}
               </StyledTableCell>
               <StyledTableCell>{row.updatedBy?.name}</StyledTableCell>
               <StyledTableCell>

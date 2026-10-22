@@ -93,13 +93,19 @@ const EVIDENCES = [
   }),
 ];
 
-/** Abre /hallazgos con la tabla de datos fijos; `asSupervisor` cambia el rol. */
-const openList = async (page: Page, { asSupervisor = false } = {}) => {
+/**
+ * Abre /hallazgos con la tabla de datos fijos; `asSupervisor` cambia el rol y
+ * `data` reemplaza los hallazgos de la tabla.
+ */
+const openList = async (
+  page: Page,
+  { asSupervisor = false, data = EVIDENCES } = {},
+) => {
   await page.route("**/graphql", (route) =>
     route.fulfill({
       json: {
         data: {
-          evidences: { __typename: "Evidences", count: 12, data: EVIDENCES },
+          evidences: { __typename: "Evidences", count: 12, data },
         },
       },
     }),
@@ -504,5 +510,45 @@ test.describe("Hallazgos: acciones", () => {
     ).toBeVisible();
     await expect(page.getByRole("dialog")).toHaveCount(1);
     expect(errors).toEqual([]);
+  });
+  test("sin editar no repite la fecha de actualización (tabla y detalle)", async ({
+    page,
+  }) => {
+    // Al inicio de un minuto: +1 s no cruza al siguiente.
+    const created = new Date(
+      Math.floor(Date.parse(daysAgo(3)) / 60_000) * 60_000,
+    ).toISOString();
+    const sameMinute = new Date(Date.parse(created) + 1_000).toISOString();
+    await openList(page, {
+      data: [
+        // Recién creado: actualización 1 s después (se ve igual).
+        evidence(9101, { createdAt: created, updatedAt: sameMinute }),
+        // Editado después.
+        evidence(9102, { createdAt: created, updatedAt: daysAgo(1) }),
+      ],
+    });
+
+    await expect(rowOf(page, 9101)).toContainText("FR:");
+    await expect(rowOf(page, 9101)).not.toContainText("FA:");
+    await expect(rowOf(page, 9102)).toContainText("FA:");
+
+    await (
+      await openActions(page, 9101)
+    )
+      .getByRole("menuitem", { name: "Ver detalles" })
+      .click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByText("Fecha de registro")).toBeVisible();
+    await expect(dialog.getByText("Última actualización")).toHaveCount(0);
+    await dialog.getByRole("button", { name: "Cerrar" }).click();
+
+    await (
+      await openActions(page, 9102)
+    )
+      .getByRole("menuitem", { name: "Ver detalles" })
+      .click();
+    await expect(
+      page.getByRole("dialog").getByText("Última actualización"),
+    ).toBeVisible();
   });
 });

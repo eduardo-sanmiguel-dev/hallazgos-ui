@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { notify, stringToDateWithTime } from "@shared/utils";
+import { notify, stringToDateWithTime, updatedDateLabel } from "@shared/utils";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import {
   DeleteAction,
@@ -75,7 +75,7 @@ export default function TableMainTypes({ rows, getData, pagination }: Props) {
               {stringToDateWithTime(row.createdAt)}
             </StyledTableCell>
             <StyledTableCell>
-              {stringToDateWithTime(row.updatedAt)}
+              {updatedDateLabel(row.createdAt, row.updatedAt) ?? "-"}
             </StyledTableCell>
             <StyledTableCell>
               <RowActions>

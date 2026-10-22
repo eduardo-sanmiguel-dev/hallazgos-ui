@@ -56,9 +56,7 @@ export const baseUrlImage = (image: string, path?: string) => {
   return url;
 };
 
-export const stringToDateWithTime = (date: string | Date) => {
-  return dayjs(date).format("DD/MM/YYYY h:mm a");
-};
+export { stringToDateWithTime, updatedDateLabel } from "./dates";
 
 // Format 05 - January - 2024
 export const stringToDate = (date: string | Date) =>

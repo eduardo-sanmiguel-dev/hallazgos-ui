@@ -13,7 +13,7 @@ import TableRow from "@mui/material/TableRow";
 import TableCell from "@mui/material/TableCell";
 import Checkbox from "@mui/material/Checkbox";
 
-import { notify, stringToDateWithTime } from "@shared/utils";
+import { notify, stringToDateWithTime, updatedDateLabel } from "@shared/utils";
 import TablePaginationActions from "@shared/components/TablePaginationActions";
 import EmptyState from "@shared/components/EmptyState";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
@@ -202,7 +202,7 @@ export default function EmergencyTeamsTable({
                 </StyledTableCell>
                 <StyledTableCell>{row.createdBy?.name || "-"}</StyledTableCell>
                 <StyledTableCell>
-                  {stringToDateWithTime(row.updatedAt)}
+                  {updatedDateLabel(row.createdAt, row.updatedAt) ?? "-"}
                 </StyledTableCell>
                 <StyledTableCell>{row.updatedBy?.name || "-"}</StyledTableCell>
                 <StyledTableCell>

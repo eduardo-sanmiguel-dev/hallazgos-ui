@@ -19,7 +19,12 @@ import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import IconButton from "@mui/material/IconButton";
 
-import { durantionToTime, notify, stringToDateWithTime } from "@shared/utils";
+import {
+  durantionToTime,
+  notify,
+  stringToDateWithTime,
+  updatedDateLabel,
+} from "@shared/utils";
 import {
   StyledTableCell,
   StyledTableRow,
@@ -562,9 +567,12 @@ export default function TableEvidences({
                 <span>
                   <b>FR:</b> {stringToDateWithTime(row.createdAt)}
                 </span>
-                <span>
-                  <b>FA:</b> {stringToDateWithTime(row.updatedAt)}
-                </span>
+                {/* Sin FA si no se ha editado (igual a FR). */}
+                {updatedDateLabel(row.createdAt, row.updatedAt) && (
+                  <span>
+                    <b>FA:</b> {updatedDateLabel(row.createdAt, row.updatedAt)}
+                  </span>
+                )}
                 <span>
                   <b>FC:</b>{" "}
                   {row.solutionDate

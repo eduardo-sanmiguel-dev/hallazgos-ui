@@ -9,7 +9,11 @@ import { Paper } from "@mui/material";
 import { Chip } from "@mui/material";
 import { Box } from "@mui/material";
 
-import { durantionToTime, stringToDateWithTime } from "@shared/utils";
+import {
+  durantionToTime,
+  stringToDateWithTime,
+  updatedDateLabel,
+} from "@shared/utils";
 import {
   STATUS_CLOSED,
   STATUS_IN_PROGRESS,
@@ -267,12 +271,21 @@ export default function DetailsTabs({
                 </Typography>
               </Box>
             )}
-            <Box>
-              <Typography sx={rowLabelSx}>Última actualización</Typography>
-              <Typography variant="body2">
-                {stringToDateWithTime(evidenceCurrent.updatedAt)}
-              </Typography>
-            </Box>
+            {/* Solo si se editó: igual a la de registro no aporta nada. */}
+            {updatedDateLabel(
+              evidenceCurrent.createdAt,
+              evidenceCurrent.updatedAt,
+            ) && (
+              <Box>
+                <Typography sx={rowLabelSx}>Última actualización</Typography>
+                <Typography variant="body2">
+                  {updatedDateLabel(
+                    evidenceCurrent.createdAt,
+                    evidenceCurrent.updatedAt,
+                  )}
+                </Typography>
+              </Box>
+            )}
 
             <Divider />
 
