@@ -23,7 +23,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { esES } from "@mui/x-date-pickers/locales";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
-import { User } from "@interfaces";
+import { UserOption } from "@interfaces";
 import FilterBar, {
   compactFilters,
   joinNames,
@@ -48,7 +48,7 @@ interface DashboardFiltersBarProps {
   setFilters: Dispatch<SetStateAction<DashboardFilters>>;
   areas: Area[];
   availableMainTypes: MainType[];
-  sortedResponsibles: User[];
+  sortedResponsibles: UserOption[];
   isHeatmapView: boolean;
   setIsHeatmapView: Dispatch<SetStateAction<boolean>>;
   setIsHistoricalView: Dispatch<SetStateAction<boolean>>;

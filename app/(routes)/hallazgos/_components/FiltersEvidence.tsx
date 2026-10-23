@@ -18,7 +18,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useUserSessionStore } from "@store";
 import { EMPTY_CATALOG, useMainTypes, useZones } from "@hooks";
 import SelectDefault from "@components/SelectDefault";
-import { SecondaryType, User } from "@interfaces";
+import { SecondaryType, UserOption } from "@interfaces";
 import { UsersService } from "@services";
 import FilterBar, {
   ActiveFilter,
@@ -57,7 +57,12 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
   const searchParams = useSearchParams();
 
   const [secondaryTypes, setSecondaryTypes] = useState<SecondaryType[]>([]);
-  const [responsibles, setResponsibles] = useState<User[]>([]);
+  // Responsables de la planta y, si hay zonas elegidas, de esas zonas (lo
+  // filtra la API). `key` dice para qué filtros se cargaron.
+  const [responsibles, setResponsibles] = useState<{
+    key: string;
+    users: UserOption[];
+  }>({ key: "", users: [] });
   const [localEvidenceId, setLocalEvidenceId] = useState(filters.evidenceId);
 
   const parseDate = (value: string): Dayjs | null => {
@@ -147,21 +152,18 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
     });
   }, [filters.areaIds, filters.manufacturingPlantId, zones]);
 
-  const filteredResponsibles = useMemo(() => {
-    const selectedZoneIds = new Set(filters.zoneIds.map(Number));
+  const responsiblesKey = `${filters.manufacturingPlantId}|${filters.zoneIds.join(",")}`;
+  // Mientras llega la lista de otros filtros se sigue mostrando la anterior,
+  // pero no se usa para depurar los responsables elegidos.
+  const responsiblesReady = responsibles.key === responsiblesKey;
 
-    const scopedResponsibles = !filters.zoneIds.length
-      ? responsibles
-      : responsibles.filter((user) => {
-          return (user.zones || []).some((zone) =>
-            selectedZoneIds.has(Number(zone.id)),
-          );
-        });
-
-    return [...scopedResponsibles].sort((a, b) =>
-      a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
-    );
-  }, [filters.zoneIds, responsibles]);
+  const filteredResponsibles = useMemo(
+    () =>
+      [...responsibles.users].sort((a, b) =>
+        a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
+      ),
+    [responsibles],
+  );
 
   useEffect(() => {
     if (!filters.mainTypeIds.length) {
@@ -188,14 +190,23 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
 
   useEffect(() => {
     if (!filters.manufacturingPlantId) {
-      setResponsibles([]);
+      setResponsibles({ key: responsiblesKey, users: [] });
       return;
     }
 
+    let ignore = false;
     UsersService.findAll({
       manufacturingPlantId: filters.manufacturingPlantId,
-    }).then(setResponsibles);
-  }, [filters.manufacturingPlantId]);
+      zoneIds: filters.zoneIds,
+    }).then((users) => {
+      if (!ignore) setResponsibles({ key: responsiblesKey, users });
+    });
+    return () => {
+      ignore = true;
+    };
+    // responsiblesKey ya resume planta y zonas.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [responsiblesKey]);
 
   useEffect(() => {
     if (!filters.secondaryTypeIds.length) {
@@ -222,8 +233,9 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
       return;
     }
 
-    // Evita limpiar IDs al llegar desde Dashboard mientras el catálogo aún carga.
-    if (!filteredResponsibles.length) {
+    // Evita limpiar IDs al llegar desde Dashboard mientras el catálogo aún
+    // carga, o contra la lista de los filtros anteriores.
+    if (!responsiblesReady || !filteredResponsibles.length) {
       return;
     }
 
@@ -241,7 +253,7 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
         responsibleIds: scopedResponsibleIds,
       });
     }
-  }, [filteredResponsibles, filters, setFilters]);
+  }, [filteredResponsibles, filters, responsiblesReady, setFilters]);
 
   useEffect(() => {
     setLocalEvidenceId(filters.evidenceId);

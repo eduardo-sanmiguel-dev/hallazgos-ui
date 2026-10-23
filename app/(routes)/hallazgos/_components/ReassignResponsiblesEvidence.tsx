@@ -20,7 +20,7 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 
 import SelectDefault from "@components/SelectDefault";
 import { EvidenceGraphql } from "@hooks";
-import { User } from "@interfaces";
+import { UserOption } from "@interfaces";
 import { EvidencesService, UsersService } from "@services";
 import { notify } from "@shared/utils";
 
@@ -57,9 +57,9 @@ export default function ReassignResponsiblesEvidence({
 }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [responsibleToAddId, setResponsibleToAddId] = useState("");
-  const [availableResponsibles, setAvailableResponsibles] = useState<User[]>(
-    [],
-  );
+  const [availableResponsibles, setAvailableResponsibles] = useState<
+    UserOption[]
+  >([]);
   const [selectedResponsibles, setSelectedResponsibles] = useState<
     SimpleUser[]
   >([]);

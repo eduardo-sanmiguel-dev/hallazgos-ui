@@ -14,3 +14,6 @@ export interface User {
   zones: Zone[];
   processes: Processes[];
 }
+
+/** Usuario en selectores (GET /users?view=options): sin relaciones. */
+export type UserOption = Pick<User, "id" | "name" | "email" | "role">;

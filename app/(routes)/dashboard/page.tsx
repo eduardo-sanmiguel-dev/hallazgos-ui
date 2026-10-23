@@ -18,7 +18,7 @@ import "dayjs/locale/es";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { ResponseDashboardHeatmapByFilters, User } from "@interfaces";
+import { ResponseDashboardHeatmapByFilters, UserOption } from "@interfaces";
 import { DashboardService, UsersService } from "@services";
 import { useUserSessionStore } from "@store";
 import { EMPTY_CATALOG, useAreas, useMainTypes } from "@hooks";
@@ -79,7 +79,7 @@ const DashboardPage = () => {
     mainTypeIds: [],
     mainTypeNames: [],
   });
-  const [responsibles, setResponsibles] = useState<User[]>([]);
+  const [responsibles, setResponsibles] = useState<UserOption[]>([]);
   const [isHistoricalView, setIsHistoricalView] = useState(false);
   const [isHeatmapView, setIsHeatmapView] = useState(false);
   const [isHeatmapLoading, setIsHeatmapLoading] = useState(false);

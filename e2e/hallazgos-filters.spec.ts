@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 
+import { mockGet } from "./support/api";
 import { expect, test } from "./support/fixtures";
 import {
   fillDate,
@@ -14,7 +15,10 @@ import {
 // viaja como variable de la consulta GraphQL.
 
 /** Espera la siguiente consulta de hallazgos cuyas variables cumplan `match`. */
-const nextQuery = (page: Page, match: (variables: Record<string, unknown>) => boolean) =>
+const nextQuery = (
+  page: Page,
+  match: (variables: Record<string, unknown>) => boolean,
+) =>
   page.waitForRequest((request) => {
     if (!request.url().includes("/graphql")) return false;
     const variables = request.postDataJSON()?.variables;
@@ -53,7 +57,9 @@ test.describe("Hallazgos: filtros", () => {
     await byMainTypes;
     await expect(chip(page, /^Clasificación: .+ \+1$/)).toBeVisible();
 
-    const bySecondary = nextQuery(page, (v) => Array.isArray(v.secondaryTypeIds));
+    const bySecondary = nextQuery(page, (v) =>
+      Array.isArray(v.secondaryTypeIds),
+    );
     await pickMany(page, "Tipo");
     await bySecondary;
 
@@ -77,7 +83,9 @@ test.describe("Hallazgos: filtros", () => {
 
     await page.getByRole("button", { name: "Limpiar filtros" }).click();
     await expect(chip(page, "Sin filtros seleccionados")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Limpiar filtros" })).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Limpiar filtros" }),
+    ).toHaveCount(0);
     expect(errors).toEqual([]);
   });
 
@@ -85,10 +93,68 @@ test.describe("Hallazgos: filtros", () => {
     await page.goto("/hallazgos");
     const [plant] = await sessionPlants(page);
     await pickOption(page, "Planta", plant.name);
-    const byResponsibles = nextQuery(page, (v) => Array.isArray(v.responsibleIds));
+    const byResponsibles = nextQuery(page, (v) =>
+      Array.isArray(v.responsibleIds),
+    );
     await pickMany(page, "Responsables", 3);
     await byResponsibles;
     await expect(chip(page, /^Responsables: /)).toBeVisible();
+  });
+
+  // Los responsables de los lugares elegidos los filtra la API (zoneIds):
+  // el UI ya no recibe las zonas de cada usuario.
+  test("los responsables se piden por planta y lugar a la API", async ({
+    page,
+  }) => {
+    const errors = trackPageErrors(page);
+    const user = (id: number, name: string) => ({
+      id,
+      name,
+      email: `e2e-${id}@example.com`,
+      role: "Supervisor",
+    });
+    const requests: URL[] = [];
+    page.on("request", (request) => {
+      const url = new URL(request.url());
+      if (url.pathname.endsWith("/api/v1/users")) requests.push(url);
+    });
+    await mockGet(
+      page,
+      "/users",
+      [user(9902, "E2E De la planta"), user(9901, "E2E Del lugar")],
+      {
+        when: (url) => !url.searchParams.has("zoneIds"),
+      },
+    );
+    await mockGet(page, "/users", [user(9901, "E2E Del lugar")], {
+      when: (url) => url.searchParams.has("zoneIds"),
+    });
+
+    await page.goto("/hallazgos");
+    const [plant] = await sessionPlants(page);
+    await pickOption(page, "Planta", plant.name);
+    // Elige al que no está en el lugar: al filtrar por lugar debe quitarse.
+    expect(await pickMany(page, "Responsables")).toEqual(["E2E De la planta"]);
+    await expect(chip(page, "Responsables: E2E De la planta")).toBeVisible();
+
+    await pickMany(page, "Lugar");
+    await expect(chip(page, /^Responsables: /)).toHaveCount(0);
+    await page
+      .getByRole("combobox", { name: "Responsables", exact: true })
+      .click();
+    const options = page
+      .getByRole("listbox")
+      .getByRole("option")
+      .filter({ hasNotText: /^(Todos|Ninguno)$/ });
+    await expect(options).toHaveText(["E2E Del lugar"]);
+
+    const last = requests.at(-1)!;
+    expect(last.searchParams.get("view")).toBe("options");
+    expect(last.searchParams.get("manufacturingPlantId")).toBe(
+      String(plant.id),
+    );
+    expect(last.searchParams.get("zoneIds")).toMatch(/^\d+(,\d+)*$/);
+    expect(errors).toEqual([]);
   });
 
   test("llega con los filtros del dashboard en la URL", async ({ page }) => {
@@ -109,7 +175,9 @@ test.describe("Hallazgos: filtros", () => {
     // Con la barra cerrada, el resumen muestra los filtros recibidos.
     const summary = page.getByRole("group", { name: "Filtros aplicados" });
     await expect(
-      summary.locator(".MuiChip-root").filter({ hasText: `Planta: ${plant.name}` }),
+      summary
+        .locator(".MuiChip-root")
+        .filter({ hasText: `Planta: ${plant.name}` }),
     ).toBeVisible();
   });
 });

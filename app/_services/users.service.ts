@@ -1,6 +1,6 @@
 import { withCatalogInvalidation } from "@shared/libs/catalogKeys";
 import axiosWrapper from "./axiosWrapper";
-import { User } from "@interfaces";
+import { User, UserOption } from "@interfaces";
 
 interface Payload {
   name: string;
@@ -20,15 +20,26 @@ const create = async (payload: Payload) => {
   return data;
 };
 
+/**
+ * Usuarios para selectores: solo id, nombre, correo y rol (`view=options`).
+ * Con plantas, zonas y procesos la respuesta llegaba a pesar megabytes.
+ */
 const findAll = async (filters: {
   name?: string;
   manufacturingPlantId?: string;
   rule?: string;
+  // Solo supervisores de esa zona.
   zoneId?: string;
+  // Cualquier usuario con alguna de esas zonas.
+  zoneIds?: string[];
   orderBy?: string;
 }) => {
-  const { data } = await api.get<User[]>("", {
+  const { data } = await api.get<UserOption[]>("", {
     params: {
+      view: "options",
+      ...(filters?.zoneIds?.length && {
+        zoneIds: filters.zoneIds.join(","),
+      }),
       ...(filters?.name && {
         name: filters.name,
       }),
