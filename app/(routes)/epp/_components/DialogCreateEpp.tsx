@@ -22,7 +22,7 @@ import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import DeleteIcon from "@mui/icons-material/Delete";
 
 import { Transition } from "@routes/hallazgos/_components/EvidencePreview";
-import { Employee, Equipment, PayloadCreateEpp } from "@interfaces";
+import { EmployeeOption, Equipment, PayloadCreateEpp } from "@interfaces";
 import { EmployeesService } from "_services/employees.service";
 import SelectDefault from "@components/SelectDefault";
 import { EppService, EquipmentsService } from "@services";
@@ -57,7 +57,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
       notCanDeliver?: boolean;
     }[]
   >([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [form, setForm] = useState<{
     employee: string;

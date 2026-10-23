@@ -15,6 +15,9 @@ export interface Employee {
   manufacturingPlants: ManufacturingPlant[];
 }
 
+/** Colaborador en selectores (GET /employees?view=options): sin relaciones. */
+export type EmployeeOption = Pick<Employee, "id" | "code" | "name">;
+
 interface Area {
   id: number;
   name: string;

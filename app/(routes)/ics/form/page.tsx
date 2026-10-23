@@ -1,6 +1,5 @@
 "use client";
 
-
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState } from "react";
@@ -19,7 +18,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { EMPTY_CATALOG, useIcsCatalogs } from "@hooks";
 import { EmployeesService, IcsService } from "@services";
-import { Employee } from "@interfaces";
+import { EmployeeOption } from "@interfaces";
 import SelectDefault from "@components/SelectDefault";
 import { Paper, SelectChangeEvent, TextField } from "@mui/material";
 import { useUserSessionStore } from "@store";
@@ -34,7 +33,7 @@ const IcsFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [idCurrent, setIdCurrent] = useState<number>(0);
   const catalogs = useIcsCatalogs().data ?? EMPTY_CATALOG;
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [image, setImage] = useState<string>("");
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [form, setForm] = useState<{
@@ -58,10 +57,7 @@ const IcsFormPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { fail, errorOf, fieldProps } = useFieldErrors<
-    | "manufacturingPlant"
-    | "totalPeople"
-    | "ruleOfLife"
-    | "employees"
+    "manufacturingPlant" | "totalPeople" | "ruleOfLife" | "employees"
   >(form);
 
   const manufacturingPlants = useUserSessionStore(
@@ -240,7 +236,9 @@ const IcsFormPage = () => {
             name="manufacturingPlant"
           />
           {errorOf("manufacturingPlant") && (
-            <FormHelperText error>{errorOf("manufacturingPlant")}</FormHelperText>
+            <FormHelperText error>
+              {errorOf("manufacturingPlant")}
+            </FormHelperText>
           )}
         </Grid>
         <Grid
@@ -339,8 +337,7 @@ const IcsFormPage = () => {
             }}
             onPaste={(e) => {
               const text = e.clipboardData.getData("text");
-              if (!/^\d+$/.test(text) || Number(text) <= 0)
-                e.preventDefault();
+              if (!/^\d+$/.test(text) || Number(text) <= 0) e.preventDefault();
             }}
             onChange={(e) => {
               const val = e.target.value;
@@ -451,4 +448,3 @@ const IcsFormPage = () => {
 };
 
 export default IcsFormPage;
-

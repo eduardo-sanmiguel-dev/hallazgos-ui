@@ -1,5 +1,5 @@
 import { IFiltersEmployees } from "@routes/employees/_components/FiltersEmployees";
-import { CatalogEmployee, Employee } from "@interfaces";
+import { CatalogEmployee, Employee, EmployeeOption } from "@interfaces";
 import axiosWrapper from "./axiosWrapper";
 import { withCatalogInvalidation } from "@shared/libs/catalogKeys";
 
@@ -12,6 +12,10 @@ interface Payload {
   name: string;
 }
 
+/**
+ * Colaboradores para selectores (EPP, ICS, CIAEL): solo id, código y nombre
+ * (`view=options`). Con área, puesto, género y plantas eran ~800 KB.
+ */
 const findAll = async ({
   manufacturingPlantId,
   positionId,
@@ -19,8 +23,9 @@ const findAll = async ({
   name,
   isActive,
 }: IFiltersEmployees) => {
-  const { data } = await api.get<Employee[]>("", {
+  const { data } = await api.get<EmployeeOption[]>("", {
     params: {
+      view: "options",
       ...(manufacturingPlantId && { manufacturingPlantId }),
       ...(name && { name }),
       ...(positionId && { positionId }),

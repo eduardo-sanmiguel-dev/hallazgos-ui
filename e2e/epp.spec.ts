@@ -131,6 +131,13 @@ test.describe("EPP: entregas", () => {
       message: "E2E ya se entregó en los últimos 30 días",
     });
 
+    // El selector pide la versión ligera (id, código y nombre).
+    const employeeRequest = page.waitForRequest(
+      (request) =>
+        new URL(request.url()).pathname.endsWith("/api/v1/employees") &&
+        request.method() === "GET",
+    );
+
     await page.goto("/epp");
     await page.getByRole("button", { name: "Crear registro" }).click();
     const dialog = page.getByRole("dialog");
@@ -138,6 +145,9 @@ test.describe("EPP: entregas", () => {
     const [plant] = await sessionPlants(page);
     await pickOption(page, "Planta", plant.name);
     await pickOption(page, "Colaborador", "501 - E2E Colaborador");
+    const params = new URL((await employeeRequest).url()).searchParams;
+    expect(params.get("view")).toBe("options");
+    expect(params.get("manufacturingPlantId")).toBe(String(plant.id));
 
     // Sin equipo elegido, Agregar no hace nada.
     const add = dialog.getByRole("button", { name: "Agregar" });
