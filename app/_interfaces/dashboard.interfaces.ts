@@ -314,6 +314,9 @@ export interface BiEppPeriodValues {
 export interface BusinessIntelligenceEpp {
   // Si algún equipo de la planta tiene precio (sin precios se oculta el gasto).
   hasPrices: boolean;
+  // Si al menos la mitad de sus equipos tiene frecuencia de entrega (si no,
+  // no hay "fuera de rango" que analizar).
+  tracksDeliveryFrequency: boolean;
   kpis: {
     // Fechas YYYY-MM-DD: mes en curso hasta hoy y mismos días del anterior.
     // Periodo elegido y su periodo de comparación.

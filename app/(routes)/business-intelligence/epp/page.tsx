@@ -33,22 +33,28 @@ import UnitsByEquipmentChart from "./charts/UnitsByEquipmentChart";
 import DeliveriesRangeChart from "./charts/DeliveriesRangeChart";
 import EmployeesWithDeliveryChart from "./charts/EmployeesWithDeliveryChart";
 
+// Configuración de la planta que necesita un indicador para tener sentido:
+// - prices: algún equipo con precio (si no, todo saldría en $0);
+// - frequency: frecuencia de entrega en sus equipos (si no, no hay "fuera de
+//   rango"). Sin ella, se oculta (ver tracksDeliveryFrequency en la API).
+type Requirement = "prices" | "frequency";
+
 type ChartItem = {
   Component: ComponentType<{ data: BiData }>;
   fullWidth?: boolean;
+  requires?: Requirement;
 };
 
-// `needsPrices`: se oculta si la planta no tiene precios capturados.
 // `panel`: la pestaña tiene su propio contenido y datos (no gráficas sueltas).
 const chartGroups: {
   title: string;
   charts: ChartItem[];
-  needsPrices?: boolean;
+  requires?: Requirement;
   panel?: "outOfRange";
 }[] = [
   {
     title: "Gasto",
-    needsPrices: true,
+    requires: "prices",
     charts: [
       { Component: MonthlySpendChart },
       { Component: AverageSpendChart },
@@ -59,13 +65,18 @@ const chartGroups: {
   {
     title: "Entregas",
     charts: [
-      { Component: DeliveriesRangeChart },
+      { Component: DeliveriesRangeChart, requires: "frequency" },
       { Component: EmployeesWithDeliveryChart },
       { Component: UnitsByEquipmentChart, fullWidth: true },
     ],
   },
   // Qué equipos se entregan antes de tiempo y a quién.
-  { title: "Fuera de rango", charts: [], panel: "outOfRange" },
+  {
+    title: "Fuera de rango",
+    charts: [],
+    requires: "frequency",
+    panel: "outOfRange",
+  },
 ];
 
 const EPPCharts = () => {
@@ -125,18 +136,39 @@ const EPPCharts = () => {
 
   const kpis = useMemo(() => (data ? computeKpis(data) : null), [data]);
   const isFirstLoad = !data;
-  // Mientras carga se asume que sí hay precios (no se ocultan de antemano).
+  // Mientras carga se asume que la planta lo tiene todo (no se oculta nada
+  // de antemano).
   const showPrices = data ? data.hasPrices : true;
+  const showFrequency = data ? data.tracksDeliveryFrequency : true;
+  const isAvailable = (requires?: Requirement) =>
+    requires === "prices"
+      ? showPrices
+      : requires === "frequency"
+        ? showFrequency
+        : true;
   // Periodo elegido y su comparación, como los calculó la API.
   const { currentName, previousName } = data
     ? periodNames(data)
     : { currentName: "", previousName: "" };
-  const groups = chartGroups.filter(
-    (group) => showPrices || !group.needsPrices,
-  );
+  const groups = chartGroups.filter((group) => isAvailable(group.requires));
   const activeGroup =
     groups.find((group) => group.title === activeTitle) ?? groups[0];
   const activeTab = groups.indexOf(activeGroup);
+  const charts = activeGroup.charts.filter((chart) =>
+    isAvailable(chart.requires),
+  );
+  // Una gráfica de media anchura que se queda sin pareja ocupa la fila.
+  const halfCharts = charts.filter((chart) => !chart.fullWidth);
+  const loneHalf = halfCharts.length % 2 ? halfCharts.at(-1) : undefined;
+  // Qué se ocultó y por qué (un solo aviso).
+  const hiddenNotice =
+    !showPrices && !showFrequency
+      ? "Los equipos de esta planta no tienen precio ni frecuencia de entrega registrados, por eso no se muestran los indicadores de gasto ni de entregas fuera de rango."
+      : !showPrices
+        ? "Los equipos de esta planta no tienen precio registrado, por eso no se muestran los indicadores de gasto."
+        : !showFrequency
+          ? "La mayoría de los equipos de esta planta no tiene frecuencia de entrega, por eso no se muestran los indicadores de entregas fuera de rango."
+          : null;
 
   // No administrador: se está redirigiendo, no se muestra nada.
   if (role && !isAdmin) return null;
@@ -177,10 +209,9 @@ const EPPCharts = () => {
         }}
         aria-busy={isLoading}
       >
-        {!showPrices && (
+        {hiddenNotice && (
           <Alert severity="info" sx={{ mb: 2 }}>
-            Los equipos de esta planta no tienen precio registrado, por eso no
-            se muestran los indicadores de gasto. Puedes capturarlos en Equipos.
+            {hiddenNotice} Puedes capturarlos en Equipos.
           </Alert>
         )}
 
@@ -188,7 +219,7 @@ const EPPCharts = () => {
           {[
             {
               label: "Gasto",
-              needsPrices: true,
+              requires: "prices" as Requirement,
               value: kpis ? formatMoney(kpis.spend.current) : "",
               delta: kpis && {
                 ...kpis.spend,
@@ -207,6 +238,7 @@ const EPPCharts = () => {
             },
             {
               label: "Entregas fuera de rango",
+              requires: "frequency" as Requirement,
               value: kpis ? formatPercent(kpis.outOfRange.current) : "",
               caption: kpis
                 ? `${formatNumber(kpis.outOfRange.deliveries)} ${kpis.outOfRange.deliveries === 1 ? "entrega" : "entregas"} en el periodo`
@@ -219,7 +251,7 @@ const EPPCharts = () => {
             },
             {
               label: "Gasto promedio por colaborador",
-              needsPrices: true,
+              requires: "prices" as Requirement,
               value: kpis ? formatMoney(kpis.averagePerEmployee.current) : "",
               caption: kpis
                 ? `Promedio global ${formatMoney(kpis.averagePerEmployee.globalAverage)}`
@@ -241,12 +273,18 @@ const EPPCharts = () => {
               },
             },
           ]
-            .filter(({ needsPrices }) => showPrices || !needsPrices)
+            .filter(({ requires }) => isAvailable(requires))
             .map(({ label, value, caption, delta }, _, tiles) => (
               <Grid
                 key={label}
-                // 3 por fila; en pantallas grandes, todos en una fila.
-                size={{ xs: 12, sm: 6, md: 4, xl: 12 / tiles.length }}
+                // 3 por fila (4 indicadores: 2 por fila); en pantallas
+                // grandes, todos en una fila.
+                size={{
+                  xs: 12,
+                  sm: 6,
+                  md: tiles.length === 4 ? 6 : 4,
+                  xl: 12 / tiles.length,
+                }}
               >
                 <KpiTile
                   label={label}
@@ -309,21 +347,27 @@ const EPPCharts = () => {
               />
             </Grid>
           )}
-          {activeGroup.charts.map(({ Component, fullWidth }, index) => (
-            <Grid
-              key={`${activeGroup.title}-${index}`}
-              size={{ xs: 12, lg: fullWidth ? 12 : 6 }}
-            >
-              {data ? (
-                <Component data={data} />
-              ) : (
-                <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Skeleton variant="text" width="45%" />
-                  <Skeleton variant="rounded" height={300} sx={{ mt: 1 }} />
-                </Paper>
-              )}
-            </Grid>
-          ))}
+          {charts.map((chart, index) => {
+            const { Component } = chart;
+            return (
+              <Grid
+                key={`${activeGroup.title}-${index}`}
+                size={{
+                  xs: 12,
+                  lg: chart.fullWidth || chart === loneHalf ? 12 : 6,
+                }}
+              >
+                {data ? (
+                  <Component data={data} />
+                ) : (
+                  <Paper variant="outlined" sx={{ p: 2 }}>
+                    <Skeleton variant="text" width="45%" />
+                    <Skeleton variant="rounded" height={300} sx={{ mt: 1 }} />
+                  </Paper>
+                )}
+              </Grid>
+            );
+          })}
         </Grid>
       </Box>
     </>

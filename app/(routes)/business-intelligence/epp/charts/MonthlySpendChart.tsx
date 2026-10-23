@@ -8,7 +8,7 @@ import {
   useBiColors,
 } from "../_lib/biEpp";
 
-// Gasto total por mes (histórico). Una sola escala: los colaboradores con
+// Gasto total por mes del periodo. Una sola escala: los colaboradores con
 // entrega tienen su propia gráfica en "Entregas".
 export default function MonthlySpendChart({ data }: { data: BiData }) {
   const colors = useBiColors();
@@ -22,7 +22,7 @@ export default function MonthlySpendChart({ data }: { data: BiData }) {
   return (
     <ChartCard
       title="Gasto total por mes"
-      description={`Histórico de la planta · ${formatNumber(totalUnits)} unidades entregadas en total.`}
+      description={`Meses del periodo · ${formatNumber(totalUnits)} ${totalUnits === 1 ? "unidad entregada" : "unidades entregadas"}.`}
       isEmpty={!rows.length}
       options={{
         chart: { type: "column" },

@@ -13,7 +13,7 @@ import {
 
 const TOP = 8;
 
-// Participación de cada equipo en el gasto histórico. Barras ordenadas en
+// Participación de cada equipo en el gasto del periodo. Barras ordenadas en
 // lugar de dona: con muchos equipos los sectores no se pueden comparar.
 export default function SpendShareChart({ data }: { data: BiData }) {
   const colors = useBiColors();
@@ -46,7 +46,7 @@ export default function SpendShareChart({ data }: { data: BiData }) {
 
   return (
     <ChartCard
-      title="Participación en el gasto histórico"
+      title="Participación en el gasto"
       description={`Gasto acumulado: ${formatMoney(total, 2)}`}
       isEmpty={!rows.length}
       height={Math.max(240, points.length * 34 + 50)}

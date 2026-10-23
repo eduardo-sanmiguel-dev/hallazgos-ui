@@ -86,7 +86,10 @@ export const rankEmployees = (
 /** Búsqueda por nombre o cédula, sin acentos ni mayúsculas. */
 export const matchesEmployee = (employee: EmployeeRanking, search: string) => {
   const normalize = (text: string) =>
-    text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    text
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
   const term = normalize(search.trim());
   return (
     !term ||

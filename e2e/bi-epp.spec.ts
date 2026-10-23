@@ -11,8 +11,9 @@ import { trackPageErrors } from "./support/ui";
 
 const PLANT = { id: 1, name: "Planta E2E" };
 
-const biData = (hasPrices: boolean) => ({
+const biData = (hasPrices: boolean, tracksDeliveryFrequency = true) => ({
   hasPrices,
+  tracksDeliveryFrequency,
   kpis: {
     periodo: {
       actual: { desde: "2026-10-01", hasta: "2026-10-22" },
@@ -54,11 +55,15 @@ const asUser = (page: Page, role: string) =>
     zones: [],
   });
 
-const openAnalysis = async (page: Page, hasPrices: boolean) => {
+const openAnalysis = async (
+  page: Page,
+  hasPrices: boolean,
+  tracksDeliveryFrequency = true,
+) => {
   await mockGet(
     page,
     "/dashboard/business-intelligence/epp",
-    biData(hasPrices),
+    biData(hasPrices, tracksDeliveryFrequency),
   );
   await page.goto("/business-intelligence/epp");
   await expect(page.getByRole("tab", { name: "Entregas" })).toBeVisible();
@@ -317,5 +322,50 @@ test.describe("Análisis de datos EPP", () => {
     await dialog.getByRole("button", { name: "Cerrar" }).click();
     await expect(dialog).toHaveCount(0);
     expect(errors).toEqual([]);
+  });
+
+  test("sin frecuencias de entrega oculta lo de fuera de rango (como México)", async ({
+    page,
+  }) => {
+    const errors = trackPageErrors(page);
+    let outOfRangeRequested = false;
+    page.on("request", (request) => {
+      if (request.url().includes("/business-intelligence/epp/out-of-range"))
+        outOfRangeRequested = true;
+    });
+    await openAnalysis(page, true, false);
+
+    await expect(
+      page.getByText(/no tiene frecuencia de entrega/),
+    ).toBeVisible();
+    await expect(page.getByRole("tab")).toHaveText(["Gasto", "Entregas"]);
+    // exact: el aviso también menciona "entregas fuera de rango".
+    await expect(
+      page.getByText("Entregas fuera de rango", { exact: true }),
+    ).toHaveCount(0);
+
+    // En "Entregas" no está la gráfica en rango / fuera de rango.
+    await page.getByRole("tab", { name: "Entregas" }).click();
+    await expect(
+      page.getByText("Colaboradores con entrega por mes"),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Entregas en rango vs fuera de rango"),
+    ).toHaveCount(0);
+    expect(outOfRangeRequested).toBe(false);
+    expect(errors).toEqual([]);
+  });
+
+  test("sin precios ni frecuencias: un solo aviso con ambos motivos", async ({
+    page,
+  }) => {
+    await openAnalysis(page, false, false);
+
+    await expect(
+      page.getByText(/no tienen precio ni frecuencia de entrega/),
+    ).toBeVisible();
+    // Solo avisos de MUI (Next.js agrega su propio role="alert").
+    await expect(page.locator(".MuiAlert-root")).toHaveCount(1);
+    await expect(page.getByRole("tab")).toHaveText(["Entregas"]);
   });
 });

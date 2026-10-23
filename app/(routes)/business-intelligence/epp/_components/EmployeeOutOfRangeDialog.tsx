@@ -101,7 +101,8 @@ export default function EmployeeOutOfRangeDialog({
       onClose={onClose}
       fullScreen={fullScreen}
       fullWidth
-      maxWidth="md"
+      // Ancho: la tabla de entregas tiene 7 columnas.
+      maxWidth="lg"
       aria-labelledby={titleId}
     >
       <DialogTitle id={titleId} sx={{ pr: 6 }}>
@@ -207,7 +208,9 @@ export default function EmployeeOutOfRangeDialog({
                         <TableCell sx={{ whiteSpace: "nowrap" }}>
                           {formatIsoDate(delivery.date)}
                         </TableCell>
-                        <TableCell>{delivery.equipmentName}</TableCell>
+                        <TableCell sx={{ minWidth: 220 }}>
+                          {delivery.equipmentName}
+                        </TableCell>
                         <TableCell>{formatNumber(delivery.quantity)}</TableCell>
                         <TableCell sx={{ whiteSpace: "nowrap" }}>
                           {delivery.previousDelivery
@@ -238,7 +241,9 @@ export default function EmployeeOutOfRangeDialog({
                             />
                           )}
                         </TableCell>
-                        <TableCell>{delivery.registeredBy ?? "—"}</TableCell>
+                        <TableCell sx={{ whiteSpace: "nowrap" }}>
+                          {delivery.registeredBy ?? "—"}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

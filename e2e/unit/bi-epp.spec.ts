@@ -22,6 +22,7 @@ const zeros = {
 const data = (overrides: Partial<BiData["kpis"]> = {}) =>
   ({
     hasPrices: true,
+    tracksDeliveryFrequency: true,
     kpis: {
       periodo: {
         actual: { desde: "2026-10-01", hasta: "2026-10-22" },
