@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import {
   isBotNavigator,
+  isLocalHostname,
   shouldSendRumEvent,
 } from "../../app/_shared/utils/rum";
 
@@ -90,6 +91,36 @@ test.describe("RUM: quién no se monitorea", () => {
     ]) {
       // Safari y Firefox no tienen userAgentData.
       expect(isBotNavigator({ userAgent })).toBe(false);
+    }
+  });
+});
+
+test.describe("RUM: nada de máquinas locales", () => {
+  test("no se monitorea localhost, loopback ni IPs de red local", () => {
+    for (const hostname of [
+      "localhost",
+      "app.localhost",
+      "127.0.0.1",
+      "0.0.0.0",
+      "[::1]",
+      "192.168.1.20",
+      "10.0.0.5",
+      "172.16.0.1",
+      "172.31.255.255",
+    ]) {
+      expect(isLocalHostname(hostname), hostname).toBe(true);
+    }
+  });
+
+  test("los dominios públicos sí", () => {
+    for (const hostname of [
+      "comportarte.com",
+      "www.comportarte.com",
+      "172.32.0.1",
+      "82.197.95.145",
+      "localhost.example.com",
+    ]) {
+      expect(isLocalHostname(hostname), hostname).toBe(false);
     }
   });
 });
