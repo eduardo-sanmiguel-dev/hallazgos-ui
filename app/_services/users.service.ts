@@ -106,8 +106,18 @@ const remove = async (id: number) => {
   return data;
 };
 
-const findAllSupervisors = async () => {
-  const { data } = await api.get<User[]>("/supervisors");
+/**
+ * Supervisores de una zona de la planta (solo id, nombre y correo). Antes se
+ * descargaban todos con sus zonas y procesos (~1.5 MB) para filtrar aquí.
+ */
+const findZoneSupervisors = async (filters: {
+  manufacturingPlantId: string;
+  zoneId: string;
+}) => {
+  const { data } = await api.get<Pick<User, "id" | "name" | "email">[]>(
+    "/supervisors",
+    { params: filters },
+  );
   return data;
 };
 
@@ -119,5 +129,5 @@ export const UsersService = {
   findOne,
   update: withCatalogInvalidation(update, "users"),
   remove: withCatalogInvalidation(remove, "users"),
-  findAllSupervisors,
+  findZoneSupervisors,
 };

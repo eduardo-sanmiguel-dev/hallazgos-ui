@@ -28,6 +28,9 @@ import {
 
 import "./form.css";
 
+// Opción del selector de supervisor (GET /users/supervisors con zona).
+type ZoneSupervisor = Pick<User, "id" | "name" | "email">;
+
 export default function HallazgosFormPage() {
   const [typeHallazgo, setTypeHallazgo] = useState<string>("");
   const [process, setProcess] = useState<string>("");
@@ -37,8 +40,12 @@ export default function HallazgosFormPage() {
   const [manufacturingPlantId, setManufacturingPlantId] = useState<string>("");
   const [secondaryTypes, setSecondaryTypes] = useState<SecondaryType[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [supervisors, setSupervisors] = useState<User[]>([]);
-  const [supervisorsCurrent, setSupervisorsCurrent] = useState<User[]>([]);
+  const [supervisorsCurrent, setSupervisorsCurrent] = useState<
+    ZoneSupervisor[]
+  >([]);
+  const [supervisorsStatus, setSupervisorsStatus] = useState<
+    "idle" | "loading" | "error"
+  >("idle");
   const [supervisor, setSupervisor] = useState<string>("");
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [isUnsafeBehavior, setIsUnsafeBehavior] = useState<boolean>(false);
@@ -48,10 +55,6 @@ export default function HallazgosFormPage() {
   const mainTypes = useMainTypes().data ?? EMPTY_CATALOG;
   const zones = useZones().data ?? EMPTY_CATALOG;
   const processes = useProcesses().data ?? EMPTY_CATALOG;
-
-  useEffect(() => {
-    UsersService.findAllSupervisors().then(setSupervisors);
-  }, []);
 
   const manufacturingPlants = useUserSessionStore(
     (state) => state.manufacturingPlants,
@@ -81,22 +84,38 @@ export default function HallazgosFormPage() {
     }
   }, [typeHallazgo, mainTypes]);
 
+  // Supervisores del lugar elegido, pedidos a la API al elegirlo. Si el
+  // supervisor ya elegido no es de este lugar, se quita (antes quedaba
+  // seleccionado y la API rechazaba el hallazgo al guardar).
   useEffect(() => {
-    if (manufacturingPlantId && supervisors.length && zone) {
-      const supervisorsFilter = supervisors.filter(
-        ({ manufacturingPlants, zones }) => {
-          return (
-            manufacturingPlants.some(
-              (manufacturingPlant) =>
-                Number(manufacturingPlant.id) === Number(manufacturingPlantId),
-            ) && zones.some((zoneData) => Number(zoneData.id) === Number(zone))
-          );
-        },
-      );
-
-      setSupervisorsCurrent(supervisorsFilter);
+    if (!manufacturingPlantId || !zone) {
+      setSupervisorsCurrent([]);
+      setSupervisorsStatus("idle");
+      setSupervisor("");
+      return;
     }
-  }, [manufacturingPlantId, supervisors, zone]);
+
+    let ignore = false;
+    setSupervisorsStatus("loading");
+    UsersService.findZoneSupervisors({ manufacturingPlantId, zoneId: zone })
+      .then((list) => {
+        if (ignore) return;
+        setSupervisorsCurrent(list);
+        setSupervisorsStatus("idle");
+        setSupervisor((current) =>
+          list.some(({ id }) => String(id) === current) ? current : "",
+        );
+      })
+      .catch(() => {
+        if (ignore) return;
+        setSupervisorsCurrent([]);
+        setSupervisorsStatus("error");
+        setSupervisor("");
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [manufacturingPlantId, zone]);
 
   const currentDescription = useMemo(() => description.trim(), [description]);
 
@@ -303,6 +322,14 @@ export default function HallazgosFormPage() {
               !manufacturingPlantId || !zone
                 ? "Seleccione una planta y lugar"
                 : ""
+            }
+            loading={supervisorsStatus === "loading"}
+            attention={
+              supervisorsStatus === "error"
+                ? "No se pudieron cargar los supervisores; vuelva a elegir el lugar"
+                : supervisorsStatus === "idle" && !supervisorsCurrent.length
+                  ? "Este lugar no tiene supervisores asignados"
+                  : undefined
             }
             validationEmpty
           />

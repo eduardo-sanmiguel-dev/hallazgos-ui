@@ -1,3 +1,5 @@
+import type { Page } from "@playwright/test";
+
 import { captureWrites } from "./support/api";
 import { expect, test } from "./support/fixtures";
 
@@ -119,7 +121,11 @@ test.describe("Hallazgos", () => {
     await pickOption(page, "Lugar");
     await pickOption(page, "Proceso");
     await pickOption(page, "Supervisor");
-    const priority = await pickOption(page, "Prioridad (opcional)", /Corto plazo/);
+    const priority = await pickOption(
+      page,
+      "Prioridad (opcional)",
+      /Corto plazo/,
+    );
     expect(priority).toMatch(/Corto plazo/);
     await page
       .locator("#description-multiline")
@@ -132,5 +138,104 @@ test.describe("Hallazgos", () => {
     const body = String(writes[0].body);
     expect(body).toMatch(/name="priorityDays"\r\n\r\n8\r\n/);
     expect(body).not.toContain('name="file"');
+  });
+
+  /** Supervisores simulados: uno por lugar, con el id del lugar en el nombre. */
+  const SUPERVISORS = /\/api\/v1\/users\/supervisors/;
+  const supervisorOf = (zoneId: string) => ({
+    id: 7000 + Number(zoneId),
+    name: `E2E Supervisor del lugar ${zoneId}`,
+    email: `e2e-${zoneId}@example.com`,
+  });
+  const escapeRegex = (text: string) =>
+    text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // El valor elegido se dibuja fuera del <input> (renderValue de
+  // SelectDefault): se revisa el texto del campo completo.
+  const supervisorField = (page: Page) =>
+    page.locator(".MuiAutocomplete-root").filter({
+      has: page.getByRole("combobox", { name: "Supervisor", exact: true }),
+    });
+
+  test("pide los supervisores del lugar y quita el elegido al cambiar de lugar", async ({
+    page,
+  }) => {
+    const errors = trackPageErrors(page);
+    const requests: URL[] = [];
+    await page.route(SUPERVISORS, (route) => {
+      const url = new URL(route.request().url());
+      requests.push(url);
+      return route.fulfill({
+        json: [supervisorOf(url.searchParams.get("zoneId") ?? "0")],
+      });
+    });
+    await page.goto("/hallazgos/form");
+    await sessionPlants(page);
+
+    const plant = await pickOption(page, "Planta");
+    // Nada se pide hasta elegir planta y lugar (antes: todos al abrir).
+    expect(requests).toEqual([]);
+    const firstZone = await pickOption(page, "Lugar");
+    const first = await pickOption(page, "Supervisor", /E2E Supervisor/);
+    await expect(supervisorField(page)).toContainText(first);
+
+    const params = requests.at(-1)!.searchParams;
+    expect(params.get("zoneId")).toMatch(/^\d+$/);
+    expect(params.get("manufacturingPlantId")).toMatch(/^\d+$/);
+    expect(plant).toBeTruthy();
+
+    // Otro lugar: el supervisor anterior ya no aplica y se quita.
+    await pickOption(
+      page,
+      "Lugar",
+      new RegExp(`^(?!${escapeRegex(firstZone)}$)`),
+    );
+    await expect(supervisorField(page)).not.toContainText("E2E Supervisor");
+    const second = await pickOption(page, "Supervisor", /E2E Supervisor/);
+    expect(second).not.toBe(first);
+    expect(requests.every((url) => url.searchParams.has("zoneId"))).toBe(true);
+    expect(errors).toEqual([]);
+  });
+
+  test("muestra la carga de supervisores, el error y el lugar sin supervisores", async ({
+    page,
+  }) => {
+    const errors = trackPageErrors(page);
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    let calls = 0;
+    await page.route(SUPERVISORS, async (route) => {
+      calls++;
+      if (calls === 1) {
+        await held;
+        return route.fulfill({ status: 500, json: { message: "Caída" } });
+      }
+      return route.fulfill({ json: [] });
+    });
+    await page.goto("/hallazgos/form");
+    await sessionPlants(page);
+
+    await pickOption(page, "Planta");
+    const firstZone = await pickOption(page, "Lugar");
+    await expect(page.getByLabel("Cargando Supervisor")).toBeVisible();
+
+    release();
+    await expect(
+      page.getByText(
+        "No se pudieron cargar los supervisores; vuelva a elegir el lugar",
+      ),
+    ).toBeVisible();
+
+    await pickOption(
+      page,
+      "Lugar",
+      new RegExp(`^(?!${escapeRegex(firstZone)}$)`),
+    );
+    await expect(
+      page.getByText("Este lugar no tiene supervisores asignados"),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Crear hallazgo" }),
+    ).toBeDisabled();
+    expect(errors).toEqual([]);
   });
 });

@@ -2,6 +2,7 @@ import { useId } from "react";
 import { Paper } from "@mui/material";
 import { Autocomplete } from "@mui/material";
 import { Checkbox } from "@mui/material";
+import { CircularProgress } from "@mui/material";
 import { TextField } from "@mui/material";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
@@ -22,6 +23,8 @@ interface Props {
   validationEmpty?: boolean;
   disabled?: boolean;
   name?: string;
+  // Opciones en camino: spinner en el campo y "Cargando…" al abrir la lista.
+  loading?: boolean;
 }
 
 export default function SelectDefault({
@@ -36,6 +39,7 @@ export default function SelectDefault({
   validationEmpty = false,
   disabled = false,
   name = "",
+  loading = false,
 }: Props) {
   const autocompleteId = useId();
   const selectedOption = multiple
@@ -114,9 +118,29 @@ export default function SelectDefault({
           return (selected as { name?: string } | null)?.name || "";
         }}
         disabled={!!helperText || disabled}
+        loading={loading}
+        loadingText="Cargando…"
         renderInput={(params) => (
           <TextField
             {...params}
+            slotProps={{
+              ...params.slotProps,
+              input: {
+                ...params.slotProps.input,
+                ...(loading && {
+                  endAdornment: (
+                    <>
+                      <CircularProgress
+                        color="inherit"
+                        size={18}
+                        aria-label={`Cargando ${label}`}
+                      />
+                      {params.slotProps.input.endAdornment}
+                    </>
+                  ),
+                }),
+              },
+            }}
             label={label}
             error={
               !validationEmpty
