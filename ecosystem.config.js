@@ -2,6 +2,7 @@ module.exports = {
   apps: [
     {
       name: "ui-comp", // Nombre en pm2 (corto: los logs lo recortan a 10 caracteres)
+      namespace: "comportarte", // Grupo en pm2: pm2 logs/restart comportarte
       script: "node_modules/next/dist/bin/next", // Script de Next.js
       args: "start -p 3000", // Comando para producción
       cwd: "./", // Directorio raíz del proyecto
