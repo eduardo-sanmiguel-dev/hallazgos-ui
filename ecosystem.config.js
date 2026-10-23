@@ -17,6 +17,7 @@ module.exports = {
       error_file: "./logs/error.log", // Log de errores
       merge_logs: true, // Unificar logs
       time: true, // Timestamp en logs
+      log_date_format: "DD/MM/YYYY HH:mm", // Formato de ese timestamp
     },
   ],
 };
