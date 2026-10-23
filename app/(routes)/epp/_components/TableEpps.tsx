@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import Image from "next/image";
 
+import { Alert } from "@mui/material";
 import { Box } from "@mui/material";
+import { Button } from "@mui/material";
+import { CircularProgress } from "@mui/material";
 import { Collapse } from "@mui/material";
 import { IconButton } from "@mui/material";
 import { LinearProgress } from "@mui/material";
@@ -14,6 +17,8 @@ import { TablePagination } from "@mui/material";
 import { TableSortLabel } from "@mui/material";
 import { Typography } from "@mui/material";
 import { Paper } from "@mui/material";
+import { Skeleton } from "@mui/material";
+import { Stack } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import SimCardDownloadIcon from "@mui/icons-material/SimCardDownload";
@@ -28,20 +33,71 @@ import {
 import { useUserSessionStore } from "@store";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { EppService } from "@services";
-import { Epp, EppSortableColumn } from "@interfaces";
+import { Epp, EppHistoryItem, EppSortableColumn } from "@interfaces";
 import { constants } from "@constants";
+
+const HISTORY_COLUMNS = 7;
+
+/** Filas de esqueleto con la forma del historial mientras llega. */
+function HistorySkeleton() {
+  return Array.from({ length: 3 }, (_, row) => (
+    <StyledTableRow key={row}>
+      {Array.from({ length: HISTORY_COLUMNS }, (_, cell) => (
+        <StyledTableCell key={cell}>
+          {cell === 4 ? (
+            <Skeleton variant="rounded" width={75} height={50} />
+          ) : (
+            <Skeleton variant="text" />
+          )}
+        </StyledTableCell>
+      ))}
+    </StyledTableRow>
+  ));
+}
 
 function Row({
   epp,
+  manufacturingPlantId,
   currentUserId,
-  onHistoryDeleted,
+  onHistoryEmptied,
 }: {
   epp: Epp;
+  manufacturingPlantId: string;
   currentUserId: number;
-  onHistoryDeleted: () => void;
+  onHistoryEmptied: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  // null = todavía no se ha cargado (se pide al expandir la fila).
+  const [history, setHistory] = useState<EppHistoryItem[] | null>(null);
+  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const lastRequest = useRef(0);
   const { confirm, confirmDialog } = useConfirmDialog();
+
+  // Devuelve el historial cargado, o null si falló o lo reemplazó otra
+  // petición más reciente.
+  const loadHistory = useCallback(async () => {
+    const request = ++lastRequest.current;
+    setStatus("loading");
+    try {
+      const items = await EppService.findEmployeeHistory(
+        epp.id,
+        manufacturingPlantId,
+      );
+      if (request !== lastRequest.current) return null;
+      setHistory(items);
+      setStatus("idle");
+      return items;
+    } catch {
+      if (request === lastRequest.current) setStatus("error");
+      return null;
+    }
+  }, [epp.id, manufacturingPlantId]);
+
+  // Se pide al expandir y cada vez que la tabla se recarga con la fila
+  // abierta (`epp` cambia); mientras llega se muestra lo último cargado.
+  useEffect(() => {
+    if (open) void loadHistory();
+  }, [open, epp, loadHistory]);
 
   const confirmRemoveHistory = async (equipmentHistoryId: number) => {
     await confirm({
@@ -51,10 +107,14 @@ function Row({
       tone: "danger",
       action: async () => {
         await EppService.removeHistory(equipmentHistoryId);
-        onHistoryDeleted();
+        // Sin entregas el colaborador sale de la lista: se recarga la tabla.
+        const items = await loadHistory();
+        if (!items?.length) onHistoryEmptied();
       },
     });
   };
+
+  const isFirstLoad = history === null && status !== "error";
 
   return (
     <>
@@ -96,64 +156,117 @@ function Row({
         >
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ margin: 1 }}>
-              <Typography variant="h6" gutterBottom component="div">
-                Historial de entrega
-              </Typography>
-              <Table
-                size="small"
-                aria-label={`Historial de entrega de ${epp.name}`}
+              <Stack
+                direction="row"
+                spacing={1.5}
+                sx={{ alignItems: "center", mb: 1 }}
               >
-                <TableHead>
-                  <StyledTableRow>
-                    <StyledTableCell>Epp</StyledTableCell>
-                    <StyledTableCell>Fecha de entrega</StyledTableCell>
-                    <StyledTableCell>Fecha devolución</StyledTableCell>
-                    <StyledTableCell>Observaciones</StyledTableCell>
-                    <StyledTableCell>Firma</StyledTableCell>
-                    <StyledTableCell>Entregado por</StyledTableCell>
-                    <StyledTableCell align="center">Acciones</StyledTableCell>
-                  </StyledTableRow>
-                </TableHead>
-                <TableBody>
-                  {epp.epps
-                    .flatMap((epp) =>
-                      epp.equipments.map((item) => ({
-                        ...item,
-                        signature: epp.signature,
-                        createBy: epp.createBy,
-                      })),
-                    )
-                    .map((equipment) => (
-                      <StyledTableRow key={equipment.id}>
+                <Typography variant="h6" component="div">
+                  Historial de entrega
+                </Typography>
+                {/* Anunciado por lectores de pantalla (role="status"). */}
+                <Box
+                  role="status"
+                  sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                >
+                  {isFirstLoad && (
+                    <>
+                      <CircularProgress size={16} aria-hidden />
+                      <Typography variant="body2" color="text.secondary">
+                        Cargando historial…
+                      </Typography>
+                    </>
+                  )}
+                </Box>
+              </Stack>
+
+              {status === "error" && (
+                <Alert
+                  severity="error"
+                  sx={{ mb: 1 }}
+                  action={
+                    <Button
+                      color="inherit"
+                      size="small"
+                      onClick={() => void loadHistory()}
+                    >
+                      Reintentar
+                    </Button>
+                  }
+                >
+                  {history
+                    ? "No se pudo actualizar el historial; se muestra el último cargado."
+                    : "No se pudo cargar el historial."}
+                </Alert>
+              )}
+
+              {/* Al actualizar se conserva lo cargado y se indica arriba. */}
+              <Box sx={{ height: 4 }}>
+                {status === "loading" && history && (
+                  <LinearProgress aria-label="Actualizando historial" />
+                )}
+              </Box>
+
+              {(history || isFirstLoad) && (
+                <Table
+                  size="small"
+                  aria-label={`Historial de entrega de ${epp.name}`}
+                  aria-busy={status === "loading"}
+                >
+                  <TableHead>
+                    <StyledTableRow>
+                      <StyledTableCell>Epp</StyledTableCell>
+                      <StyledTableCell>Fecha de entrega</StyledTableCell>
+                      <StyledTableCell>Fecha devolución</StyledTableCell>
+                      <StyledTableCell>Observaciones</StyledTableCell>
+                      <StyledTableCell>Firma</StyledTableCell>
+                      <StyledTableCell>Entregado por</StyledTableCell>
+                      <StyledTableCell align="center">Acciones</StyledTableCell>
+                    </StyledTableRow>
+                  </TableHead>
+                  <TableBody>
+                    {!history && <HistorySkeleton />}
+
+                    {history?.length === 0 && (
+                      <StyledTableRow>
+                        <StyledTableCell
+                          colSpan={HISTORY_COLUMNS}
+                          sx={{ py: 2, textAlign: "center" }}
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            Sin entregas registradas en esta planta.
+                          </Typography>
+                        </StyledTableCell>
+                      </StyledTableRow>
+                    )}
+
+                    {history?.map((item) => (
+                      <StyledTableRow key={item.id}>
                         <StyledTableCell component="th" scope="row">
-                          {equipment.equipment.name}
+                          {item.equipment.name}
                         </StyledTableCell>
                         <StyledTableCell>
-                          {stringYYYYMMDDToDDMMYYYY(equipment.deliveryDate)}
+                          {stringYYYYMMDDToDDMMYYYY(item.deliveryDate)}
                         </StyledTableCell>
                         <StyledTableCell></StyledTableCell>
-                        <StyledTableCell>
-                          {equipment.observations}
-                        </StyledTableCell>
+                        <StyledTableCell>{item.observations}</StyledTableCell>
                         <StyledTableCell>
                           <Image
-                            src={equipment.signature}
+                            src={item.signature}
                             alt="Firma digital"
                             style={{ border: "1px solid #ccc" }}
                             width={75}
                             height={50}
                           />
                         </StyledTableCell>
-                        <StyledTableCell>
-                          {equipment.createBy.name}
-                        </StyledTableCell>
+                        <StyledTableCell>{item.createBy?.name}</StyledTableCell>
                         <StyledTableCell align="center">
-                          {equipment.createBy?.id === currentUserId && (
+                          {item.createBy?.id === currentUserId && (
                             <IconButton
                               aria-label="Eliminar registro del historial"
                               size="small"
                               color="error"
-                              onClick={() => confirmRemoveHistory(equipment.id)}
+                              onClick={() => confirmRemoveHistory(item.id)}
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
@@ -161,8 +274,9 @@ function Row({
                         </StyledTableCell>
                       </StyledTableRow>
                     ))}
-                </TableBody>
-              </Table>
+                  </TableBody>
+                </Table>
+              )}
             </Box>
           </Collapse>
         </StyledTableCell>
@@ -174,6 +288,8 @@ function Row({
 
 interface Props {
   rows: Epp[];
+  // Planta de la lista: el historial de cada fila se pide para esta planta.
+  manufacturingPlantId: string;
   count: number;
   isLoading: boolean;
   /** 0-based */
@@ -200,6 +316,7 @@ const SORTABLE_HEADERS: Array<{ column: EppSortableColumn; label: string }> = [
 // aquí solo se muestra la página recibida.
 export default function TableEpps({
   rows,
+  manufacturingPlantId,
   count,
   isLoading,
   page,
@@ -269,10 +386,13 @@ export default function TableEpps({
 
             {rows.map((epp) => (
               <Row
-                key={epp.id}
+                // Con la planta en la llave, cambiar de planta descarta el
+                // historial cargado (un colaborador puede estar en varias).
+                key={`${manufacturingPlantId}-${epp.id}`}
                 epp={epp}
+                manufacturingPlantId={manufacturingPlantId}
                 currentUserId={currentUserId}
-                onHistoryDeleted={onHistoryDeleted}
+                onHistoryEmptied={onHistoryDeleted}
               />
             ))}
           </TableBody>

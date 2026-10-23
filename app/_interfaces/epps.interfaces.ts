@@ -35,6 +35,7 @@ export interface PayloadCreateEpp {
   }[];
 }
 
+/** Colaborador en la tabla de EPP (su historial se pide al expandir la fila). */
 export interface Epp {
   id: number;
   code: number;
@@ -44,7 +45,6 @@ export interface Epp {
   updatedAt: Date;
   position: Area;
   area: Area;
-  epps: EppElement[];
 }
 
 interface Area {
@@ -55,24 +55,13 @@ interface Area {
   updatedAt: Date;
 }
 
-interface EppElement {
-  id: number;
-  signature: string;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  createBy: User;
-  equipments: Equipment[];
-}
-
-interface Equipment {
+/** Equipo entregado (GET /epps/employees/:id/history), uno por fila. */
+export interface EppHistoryItem {
   id: number;
   deliveryDate: string;
-  returnDate: null;
-  quantity: number;
   observations: string;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  equipment: Area;
+  equipment: Pick<Area, "id" | "name">;
+  /** Firma de la entrega (data URL). */
+  signature: string;
+  createBy: Pick<User, "id" | "name"> | null;
 }

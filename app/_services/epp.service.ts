@@ -1,4 +1,9 @@
-import { EppsPage, PayloadCreateEpp, QueryEpps } from "@interfaces";
+import {
+  EppHistoryItem,
+  EppsPage,
+  PayloadCreateEpp,
+  QueryEpps,
+} from "@interfaces";
 import axiosWrapper from "./axiosWrapper";
 import {
   buildLocalFileNameTimestamp,
@@ -23,8 +28,21 @@ const findPaginated = async ({ search, ...query }: QueryEpps) => {
         Object.entries(query).filter(([, value]) => value !== ""),
       ),
       ...(search?.trim() && { search: search.trim() }),
+      // El historial (con firmas) se pide por colaborador al expandir la fila.
+      withHistory: "false",
     },
   });
+  return data;
+};
+
+const findEmployeeHistory = async (
+  employeeId: number,
+  manufacturingPlantId: string,
+) => {
+  const { data } = await api.get<EppHistoryItem[]>(
+    `/employees/${employeeId}/history`,
+    { params: { manufacturingPlantId } },
+  );
   return data;
 };
 
@@ -86,6 +104,7 @@ export const EppService = {
   validateDeliveryFrequency,
   create,
   findPaginated,
+  findEmployeeHistory,
   downloadFile,
   removeHistory,
 };

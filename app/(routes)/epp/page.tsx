@@ -115,6 +115,7 @@ export default function EppPage() {
         >
           <TableEpps
             rows={rows}
+            manufacturingPlantId={manufacturingPlantId}
             count={count}
             isLoading={isLoading || isFetching}
             page={page}

@@ -263,55 +263,51 @@ test.describe("EPP: lista de entregas", () => {
   const SIGNATURE =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
-  const employee = (id: number, name: string, createdById: number) => ({
+  // La lista ya no trae el historial: se pide por colaborador al expandir.
+  const employee = (id: number, name: string) => ({
     id,
     name,
     code: id,
     position: { name: "E2E Puesto" },
     area: { name: "E2E Área" },
-    epps: [
-      {
-        signature: SIGNATURE,
-        createBy: { id: createdById, name: "E2E Entregó" },
-        equipments: [
-          {
-            id: id * 10,
-            deliveryDate: new Date().toISOString(),
-            observations: "Talla M",
-            equipment: { name: "E2E Casco" },
-          },
-        ],
-      },
-    ],
   });
 
-  test("ordena, despliega el historial, lo elimina y descarga (sin guardar)", async ({
-    page,
-  }) => {
-    const errors = trackPageErrors(page);
-    const writes = await captureWrites(page);
+  const historyItem = (employeeId: number, createdById: number) => ({
+    id: employeeId * 10,
+    deliveryDate: new Date().toISOString(),
+    observations: "Talla M",
+    equipment: { id: 9701, name: "E2E Casco" },
+    signature: SIGNATURE,
+    createBy: { id: createdById, name: "E2E Entregó" },
+  });
+
+  const HISTORY = /\/api\/v1\/epps\/employees\/(\d+)\/history/;
+
+  /**
+   * Abre /epp con la lista simulada y devuelve el id de la sesión (solo quien
+   * registró una entrega puede eliminarla) y las consultas de la lista.
+   */
+  const openList = async (page: Page) => {
     await page.goto("/epp");
-    // Solo quien registró la entrega puede eliminarla: se usa el id de la
-    // sesión (ya cargada al responder la lista).
     const [plant] = await sessionPlants(page);
-    const userId = await page.evaluate(
+    const userId: number = await page.evaluate(
       () => JSON.parse(sessionStorage.getItem("user-session")!).state.id,
     );
+    const listRequests: URL[] = [];
     await page.route(
       (url) =>
         url.pathname.endsWith("/api/v1/epps") && url.searchParams.has("page"),
-      (route) =>
-        route.fulfill({
+      (route) => {
+        listRequests.push(new URL(route.request().url()));
+        return route.fulfill({
           json: {
-            data: [
-              employee(9901, "E2E Ana", userId),
-              employee(9902, "E2E Beto", 0),
-            ],
+            data: [employee(9901, "E2E Ana"), employee(9902, "E2E Beto")],
             count: 2,
             page: 1,
             limit: 5,
           },
-        }),
+        });
+      },
     );
     // La lista se consulta por planta.
     const filters = page.getByRole("region", { name: "Filtros" });
@@ -320,6 +316,29 @@ test.describe("EPP: lista de entregas", () => {
       await pickOption(page, "Planta", plant.name);
     }
     await expect(page.getByText("E2E Ana")).toBeVisible();
+    return { plant, userId, listRequests };
+  };
+
+  test("ordena, despliega el historial, lo elimina y descarga (sin guardar)", async ({
+    page,
+  }) => {
+    const errors = trackPageErrors(page);
+    const writes = await captureWrites(page);
+    // Registrada antes de abrir la página: cualquier petición de historial
+    // queda anotada. userId se conoce al cargar la sesión.
+    let userId = 0;
+    const historyRequests: URL[] = [];
+    await page.route(HISTORY, (route) => {
+      historyRequests.push(new URL(route.request().url()));
+      return route.fulfill({ json: [historyItem(9901, userId)] });
+    });
+    const list = await openList(page);
+    userId = list.userId;
+    const { plant, listRequests } = list;
+
+    // La lista pide la página sin historial y nada más se carga hasta expandir.
+    expect(listRequests.at(-1)!.searchParams.get("withHistory")).toBe("false");
+    expect(historyRequests).toEqual([]);
 
     // Orden de tres estados: asc, desc y sin orden.
     for (let i = 0; i < 3; i++) {
@@ -331,9 +350,16 @@ test.describe("EPP: lista de entregas", () => {
     await page
       .getByRole("button", { name: "Ver historial de E2E Ana" })
       .click();
-    await expect(
-      page.getByRole("table", { name: "Historial de entrega de E2E Ana" }),
-    ).toBeVisible();
+    const history = page.getByRole("table", {
+      name: "Historial de entrega de E2E Ana",
+    });
+    await expect(history.getByText("E2E Casco")).toBeVisible();
+    expect(historyRequests.at(-1)!.pathname).toMatch(
+      /\/epps\/employees\/9901\/history$/,
+    );
+    expect(
+      historyRequests.at(-1)!.searchParams.get("manufacturingPlantId"),
+    ).toBe(String(plant.id));
     await page
       .getByRole("button", { name: "Eliminar registro del historial" })
       .click();
@@ -365,5 +391,79 @@ test.describe("EPP: lista de entregas", () => {
       /^EPP_9901_\d{4}-\d{2}-\d{2}_/,
     );
     expect(errors).toEqual([]);
+  });
+
+  test("muestra la carga del historial y se recupera si falla", async ({
+    page,
+  }) => {
+    const errors = trackPageErrors(page);
+    const { userId } = await openList(page);
+
+    // Primera respuesta: se retiene para ver la carga y luego falla.
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    let calls = 0;
+    await page.route(HISTORY, async (route) => {
+      calls++;
+      if (calls === 1) {
+        await held;
+        return route.fulfill({ status: 500, json: { message: "Caída" } });
+      }
+      return route.fulfill({ json: [historyItem(9902, userId)] });
+    });
+
+    await page
+      .getByRole("button", { name: "Ver historial de E2E Beto" })
+      .click();
+    await expect(page.getByRole("status")).toContainText("Cargando historial…");
+    await expect(
+      page.getByRole("table", { name: "Historial de entrega de E2E Beto" }),
+    ).toHaveAttribute("aria-busy", "true");
+
+    release();
+    const alert = page
+      .locator(".MuiAlert-root")
+      .filter({ hasText: "No se pudo cargar el historial." });
+    await expect(alert).toBeVisible();
+
+    await alert.getByRole("button", { name: "Reintentar" }).click();
+    await expect(alert).toHaveCount(0);
+    await expect(
+      page
+        .getByRole("table", { name: "Historial de entrega de E2E Beto" })
+        .getByText("E2E Casco"),
+    ).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  test("si al eliminar ya no quedan entregas, avisa y recarga la lista", async ({
+    page,
+  }) => {
+    const writes = await captureWrites(page);
+    const { userId, listRequests } = await openList(page);
+    await page.route(HISTORY, (route) =>
+      route.request().method() === "GET"
+        ? route.fulfill({
+            json: writes.length ? [] : [historyItem(9901, userId)],
+          })
+        : route.fallback(),
+    );
+
+    await page
+      .getByRole("button", { name: "Ver historial de E2E Ana" })
+      .click();
+    const loadedLists = listRequests.length;
+    await page
+      .getByRole("button", { name: "Eliminar registro del historial" })
+      .click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Eliminar" })
+      .click();
+
+    await expect(
+      page.getByText("Sin entregas registradas en esta planta."),
+    ).toBeVisible();
+    await expect.poll(() => listRequests.length).toBeGreaterThan(loadedLists);
   });
 });
