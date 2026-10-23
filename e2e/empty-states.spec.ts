@@ -65,12 +65,30 @@ test.describe("Sin datos", () => {
     await page.waitForLoadState("networkidle");
     await clickTabs(page);
 
-    const empty = Object.fromEntries(
-      Array.from({ length: 10 }, (_, i) => [`chart${i + 1}`, []]),
-    );
+    const zeros = {
+      gasto: 0,
+      unidades: 0,
+      entregas: 0,
+      fueraDeRango: 0,
+      empleados: 0,
+      primeraVez: 0,
+    };
     await mockGet(page, "/dashboard/business-intelligence/epp", {
-      ...empty,
-      promedioGlobalChart10: "0",
+      hasPrices: true,
+      kpis: {
+        periodo: {
+          actual: { desde: "2026-10-01", hasta: "2026-10-22" },
+          anterior: { desde: "2026-09-01", hasta: "2026-09-22" },
+        },
+        actual: zeros,
+        anterior: zeros,
+        promedioGlobal: 0,
+      },
+      chart1: [],
+      chart3: [],
+      chart4: [],
+      chart8: [],
+      chart9: [],
     });
     const plants = await sessionPlants(page);
     if (plants.length > 1) {
@@ -96,7 +114,10 @@ test.describe("Sin datos", () => {
     for (const label of ["Fecha inicio", "Fecha fin"]) {
       const group = page.getByRole("group", { name: label });
       await group.hover();
-      await group.locator("..").getByRole("button", { name: /Borrar|Limpiar|Clear/i }).click();
+      await group
+        .locator("..")
+        .getByRole("button", { name: /Borrar|Limpiar|Clear/i })
+        .click();
     }
     await expect(
       page.getByText("Seleccione planta, fecha inicio y fecha fin").first(),

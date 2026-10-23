@@ -125,6 +125,7 @@ const ANALYSIS_SECTION: MenuSection = {
       title: "EPP",
       tooltip: "Equipos de protección personal",
       icon: <InsightsIcon />,
+      visible: adminOnly,
     },
   ],
 };

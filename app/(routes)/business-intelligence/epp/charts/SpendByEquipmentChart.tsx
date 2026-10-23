@@ -1,7 +1,7 @@
 import ChartCard from "../_components/ChartCard";
 import {
   BiData,
-  currentAndPreviousMonth,
+  periodNames,
   formatMoney,
   formatPercent,
   toNumber,
@@ -10,10 +10,11 @@ import {
 
 const TOP = 10;
 
-// Gasto por equipo: mes actual vs mes anterior (barras horizontales).
+// Gasto por equipo: mes en curso a la fecha vs los mismos días del anterior.
 export default function SpendByEquipmentChart({ data }: { data: BiData }) {
   const colors = useBiColors();
-  const { currentName, previousName } = currentAndPreviousMonth();
+  // Mismos días de cada mes (ver kpis.periodo de la API).
+  const { currentName, previousName } = periodNames(data);
 
   const rows = [...(data.chart1 ?? [])].sort(
     (a, b) => toNumber(b.gasto_mes_actual) - toNumber(a.gasto_mes_actual),
@@ -57,14 +58,19 @@ export default function SpendByEquipmentChart({ data }: { data: BiData }) {
           { label: currentName, numeric: true },
           { label: "Variación", numeric: true },
         ],
-        rows: rows.map((row) => [
-          row.equipment_name,
-          formatMoney(toNumber(row.gasto_mes_anterior), 2),
-          formatMoney(toNumber(row.gasto_mes_actual), 2),
-          toNumber(row.gasto_mes_anterior)
-            ? formatPercent(toNumber(row.variacion_pct))
-            : "—",
-        ]),
+        rows: rows.map((row) => {
+          const previous = toNumber(row.gasto_mes_anterior);
+          const current = toNumber(row.gasto_mes_actual);
+          return [
+            row.equipment_name,
+            formatMoney(previous, 2),
+            formatMoney(current, 2),
+            // Sin gasto en el periodo anterior no hay variación que calcular.
+            previous
+              ? formatPercent(((current - previous) / previous) * 100)
+              : "—",
+          ];
+        }),
       }}
     />
   );

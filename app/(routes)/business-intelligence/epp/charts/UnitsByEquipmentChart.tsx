@@ -1,7 +1,7 @@
 import ChartCard from "../_components/ChartCard";
 import {
   BiData,
-  currentAndPreviousMonth,
+  periodNames,
   formatNumber,
   toNumber,
   useBiColors,
@@ -9,10 +9,11 @@ import {
 
 const TOP = 10;
 
-// Unidades entregadas por equipo: mes actual vs mes anterior.
+// Unidades por equipo: mes en curso a la fecha vs los mismos días del anterior.
 export default function UnitsByEquipmentChart({ data }: { data: BiData }) {
   const colors = useBiColors();
-  const { currentName, previousName } = currentAndPreviousMonth();
+  // Mismos días de cada mes (ver kpis.periodo de la API).
+  const { currentName, previousName } = periodNames(data);
 
   const rows = [...(data.chart4 ?? [])].sort(
     (a, b) =>

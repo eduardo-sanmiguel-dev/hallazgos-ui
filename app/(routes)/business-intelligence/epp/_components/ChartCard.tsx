@@ -85,7 +85,7 @@ export default function ChartCard({
   options,
   table,
   isEmpty = false,
-  emptyText = "Sin datos para la planta seleccionada.",
+  emptyText = "Sin datos para la planta y el periodo seleccionados.",
   height = 320,
 }: Props) {
   const [view, setView] = useState<"chart" | "table">("chart");

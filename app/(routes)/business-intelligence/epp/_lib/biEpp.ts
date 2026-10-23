@@ -76,25 +76,42 @@ export const monthLabelEs = (pgLabel: string) => {
   return index === -1 ? pgLabel : `${ES_MONTHS[index]} ${year}`;
 };
 
-const pgMonthLabel = (date: Date) =>
-  `${PG_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
-
-export const currentAndPreviousMonth = (now = new Date()) => {
-  const current = new Date(now.getFullYear(), now.getMonth(), 1);
-  const previous = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const longName = (date: Date) =>
-    date.toLocaleDateString("es-MX", { month: "long", year: "numeric" });
-
-  return {
-    currentKey: pgMonthLabel(current),
-    previousKey: pgMonthLabel(previous),
-    currentName: longName(current),
-    previousName: longName(previous),
-  };
+/** 'YYYY-MM-DD' → "20 oct 2026" (sin zona horaria). */
+export const formatIsoDate = (iso: string) => {
+  const [year, month, day] = iso.split("-").map(Number);
+  return `${day} ${ES_MONTHS[month - 1]} ${year}`;
 };
 
-const sum = <T>(rows: T[], pick: (row: T) => string | number) =>
-  rows.reduce((total, row) => total + toNumber(pick(row)), 0);
+/**
+ * Rango de la API → texto corto:
+ * - mismo mes: "1–22 oct 2026" (un solo día: "1 oct 2026");
+ * - mismo año: "1 ago – 22 oct 2026";
+ * - distinto año: "1 dic 2025 – 22 ene 2026".
+ */
+export const periodLabel = ({
+  desde,
+  hasta,
+}: {
+  desde: string;
+  hasta: string;
+}) => {
+  const [y1, m1, d1] = desde.split("-").map(Number);
+  const [y2, m2, d2] = hasta.split("-").map(Number);
+  if (y1 === y2 && m1 === m2) {
+    const days = d1 === d2 ? `${d1}` : `${d1}–${d2}`;
+    return `${days} ${ES_MONTHS[m1 - 1]} ${y1}`;
+  }
+  if (y1 === y2) {
+    return `${d1} ${ES_MONTHS[m1 - 1]} – ${d2} ${ES_MONTHS[m2 - 1]} ${y2}`;
+  }
+  return `${formatIsoDate(desde)} – ${formatIsoDate(hasta)}`;
+};
+
+/** Nombres del periodo elegido y de su periodo de comparación. */
+export const periodNames = (data: BiData) => ({
+  currentName: periodLabel(data.kpis.periodo.actual),
+  previousName: periodLabel(data.kpis.periodo.anterior),
+});
 
 export interface KpiValue {
   current: number;
@@ -104,64 +121,35 @@ export interface KpiValue {
 export interface BiKpis {
   spend: KpiValue;
   units: KpiValue;
-  // Porcentaje de colaboradores activos con al menos una entrega en el mes.
-  coverage: KpiValue & { withDelivery: number; activeEmployees: number };
   newEmployees: KpiValue;
-  // Porcentaje de entregas fuera de rango en el mes (menor es mejor).
+  // Porcentaje de entregas fuera de rango (menor es mejor).
   outOfRange: KpiValue & { deliveries: number };
   averagePerEmployee: KpiValue & { globalAverage: number };
 }
 
-// Todas las consultas de la API son por planta y sin LIMIT, así que las sumas
-// por equipo equivalen a los totales del mes.
-export function computeKpis(data: BiData): BiKpis {
-  const { currentKey, previousKey } = currentAndPreviousMonth();
+const percentOf = (part: number, total: number) =>
+  total ? (part * 100) / total : 0;
 
-  const coverage = data.chart5?.[0];
-  const firstDelivery = data.chart6?.[0];
+const perEmployee = (spend: number, employees: number) =>
+  employees ? spend / employees : 0;
 
-  const outOfRangeCurrent = data.chart3?.find(
-    (row) => row.mes_label === currentKey,
-  );
-  const outOfRangePrevious = data.chart3?.find(
-    (row) => row.mes_label === previousKey,
-  );
-
-  const averageCurrent = data.chart10?.find(
-    (row) => row.mes_label === currentKey,
-  );
-  const averagePrevious = data.chart10?.find(
-    (row) => row.mes_label === previousKey,
-  );
-
+// La API ya entrega ambos periodos "a la fecha"; aquí solo se derivan
+// porcentajes y promedios.
+export function computeKpis({ kpis }: BiData): BiKpis {
+  const { actual, anterior } = kpis;
   return {
-    spend: {
-      current: sum(data.chart1 ?? [], (row) => row.gasto_mes_actual),
-      previous: sum(data.chart1 ?? [], (row) => row.gasto_mes_anterior),
-    },
-    units: {
-      current: sum(data.chart4 ?? [], (row) => row.unidades_mes_actual),
-      previous: sum(data.chart4 ?? [], (row) => row.unidades_mes_anterior),
-    },
-    coverage: {
-      current: toNumber(coverage?.pct_con_entrega_actual),
-      previous: toNumber(coverage?.pct_con_entrega_anterior),
-      withDelivery: toNumber(coverage?.con_entrega_mes_actual),
-      activeEmployees: toNumber(coverage?.total_empleados_activos),
-    },
-    newEmployees: {
-      current: toNumber(firstDelivery?.primera_vez_mes_actual),
-      previous: toNumber(firstDelivery?.primera_vez_mes_anterior),
-    },
+    spend: { current: actual.gasto, previous: anterior.gasto },
+    units: { current: actual.unidades, previous: anterior.unidades },
+    newEmployees: { current: actual.primeraVez, previous: anterior.primeraVez },
     outOfRange: {
-      current: toNumber(outOfRangeCurrent?.pct_fuera_de_rango),
-      previous: toNumber(outOfRangePrevious?.pct_fuera_de_rango),
-      deliveries: toNumber(outOfRangeCurrent?.total_entregas),
+      current: percentOf(actual.fueraDeRango, actual.entregas),
+      previous: percentOf(anterior.fueraDeRango, anterior.entregas),
+      deliveries: actual.entregas,
     },
     averagePerEmployee: {
-      current: toNumber(averageCurrent?.gasto_promedio_por_empleado),
-      previous: toNumber(averagePrevious?.gasto_promedio_por_empleado),
-      globalAverage: toNumber(data.promedioGlobalChart10),
+      current: perEmployee(actual.gasto, actual.empleados),
+      previous: perEmployee(anterior.gasto, anterior.empleados),
+      globalAverage: kpis.promedioGlobal,
     },
   };
 }

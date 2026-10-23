@@ -6,7 +6,7 @@ import { openobserveLogs } from "@openobserve/browser-logs";
 import { openobserveRum } from "@openobserve/browser-rum";
 
 import { useUserSessionStore } from "@store";
-import { shouldSendRumEvent } from "@shared/utils/rum";
+import { isBotNavigator, shouldSendRumEvent } from "@shared/utils/rum";
 import { listenInstallPrompt } from "@shared/utils/installPrompt";
 
 // Botón "Instalar app": el navegador avisa una sola vez al cargar, así que
@@ -29,15 +29,8 @@ const common = {
   insecureHTTP: false,
 };
 
-// Rastreadores (Googlebot, Bingbot...), Lighthouse y navegadores
-// automatizados ejecutan el JS y aparecían como sesiones "rebotadas" sin
-// usuario; no se monitorean para que las métricas sean solo de personas.
-const isBot =
-  typeof navigator !== "undefined" &&
-  (navigator.webdriver ||
-    /bot|crawl|spider|slurp|lighthouse|headlesschrome|google-inspectiontool|facebookexternalhit/i.test(
-      navigator.userAgent,
-    ));
+// Bots y navegadores automatizados no se monitorean (ver isBotNavigator).
+const isBot = typeof navigator !== "undefined" && isBotNavigator(navigator);
 
 if (process.env.NODE_ENV === "production" && site && clientToken && !isBot) {
   // Un fallo del monitoreo nunca debe impedir que la app cargue.

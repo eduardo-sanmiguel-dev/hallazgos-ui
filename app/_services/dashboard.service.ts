@@ -1,5 +1,7 @@
 import axiosWrapper from "./axiosWrapper";
 import {
+  BiEppEmployeeDetail,
+  BiEppOutOfRange,
   BusinessIntelligenceEpp,
   MonthlySubtypeTrend,
   User,
@@ -536,18 +538,36 @@ const findMonthlySubtypeTrend = async ({
   return data;
 };
 
-const findBusinessIntelligenceEpp = async ({
-  manufacturingPlantId,
-}: {
+/** Planta y periodo (DD/MM/YYYY) del análisis de datos EPP. */
+interface BiEppQuery {
   manufacturingPlantId: string;
-}) => {
+  startDate: string;
+  endDate: string;
+}
+
+const findBusinessIntelligenceEpp = async (params: BiEppQuery) => {
   const { data } = await api.get<BusinessIntelligenceEpp>(
     `/business-intelligence/epp`,
-    {
-      params: {
-        manufacturingPlantId,
-      },
-    },
+    { params },
+  );
+  return data;
+};
+
+const findBusinessIntelligenceEppOutOfRange = async (params: BiEppQuery) => {
+  const { data } = await api.get<BiEppOutOfRange>(
+    `/business-intelligence/epp/out-of-range`,
+    { params },
+  );
+  return data;
+};
+
+const findBusinessIntelligenceEppEmployee = async ({
+  employeeId,
+  ...params
+}: BiEppQuery & { employeeId: number }) => {
+  const { data } = await api.get<BiEppEmployeeDetail>(
+    `/business-intelligence/epp/employees/${employeeId}`,
+    { params },
   );
   return data;
 };
@@ -567,6 +587,8 @@ export const DashboardService = {
   findPriorityInterventionByFilters,
   findRiskLevelByFilters,
   findBusinessIntelligenceEpp,
+  findBusinessIntelligenceEppOutOfRange,
+  findBusinessIntelligenceEppEmployee,
   findMonthlySubtypeTrend,
   findAccidentRate,
   findTopUsersByPlant,

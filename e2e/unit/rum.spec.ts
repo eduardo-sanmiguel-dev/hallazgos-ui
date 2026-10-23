@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-import { shouldSendRumEvent } from "../../app/_shared/utils/rum";
+import {
+  isBotNavigator,
+  shouldSendRumEvent,
+} from "../../app/_shared/utils/rum";
 
 // Regla `beforeSend` del RUM (instrumentation-client.ts). Solo corre en
 // producción, así que se prueba la función directamente, sin navegador.
@@ -27,6 +30,66 @@ test.describe("RUM: eventos que se envían", () => {
   test("envía los eventos que no son acciones", () => {
     for (const type of ["view", "error", "resource", "long_task"]) {
       expect(shouldSendRumEvent({ type })).toBe(true);
+    }
+  });
+});
+
+const CHROME_WINDOWS =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+const chromeBrands = (headless = false) => ({
+  brands: [
+    { brand: "Not_A Brand" },
+    { brand: headless ? "HeadlessChrome" : "Google Chrome" },
+    { brand: "Chromium" },
+  ],
+});
+
+test.describe("RUM: quién no se monitorea", () => {
+  test("bots que se declaran en el user agent", () => {
+    for (const userAgent of [
+      "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+      "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)",
+      "Mozilla/5.0 (compatible; AhrefsBot/7.0; +http://ahrefs.com/robot/)",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.0.0 Safari/537.36",
+    ]) {
+      expect(isBotNavigator({ userAgent })).toBe(true);
+    }
+  });
+
+  test("navegadores automatizados (webdriver)", () => {
+    expect(isBotNavigator({ userAgent: CHROME_WINDOWS, webdriver: true })).toBe(
+      true,
+    );
+  });
+
+  test("HeadlessChrome con el user agent disfrazado de Chrome", () => {
+    // Visto en producción: OpenObserve lo reporta como HeadlessChrome, pero
+    // navigator.userAgent dice Chrome y webdriver es false.
+    expect(
+      isBotNavigator({
+        userAgent: CHROME_WINDOWS,
+        webdriver: false,
+        userAgentData: chromeBrands(true),
+      }),
+    ).toBe(true);
+  });
+
+  test("las personas sí se monitorean", () => {
+    expect(
+      isBotNavigator({
+        userAgent: CHROME_WINDOWS,
+        webdriver: false,
+        userAgentData: chromeBrands(),
+      }),
+    ).toBe(false);
+    for (const userAgent of [
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
+      "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/131.0.0.0 Mobile/15E148 Safari/604.1",
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
+    ]) {
+      // Safari y Firefox no tienen userAgentData.
+      expect(isBotNavigator({ userAgent })).toBe(false);
     }
   });
 });

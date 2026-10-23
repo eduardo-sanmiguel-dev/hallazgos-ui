@@ -27,8 +27,14 @@ leen datos fijos con `mockGet`.
 
 1. Copiar `e2e/.env.e2e.example` a `e2e/.env.e2e` y poner una contraseña
    aleatoria de 16+ caracteres en `E2E_PASSWORD`.
-2. Crear el usuario de pruebas en la base de desarrollo (rol Administrador,
-   todas las plantas). El script se niega a correr si la base no es local:
+2. Copiar las mismas `E2E_EMAIL` y `E2E_PASSWORD` al `.env.development` de
+   hallazgos-api. Al levantar la API en desarrollo (`pnpm start:dev`) el
+   usuario se crea solo si no existe (rol Administrador, todas las plantas),
+   y si existe se le corrigen contraseña, rol y plantas. Solo ocurre con
+   `NODE_ENV=development` y base local (`E2eUserSeedService`); útil tras
+   restaurar la base desde producción.
+
+   Para crearlo sin levantar la API:
 
    ```bash
    cd ../hallazgos-api

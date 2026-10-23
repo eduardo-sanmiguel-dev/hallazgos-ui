@@ -12,8 +12,8 @@ import {
 // línea de referencia.
 export default function AverageSpendChart({ data }: { data: BiData }) {
   const colors = useBiColors();
-  const rows = data.chart10 ?? [];
-  const globalAverage = toNumber(data.promedioGlobalChart10);
+  const rows = data.chart8 ?? [];
+  const globalAverage = data.kpis.promedioGlobal;
 
   return (
     <ChartCard
