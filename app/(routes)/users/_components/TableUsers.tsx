@@ -2,8 +2,6 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Tooltip } from "@mui/material";
-
 import { notify, stringToDateWithTime, updatedDateLabel } from "@shared/utils";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import {
@@ -32,8 +30,6 @@ const columns = [
   "Nombre",
   "Correo electrónico",
   "Plantas",
-  "Zonas",
-  "Procesos",
   "Role",
   "Creación",
   "Ultima actualización",
@@ -66,14 +62,8 @@ export default function TableUsers({ rows, getData, pagination }: Props) {
     });
   };
 
-  const truncateText = (text: string) => {
-    if (!text) return "";
-
-    const size = 50;
-
-    return `${text.substring(0, size)} ${text.length > size ? "..." : ""}`;
-  };
-
+  // Zonas y procesos no van en la tabla (no cabían y la API ya no los manda
+  // en el listado); se ven al editar el usuario.
   return (
     <>
       <TableDefaultServer
@@ -81,20 +71,6 @@ export default function TableUsers({ rows, getData, pagination }: Props) {
         columns={columns}
         {...pagination}
         paintRows={(row: User) => {
-          const zonesName = row.zones
-            .map(
-              ({ name, manufacturingPlant }) =>
-                `${name} (${manufacturingPlant.name})`,
-            )
-            .join("\n");
-
-          const processesName = row.processes
-            .map(
-              ({ name, manufacturingPlant }) =>
-                `${name} (${manufacturingPlant.name})`,
-            )
-            .join("\n");
-
           return (
             <StyledTableRow key={row.id}>
               <StyledTableCell component="th" scope="row">
@@ -104,16 +80,6 @@ export default function TableUsers({ rows, getData, pagination }: Props) {
               <StyledTableCell>{row.email}</StyledTableCell>
               <StyledTableCell>
                 {row.manufacturingPlants.map(({ name }) => name).join(", ")}
-              </StyledTableCell>
-              <StyledTableCell>
-                <Tooltip title={zonesName}>
-                  <div>{truncateText(zonesName)}</div>
-                </Tooltip>
-              </StyledTableCell>
-              <StyledTableCell>
-                <Tooltip title={processesName}>
-                  <div>{truncateText(processesName)}</div>
-                </Tooltip>
               </StyledTableCell>
               <StyledTableCell>{row.role}</StyledTableCell>
               <StyledTableCell>

@@ -110,6 +110,47 @@ test.describe("Usuarios", () => {
     await expect(password).toHaveAttribute("type", "password");
   });
 
+  // La API ya no manda zonas ni procesos en el listado paginado (se cargan al
+  // editar): la tabla no los muestra ni los necesita.
+  test("la tabla muestra plantas pero no zonas ni procesos", async ({
+    page,
+  }) => {
+    const errors = trackPageErrors(page);
+    await mockGet(
+      page,
+      "/users",
+      {
+        data: [
+          {
+            id: 9852,
+            name: "E2E Supervisor",
+            email: "e2e-sup@example.com",
+            role: "Supervisor",
+            isActive: true,
+            createdAt: "2026-10-01T10:00:00.000Z",
+            updatedAt: "2026-10-01T10:00:00.000Z",
+            manufacturingPlants: [
+              { id: 1, name: "Planta A" },
+              { id: 2, name: "Planta B" },
+            ],
+          },
+        ],
+        count: 1,
+      },
+      { when: (url) => url.searchParams.has("page") },
+    );
+
+    await page.goto("/users");
+    const row = page.getByRole("row", { name: /E2E Supervisor/ });
+    await expect(row).toContainText("Planta A, Planta B");
+    await expect(page.getByRole("columnheader", { name: "Plantas" })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "Zonas" })).toHaveCount(0);
+    await expect(
+      page.getByRole("columnheader", { name: "Procesos" }),
+    ).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+
   test("edita un usuario sin exigir contraseña (sin guardar)", async ({
     page,
   }) => {
