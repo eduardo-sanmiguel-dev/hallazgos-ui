@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: "hallazgos-ui", // Nombre de la aplicación
+      name: "ui-comp", // Nombre en pm2 (corto: los logs lo recortan a 10 caracteres)
       script: "node_modules/next/dist/bin/next", // Script de Next.js
       args: "start -p 3000", // Comando para producción
       cwd: "./", // Directorio raíz del proyecto
