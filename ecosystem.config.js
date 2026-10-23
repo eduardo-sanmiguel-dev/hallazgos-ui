@@ -16,8 +16,7 @@ module.exports = {
       out_file: "./logs/out.log", // Log de salida
       error_file: "./logs/error.log", // Log de errores
       merge_logs: true, // Unificar logs
-      time: true, // Timestamp en logs
-      log_date_format: "DD/MM/YYYY HH:mm", // Formato de ese timestamp
+      log_date_format: "DD/MM/YYYY HH:mm", // Fecha en cada línea del log (con time: true pm2 lo ignora)
     },
   ],
 };
