@@ -5,6 +5,14 @@ let idx = 0;
 const PUBLIC_PATHS = new Set(["/", "/privacy"]);
 
 export async function proxy(request: NextRequest) {
+  // La app no usa Server Actions: una petición con `Next-Action` es un
+  // escáner buscando Next.js vulnerables. Se corta aquí (400) para que Next
+  // no la procese ni llene el log de errores. Si algún día se agregan Server
+  // Actions ("use server"), quitar este bloqueo.
+  if (request.headers.has("next-action")) {
+    return new NextResponse(null, { status: 400 });
+  }
+
   const url = request.nextUrl;
   const pathname = url.pathname;
   const queryParams = url.searchParams;

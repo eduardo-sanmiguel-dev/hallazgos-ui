@@ -47,7 +47,9 @@ export default function StatusPage({
           bgcolor: "action.hover",
           color: "text.secondary",
           "& svg": { fontSize: 36 },
-          borderRadius: theme.tokens.radius.xl,
+          // Es la pantalla de error: puede mostrarse sin el tema de la app
+          // (p. ej. un error al renderizar el layout); 16 = tokens.radius.xl.
+          borderRadius: theme.tokens?.radius.xl ?? 16,
         })}
       >
         {icon}
