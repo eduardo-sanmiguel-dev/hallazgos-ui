@@ -32,6 +32,17 @@ const EQUIPMENTS = [
 
 /** Dibuja un trazo sobre el canvas de firma. */
 const sign = async (page: Page, canvas: Locator) => {
+  // El diálogo entra deslizándose: si se dibuja antes de que termine, el
+  // trazo cae fuera del lienzo (antes no se notaba porque se aceptaba la
+  // firma vacía).
+  await canvas.evaluate((element) =>
+    Promise.all(
+      (element.closest(".MuiDialog-root") ?? document)
+        .getAnimations({ subtree: true })
+        // Una animación cancelada (p. ej. el ripple) también terminó.
+        .map((animation) => animation.finished.catch(() => undefined)),
+    ),
+  );
   const box = (await canvas.boundingBox())!;
   await page.mouse.move(box.x + 40, box.y + 40);
   await page.mouse.down();
@@ -178,10 +189,20 @@ test.describe("EPP: entregas", () => {
     await expect(
       signature.locator('[data-dd-action-name="firma-trazo"] canvas'),
     ).toHaveCount(1);
+    // Sin trazo no se puede guardar (antes se aceptaba una firma vacía).
+    const saveSignature = signature.getByRole("button", { name: "Guardar" });
+    const clearSignature = signature.getByRole("button", { name: "Limpiar" });
+    await expect(saveSignature).toBeDisabled();
+    await expect(clearSignature).toBeDisabled();
+    await expect(
+      signature.getByText("Firme dentro del recuadro para poder guardar."),
+    ).toBeVisible();
     await sign(page, canvas);
-    await signature.getByRole("button", { name: "Limpiar" }).click();
+    await expect(saveSignature).toBeEnabled();
+    await clearSignature.click();
+    await expect(saveSignature).toBeDisabled();
     await sign(page, canvas);
-    await signature.getByRole("button", { name: "Guardar" }).click();
+    await saveSignature.click();
     await expect(dialog.getByAltText("Firma del colaborador")).toBeVisible();
 
     await save.click();

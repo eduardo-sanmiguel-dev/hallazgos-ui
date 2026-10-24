@@ -140,6 +140,33 @@ test.describe("Hallazgos", () => {
     expect(body).not.toContain('name="file"');
   });
 
+  // Antes "comportamiento inseguro" solo se activaba: al cambiar a otra
+  // clasificación la foto dejaba de ser obligatoria.
+  test("al cambiar de comportamiento inseguro a otra clasificación vuelve a exigir la foto", async ({
+    page,
+  }) => {
+    const writes = await captureWrites(page);
+    await page.goto("/hallazgos/form");
+    await sessionPlants(page);
+    const create = page.getByRole("button", { name: "Crear hallazgo" });
+
+    await pickOption(page, "Planta");
+    await pickOption(page, "Hallazgo", /[Cc]omportamiento inseguro/);
+    await pickOption(page, "Tipo");
+    await pickOption(page, "Lugar");
+    await pickOption(page, "Proceso");
+    await pickOption(page, "Supervisor");
+    await page
+      .locator("#description-multiline")
+      .fill("Clasificación cambiada e2e (no se guarda)");
+    await expect(create).toBeEnabled();
+
+    await pickOption(page, "Hallazgo", /^(?!.*[Cc]omportamiento inseguro)/);
+    await pickOption(page, "Tipo");
+    await expect(create).toBeDisabled();
+    expect(writes).toEqual([]);
+  });
+
   /** Supervisores simulados: uno por lugar, con el id del lugar en el nombre. */
   const SUPERVISORS = /\/api\/v1\/users\/supervisors/;
   const supervisorOf = (zoneId: string) => ({

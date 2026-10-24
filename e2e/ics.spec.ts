@@ -35,7 +35,13 @@ const CATALOGS = [
       { id: 712, name: "E2E Estándar sin áreas", isActive: true, areas: [] },
     ],
   },
-  { id: 72, name: "E2E Regla sin estándares", order: 2, isActive: true, standards: [] },
+  {
+    id: 72,
+    name: "E2E Regla sin estándares",
+    order: 2,
+    isActive: true,
+    standards: [],
+  },
 ];
 
 const EMPLOYEES = [
@@ -68,7 +74,11 @@ test.describe("ICS", () => {
 
     // Al elegir regla aparecen sus estándares, y del estándar sus áreas.
     await pickOption(page, "Regla de vida *", "E2E Regla con estándares");
-    await pickOption(page, "Estandar de comportamiento *", "E2E Estándar con áreas");
+    await pickOption(
+      page,
+      "Estandar de comportamiento *",
+      "E2E Estándar con áreas",
+    );
     await pickOption(page, "Área *", "E2E Área");
 
     // Solo números positivos.
@@ -109,7 +119,9 @@ test.describe("ICS", () => {
     ]) {
       expect(fields).toContain(`name="${name}"\r\n\r\n${value}\r\n`);
     }
-    expect(fields).toMatch(/name="file"; filename="[0-9a-f-]{36}-evidence\.png"/);
+    expect(fields).toMatch(
+      /name="file"; filename="[0-9a-f-]{36}-evidence\.png"/,
+    );
     expect(errors).toEqual([]);
   });
 
@@ -142,12 +154,54 @@ test.describe("ICS", () => {
     expect(fields).toMatch(/filename="[0-9a-f-]{36}-evidence\.png"/);
   });
 
+  // Antes un rechazo del API no mostraba nada: IcsService.create usa axios
+  // directo, sin el interceptor que avisa los errores.
+  test("mientras guarda bloquea el botón y, si el API rechaza, avisa y deja reintentar", async ({
+    page,
+  }) => {
+    const errors = trackPageErrors(page);
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    let posts = 0;
+    await page.route("**/api/v1/ics", async (route) => {
+      if (route.request().method() !== "POST") return route.fallback();
+      posts++;
+      await held;
+      return route.fulfill({
+        status: 400,
+        json: { message: "E2E la regla de vida ya no está activa" },
+      });
+    });
+    await openForm(page);
+    await pickOption(page, "Regla de vida *", "E2E Regla sin estándares");
+    await totalPeople(page).fill("3");
+    await pickMany(page, "Personas que no cumplen con el estándar *");
+
+    await saveButton(page).click();
+    await expect(saveButton(page)).toBeDisabled();
+    // Un segundo toque mientras guarda no envía otra vez.
+    await saveButton(page).click({ force: true });
+
+    release();
+    await expect(
+      toast(page, "E2E la regla de vida ya no está activa"),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/ics\/form$/);
+    await expect(saveButton(page)).toBeEnabled();
+    expect(posts).toBe(1);
+    expect(errors).toEqual([]);
+  });
+
   test("un estándar sin áreas no muestra el select de área", async ({
     page,
   }) => {
     await openForm(page);
     await pickOption(page, "Regla de vida *", "E2E Regla con estándares");
-    await pickOption(page, "Estandar de comportamiento *", "E2E Estándar sin áreas");
+    await pickOption(
+      page,
+      "Estandar de comportamiento *",
+      "E2E Estándar sin áreas",
+    );
     await expect(page.getByRole("combobox", { name: "Área *" })).toHaveCount(0);
   });
 

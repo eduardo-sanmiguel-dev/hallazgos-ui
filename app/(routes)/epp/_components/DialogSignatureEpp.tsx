@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@mui/material";
 import { IconButton } from "@mui/material";
@@ -32,6 +32,13 @@ export default function DialogSignatureEpp({
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const canvasWidth = isMobile ? 300 : 500;
   const canvasHeight = 200;
+  // Sin trazo no se puede guardar: antes se aceptaba una firma vacía.
+  const [hasStroke, setHasStroke] = useState(false);
+
+  // Cada vez que se abre, el lienzo empieza vacío.
+  useEffect(() => {
+    if (open) setHasStroke(false);
+  }, [open]);
 
   const handleClose = () => {
     setOpen(false);
@@ -40,10 +47,11 @@ export default function DialogSignatureEpp({
   const clearSignature = () => {
     if (!sigCanvas.current) return;
     sigCanvas.current.clear();
+    setHasStroke(false);
   };
 
   const saveSignature = () => {
-    if (!sigCanvas.current) return;
+    if (!sigCanvas.current || sigCanvas.current.isEmpty()) return;
     const dataURL = sigCanvas.current.toDataURL();
     setSignature(dataURL);
     handleClose();
@@ -100,6 +108,7 @@ export default function DialogSignatureEpp({
           <SignatureCanvas
             ref={sigCanvas}
             penColor="black"
+            onEnd={() => setHasStroke(!sigCanvas.current?.isEmpty())}
             canvasProps={{
               width: canvasWidth,
               height: canvasHeight,
@@ -111,11 +120,24 @@ export default function DialogSignatureEpp({
             }}
           />
         </Box>
+        {!hasStroke && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Firme dentro del recuadro para poder guardar.
+          </Typography>
+        )}
         <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
-          <Button variant="outlined" onClick={clearSignature}>
+          <Button
+            variant="outlined"
+            onClick={clearSignature}
+            disabled={!hasStroke}
+          >
             Limpiar
           </Button>
-          <Button variant="contained" onClick={saveSignature}>
+          <Button
+            variant="contained"
+            onClick={saveSignature}
+            disabled={!hasStroke}
+          >
             Guardar
           </Button>
         </Box>

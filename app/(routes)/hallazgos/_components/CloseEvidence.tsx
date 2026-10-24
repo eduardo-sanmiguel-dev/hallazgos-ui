@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Button } from "@mui/material";
 import { styled } from "@mui/material/styles";
@@ -19,6 +19,8 @@ import "react-html5-camera-photo/build/css/index.css";
 import ImageORCamera from "@shared/components/ImageORCamera";
 import { EvidenceGraphql } from "@hooks";
 import { Grid, Paper, TextField } from "@mui/material";
+import { useConfirmDialog } from "@shared/components/ConfirmDialog";
+import { isUnsafeBehaviorType } from "@routes/hallazgos/_constants/mainTypes";
 
 export const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -63,14 +65,11 @@ export default function CloseEvidence({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [descriptionSolution, setDescriptionSolution] = useState<string>("");
-  const [isUnsafeBehavior, setIsUnsafeBehavior] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (!evidenceCurrent) return;
-    const { name } = evidenceCurrent.mainType;
-    if (!name.toLocaleLowerCase().includes("comportamiento inseguro")) return;
-    setIsUnsafeBehavior(true);
-  }, [evidenceCurrent]);
+  // Del hallazgo que se cierra (antes un estado que solo se activaba).
+  const isUnsafeBehavior = isUnsafeBehaviorType(
+    evidenceCurrent?.mainType?.name,
+  );
+  const { confirm, confirmDialog } = useConfirmDialog();
 
   const currentDescriptionSolution = useMemo(
     () => descriptionSolution.trim(),
@@ -95,7 +94,7 @@ export default function CloseEvidence({
     formData.append("descriptionSolution", descriptionSolution);
 
     setIsLoading(true);
-    EvidencesService.solution(idRow, formData)
+    return EvidencesService.solution(idRow, formData)
       .then(() => {
         notify("Hallazgo cerrado correctamente", true);
         celebrateClose();
@@ -215,7 +214,17 @@ export default function CloseEvidence({
       </DialogContent>
       <DialogActions sx={{ justifyContent: "center" }}>
         <Button
-          onClick={saveSolution}
+          // Cerrar es irreversible: se confirma antes de enviar.
+          onClick={() =>
+            confirm({
+              title: `¿Cerrar el hallazgo #${idRow}?`,
+              description:
+                "Ya no se podrá modificar y se avisará por correo al personal de la planta.",
+              confirmLabel: "Cerrar hallazgo",
+              cancelLabel: "Revisar",
+              action: saveSolution,
+            })
+          }
           variant="contained"
           loading={isLoading}
           loadingPosition="start"
@@ -225,6 +234,7 @@ export default function CloseEvidence({
           {isLoading ? "Guardando cierre..." : "Guardar imagen"}
         </Button>
       </DialogActions>
+      {confirmDialog}
     </BootstrapDialog>
   );
 }

@@ -25,6 +25,7 @@ import {
   formatDayLabel,
   priorityOptions,
 } from "@routes/hallazgos/_constants/priorityOptions";
+import { isUnsafeBehaviorType } from "@routes/hallazgos/_constants/mainTypes";
 
 import "./form.css";
 
@@ -199,19 +200,14 @@ export default function HallazgosFormPage() {
       .finally(() => setIsLoading(false));
   };
 
+  // Se recalcula con cada clasificación: antes solo se activaba y, al cambiar
+  // a otra, la foto dejaba de ser obligatoria.
   const validateUnsafeBehavior = (value: string) => {
-    const unsafeBehaviorId = Number(value ?? 0);
     const mainTypeCurrent = mainTypes.find(
-      (data) => data.id === unsafeBehaviorId,
+      (data) => data.id === Number(value ?? 0),
     );
 
-    if (!mainTypeCurrent) return;
-
-    const { name } = mainTypeCurrent;
-
-    if (!name.toLocaleLowerCase().includes("comportamiento inseguro")) return;
-
-    setIsUnsafeBehavior(true);
+    setIsUnsafeBehavior(isUnsafeBehaviorType(mainTypeCurrent?.name));
   };
 
   return (

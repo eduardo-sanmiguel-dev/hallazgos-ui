@@ -17,7 +17,7 @@ import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import { v4 as uuidv4 } from "uuid";
 
 import { EMPTY_CATALOG, useIcsCatalogs } from "@hooks";
-import { EmployeesService, IcsService } from "@services";
+import { EmployeesService, handleErrorResponse, IcsService } from "@services";
 import { EmployeeOption } from "@interfaces";
 import SelectDefault from "@components/SelectDefault";
 import { Paper, SelectChangeEvent, TextField } from "@mui/material";
@@ -140,6 +140,11 @@ const IcsFormPage = () => {
         .then(() => {
           toast.success("Ics creado correctamente");
           cancel();
+        })
+        // IcsService.create usa axios directo (multipart), sin el interceptor
+        // que avisa los errores: antes un rechazo del API no mostraba nada.
+        .catch((error) => {
+          Promise.resolve(handleErrorResponse(error)).catch(() => undefined);
         })
         .finally(() => setIsLoading(false));
     }

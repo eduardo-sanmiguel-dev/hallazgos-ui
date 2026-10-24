@@ -136,6 +136,12 @@ const openActions = async (page: Page, id: number) => {
   return page.getByRole("menu");
 };
 
+/** Botón de la confirmación que aparece antes de cerrar un hallazgo. */
+const confirmClose = (page: Page, id: number) =>
+  page
+    .getByRole("dialog", { name: `¿Cerrar el hallazgo #${id}?` })
+    .getByRole("button", { name: "Cerrar hallazgo" });
+
 /** Cerrado y Cancelado no tienen acciones: un ojo abre el detalle. */
 const viewDetails = (page: Page, id: number) =>
   page.getByRole("button", { name: `Ver detalles del hallazgo ${id}` }).click();
@@ -284,6 +290,9 @@ test.describe("Hallazgos: acciones", () => {
       .locator("#description-multiline-solution")
       .fill("E2E se habló con el equipo");
     await save.click();
+    // Cerrar es irreversible: primero se confirma.
+    expect(writes).toEqual([]);
+    await confirmClose(page, 9001).click();
     await expect(toast(page, "Hallazgo cerrado correctamente")).toBeVisible();
 
     expect(writes).toHaveLength(1);
@@ -310,10 +319,43 @@ test.describe("Hallazgos: acciones", () => {
     });
     await expect(dialog.getByAltText("Mountains")).toBeVisible();
     await dialog.getByRole("button", { name: "Guardar imagen" }).click();
+    await confirmClose(page, 9002).click();
     await expect(toast(page, "Hallazgo cerrado correctamente")).toBeVisible();
     expect(String(writes[0].body)).toMatch(
       /filename="[0-9a-f-]{36}-solution\.png"/,
     );
+  });
+
+  test("al cerrar, 'Revisar' no envía nada y conserva lo capturado", async ({
+    page,
+  }) => {
+    const writes = await captureWrites(page);
+    await openList(page, { asSupervisor: true });
+
+    await (
+      await openActions(page, 9001)
+    )
+      .getByRole("menuitem", { name: "Cerrar hallazgo" })
+      .click();
+    const dialog = page.getByRole("dialog", { name: /Imagen la solución/ });
+    await dialog
+      .locator("#description-multiline-solution")
+      .fill("E2E todavía no");
+    await dialog.getByRole("button", { name: "Guardar imagen" }).click();
+
+    const confirm = page.getByRole("dialog", {
+      name: "¿Cerrar el hallazgo #9001?",
+    });
+    await expect(
+      confirm.getByText("Ya no se podrá modificar", { exact: false }),
+    ).toBeVisible();
+    await confirm.getByRole("button", { name: "Revisar" }).click();
+
+    await expect(confirm).toHaveCount(0);
+    await expect(dialog.locator("#description-multiline-solution")).toHaveValue(
+      "E2E todavía no",
+    );
+    expect(writes).toEqual([]);
   });
 
   test("reasigna responsables (sin guardar)", async ({ page }) => {
