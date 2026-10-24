@@ -56,11 +56,7 @@ export const baseUrlImage = (image: string, path?: string) => {
   return url;
 };
 
-export { stringToDateWithTime, updatedDateLabel } from "./dates";
-
-// Format 05 - January - 2024
-export const stringToDate = (date: string | Date) =>
-  dayjs(date).format("DD MMMM YYYY");
+export { stringToDate, stringToDateWithTime, updatedDateLabel } from "./dates";
 
 export const durantionToTime = (row: EvidenceGraphql) => {
   const { createdAt, solutionDate, status } = row;

@@ -54,6 +54,14 @@ export default function PageHeader({
             flexWrap: "wrap",
             alignItems: "center",
             gap: 1,
+            // En celular, fila propia bajo el título (sin importar su largo)
+            // y la acción principal (botón contained) ocupa el espacio libre.
+            width: { xs: "100%", sm: "auto" },
+            "& > .MuiButton-contained": {
+              flex: { xs: "1 1 auto", sm: "0 0 auto" },
+            },
+            // Botones de al menos 40 px de alto: más fáciles de tocar.
+            "& > .MuiButton-root": { minHeight: 40 },
           }}
         >
           {children}

@@ -375,7 +375,18 @@ export default function TableEpps({
                   colSpan={6}
                   sx={{ py: 2, textAlign: "center" }}
                 >
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    // En celular la tabla es más ancha que la pantalla: el
+                    // mensaje se queda visible a la izquierda, sin cortarse.
+                    sx={{
+                      position: { xs: "sticky", sm: "static" },
+                      left: 0,
+                      maxWidth: { xs: "calc(100vw - 64px)", sm: "none" },
+                      textAlign: { xs: "left", sm: "center" },
+                    }}
+                  >
                     {hasFilters
                       ? "No se encontraron resultados con los filtros actuales."
                       : "No hay registros de EPP para esta planta."}

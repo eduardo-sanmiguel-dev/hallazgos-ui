@@ -4,8 +4,8 @@ import { useMemo, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Box } from "@mui/material";
 import { Grid } from "@mui/material";
+import { Box } from "@mui/material";
 import { Button } from "@mui/material";
 import Add from "@mui/icons-material/Add";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
@@ -28,6 +28,21 @@ import FilterBar, {
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 import TableGembaWalks from "./_components/TableGembaWalks";
 import DateFieldDMY from "./calendar/_components/DateFieldDMY";
+
+const TITLE = "Gemba Walk - Recorridos";
+
+// En celular los tres botones de la cabecera caben en una fila con el texto
+// corto.
+const ResponsiveLabel = ({ short, full }: { short: string; full: string }) => (
+  <>
+    <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
+      {short}
+    </Box>
+    <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+      {full}
+    </Box>
+  </>
+);
 
 const ADDITIONAL_OPTIONS = [
   { id: "true", name: "Sí" },
@@ -126,32 +141,23 @@ const GembaWalksList = () => {
 
   return (
     <>
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          gap: 1,
-          mb: 2,
-        }}
-      >
+      <PageHeader title={TITLE}>
         <Button
           variant="contained"
           startIcon={<Add />}
           onClick={() => router.push("/gemba-walk/form")}
         >
-          Registrar recorrido
+          <ResponsiveLabel short="Registrar" full="Registrar recorrido" />
         </Button>
         <Button
           variant="outlined"
           startIcon={<CalendarMonthIcon />}
           onClick={() => router.push("/gemba-walk/schedule")}
         >
-          Ver calendario
+          <ResponsiveLabel short="Calendario" full="Ver calendario" />
         </Button>
-        <Box sx={{ flexGrow: 1 }} />
         <RefreshButton onClick={() => getData()} />
-      </Box>
+      </PageHeader>
       <FilterBar
         count={count}
         activeFilters={compactFilters(
@@ -291,12 +297,9 @@ const GembaWalksList = () => {
 };
 
 const GembaWalksPage = () => (
-  <>
-    <PageHeader title="Gemba Walk - Recorridos" />
-    <GembaWalkAccessGuard>
-      <GembaWalksList />
-    </GembaWalkAccessGuard>
-  </>
+  <GembaWalkAccessGuard title={TITLE}>
+    <GembaWalksList />
+  </GembaWalkAccessGuard>
 );
 
 export default GembaWalksPage;

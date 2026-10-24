@@ -1,4 +1,5 @@
 import dayjs from "@shared/libs/dayjs";
+import "dayjs/locale/es";
 
 // Format 05/01/2024 3:07 pm
 export const stringToDateWithTime = (date: string | Date) =>
@@ -18,3 +19,7 @@ export const updatedDateLabel = (
   const updated = stringToDateWithTime(updatedAt);
   return updated === stringToDateWithTime(createdAt) ? null : updated;
 };
+
+// 05 enero 2024 (en español: sin locale, dayjs escribía el mes en inglés).
+export const stringToDate = (date: string | Date) =>
+  dayjs(date).locale("es").format("DD MMMM YYYY");

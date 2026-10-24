@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import {
+  stringToDate,
   stringToDateWithTime,
   updatedDateLabel,
 } from "../../app/_shared/utils/dates";
@@ -38,5 +39,12 @@ test.describe("Fecha de última actualización", () => {
 
   test("acepta Date además de texto", () => {
     expect(updatedDateLabel(new Date(CREATED), new Date(CREATED))).toBeNull();
+  });
+});
+
+test.describe("Fecha con el mes en letra", () => {
+  test("el mes sale en español (antes, en inglés)", () => {
+    expect(stringToDate("2018-10-18T12:00:00")).toBe("18 octubre 2018");
+    expect(stringToDate(new Date(2025, 2, 11, 12))).toBe("11 marzo 2025");
   });
 });

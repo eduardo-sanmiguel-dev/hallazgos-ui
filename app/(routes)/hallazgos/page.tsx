@@ -6,8 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { Grid } from "@mui/material";
 import { Button } from "@mui/material";
-import { useMediaQuery } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import SimCardDownloadIcon from "@mui/icons-material/SimCardDownload";
 import { toast } from "sonner";
@@ -23,8 +21,6 @@ import RefreshButton from "@shared/components/RefreshButton";
 import { EvidencesService } from "@services";
 
 export default function HallazgosPage() {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const searchParams = useSearchParams();
 
   const [filters, setFilters] = useState<FiltersEvidences>({
@@ -128,7 +124,6 @@ export default function HallazgosPage() {
           variant="contained"
           startIcon={<AddAPhotoIcon />}
           onClick={() => router.push("/hallazgos/form")}
-          fullWidth={isMobile}
         >
           Crear
         </Button>

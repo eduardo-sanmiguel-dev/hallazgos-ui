@@ -184,9 +184,39 @@ export const createAppTheme = (appTheme: AppThemeName) =>
           head: {
             fontWeight: 600,
           },
+          // En celular y tablet, menos relleno: las filas medían 70-110 px.
+          sizeMedium: ({ theme }) => ({
+            [theme.breakpoints.down("md")]: {
+              padding: "10px 12px",
+            },
+          }),
         },
       },
       MuiTablePagination: {
+        styleOverrides: {
+          // En celular, la paginación va en la última fila de una tabla que
+          // se desplaza de lado: se queda fija a la izquierda, del ancho de
+          // la pantalla, y baja a dos líneas en vez de cortarse.
+          // En tablet pasa lo mismo con tablas anchas (márgenes de 24 px).
+          toolbar: ({ theme }) => ({
+            [theme.breakpoints.down("md")]: {
+              position: "sticky",
+              left: 0,
+              maxWidth: "calc(100vw - 48px)",
+              flexWrap: "wrap",
+              justifyContent: "flex-start",
+              rowGap: 4,
+              paddingLeft: 8,
+              paddingRight: 8,
+            },
+            [theme.breakpoints.down("sm")]: {
+              maxWidth: "calc(100vw - 32px)",
+            },
+          }),
+          spacer: ({ theme }) => ({
+            [theme.breakpoints.down("md")]: { display: "none" },
+          }),
+        },
         defaultProps: {
           labelRowsPerPage: "Filas por página",
           labelDisplayedRows: ({ from, to, count }) =>
