@@ -1,3 +1,4 @@
+import { Paper } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import TextField from "@mui/material/TextField";
 import dayjs from "dayjs";
@@ -105,20 +106,22 @@ const FiltersExtinguisherInspections = ({
           md: 3,
         }}
       >
-        <TextField
-          id="extinguisher-inspections-search"
-          fullWidth
-          label="ID o Responsable"
-          variant="outlined"
-          value={filters.search}
-          autoComplete="off"
-          onChange={(e) =>
-            setFilters({
-              ...filters,
-              search: e.target.value,
-            })
-          }
-        />
+        <Paper>
+          <TextField
+            id="extinguisher-inspections-search"
+            fullWidth
+            label="ID o Responsable"
+            variant="outlined"
+            value={filters.search}
+            autoComplete="off"
+            onChange={(e) =>
+              setFilters({
+                ...filters,
+                search: e.target.value,
+              })
+            }
+          />
+        </Paper>
       </Grid>
 
       <Grid

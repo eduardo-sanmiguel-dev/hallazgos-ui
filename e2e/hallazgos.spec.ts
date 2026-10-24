@@ -168,8 +168,17 @@ test.describe("Hallazgos", () => {
         json: [supervisorOf(url.searchParams.get("zoneId") ?? "0")],
       });
     });
+    // El catálogo de lugares se pide en su versión ligera.
+    const zonesRequest = page.waitForRequest(
+      (request) =>
+        new URL(request.url()).pathname.endsWith("/api/v1/zones") &&
+        request.method() === "GET",
+    );
     await page.goto("/hallazgos/form");
     await sessionPlants(page);
+    expect(new URL((await zonesRequest).url()).searchParams.get("view")).toBe(
+      "options",
+    );
 
     const plant = await pickOption(page, "Planta");
     // Nada se pide hasta elegir planta y lugar (antes: todos al abrir).

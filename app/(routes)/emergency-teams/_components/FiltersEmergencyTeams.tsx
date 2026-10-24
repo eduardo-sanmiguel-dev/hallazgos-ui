@@ -1,3 +1,4 @@
+import { Paper } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import TextField from "@mui/material/TextField";
 
@@ -87,20 +88,22 @@ const FiltersEmergencyTeams = ({ filters, setFilters, count }: Props) => {
           md: 3,
         }}
       >
-        <TextField
-          id="emergency-teams-search"
-          fullWidth
-          label="Ubicación o N. Extintor"
-          variant="outlined"
-          value={filters.search}
-          autoComplete="off"
-          onChange={(e) =>
-            setFilters({
-              ...filters,
-              search: e.target.value,
-            })
-          }
-        />
+        <Paper>
+          <TextField
+            id="emergency-teams-search"
+            fullWidth
+            label="Ubicación o N. Extintor"
+            variant="outlined"
+            value={filters.search}
+            autoComplete="off"
+            onChange={(e) =>
+              setFilters({
+                ...filters,
+                search: e.target.value,
+              })
+            }
+          />
+        </Paper>
       </Grid>
       <Grid
         size={{

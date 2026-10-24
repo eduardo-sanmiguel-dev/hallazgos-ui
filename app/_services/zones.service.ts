@@ -1,6 +1,6 @@
 import { withCatalogInvalidation } from "@shared/libs/catalogKeys";
 import axiosWrapper from "./axiosWrapper";
-import { Zone } from "@interfaces";
+import { Zone, ZoneOption } from "@interfaces";
 
 interface Payload {
   name: string;
@@ -17,6 +17,11 @@ const create = async (payload: Payload) => {
   return data;
 };
 
+/**
+ * Zonas para selectores y filtros (`view=options`): id y nombre, con id y
+ * nombre de su planta y área. Con quién la creó y la planta completa eran
+ * ~220 KB.
+ */
 const findAll = async (filters: {
   name?: string;
   manufacturingPlantId?: string;
@@ -24,8 +29,9 @@ const findAll = async (filters: {
   manufacturingPlantNames?: string[];
   withArea?: boolean;
 }) => {
-  const { data } = await api.get<Zone[]>("", {
+  const { data } = await api.get<ZoneOption[]>("", {
     params: {
+      view: "options",
       ...(filters?.name && {
         name: filters.name,
       }),
@@ -77,7 +83,9 @@ const findAllPaginated = async (filters: {
       page: filters.page,
       limit: filters.limit,
       ...(filters.name && { name: filters.name }),
-      ...(filters.manufacturingPlantId && { manufacturingPlantId: filters.manufacturingPlantId }),
+      ...(filters.manufacturingPlantId && {
+        manufacturingPlantId: filters.manufacturingPlantId,
+      }),
       ...(filters.areaId && { areaId: filters.areaId }),
     },
   });

@@ -1,4 +1,5 @@
 import { Grid } from "@mui/material";
+import { Paper } from "@mui/material";
 import { TextField } from "@mui/material";
 
 import FilterBar from "@shared/components/FilterBar";
@@ -46,19 +47,21 @@ const FiltersManufacturingPlants = ({ filters, setFilters, count }: Props) => {
           md: 3,
         }}
       >
-        <TextField
-          fullWidth
-          label="Nombre"
-          variant="outlined"
-          value={filters.name}
-          autoComplete="off"
-          onChange={(e) => {
-            setFilters({
-              ...filters,
-              name: e.target.value,
-            });
-          }}
-        />
+        <Paper>
+          <TextField
+            fullWidth
+            label="Nombre"
+            variant="outlined"
+            value={filters.name}
+            autoComplete="off"
+            onChange={(e) => {
+              setFilters({
+                ...filters,
+                name: e.target.value,
+              });
+            }}
+          />
+        </Paper>
       </Grid>
     </FilterBar>
   );

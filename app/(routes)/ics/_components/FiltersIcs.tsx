@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import { Grid } from "@mui/material";
+import { Paper } from "@mui/material";
 import { TextField } from "@mui/material";
 
 import { EMPTY_CATALOG, useIcsCatalogs } from "@hooks";
@@ -124,19 +125,21 @@ const FiltersIcs = ({ filters, setFilters, count }: Props) => {
           md: 4,
         }}
       >
-        <TextField
-          fullWidth
-          label="Regla de vida / Estándar de comportamiento"
-          variant="outlined"
-          value={filters.name}
-          autoComplete="off"
-          onChange={(e) =>
-            setFilters({
-              ...filters,
-              name: e.target.value,
-            })
-          }
-        />
+        <Paper>
+          <TextField
+            fullWidth
+            label="Regla de vida / Estándar de comportamiento"
+            variant="outlined"
+            value={filters.name}
+            autoComplete="off"
+            onChange={(e) =>
+              setFilters({
+                ...filters,
+                name: e.target.value,
+              })
+            }
+          />
+        </Paper>
       </Grid>
     </FilterBar>
   );

@@ -5,7 +5,7 @@ import "dayjs/locale/es";
 
 import dayjs from "@shared/libs/dayjs";
 
-import { Box, MenuItem, TextField } from "@mui/material";
+import { Box, MenuItem, Paper, TextField } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -58,19 +58,22 @@ export default function PeriodFilter({ value, onChange }: Props) {
         "& > *": { flex: { xs: "1 1 100%", sm: "0 0 auto" } },
       }}
     >
-      <TextField
-        select
-        label="Periodo"
-        value={value.preset}
-        onChange={(event) => changePreset(event.target.value as PeriodPreset)}
-        sx={{ minWidth: 180 }}
-      >
-        {PERIOD_PRESETS.map(({ value: preset, label }) => (
-          <MenuItem key={preset} value={preset}>
-            {label}
-          </MenuItem>
-        ))}
-      </TextField>
+      {/* En Paper, como SelectDefault (p. ej. el selector de planta). */}
+      <Paper sx={{ minWidth: 180 }}>
+        <TextField
+          select
+          fullWidth
+          label="Periodo"
+          value={value.preset}
+          onChange={(event) => changePreset(event.target.value as PeriodPreset)}
+        >
+          {PERIOD_PRESETS.map(({ value: preset, label }) => (
+            <MenuItem key={preset} value={preset}>
+              {label}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Paper>
 
       {value.preset === "custom" && (
         <LocalizationProvider
@@ -80,23 +83,27 @@ export default function PeriodFilter({ value, onChange }: Props) {
             esES.components.MuiLocalizationProvider.defaultProps.localeText
           }
         >
-          <DatePicker
-            label="Desde"
-            format={FORMAT}
-            value={parse(value.startDate)}
-            maxDate={parse(value.endDate) ?? dayjs()}
-            onChange={changeDate("startDate")}
-            slotProps={{ textField: { sx: { width: { sm: 180 } } } }}
-          />
-          <DatePicker
-            label="Hasta"
-            format={FORMAT}
-            value={parse(value.endDate)}
-            minDate={parse(value.startDate) ?? undefined}
-            maxDate={dayjs()}
-            onChange={changeDate("endDate")}
-            slotProps={{ textField: { sx: { width: { sm: 180 } } } }}
-          />
+          <Paper sx={{ width: { sm: 180 } }}>
+            <DatePicker
+              label="Desde"
+              format={FORMAT}
+              value={parse(value.startDate)}
+              maxDate={parse(value.endDate) ?? dayjs()}
+              onChange={changeDate("startDate")}
+              slotProps={{ textField: { fullWidth: true } }}
+            />
+          </Paper>
+          <Paper sx={{ width: { sm: 180 } }}>
+            <DatePicker
+              label="Hasta"
+              format={FORMAT}
+              value={parse(value.endDate)}
+              minDate={parse(value.startDate) ?? undefined}
+              maxDate={dayjs()}
+              onChange={changeDate("endDate")}
+              slotProps={{ textField: { fullWidth: true } }}
+            />
+          </Paper>
         </LocalizationProvider>
       )}
     </Box>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { Grid } from "@mui/material";
+import { Paper } from "@mui/material";
 import { TextField } from "@mui/material";
 import dayjs from "dayjs";
 
@@ -135,14 +136,16 @@ const FiltersEpp = ({
         />
       </Grid>
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <TextField
-          fullWidth
-          label="Colaborador (nombre o cédula)"
-          variant="outlined"
-          value={filters.search}
-          autoComplete="off"
-          onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-        />
+        <Paper>
+          <TextField
+            fullWidth
+            label="Colaborador (nombre o cédula)"
+            variant="outlined"
+            value={filters.search}
+            autoComplete="off"
+            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+          />
+        </Paper>
       </Grid>
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         <SelectDefault

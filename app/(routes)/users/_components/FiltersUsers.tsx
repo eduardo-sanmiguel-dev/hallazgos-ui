@@ -1,4 +1,5 @@
 import { Grid } from "@mui/material";
+import { Paper } from "@mui/material";
 import { TextField } from "@mui/material";
 
 import {
@@ -110,14 +111,16 @@ const FiltersUsers = ({ filters, setFilters, count }: Props) => {
         onClick={() => setFilters(DEFAULT_FILTERS_USERS)}
       />
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <TextField
-          fullWidth
-          label="Nombre o correo"
-          variant="outlined"
-          value={filters.search}
-          autoComplete="off"
-          onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-        />
+        <Paper>
+          <TextField
+            fullWidth
+            label="Nombre o correo"
+            variant="outlined"
+            value={filters.search}
+            autoComplete="off"
+            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+          />
+        </Paper>
       </Grid>
       <Grid size={{ xs: 12, sm: 6, md: 2 }}>
         <SelectRules

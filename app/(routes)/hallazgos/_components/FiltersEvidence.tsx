@@ -4,6 +4,7 @@ import { Dayjs } from "dayjs";
 
 import ClearAllIcon from "@mui/icons-material/ClearAll";
 import { Box } from "@mui/material";
+import { Paper } from "@mui/material";
 import { Chip } from "@mui/material";
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
@@ -523,21 +524,25 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
           md: 2,
         }}
       >
-        <TextField
-          label="ID(s)"
-          fullWidth
-          value={localEvidenceId}
-          autoComplete="off"
-          onChange={(event) =>
-            setLocalEvidenceId(
-              event.target.value.replace(/[^\d,]/g, "").replace(/,{2,}/g, ","),
-            )
-          }
-          placeholder="IDs separadas por coma"
-          slotProps={{
-            htmlInput: { inputMode: "text", pattern: "[0-9,]*" },
-          }}
-        />
+        <Paper>
+          <TextField
+            label="ID(s)"
+            fullWidth
+            value={localEvidenceId}
+            autoComplete="off"
+            onChange={(event) =>
+              setLocalEvidenceId(
+                event.target.value
+                  .replace(/[^\d,]/g, "")
+                  .replace(/,{2,}/g, ","),
+              )
+            }
+            placeholder="IDs separadas por coma"
+            slotProps={{
+              htmlInput: { inputMode: "text", pattern: "[0-9,]*" },
+            }}
+          />
+        </Paper>
       </Grid>
       <Grid
         size={{
@@ -730,31 +735,33 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
             esES.components.MuiLocalizationProvider.defaultProps.localeText
           }
         >
-          <DatePicker
-            label="Fecha inicio"
-            format="DD/MM/YYYY"
-            value={parseDate(filters.startDate)}
-            maxDate={parseDate(filters.endDate) || dayjs()}
-            onChange={(newValue: Dayjs | null) =>
-              setFilters({
-                ...filters,
-                startDate: newValue ? newValue.format("DD/MM/YYYY") : "",
-              })
-            }
-            slotProps={{
-              field: {
-                clearable: true,
-                onClear: () =>
-                  setFilters({
-                    ...filters,
-                    startDate: "",
-                  }),
-              },
-              textField: {
-                fullWidth: true,
-              },
-            }}
-          />
+          <Paper>
+            <DatePicker
+              label="Fecha inicio"
+              format="DD/MM/YYYY"
+              value={parseDate(filters.startDate)}
+              maxDate={parseDate(filters.endDate) || dayjs()}
+              onChange={(newValue: Dayjs | null) =>
+                setFilters({
+                  ...filters,
+                  startDate: newValue ? newValue.format("DD/MM/YYYY") : "",
+                })
+              }
+              slotProps={{
+                field: {
+                  clearable: true,
+                  onClear: () =>
+                    setFilters({
+                      ...filters,
+                      startDate: "",
+                    }),
+                },
+                textField: {
+                  fullWidth: true,
+                },
+              }}
+            />
+          </Paper>
         </LocalizationProvider>
       </Grid>
       <Grid
@@ -771,32 +778,34 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
             esES.components.MuiLocalizationProvider.defaultProps.localeText
           }
         >
-          <DatePicker
-            label="Fecha fin"
-            format="DD/MM/YYYY"
-            value={parseDate(filters.endDate)}
-            minDate={parseDate(filters.startDate) || undefined}
-            maxDate={dayjs()}
-            onChange={(newValue: Dayjs | null) =>
-              setFilters({
-                ...filters,
-                endDate: newValue ? newValue.format("DD/MM/YYYY") : "",
-              })
-            }
-            slotProps={{
-              field: {
-                clearable: true,
-                onClear: () =>
-                  setFilters({
-                    ...filters,
-                    endDate: "",
-                  }),
-              },
-              textField: {
-                fullWidth: true,
-              },
-            }}
-          />
+          <Paper>
+            <DatePicker
+              label="Fecha fin"
+              format="DD/MM/YYYY"
+              value={parseDate(filters.endDate)}
+              minDate={parseDate(filters.startDate) || undefined}
+              maxDate={dayjs()}
+              onChange={(newValue: Dayjs | null) =>
+                setFilters({
+                  ...filters,
+                  endDate: newValue ? newValue.format("DD/MM/YYYY") : "",
+                })
+              }
+              slotProps={{
+                field: {
+                  clearable: true,
+                  onClear: () =>
+                    setFilters({
+                      ...filters,
+                      endDate: "",
+                    }),
+                },
+                textField: {
+                  fullWidth: true,
+                },
+              }}
+            />
+          </Paper>
         </LocalizationProvider>
       </Grid>
     </FilterBar>

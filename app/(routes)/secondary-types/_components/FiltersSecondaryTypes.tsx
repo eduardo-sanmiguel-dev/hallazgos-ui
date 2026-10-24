@@ -1,4 +1,5 @@
 import { Grid } from "@mui/material";
+import { Paper } from "@mui/material";
 import { TextField } from "@mui/material";
 
 import { EMPTY_CATALOG, useMainTypes } from "@hooks";
@@ -58,19 +59,21 @@ const FiltersSecondaryTypes = ({
           md: 3,
         }}
       >
-        <TextField
-          fullWidth
-          label="Nombre"
-          variant="outlined"
-          value={filters.name}
-          autoComplete="off"
-          onChange={(e) =>
-            setFilters({
-              ...filters,
-              name: e.target.value,
-            })
-          }
-        />
+        <Paper>
+          <TextField
+            fullWidth
+            label="Nombre"
+            variant="outlined"
+            value={filters.name}
+            autoComplete="off"
+            onChange={(e) =>
+              setFilters({
+                ...filters,
+                name: e.target.value,
+              })
+            }
+          />
+        </Paper>
       </Grid>
       <Grid
         size={{

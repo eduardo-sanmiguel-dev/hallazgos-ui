@@ -1,4 +1,5 @@
 import { Grid } from "@mui/material";
+import { Paper } from "@mui/material";
 import { TextField } from "@mui/material";
 import { useEmployeeCatalogs } from "@hooks";
 import SelectDefault from "@components/SelectDefault";
@@ -120,14 +121,16 @@ const FiltersEmployees = ({ filters, setFilters, count }: Props) => {
         onClick={() => setFilters(DEFAULT_FILTERS_EMPLOYEES)}
       />
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <TextField
-          fullWidth
-          label="Nombre o código"
-          variant="outlined"
-          value={filters.name}
-          autoComplete="off"
-          onChange={(e) => setFilters({ ...filters, name: e.target.value })}
-        />
+        <Paper>
+          <TextField
+            fullWidth
+            label="Nombre o código"
+            variant="outlined"
+            value={filters.name}
+            autoComplete="off"
+            onChange={(e) => setFilters({ ...filters, name: e.target.value })}
+          />
+        </Paper>
       </Grid>
       <SelectManufacturingPlantsOwn
         value={filters.manufacturingPlantId}

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import { Grid } from "@mui/material";
+import { Paper } from "@mui/material";
 import { TextField } from "@mui/material";
 
 import { useGembaWalkZones } from "@hooks";
@@ -122,19 +123,21 @@ const FiltersGembaWalkObservers = ({
           md: 3,
         }}
       >
-        <TextField
-          fullWidth
-          label="Usuario"
-          variant="outlined"
-          value={filters.userName}
-          autoComplete="off"
-          onChange={(e) =>
-            setFilters({
-              ...filters,
-              userName: e.target.value,
-            })
-          }
-        />
+        <Paper>
+          <TextField
+            fullWidth
+            label="Usuario"
+            variant="outlined"
+            value={filters.userName}
+            autoComplete="off"
+            onChange={(e) =>
+              setFilters({
+                ...filters,
+                userName: e.target.value,
+              })
+            }
+          />
+        </Paper>
       </Grid>
     </FilterBar>
   );

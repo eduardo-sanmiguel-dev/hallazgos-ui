@@ -1,4 +1,5 @@
 import { Grid } from "@mui/material";
+import { Paper } from "@mui/material";
 import { TextField } from "@mui/material";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import { useUserSessionStore } from "@store";
@@ -76,19 +77,21 @@ const FiltersGembaWalkZones = ({
           md: 3,
         }}
       >
-        <TextField
-          fullWidth
-          label="Zona"
-          variant="outlined"
-          value={filters.nameZone}
-          autoComplete="off"
-          onChange={(e) =>
-            setFilters({
-              ...filters,
-              nameZone: e.target.value,
-            })
-          }
-        />
+        <Paper>
+          <TextField
+            fullWidth
+            label="Zona"
+            variant="outlined"
+            value={filters.nameZone}
+            autoComplete="off"
+            onChange={(e) =>
+              setFilters({
+                ...filters,
+                nameZone: e.target.value,
+              })
+            }
+          />
+        </Paper>
       </Grid>
       <Grid
         size={{
@@ -97,19 +100,21 @@ const FiltersGembaWalkZones = ({
           md: 3,
         }}
       >
-        <TextField
-          fullWidth
-          label="Ubicación"
-          variant="outlined"
-          value={filters.nameLocation}
-          autoComplete="off"
-          onChange={(e) =>
-            setFilters({
-              ...filters,
-              nameLocation: e.target.value,
-            })
-          }
-        />
+        <Paper>
+          <TextField
+            fullWidth
+            label="Ubicación"
+            variant="outlined"
+            value={filters.nameLocation}
+            autoComplete="off"
+            onChange={(e) =>
+              setFilters({
+                ...filters,
+                nameLocation: e.target.value,
+              })
+            }
+          />
+        </Paper>
       </Grid>
     </FilterBar>
   );

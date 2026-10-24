@@ -20,3 +20,12 @@ export interface Zone {
   manufacturingPlant: ManufacturingPlant;
   area?: Area | null;
 }
+
+/**
+ * Zona en selectores y filtros (GET /zones?view=options): sin quién la creó
+ * ni la planta y el área completas.
+ */
+export type ZoneOption = Pick<Zone, "id" | "name"> & {
+  manufacturingPlant: Pick<ManufacturingPlant, "id" | "name">;
+  area: Pick<Area, "id" | "name"> | null;
+};
