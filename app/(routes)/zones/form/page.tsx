@@ -32,7 +32,7 @@ const ZonesFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, errorOf, fieldProps } = useFieldErrors<
+  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
     | "name"
     | "manufacturingPlantId"
   >(form);
@@ -63,6 +63,7 @@ const ZonesFormPage = () => {
           toast.success("Lugar creado correctamente");
           cancel();
         })
+        .catch(failFromApi)
         .finally(() => setIsLoading(false));
     } else {
       ZonesService.update(idCurrent, {
@@ -74,6 +75,7 @@ const ZonesFormPage = () => {
           toast.success("Lugar actualizado correctamente");
           cancel();
         })
+        .catch(failFromApi)
         .finally(() => setIsLoading(false));
     }
   };

@@ -12,6 +12,7 @@ import "highcharts/esm/modules/accessibility.src.js";
 import { ResponseDashboardPriorityInterventionByFilters } from "@interfaces";
 import { DashboardService } from "@services";
 import { optionsChartDefault } from "@shared/libs";
+import { priorityOptions } from "@routes/hallazgos/_constants/priorityOptions";
 
 interface Props {
   filters: {
@@ -28,12 +29,7 @@ interface Props {
   };
 }
 
-const priorityOrder = [
-  "Inmediato",
-  "Corto plazo",
-  "Mediano plazo",
-  "Largo plazo",
-];
+const priorityOrder = priorityOptions.map((option) => option.name);
 
 const PriorityInterventionChart = ({ filters }: Props) => {
   const theme = useTheme();

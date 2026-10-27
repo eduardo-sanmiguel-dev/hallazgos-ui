@@ -83,7 +83,7 @@ const ScreenForm = ({
     price: "",
   });
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  const { fail, errorOf, fieldProps } = useFieldErrors<
+  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
     "name" | "manufacturingPlantId"
   >(form);
 
@@ -123,7 +123,7 @@ const ScreenForm = ({
           toast.success("Equipo actualizado correctamente");
           closeDialog();
         });
-    request.finally(() => setIsSaving(false));
+    request.catch(failFromApi).finally(() => setIsSaving(false));
   };
 
   const handleClose = (shouldSave: boolean) => {

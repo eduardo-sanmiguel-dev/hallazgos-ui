@@ -16,8 +16,13 @@ import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import { v4 as uuidv4 } from "uuid";
 
-import { EMPTY_CATALOG, useIcsCatalogs } from "@hooks";
-import { EmployeesService, handleErrorResponse, IcsService } from "@services";
+import {
+  EMPTY_CATALOG,
+  useIcsCatalogs,
+  useIdempotencyKey,
+  useUploadProgress,
+} from "@hooks";
+import { EmployeesService, IcsService } from "@services";
 import { EmployeeOption } from "@interfaces";
 import SelectDefault from "@components/SelectDefault";
 import { Paper, SelectChangeEvent, TextField } from "@mui/material";
@@ -29,6 +34,20 @@ import PageHeader from "@shared/components/PageHeader";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
 
+type IcsField =
+  "manufacturingPlant" | "totalPeople" | "ruleOfLife" | "employees";
+
+// Campos del API → campos del formulario (employeesIds.0 → employees).
+const ICS_API_FIELDS: Record<string, IcsField> = {
+  manufacturingPlantId: "manufacturingPlant",
+  totalPeople: "totalPeople",
+  ruleOfLifeId: "ruleOfLife",
+  employeesIds: "employees",
+};
+
+const icsApiField = (path: string) =>
+  ICS_API_FIELDS[path.split(".")[0]] ?? null;
+
 const IcsFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [idCurrent, setIdCurrent] = useState<number>(0);
@@ -36,6 +55,8 @@ const IcsFormPage = () => {
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [image, setImage] = useState<string>("");
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const upload = useUploadProgress();
+  const submission = useIdempotencyKey();
   const [form, setForm] = useState<{
     totalPeople: string;
     description: string;
@@ -56,7 +77,7 @@ const IcsFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, errorOf, fieldProps } = useFieldErrors<
+  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
     "manufacturingPlant" | "totalPeople" | "ruleOfLife" | "employees"
   >(form);
 
@@ -136,17 +157,24 @@ const IcsFormPage = () => {
     }
 
     if (!idCurrent) {
-      IcsService.create(formData)
+      IcsService.create(formData, {
+        onUploadProgress: upload.onUploadProgress,
+        idempotencyKey: submission.key(),
+      })
         .then(() => {
+          submission.settle();
           toast.success("Ics creado correctamente");
           cancel();
         })
-        // IcsService.create usa axios directo (multipart), sin el interceptor
-        // que avisa los errores: antes un rechazo del API no mostraba nada.
+        // El aviso lo muestra el interceptor; aquí se marcan los campos.
         .catch((error) => {
-          Promise.resolve(handleErrorResponse(error)).catch(() => undefined);
+          submission.settle(error);
+          failFromApi(error, icsApiField);
         })
-        .finally(() => setIsLoading(false));
+        .finally(() => {
+          setIsLoading(false);
+          upload.reset();
+        });
     }
     /* else {
       IcsService.update(idCurrent, payload)
@@ -439,6 +467,7 @@ const IcsFormPage = () => {
             image={image}
             setAttachedFile={setAttachedFile}
             attachedFile={attachedFile}
+            uploadProgress={upload.progress}
           />
         </Grid>
       </FormSection>

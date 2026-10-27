@@ -120,6 +120,9 @@ campo. Sin conexión se ve el mensaje genérico. Todos los errores se titulan
 "¡ Atención !". → El usuario no sabe qué corregir. → Fase 3: formato único de error
 (mensaje en español, código, errores por campo), conectarlo con el `useFieldErrors`
 que ya existe y distinguir "sin conexión" con la acción "Reintentar". [M]
+*Resuelto en la Fase 3 (ver `docs/ux-componentes.md`, sección 3), junto con el
+resto de M3: tiempo límite y "Reintentar" sin perder la foto, con clave de
+idempotencia para no duplicar registros ni correos.*
 
 **A2 · Áreas táctiles (toda la app)** — El tema no ajusta tamaños: los botones miden
 unos 36 px y los botones de ícono pequeños (acciones de tabla) unos 34 px. →
@@ -264,13 +267,61 @@ Por regla del plan, no se modifican.
    marca "comportamiento inseguro" (que no exige foto), pero **nunca lo desmarca**.
    Si se elige esa clasificación y luego se cambia a otra, el formulario deja de
    exigir la evidencia. Falta confirmar si el API lo valida por su cuenta.
+   *Resuelto: ahora lo decide la bandera "Requiere evidencia fotográfica" de cada
+   clasificación, y el API la valida al crear y al cerrar.*
 2. **Acceso por URL directa.** Varias pantallas administrativas solo se ocultan del
    menú; la propia página no bloquea a quien entra por URL. El API sí protege las
    escrituras, pero un usuario sin permiso podría ver pantallas vacías o con errores
    en lugar de un "sin acceso". Conviene revisar qué consultas de lectura son
    visibles por rol.
+   - *Parte visual resuelta en la Fase 2:* `RouteAccessGuard` muestra
+     `NoAccessState` a quien entra por URL a una página que su menú no muestra,
+     y la página no se monta (ver `docs/ux-componentes.md`).
+   - **Pendiente:** revisar en el API qué consultas de lectura devuelven datos a
+     roles que no deberían verlos. El bloqueo de la UI no lo evita: la
+     petición directa al API sigue respondiendo.
 3. **Aviso de `pg`** al guardar entidades con relaciones muchos a muchos. Es interno
    de TypeORM, no afecta hoy y ya está documentado.
+4. **Destinatarios fijos de la planta 3.** Los avisos por correo de los hallazgos de
+   la planta 3 (Hada International) se envían solo a una lista de 6 correos escrita
+   en el código (`PLANT_3_RECIPIENT_EMAILS` en
+   `hallazgos-api/src/users/users.service.ts`), filtrada a los usuarios activos de
+   esa planta.
+   - *Corregido (2026-10-24):* la comparación distinguía mayúsculas. Consulta de
+     solo lectura en producción: 4 de los 6 correos de la lista están escritos
+     distinto que en la base (`Dspaggiari@`, `Aholguin@`, `Cvelasquez@`,
+     `Btorres@`), y 3 de ellos son de la planta 3. Solo se avisaba a 1 persona
+     (`sst@`); con la corrección se avisa a 4.
+   - Los otros 2 de la lista (`strujillo@` y `dspaggiari@`) existen y están
+     activos, pero no tienen asignada la planta 3, así que siguen sin recibir
+     avisos. Conviene confirmar si deben tenerla.
+   - **Pendiente:** mover la lista a configuración (variable de entorno o
+     catálogo editable por un administrador). Hoy cambiar quién recibe los avisos
+     requiere un despliegue.
+5. **Prueba intermitente de extintores (pendiente).** En el API,
+   `registra una inspección y descarga su formato (Excel)`
+   (`test/db/gemba-extinguishers.db-spec.ts`) falló una vez en la corrida completa
+   de `pnpm test:db` y pasó en la siguiente sin cambios. No tiene relación con los
+   cambios de hallazgos; falta investigar la causa.
+6. **Etiquetas de prioridad invertidas.** Se guarda solo el número de días
+   (`priorityDays`); el vencimiento se calcula con la fecha de registro más esos
+   días, así que ningún vencimiento está mal. Lo que cambió fue el nombre de cada
+   plazo:
+   - Hasta el 26-jun-2026 la UI guardaba "Inmediato" = 8 días y "Corto plazo" =
+     2 días (también la carga inicial del 4-may, ids 3176–3496). Desde entonces,
+     formulario, tabla, detalle y correos usan Inmediato = 2 y Corto plazo = 8,
+     pero el dashboard siguió con el mapeo anterior.
+   - *Corregido (2026-10-27):* un solo mapeo en el API
+     (`src/shared/constants/priority.ts`, para dashboard, correos y carga
+     inicial) y uno en la UI (`priorityOptions.ts`): Inmediato = 2 días (riesgo
+     Crítico), Corto plazo = 8 (Alto), Mediano plazo = 15 (Medio) y Largo plazo
+     = 30 (Bajo).
+   - **Se decidió conservar los días guardados.** Por eso, los hallazgos
+     anteriores al 27-jun-2026 pueden mostrar una etiqueta de prioridad distinta
+     a la que eligió quien los capturó: quien eligió "Inmediato (8 días)" ahora
+     ve "Corto plazo (8 días)", y al revés. Son unos 304 hallazgos con 2 u 8
+     días; otros 16, del 4 al 26 de junio, no se puede saber con cuál mapeo se
+     capturaron.
 
 ---
 

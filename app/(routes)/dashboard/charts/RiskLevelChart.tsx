@@ -12,6 +12,7 @@ import "highcharts/esm/modules/accessibility.src.js";
 import { ResponseDashboardRiskLevelByFilters } from "@interfaces";
 import { DashboardService } from "@services";
 import { optionsChartDefault } from "@shared/libs";
+import { RISK_LEVEL_ORDER } from "@routes/hallazgos/_constants/priorityOptions";
 
 interface Props {
   filters: {
@@ -28,7 +29,7 @@ interface Props {
   };
 }
 
-const riskOrder = ["Bajo", "Medio", "Alto", "Critico"];
+const riskOrder = RISK_LEVEL_ORDER;
 
 const RiskLevelChart = ({ filters }: Props) => {
   const theme = useTheme();

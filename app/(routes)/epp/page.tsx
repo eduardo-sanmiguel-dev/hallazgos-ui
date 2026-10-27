@@ -11,7 +11,7 @@ import FiltersEpp, {
   DEFAULT_FILTERS_EPP,
   type IFiltersEpp,
 } from "./_components/FiltersEpp";
-import { usePaginatedList } from "@hooks";
+import { useIdempotencyKey, usePaginatedList } from "@hooks";
 import { useUserSessionStore } from "@store";
 import { EppService } from "@services";
 import { EppSortableColumn } from "@interfaces";
@@ -25,6 +25,8 @@ export default function EppPage() {
   const [order, setOrder] = useState<SortOrder>("asc");
   const [orderBy, setOrderBy] = useState<EppSortableColumn | null>(null);
   const [filters, setFilters] = useState<IFiltersEpp>(DEFAULT_FILTERS_EPP);
+  // Una clave por entrega: un reintento tras un corte no la duplica.
+  const submission = useIdempotencyKey();
 
   const manufacturingPlants = useUserSessionStore(
     (state) => state.manufacturingPlants,
@@ -75,11 +77,21 @@ export default function EppPage() {
         open={open}
         create={(form) => {
           const confirm = Object.keys(form).length > 0;
-          if (!confirm) return setOpen(false);
-          return EppService.create(form).then(() => {
-            setOpen(false);
-            getData();
-          });
+          if (!confirm) {
+            // Se descartó lo capturado: la próxima entrega es otra.
+            submission.settle();
+            return setOpen(false);
+          }
+          return EppService.create(form, { idempotencyKey: submission.key() })
+            .then(() => {
+              submission.settle();
+              setOpen(false);
+              getData();
+            })
+            .catch((error) => {
+              submission.settle(error);
+              throw error;
+            });
         }}
       />
       <PageHeader title="EPP - Equipos de protección personal">

@@ -54,10 +54,51 @@ test.describe("Sin datos", () => {
       await emptyPages(page);
       await page.goto(route);
       await expect(page.getByText(/^0 registros$/).first()).toBeVisible();
+      // La tabla dice que no hay datos (antes solo mostraba encabezados).
+      // EPP tiene su propio mensaje.
+      if (route !== "/epp") {
+        await expect(page.getByText(/^Sin registros/).first()).toBeVisible();
+      }
       await page.waitForLoadState("networkidle");
       expect(errors).toEqual([]);
     });
   }
+
+  test("si la lista no carga, lo dice y deja reintentar", async ({ page }) => {
+    let fail = true;
+    await page.route(
+      (url) => url.pathname.endsWith("/api/v1/zones") && url.searchParams.has("page"),
+      (route) =>
+        fail
+          ? route.fulfill({ status: 500, json: { message: "E2E caído" } })
+          : route.fulfill({
+              json: {
+                data: [
+                  {
+                    id: 9701,
+                    name: "E2E Lugar recuperado",
+                    isActive: true,
+                    createdAt: "2026-10-01T12:00:00.000Z",
+                    updatedAt: "2026-10-01T12:00:00.000Z",
+                    manufacturingPlant: { id: 1, name: "Planta" },
+                  },
+                ],
+                count: 1,
+              },
+            }),
+    );
+    await page.goto("/zones");
+
+    const alert = page.getByRole("alert").filter({ hasText: "No se pudo cargar" });
+    await expect(alert).toBeVisible();
+    // No se confunde con "no hay datos".
+    await expect(page.getByText(/^Sin registros/)).toHaveCount(0);
+
+    fail = false;
+    await alert.getByRole("button", { name: "Reintentar" }).click();
+    await expect(page.getByText("E2E Lugar recuperado")).toBeVisible();
+    await expect(alert).toHaveCount(0);
+  });
 
   test("análisis de datos EPP con y sin datos", async ({ page }) => {
     const errors = trackPageErrors(page);

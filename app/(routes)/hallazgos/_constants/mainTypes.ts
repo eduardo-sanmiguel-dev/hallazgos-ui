@@ -1,6 +1,8 @@
 /**
- * Clasificación que no exige foto: se reporta con descripción. Misma regla
- * que el API (isUnsafeBehaviorType en evidences.service.ts).
+ * Si la clasificación exige foto de evidencia (al crear y al cerrar). La
+ * decide la bandera `requiresEvidence` del catálogo, la misma que valida el
+ * API. Si la respuesta no la trae, se exige la foto.
  */
-export const isUnsafeBehaviorType = (mainTypeName = "") =>
-  mainTypeName.toLocaleLowerCase().includes("comportamiento inseguro");
+export const requiresPhotoEvidence = (
+  mainType?: { requiresEvidence?: boolean | null } | null,
+) => mainType?.requiresEvidence !== false;

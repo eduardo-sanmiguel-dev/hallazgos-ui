@@ -61,8 +61,9 @@ test.describe("Hallazgos", () => {
     await expect(create).toBeDisabled();
 
     await pickOption(page, "Planta");
-    // Un tipo que no sea "comportamiento inseguro": exige evidencia.
-    await pickOption(page, "Hallazgo", /^(?!.*[Cc]omportamiento inseguro)/);
+    // Clasificación conocida que exige foto y tiene tipos (la primera de la
+    // lista puede ser una recién creada sin tipos).
+    await pickOption(page, "Hallazgo", /^Condición insegura$/);
     await pickOption(page, "Tipo");
     await pickOption(page, "Lugar");
     await pickOption(page, "Proceso");
@@ -161,7 +162,7 @@ test.describe("Hallazgos", () => {
       .fill("Clasificación cambiada e2e (no se guarda)");
     await expect(create).toBeEnabled();
 
-    await pickOption(page, "Hallazgo", /^(?!.*[Cc]omportamiento inseguro)/);
+    await pickOption(page, "Hallazgo", /^Condición insegura$/);
     await pickOption(page, "Tipo");
     await expect(create).toBeDisabled();
     expect(writes).toEqual([]);

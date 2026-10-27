@@ -14,9 +14,15 @@ import { Box } from "@mui/material";
 import { Grid } from "@mui/material";
 import { v4 as uuidv4 } from "uuid";
 
-import { EvidencesService, handleErrorResponse, UsersService } from "@services";
+import { EvidencesService, UsersService } from "@services";
 import { useUserSessionStore } from "@store";
-import { EMPTY_CATALOG, useMainTypes, useProcesses, useZones } from "@hooks";
+import {
+  EMPTY_CATALOG,
+  useIdempotencyKey,
+  useMainTypes,
+  useProcesses,
+  useZones,
+} from "@hooks";
 import ImageORCamera from "@shared/components/ImageORCamera";
 import { dataURLtoFile, notify } from "@shared/utils";
 import SelectDefault from "@components/SelectDefault";
@@ -25,7 +31,7 @@ import {
   formatDayLabel,
   priorityOptions,
 } from "@routes/hallazgos/_constants/priorityOptions";
-import { isUnsafeBehaviorType } from "@routes/hallazgos/_constants/mainTypes";
+import { requiresPhotoEvidence } from "@routes/hallazgos/_constants/mainTypes";
 
 import "./form.css";
 
@@ -66,6 +72,7 @@ export default function HallazgosFormPage() {
   );
 
   const router = useRouter();
+  const submission = useIdempotencyKey();
 
   // Por contenido y no por referencia: cada setSession trae un arreglo nuevo
   // (aunque sea igual) y no debe borrar la planta ya elegida.
@@ -140,7 +147,7 @@ export default function HallazgosFormPage() {
       !currentDescription ||
       !supervisor;
 
-    // Cuando no es un comportamiento inseguro, se valida que haya imagen o archivo adjunto
+    // Si la clasificación exige foto, se valida que haya imagen o archivo adjunto
     if (!isUnsafeBehavior) {
       validate = validate || (!image && !attachedFile);
     }
@@ -191,12 +198,15 @@ export default function HallazgosFormPage() {
     }
 
     setIsLoading(true);
-    EvidencesService.create(formData)
+    // Sin conexión o tiempo agotado: el aviso trae "Reintentar" y la foto y
+    // los datos siguen aquí; la misma clave evita un hallazgo duplicado.
+    EvidencesService.create(formData, { idempotencyKey: submission.key() })
       .then(() => {
+        submission.settle();
         notify("Hallazgo creado correctamente", true);
         router.push("/hallazgos");
       })
-      .catch(handleErrorResponse)
+      .catch(submission.settle)
       .finally(() => setIsLoading(false));
   };
 
@@ -207,7 +217,7 @@ export default function HallazgosFormPage() {
       (data) => data.id === Number(value ?? 0),
     );
 
-    setIsUnsafeBehavior(isUnsafeBehaviorType(mainTypeCurrent?.name));
+    setIsUnsafeBehavior(!requiresPhotoEvidence(mainTypeCurrent));
   };
 
   return (
@@ -364,14 +374,10 @@ export default function HallazgosFormPage() {
               fullWidth
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              label={
-                currentDescription
-                  ? "Descripción del comportamiento inseguro"
-                  : ""
-              }
+              label={currentDescription ? "Describe lo que observaste" : ""}
               helperText={
                 !currentDescription
-                  ? "Por favor, ingrese una descripción del comportamiento inseguro"
+                  ? "Describe lo que observaste para poder guardar."
                   : ""
               }
               error={!currentDescription}

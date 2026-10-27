@@ -33,7 +33,7 @@ const GembaWalkEvaluationsFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, errorOf, fieldProps } = useFieldErrors<
+  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
     | "manufacturingPlantId"
     | "category"
     | "area"
@@ -91,6 +91,7 @@ const GembaWalkEvaluationsFormPage = () => {
         );
         cancel();
       })
+      .catch(failFromApi)
       .finally(() => setIsLoading(false));
   };
 

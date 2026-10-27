@@ -5,6 +5,8 @@ import { expect, type Page } from "@playwright/test";
  * un formulario o detrás de un diálogo) no hace nada.
  */
 export const openFilters = async (page: Page) => {
+  // La página se pinta cuando ya se conoce la sesión (RouteAccessGuard).
+  await expect(page.locator("[data-route-access=pending]")).toHaveCount(0);
   const toggle = page
     .getByRole("region", { name: "Filtros" })
     .getByRole("button", { name: /^Filtros/ });

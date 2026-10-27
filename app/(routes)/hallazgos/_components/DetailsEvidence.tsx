@@ -27,6 +27,7 @@ import {
 } from "@routes/hallazgos/_constants/priorityOptions";
 import TabsImageAndLogs from "./TabsImageAndLogs";
 import { EvidenceGraphql } from "@hooks";
+import { requiresPhotoEvidence } from "@routes/hallazgos/_constants/mainTypes";
 
 interface Props {
   evidenceCurrent: EvidenceGraphql;
@@ -52,10 +53,7 @@ export default function DetailsTabs({
 
   useEffect(() => {
     if (!evidenceCurrent) return;
-    const { name } = evidenceCurrent.mainType;
-    setIsUnsafeBehavior(
-      name.toLocaleLowerCase().includes("comportamiento inseguro"),
-    );
+    setIsUnsafeBehavior(!requiresPhotoEvidence(evidenceCurrent.mainType));
   }, [evidenceCurrent]);
 
   const statusColor = useMemo(() => {
@@ -293,9 +291,7 @@ export default function DetailsTabs({
               DESCRIPCIÓN
             </Typography>
             <Box>
-              <Typography sx={rowLabelSx}>
-                Descripción del comportamiento inseguro
-              </Typography>
+              <Typography sx={rowLabelSx}>Lo que se observó</Typography>
               <Typography variant="body2">
                 {evidenceCurrent.description || "-"}
               </Typography>
@@ -303,9 +299,7 @@ export default function DetailsTabs({
 
             {isUnsafeBehavior && evidenceCurrent.descriptionSolution && (
               <Box>
-                <Typography sx={rowLabelSx}>
-                  Descripción de la solución del comportamiento inseguro
-                </Typography>
+                <Typography sx={rowLabelSx}>Cómo se resolvió</Typography>
                 <Typography variant="body2">
                   {evidenceCurrent.descriptionSolution}
                 </Typography>

@@ -29,6 +29,15 @@ import PageHeader from "@shared/components/PageHeader";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
 
+// Campos del API con otro nombre en el formulario. El género no se marca
+// junto a un campo: queda en el aviso.
+const EMPLOYEE_API_FIELDS = {
+  areaId: "area",
+  positionId: "position",
+  manufacturingPlantsIds: "manufacturingPlantNames",
+  genderId: null,
+};
+
 const EmployeesFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [idCurrent, setIdCurrent] = useState<number>(0);
@@ -55,7 +64,7 @@ const EmployeesFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, errorOf, fieldProps } = useFieldErrors<
+  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
     | "code"
     | "name"
     | "birthdate"
@@ -141,6 +150,7 @@ const EmployeesFormPage = () => {
           toast.success("Colaborador creado correctamente");
           cancel();
         })
+        .catch((error) => failFromApi(error, EMPLOYEE_API_FIELDS))
         .finally(() => setIsLoading(false));
     } else {
       EmployeesService.update(idCurrent, payload)
@@ -148,6 +158,7 @@ const EmployeesFormPage = () => {
           toast.success("Colaborador actualizado correctamente");
           cancel();
         })
+        .catch((error) => failFromApi(error, EMPLOYEE_API_FIELDS))
         .finally(() => setIsLoading(false));
     }
   };

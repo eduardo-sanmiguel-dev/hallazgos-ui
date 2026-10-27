@@ -1,9 +1,19 @@
+// Único mapeo de prioridad de la UI (formulario, tabla, detalle y gráficas
+// del dashboard). Se guardan solo los días; el API usa el mismo mapeo en
+// hallazgos-api/src/shared/constants/priority.ts. Hasta el 26-jun-2026
+// "Inmediato" era 8 días: los hallazgos de antes conservan sus días y pueden
+// mostrar otra etiqueta (docs/ux-auditoria.md, sección 5).
 export const priorityOptions = [
-  { name: "Inmediato", days: 2 },
-  { name: "Corto plazo", days: 8 },
-  { name: "Mediano plazo", days: 15 },
-  { name: "Largo plazo", days: 30 },
-];
+  { name: "Inmediato", days: 2, riskLevel: "Critico" },
+  { name: "Corto plazo", days: 8, riskLevel: "Alto" },
+  { name: "Mediano plazo", days: 15, riskLevel: "Medio" },
+  { name: "Largo plazo", days: 30, riskLevel: "Bajo" },
+] as const;
+
+// Del más bajo al más alto, con los nombres que manda el API.
+export const RISK_LEVEL_ORDER = priorityOptions
+  .map((option) => option.riskLevel)
+  .reverse();
 
 export const formatDayLabel = (days: number) => {
   const absDays = Math.abs(days);

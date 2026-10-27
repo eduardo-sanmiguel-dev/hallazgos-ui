@@ -29,7 +29,7 @@ const ProcessesFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, errorOf, fieldProps } = useFieldErrors<
+  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
     | "name"
     | "manufacturingPlantId"
   >(form);
@@ -59,6 +59,7 @@ const ProcessesFormPage = () => {
           toast.success("Proceso creado correctamente");
           cancel();
         })
+        .catch(failFromApi)
         .finally(() => setIsLoading(false));
     } else {
       ProcessesService.update(idCurrent, {
@@ -69,6 +70,7 @@ const ProcessesFormPage = () => {
           toast.success("Proceso actualizado correctamente");
           cancel();
         })
+        .catch(failFromApi)
         .finally(() => setIsLoading(false));
     }
   };

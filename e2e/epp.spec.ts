@@ -257,11 +257,10 @@ test.describe("EPP: entregas", () => {
     const add = dialog.getByRole("button", { name: "Agregar" });
     const quitar = dialog.getByRole("button", { name: "Quitar E2E Casco" });
 
-    // Falla la red: aviso de error, no se agrega y el botón vuelve a estar listo.
+    // Falla la red: aviso "Sin conexión" (antes, el mensaje genérico), no se
+    // agrega y el botón vuelve a estar listo.
     await add.click();
-    await expect(
-      toast(page, /Se produjo un error al procesar su solicitud/),
-    ).toBeVisible();
+    await expect(toast(page, "Sin conexión")).toBeVisible();
     await expect(quitar).toHaveCount(0);
     await expect(add).toBeEnabled();
 

@@ -1,6 +1,5 @@
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
-import { Chip } from "@mui/material";
 import { Menu } from "@mui/material";
 import { MenuItem } from "@mui/material";
 import { ListItemIcon } from "@mui/material";
@@ -13,10 +12,6 @@ import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutlineOutlined";
 import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
-import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
-import PendingActionsIcon from "@mui/icons-material/PendingActions";
-import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import IconButton from "@mui/material/IconButton";
 
 import {
@@ -46,6 +41,8 @@ import { EvidencesService } from "@services";
 import { EvidenceGraphql } from "@hooks";
 import TableDefaultServer from "@shared/components/TableDefaultServer";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
+import StatusChip, { EvidenceStatusChip } from "@shared/components/StatusChip";
+import { DEADLINE_TONE } from "@shared/constants/semanticTones";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import {
   formatDayLabel,
@@ -391,28 +388,8 @@ export default function TableEvidences({
                     .join(", ")}
             </StyledTableCell>
             <StyledTableCell>
-              <Chip
-                icon={
-                  row.status === STATUS_OPEN ? (
-                    <HourglassEmptyIcon />
-                  ) : row.status === STATUS_CLOSED ? (
-                    <CheckCircleOutlineIcon />
-                  ) : row.status === STATUS_IN_PROGRESS ? (
-                    <PendingActionsIcon />
-                  ) : (
-                    <CancelOutlinedIcon />
-                  )
-                }
-                label={row.status}
-                color={
-                  row.status === STATUS_OPEN
-                    ? "warning"
-                    : row.status === STATUS_CLOSED
-                      ? "success"
-                      : row.status === STATUS_IN_PROGRESS
-                        ? "info"
-                        : "error"
-                }
+              <EvidenceStatusChip
+                status={row.status}
                 onClick={() => setEvidenceCurrent(row)}
                 clickable
               />
@@ -494,9 +471,9 @@ export default function TableEvidences({
                     remainingDaysNumber < 0
                   ) {
                     return (
-                      <Chip
+                      <StatusChip
                         label="Vencido"
-                        color="error"
+                        tone={DEADLINE_TONE.overdue}
                         size="small"
                         sx={{ mt: 0.25 }}
                       />
@@ -531,13 +508,17 @@ export default function TableEvidences({
                         </span>
                       )}
                       {resolution && resolution.isOnTime !== null && (
-                        <Chip
+                        <StatusChip
                           label={
                             resolution.isOnTime
                               ? "En tiempo"
                               : `Fuera de tiempo (${formatDayLabel(resolution.daysLate)})`
                           }
-                          color={resolution.isOnTime ? "success" : "error"}
+                          tone={
+                            DEADLINE_TONE[
+                              resolution.isOnTime ? "onTime" : "late"
+                            ]
+                          }
                           size="small"
                           sx={{ mt: 0.25 }}
                         />
@@ -618,7 +599,7 @@ export default function TableEvidences({
                     setEvidenceCurrent(row);
                   }}
                 >
-                  <ListItemIcon sx={{ color: "primary.main" }}>
+                  <ListItemIcon sx={{ color: "text.brand" }}>
                     <InfoIcon fontSize="small" />
                   </ListItemIcon>
                   <ListItemText>Ver detalles</ListItemText>

@@ -4,7 +4,6 @@ import {
   Fragment,
   MouseEvent,
   ReactNode,
-  useEffect,
   useRef,
   useState,
 } from "react";
@@ -56,7 +55,7 @@ import PersonSearchIcon from "@mui/icons-material/PersonSearch";
 import { useUserSessionStore } from "@store";
 import { ROLE_ADMINISTRADOR } from "@shared/constants";
 import { primaryTextColor } from "../../theme";
-import { GembaWalksService } from "@services";
+import { useGembaWalkAccess } from "@hooks/useGembaWalkAccess";
 
 // Usuarios que solo usan EPP: ven EPP e inspección de extintores, pero no
 // HDS.
@@ -339,6 +338,47 @@ const visibleSections = (sections: MenuSection[], ctx: MenuContext) =>
       }),
     }))
     .filter((section) => section.entries.length);
+
+const sectionsFor = (email: string) =>
+  email === HDS_ONLY_EMAIL ? HDS_ONLY_SECTIONS : MENU_SECTIONS;
+
+const flattenLinks = (sections: MenuSection[]) =>
+  sections.flatMap((section) =>
+    section.entries.flatMap((entry) => (isGroup(entry) ? entry.items : [entry])),
+  );
+
+const ALL_LINKS = flattenLinks(MENU_SECTIONS);
+
+// `/epp` es dueño de `/epp` y `/epp/...`, no de `/eppx`.
+const ownsPath = (url: string, pathname: string) =>
+  pathname === url || pathname.startsWith(`${url}/`);
+
+export type RouteAccessContext = MenuContext;
+
+// La opción del menú que contiene la ruta: la de URL más larga que sea su
+// prefijo (`/gemba-walk/zones/form` → "Zonas" de Gemba Walk, no "Gemba Walk").
+const menuOwnerOf = (pathname: string) =>
+  ALL_LINKS.filter((link) => ownsPath(link.url, pathname)).sort(
+    (a, b) => b.url.length - a.url.length,
+  )[0];
+
+// Una página se puede ver si su opción del menú es visible para el usuario.
+// Así la página y el menú nunca se contradicen. Las rutas que no están en el
+// menú no se bloquean aquí. Es solo para la UI: el API valida cada petición.
+export const canAccessPath = (pathname: string, ctx: RouteAccessContext) => {
+  const owner = menuOwnerOf(pathname);
+  if (!owner) return true;
+
+  return flattenLinks(visibleSections(sectionsFor(ctx.email), ctx)).some(
+    (link) => link.url === owner.url,
+  );
+};
+
+// Primera página del menú que el usuario puede ver (inicio alternativo para
+// quien no tiene acceso al dashboard).
+export const firstAccessiblePath = (ctx: RouteAccessContext) =>
+  flattenLinks(visibleSections(sectionsFor(ctx.email), ctx))[0]?.url ??
+  "/dashboard";
 
 const isLinkSelected = (link: MenuLinkConfig, pathname: string) =>
   link.isSelected ? link.isSelected(pathname) : pathname.startsWith(link.url);
@@ -642,7 +682,9 @@ export const MainListItems = ({
   // Se llama al elegir una opción (en móvil cierra el menú).
   onNavigate?: () => void;
 }) => {
-  const [isGembaWalkObserver, setIsGembaWalkObserver] = useState(false);
+  // El módulo de recorridos se muestra a los observadores de Gemba Walk y al
+  // administrador.
+  const isGembaWalkObserver = useGembaWalkAccess();
 
   const role = useUserSessionStore((state) => state.role);
   const email = useUserSessionStore((state) => state.email);
@@ -650,18 +692,11 @@ export const MainListItems = ({
 
   const isAdmin = role === ROLE_ADMINISTRADOR;
 
-  // El módulo de recorridos se muestra a los observadores de Gemba Walk y al
-  // administrador.
-  useEffect(() => {
-    GembaWalksService.access()
-      .then(({ isObserver }) => setIsGembaWalkObserver(isObserver))
-      .catch(() => setIsGembaWalkObserver(false));
-  }, []);
-
-  const sections = visibleSections(
-    email === HDS_ONLY_EMAIL ? HDS_ONLY_SECTIONS : MENU_SECTIONS,
-    { isAdmin, email, isGembaWalkObserver },
-  );
+  const sections = visibleSections(sectionsFor(email), {
+    isAdmin,
+    email,
+    isGembaWalkObserver,
+  });
 
   // Grupo que contiene la ruta actual: se abre automáticamente.
   const activeGroupId =

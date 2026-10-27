@@ -34,7 +34,7 @@ const SecondaryTypesFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, errorOf, fieldProps } = useFieldErrors<
+  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
     | "name"
     | "mainTypeId"
     | "typeResponsible"
@@ -74,6 +74,7 @@ const SecondaryTypesFormPage = () => {
           toast.success("Tipo de criterio creado correctamente");
           cancel();
         })
+        .catch(failFromApi)
         .finally(() => setIsLoading(false));
     } else {
       SecondaryTypesService.update(idCurrent, payload)
@@ -81,6 +82,7 @@ const SecondaryTypesFormPage = () => {
           toast.success("Tipo de criterio actualizado correctamente");
           cancel();
         })
+        .catch(failFromApi)
         .finally(() => setIsLoading(false));
     }
   };

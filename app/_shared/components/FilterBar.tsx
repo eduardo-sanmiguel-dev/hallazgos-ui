@@ -153,7 +153,7 @@ export default function FilterBar({
             <FilterListIcon
               fontSize="small"
               aria-hidden
-              sx={{ color: hasActive ? "primary.main" : "text.secondary" }}
+              sx={{ color: hasActive ? "text.brand" : "text.secondary" }}
             />
             <span id={titleId}>Filtros</span>
             {hasActive && (

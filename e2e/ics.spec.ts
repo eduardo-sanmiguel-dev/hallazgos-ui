@@ -95,9 +95,15 @@ test.describe("ICS", () => {
 
     await totalPeople(page).fill("5");
     await page.getByLabel("Descripción (opcional)").fill("  E2E sin casco  ");
-    await page.getByRole("button", { name: "Capturar evidencia" }).click();
+    // Alternativa a la cámara del teléfono: la del navegador. La foto se
+    // comprime y se sube como JPG (antes, un PNG al tamaño del visor).
+    await page
+      .getByRole("button", { name: "Usar cámara del navegador" })
+      .click();
     await page.locator("#outer-circle").click();
-    await expect(page.getByAltText("Hallazgo")).toBeVisible();
+    await expect(
+      page.getByAltText("Vista previa de la evidencia"),
+    ).toBeVisible();
 
     await saveButton(page).click();
     await expect(toast(page, "Ics creado correctamente")).toBeVisible();
@@ -120,7 +126,7 @@ test.describe("ICS", () => {
       expect(fields).toContain(`name="${name}"\r\n\r\n${value}\r\n`);
     }
     expect(fields).toMatch(
-      /name="file"; filename="[0-9a-f-]{36}-evidence\.png"/,
+      /name="file"; filename="[0-9a-f-]{36}-evidence\.jpg"/,
     );
     expect(errors).toEqual([]);
   });
@@ -137,13 +143,16 @@ test.describe("ICS", () => {
     ).toHaveCount(0);
     await totalPeople(page).fill("3");
     await pickMany(page, "Personas que no cumplen con el estándar *");
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.getByLabel("Elegir de galería").setInputFiles({
       name: "evidencia.png",
       mimeType: "image/png",
       buffer: PNG_1X1,
     });
-    // La imagen se comprime antes de adjuntarse; su vista previa lo indica.
-    await expect(page.getByAltText("Mountains")).toBeVisible();
+    // La imagen se comprime antes de adjuntarse (un PNG sigue siendo PNG);
+    // su vista previa lo indica.
+    await expect(
+      page.getByAltText("Vista previa de la evidencia"),
+    ).toBeVisible();
 
     await saveButton(page).click();
     await expect(toast(page, "Ics creado correctamente")).toBeVisible();

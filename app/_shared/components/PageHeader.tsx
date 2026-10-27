@@ -3,6 +3,8 @@ import { ReactNode } from "react";
 import { Box } from "@mui/material";
 import { Typography } from "@mui/material";
 
+import { TOUCH_MEDIA } from "../../theme";
+
 interface PageHeaderProps {
   title: string;
   description?: ReactNode;
@@ -60,8 +62,11 @@ export default function PageHeader({
             "& > .MuiButton-contained": {
               flex: { xs: "1 1 auto", sm: "0 0 auto" },
             },
-            // Botones de al menos 40 px de alto: más fáciles de tocar.
-            "& > .MuiButton-root": { minHeight: 40 },
+            // Botones de al menos 40 px de alto (48 px en pantallas táctiles).
+            "& > .MuiButton-root": {
+              minHeight: 40,
+              [TOUCH_MEDIA]: { minHeight: 48 },
+            },
           }}
         >
           {children}

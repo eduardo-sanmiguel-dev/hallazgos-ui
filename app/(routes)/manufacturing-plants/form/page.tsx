@@ -29,7 +29,7 @@ const ManufacturingPlantsFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, fieldProps } = useFieldErrors<
+  const { fail, failFromApi, fieldProps } = useFieldErrors<
     | "name"
     | "link"
     | "lat"
@@ -75,6 +75,7 @@ const ManufacturingPlantsFormPage = () => {
           toast.success("Planta creada correctamente");
           cancel();
         })
+        .catch(failFromApi)
         .finally(() => setIsLoading(false));
     } else {
       ManufacturingPlantsService.update(idCurrent, {
@@ -87,6 +88,7 @@ const ManufacturingPlantsFormPage = () => {
           toast.success("Planta actualizada correctamente");
           cancel();
         })
+        .catch(failFromApi)
         .finally(() => setIsLoading(false));
     }
   };

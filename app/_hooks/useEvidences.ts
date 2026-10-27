@@ -60,6 +60,7 @@ const query = gql`
         }
         mainType {
           name
+          requiresEvidence
         }
         secondaryType {
           name
@@ -126,7 +127,7 @@ export interface EvidenceGraphql {
   imgSolution: string;
   manufacturingPlant: IdAndName;
   user: OnlyName;
-  mainType: OnlyName;
+  mainType: OnlyName & { requiresEvidence?: boolean | null };
   secondaryType: OnlyName;
   supervisors: { id: number; name: string }[];
   responsibles: { id: number; name: string }[];

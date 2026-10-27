@@ -12,8 +12,10 @@ import SaveIcon from "@mui/icons-material/Save";
 import { v4 as uuidv4 } from "uuid";
 
 import { dataURLtoFile, notify } from "@shared/utils";
-import { EvidencesService, handleErrorResponse } from "@services";
+import { EvidencesService } from "@services";
 import ImageORCamera from "@shared/components/ImageORCamera";
+import { useUploadProgress } from "@hooks/useUploadProgress";
+import { useIdempotencyKey } from "@hooks/useIdempotencyKey";
 
 export const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -38,6 +40,9 @@ export default function StartProcessEvidence({
   const [image, setImage] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const upload = useUploadProgress();
+  // Por hallazgo: el diálogo se reutiliza entre filas.
+  const submission = useIdempotencyKey(idRow);
 
   const saveProcessStart = () => {
     const formData = new FormData();
@@ -52,13 +57,20 @@ export default function StartProcessEvidence({
     }
 
     setIsLoading(true);
-    EvidencesService.processStart(idRow, formData)
+    EvidencesService.processStart(idRow, formData, {
+      onUploadProgress: upload.onUploadProgress,
+      idempotencyKey: submission.key(),
+    })
       .then(() => {
+        submission.settle();
         notify("Estatus actualizado a En progreso", true);
         handleClose(true);
       })
-      .catch(handleErrorResponse)
-      .finally(() => setIsLoading(false));
+      .catch(submission.settle)
+      .finally(() => {
+        setIsLoading(false);
+        upload.reset();
+      });
   };
 
   const isDisabled = useMemo(
@@ -99,6 +111,7 @@ export default function StartProcessEvidence({
           image={image}
           setAttachedFile={setAttachedFile}
           attachedFile={attachedFile}
+          uploadProgress={upload.progress}
         />
       </DialogContent>
       <DialogActions sx={{ justifyContent: "center" }}>

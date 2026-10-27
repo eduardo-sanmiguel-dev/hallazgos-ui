@@ -125,6 +125,27 @@ test.describe("Gemba Walk: edición del calendario", () => {
     await expect(save).toBeDisabled();
   });
 
+  test("al cancelar con cambios pendientes confirma antes de salir", async ({
+    page,
+  }) => {
+    await openCalendar(page);
+    await addEvent(page, 3, "E2E Otra - Pasillo");
+
+    await page.getByRole("button", { name: "Cancelar" }).click();
+    const confirm = page.getByRole("dialog", { name: "Eventos sin guardar" });
+    await expect(confirm).toContainText("1 evento(s) nuevo(s) sin guardar");
+    await confirm.getByRole("button", { name: "Regresar" }).click();
+    await dialogsClosed(page);
+    await expect(page).toHaveURL(/\/gemba-walk\/calendar\/form/);
+
+    await page.getByRole("button", { name: "Cancelar" }).click();
+    await page
+      .getByRole("dialog", { name: "Eventos sin guardar" })
+      .getByRole("button", { name: "Salir sin guardar" })
+      .click();
+    await expect(page).toHaveURL(/\/gemba-walk\/calendar$/);
+  });
+
   test("los eventos pasados no se editan", async ({ page }) => {
     await openCalendar(page);
     await event(page, "E2E Otra - Pasillo").click();

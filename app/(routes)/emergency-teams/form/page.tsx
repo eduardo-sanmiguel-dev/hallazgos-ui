@@ -42,7 +42,7 @@ const EmergencyTeamsFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, errorOf, fieldProps } = useFieldErrors<
+  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
     | "manufacturingPlantId"
     | "location"
     | "extinguisherNumber"
@@ -96,6 +96,7 @@ const EmergencyTeamsFormPage = () => {
           toast.success("Equipo de emergencia creado correctamente");
           cancel();
         })
+        .catch(failFromApi)
         .finally(() => setIsLoading(false));
     } else {
       EmergencyTeamsService.update(idCurrent, payload)
@@ -103,6 +104,7 @@ const EmergencyTeamsFormPage = () => {
           toast.success("Equipo de emergencia actualizado correctamente");
           cancel();
         })
+        .catch(failFromApi)
         .finally(() => setIsLoading(false));
     }
   };

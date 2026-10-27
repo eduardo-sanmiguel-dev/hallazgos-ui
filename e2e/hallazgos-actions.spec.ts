@@ -36,7 +36,11 @@ const evidence = (id: number, overrides: Record<string, unknown>) => ({
   descriptionSolution: "",
   manufacturingPlant: { __typename: "ManufacturingPlant", ...PLANT },
   user: { __typename: "User", name: "E2E Autor" },
-  mainType: { __typename: "MainType", name: "Condición insegura" },
+  mainType: {
+    __typename: "MainType",
+    name: "Condición insegura",
+    requiresEvidence: true,
+  },
   secondaryType: { __typename: "SecondaryType", name: "E2E Tipo" },
   supervisors: [{ __typename: "User", ...SUPERVISOR }],
   responsibles: [],
@@ -61,7 +65,11 @@ const evidence = (id: number, overrides: Record<string, unknown>) => ({
 const EVIDENCES = [
   // Abierto, vencido, comportamiento inseguro, sin responsables asignados.
   evidence(9001, {
-    mainType: { __typename: "MainType", name: "Comportamiento inseguro" },
+    mainType: {
+      __typename: "MainType",
+      name: "Comportamiento inseguro",
+      requiresEvidence: false,
+    },
   }),
   // En progreso, a tiempo, con responsable.
   evidence(9002, {
@@ -251,12 +259,14 @@ test.describe("Hallazgos: acciones", () => {
     });
     const save = dialog.getByRole("button", { name: "Guardar imagen" });
     await expect(save).toBeDisabled();
-    await dialog.locator('input[type="file"]').setInputFiles({
+    await dialog.getByLabel("Tomar foto").setInputFiles({
       name: "proceso.png",
       mimeType: "image/png",
       buffer: PNG_1X1,
     });
-    await expect(dialog.getByAltText("Mountains")).toBeVisible();
+    await expect(
+      dialog.getByAltText("Vista previa de la evidencia"),
+    ).toBeVisible();
     await save.click();
     await expect(
       toast(page, "Estatus actualizado a En progreso"),
@@ -282,7 +292,7 @@ test.describe("Hallazgos: acciones", () => {
       .click();
     const dialog = page.getByRole("dialog", { name: /Imagen la solución/ });
     await expect(
-      dialog.getByText("Descripción del comportamiento inseguro:"),
+      dialog.getByText("Lo que se observó:"),
     ).toBeVisible();
     const save = dialog.getByRole("button", { name: "Guardar imagen" });
     await expect(save).toBeDisabled();
@@ -312,12 +322,18 @@ test.describe("Hallazgos: acciones", () => {
       .getByRole("menuitem", { name: "Cerrar hallazgo" })
       .click();
     const dialog = page.getByRole("dialog", { name: /Imagen la solución/ });
-    await dialog.locator('input[type="file"]').setInputFiles({
+    // Clasificación con foto obligatoria: sin imagen no se puede guardar.
+    await expect(
+      dialog.getByRole("button", { name: "Guardar imagen" }),
+    ).toBeDisabled();
+    await dialog.getByLabel("Tomar foto").setInputFiles({
       name: "solucion.png",
       mimeType: "image/png",
       buffer: PNG_1X1,
     });
-    await expect(dialog.getByAltText("Mountains")).toBeVisible();
+    await expect(
+      dialog.getByAltText("Vista previa de la evidencia"),
+    ).toBeVisible();
     await dialog.getByRole("button", { name: "Guardar imagen" }).click();
     await confirmClose(page, 9002).click();
     await expect(toast(page, "Hallazgo cerrado correctamente")).toBeVisible();
@@ -325,6 +341,43 @@ test.describe("Hallazgos: acciones", () => {
       /filename="[0-9a-f-]{36}-solution\.png"/,
     );
   });
+
+  // La bandera del catálogo decide, no el nombre: un "comportamiento inseguro"
+  // con la bandera en true (o sin ella en la respuesta) exige la foto.
+  for (const [label, mainType] of [
+    ["bandera en true", { requiresEvidence: true }],
+    ["sin bandera", {}],
+  ] as const) {
+    test(`al cerrar exige la foto según la bandera (${label})`, async ({
+      page,
+    }) => {
+      await openList(page, {
+        asSupervisor: true,
+        data: [
+          evidence(9001, {
+            mainType: {
+              __typename: "MainType",
+              name: "Comportamiento inseguro",
+              ...mainType,
+            },
+          }),
+        ],
+      });
+
+      await (
+        await openActions(page, 9001)
+      )
+        .getByRole("menuitem", { name: "Cerrar hallazgo" })
+        .click();
+      const dialog = page.getByRole("dialog", { name: /Imagen la solución/ });
+      await expect(
+        dialog.locator("#description-multiline-solution"),
+      ).toHaveCount(0);
+      await expect(
+        dialog.getByRole("button", { name: "Guardar imagen" }),
+      ).toBeDisabled();
+    });
+  }
 
   test("al cerrar, 'Revisar' no envía nada y conserva lo capturado", async ({
     page,
@@ -347,7 +400,9 @@ test.describe("Hallazgos: acciones", () => {
       name: "¿Cerrar el hallazgo #9001?",
     });
     await expect(
-      confirm.getByText("Ya no se podrá modificar", { exact: false }),
+      confirm.getByText(
+        "Ya no se podrá modificar y se enviará un aviso por correo.",
+      ),
     ).toBeVisible();
     await confirm.getByRole("button", { name: "Revisar" }).click();
 

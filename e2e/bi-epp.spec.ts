@@ -91,8 +91,12 @@ test.describe("Análisis de datos EPP", () => {
         requested = true;
     });
 
+    // Antes redirigía al dashboard; ahora dice que no tiene acceso, igual
+    // que el resto de páginas ocultas del menú.
     await page.goto("/business-intelligence/epp");
-    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(
+      page.getByText("No tienes acceso a esta sección"),
+    ).toBeVisible();
     expect(requested).toBe(false);
 
     await page.getByRole("button", { name: "Abrir menú" }).click();

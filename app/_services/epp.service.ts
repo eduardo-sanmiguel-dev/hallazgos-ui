@@ -4,7 +4,7 @@ import {
   PayloadCreateEpp,
   QueryEpps,
 } from "@interfaces";
-import axiosWrapper from "./axiosWrapper";
+import axiosWrapper, { idempotencyHeaders } from "./axiosWrapper";
 import {
   buildLocalFileNameTimestamp,
   getBrowserTimeZone,
@@ -15,8 +15,14 @@ const api = axiosWrapper({
   baseURL: "/epps",
 });
 
-const create = async (payload: PayloadCreateEpp) => {
-  const { data } = await api.post("", payload);
+// Con clave de idempotencia: un reintento no duplica la entrega.
+const create = async (
+  payload: PayloadCreateEpp,
+  options: { idempotencyKey?: string } = {},
+) => {
+  const { data } = await api.post("", payload, {
+    headers: idempotencyHeaders(options.idempotencyKey),
+  });
   return data;
 };
 

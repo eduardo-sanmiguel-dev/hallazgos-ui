@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 
-import { captureWrites, editingId } from "./support/api";
+import { captureWrites, editingId, mockGet } from "./support/api";
 import { expect, test } from "./support/fixtures";
 import { pickOption, toast, trackPageErrors } from "./support/ui";
 
@@ -31,6 +31,13 @@ const CATALOGS: CatalogCase[] = [
     resource: "/main-types",
     createdToast: "Criterio creado correctamente",
     updatedToast: "Criterio actualizado correctamente",
+    // Por defecto la clasificación exige foto.
+    fill: async (page) => {
+      await expect(
+        page.getByRole("checkbox", { name: "Requiere evidencia fotográfica" }),
+      ).toBeChecked();
+      return { requiresEvidence: true };
+    },
   },
   {
     name: "tipos de criterio",
@@ -132,9 +139,7 @@ for (const catalog of CATALOGS) {
       expect(errors).toEqual([]);
     });
 
-    test("edita un registro desde la tabla (sin guardar)", async ({
-      page,
-    }) => {
+    test("edita un registro desde la tabla (sin guardar)", async ({ page }) => {
       const errors = trackPageErrors(page);
       const writes = await captureWrites(page);
 
@@ -173,9 +178,55 @@ test("tipos de criterio: exige el responsable al guardar", async ({ page }) => {
 
   // El botón se habilita sin responsable; la validación ocurre al guardar.
   await saveButton(page).click();
+  await expect(page.locator('[data-error-for="typeResponsible"]')).toHaveText(
+    "El tipo de responsable es requerido",
+  );
+  expect(writes).toEqual([]);
+});
+
+test("criterios: el administrador puede quitar la foto obligatoria", async ({
+  page,
+}) => {
+  const writes = await captureWrites(page);
+
+  await page.goto("/main-types/form");
+  await page.getByLabel("Nombre").fill("E2E sin foto (no se guarda)");
+  await page
+    .getByRole("checkbox", { name: "Requiere evidencia fotográfica" })
+    .uncheck();
+  await saveButton(page).click();
+  await expect(toast(page, "Criterio creado correctamente")).toBeVisible();
+
+  expect(writes).toEqual([
+    {
+      method: "POST",
+      path: "/main-types",
+      body: { name: "E2E sin foto (no se guarda)", requiresEvidence: false },
+    },
+  ]);
+});
+
+// Criterios está oculto del menú para quien no es administrador, así que la
+// página se bloquea (RouteAccessGuard) y no llega a mostrar el formulario.
+test("criterios: sin rol de administrador la página dice que no tiene acceso", async ({
+  page,
+}) => {
+  await mockGet(page, "/users/get-information-current-user", {
+    id: 999,
+    name: "E2E Supervisor",
+    email: "e2e-supervisor@example.com",
+    role: "Supervisor",
+    isActive: true,
+    manufacturingPlants: [],
+    zones: [],
+  });
+  const writes = await captureWrites(page);
+
+  await page.goto("/main-types/form");
   await expect(
-    page.locator('[data-error-for="typeResponsible"]'),
-  ).toHaveText("El tipo de responsable es requerido");
+    page.getByText("No tienes acceso a esta sección"),
+  ).toBeVisible();
+  await expect(page.getByLabel("Nombre")).toHaveCount(0);
   expect(writes).toEqual([]);
 });
 

@@ -27,6 +27,9 @@ import HeaderUserMenu from "@shared/components/HeaderUserMenu";
 import Copyright from "@shared/components/Copyright";
 import HalloweenSpider from "@shared/components/HalloweenSpider";
 import ThemeSelector from "@shared/components/ThemeSelector";
+import RouteAccessGuard from "@shared/components/RouteAccessGuard";
+import MobileBottomNav from "@shared/components/MobileBottomNav";
+import SessionEndedDialog from "@shared/components/SessionEndedDialog";
 import { useUserSessionStore } from "@store";
 import { AppThemeName, createAppTheme, isAppThemeName } from "../theme";
 import { UsersService } from "@services";
@@ -353,9 +356,11 @@ export default function MainLayout({ children }: { children: ReactNode }) {
         >
           <Toolbar />
           <Container maxWidth={false} sx={{ mt: 4, mb: 4 }}>
-            {children}
+            <RouteAccessGuard>{children}</RouteAccessGuard>
             <Copyright sx={{ pt: 4 }} />
           </Container>
+          <MobileBottomNav />
+          <SessionEndedDialog />
         </Box>
       </Box>
     </ThemeProvider>

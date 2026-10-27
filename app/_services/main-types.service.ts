@@ -4,6 +4,7 @@ import { MainType } from "@interfaces";
 
 interface Payload {
   name: string;
+  requiresEvidence?: boolean;
 }
 
 const api = axiosWrapper({

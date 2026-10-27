@@ -1,9 +1,8 @@
 import { ReactNode, useEffect, useState } from "react";
 
-import { Alert } from "@mui/material";
-
 import LoadingLinear from "@shared/components/LoadingLinear";
 import PageHeader from "@shared/components/PageHeader";
+import NoAccessState from "@shared/components/NoAccessState";
 import { GembaWalksService } from "@services";
 
 // La API valida el acceso en cada petición; esto solo evita mostrar la página
@@ -39,10 +38,7 @@ export default function GembaWalkAccessGuard({
     return (
       <>
         {header}
-        <Alert severity="warning">
-          Solo los usuarios registrados como observadores de Gemba Walk o los
-          administradores pueden acceder a este módulo.
-        </Alert>
+        <NoAccessState description="Solo los usuarios registrados como observadores de Gemba Walk o los administradores pueden acceder a este módulo." />
       </>
     );
   }

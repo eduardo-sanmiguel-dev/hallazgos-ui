@@ -1,28 +1,26 @@
 import { expect, test } from "@playwright/test";
 
-import { isUnsafeBehaviorType } from "../../app/(routes)/hallazgos/_constants/mainTypes";
+import { requiresPhotoEvidence } from "../../app/(routes)/hallazgos/_constants/mainTypes";
 
-// Clasificación que no exige foto. Misma regla que el API.
+// La foto obligatoria la decide la bandera del catálogo (la misma que valida
+// el API), no el nombre de la clasificación.
 
-test.describe("Comportamiento inseguro", () => {
-  test("se reconoce sin importar mayúsculas", () => {
-    for (const name of [
-      "Comportamiento inseguro",
-      "COMPORTAMIENTO INSEGURO",
-      "Riesgo: comportamiento inseguro",
-    ]) {
-      expect(isUnsafeBehaviorType(name), name).toBe(true);
+test.describe("Foto obligatoria por clasificación", () => {
+  test("solo deja de exigirse con la bandera en false", () => {
+    expect(requiresPhotoEvidence({ requiresEvidence: false })).toBe(false);
+    expect(requiresPhotoEvidence({ requiresEvidence: true })).toBe(true);
+  });
+
+  test("sin la bandera en la respuesta se exige la foto", () => {
+    for (const mainType of [{}, { requiresEvidence: null }, null, undefined]) {
+      expect(requiresPhotoEvidence(mainType), String(mainType)).toBe(true);
     }
   });
 
-  test("las demás clasificaciones exigen foto", () => {
-    for (const name of [
-      "Condición insegura",
-      "Incumplimiento",
-      "",
-      undefined,
-    ]) {
-      expect(isUnsafeBehaviorType(name), String(name)).toBe(false);
-    }
+  test("el nombre ya no decide", () => {
+    const renamed = { name: "Comportamiento inseguro", requiresEvidence: true };
+    expect(requiresPhotoEvidence(renamed)).toBe(true);
+    const flagged = { name: "Condición insegura", requiresEvidence: false };
+    expect(requiresPhotoEvidence(flagged)).toBe(false);
   });
 });

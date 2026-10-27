@@ -44,6 +44,15 @@ import {
 } from "@services";
 import { FormProps, initialForm, trueFalseOptions } from "./ciaelForm";
 
+// Campos del API → campos del formulario: los catálogos van sin "Id"
+// (typeOfEventId → typeOfEvent).
+const ciaelApiField = (path: string) => {
+  const field = path.split(".")[0].replace(/Ids?$/, "");
+  if (field === "natureOfEvents") return "natureOfEvent";
+  if (field === "machineName") return "machine";
+  return field;
+};
+
 interface Props {
   open: boolean;
   setOpen: (open: boolean) => void;
@@ -131,7 +140,7 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
       enabled: !!form.zone,
       params: { zoneId: form.zone },
     }).data ?? EMPTY_CATALOG;
-  const { fail, errorOf, fieldProps } = useFieldErrors<
+  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
     | "manufacturingPlant"
     | "typeOfEvent"
     | "cieDiagnosis"
@@ -376,6 +385,7 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
         toast.success("CIAEL creado con éxito");
         handleClose();
       })
+      .catch((error) => failFromApi(error, ciaelApiField))
       .finally(() => setIsLoading(false));
   };
 

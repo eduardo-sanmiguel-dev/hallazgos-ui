@@ -93,7 +93,7 @@ export default function ThemeSelector({ value, onChange }: Props) {
               onClick={() => select(name)}
             >
               <ListItemIcon
-                sx={{ color: selected ? "primary.main" : "text.secondary" }}
+                sx={{ color: selected ? "text.brand" : "text.secondary" }}
               >
                 {OPTIONS[name].icon}
               </ListItemIcon>
@@ -102,7 +102,7 @@ export default function ThemeSelector({ value, onChange }: Props) {
                 <CheckIcon
                   fontSize="small"
                   aria-hidden
-                  sx={{ ml: 2, color: "primary.main" }}
+                  sx={{ ml: 2, color: "text.brand" }}
                 />
               )}
             </MenuItem>

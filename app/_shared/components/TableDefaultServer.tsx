@@ -2,8 +2,10 @@ import { ChangeEvent, MouseEvent, ReactNode, useState } from "react";
 
 import { Table } from "@mui/material";
 import { TableBody } from "@mui/material";
+import { TableCell } from "@mui/material";
 import { TableContainer } from "@mui/material";
 import { TableHead } from "@mui/material";
+import { TableRow } from "@mui/material";
 import { Paper } from "@mui/material";
 import { Box } from "@mui/material";
 import { LinearProgress } from "@mui/material";
@@ -11,6 +13,8 @@ import { LinearProgress } from "@mui/material";
 import { constants } from "@constants";
 import TableFooterDefault from "./TableFooterDefault";
 import { StyledTableCell, StyledTableRow } from "./TableDefault";
+import EmptyState from "./EmptyState";
+import ErrorState from "./ErrorState";
 
 type RowsPerPageOptions = (number | { label: string; value: number })[];
 
@@ -23,6 +27,9 @@ export interface ServerPagination {
   rowsPerPageOptions?: RowsPerPageOptions;
   count: number;
   isFetching?: boolean;
+  /** La consulta falló: sin filas se muestra ErrorState con "Reintentar". */
+  isError?: boolean;
+  onRetry?: () => void;
 }
 
 interface Props<T> {
@@ -42,6 +49,30 @@ interface Props<T> {
   isFetching?: boolean;
   // Nombre accesible de la tabla.
   ariaLabel?: string;
+  isError?: boolean;
+  onRetry?: () => void;
+  // Mensaje cuando no hay filas (por omisión "Sin registros").
+  emptyTitle?: string;
+  emptyDescription?: ReactNode;
+}
+
+// Fila de la tabla sin registros: vacío o, si la consulta falló, error con
+// "Reintentar". También la usa ResponsiveTable en tarjetas.
+export function TableBodyState({
+  isError = false,
+  onRetry,
+  emptyTitle,
+  emptyDescription,
+}: Pick<Props<unknown>, "isError" | "onRetry" | "emptyTitle" | "emptyDescription">) {
+  return isError ? (
+    <ErrorState
+      size="small"
+      offline={typeof navigator !== "undefined" && !navigator.onLine}
+      onRetry={onRetry}
+    />
+  ) : (
+    <EmptyState size="small" title={emptyTitle} description={emptyDescription} />
+  );
 }
 
 const TableDefaultServer = <T,>({
@@ -56,6 +87,10 @@ const TableDefaultServer = <T,>({
   count,
   isFetching = false,
   ariaLabel = "Tabla de registros",
+  isError = false,
+  onRetry,
+  emptyTitle,
+  emptyDescription,
 }: Props<T>) => {
   const [pageLocal, setPageLocal] = useState(pageCtrl || 0);
   const [rowsPerPageLocal, setRowsPerPageLocal] = useState(
@@ -105,7 +140,21 @@ const TableDefaultServer = <T,>({
             ))}
           </StyledTableRow>
         </TableHead>
-        <TableBody>{rows.map(paintRows)}</TableBody>
+        <TableBody>
+          {rows.length === 0 && !isFetching && (
+            <TableRow>
+              <TableCell colSpan={colSpan} sx={{ borderBottom: 0 }}>
+                <TableBodyState
+                  isError={isError}
+                  onRetry={onRetry}
+                  emptyTitle={emptyTitle}
+                  emptyDescription={emptyDescription}
+                />
+              </TableCell>
+            </TableRow>
+          )}
+          {rows.map(paintRows)}
+        </TableBody>
         <TableFooterDefault
           rows={rows}
           page={page}

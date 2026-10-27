@@ -1,7 +1,7 @@
-import axiosWrapper from "./axiosWrapper";
+import axiosWrapper, { idempotencyHeaders } from "./axiosWrapper";
 import { CatalogICS, ICSData } from "@interfaces";
 import { IFiltersIcs } from "@routes/ics/_components/FiltersIcs";
-import axios from "axios";
+import type { UploadOptions } from "./evidences.service";
 
 const baseURL = "/ics";
 
@@ -50,18 +50,13 @@ const findAllPaginated = async ({
   return data;
 };
 
-const create = async (formData: FormData) => {
-  const { data } = await axios.post<ICSData>(
-    `${process.env.NEXT_PUBLIC_URL_API}${baseURL}`,
-    formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-        ["x-app-key"]: process.env.NEXT_PUBLIC_APP_KEY,
-      },
-      withCredentials: true,
-    }
-  );
+// Pasa por el interceptor (antes axios directo, sin aviso de error): tiempo
+// límite, aviso por tipo, "Reintentar" y clave de idempotencia.
+const create = async (formData: FormData, options: UploadOptions = {}) => {
+  const { data } = await api.post<ICSData>("", formData, {
+    headers: idempotencyHeaders(options.idempotencyKey),
+    onUploadProgress: options.onUploadProgress,
+  });
   return data;
 };
 

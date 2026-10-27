@@ -12,11 +12,6 @@ import { Box } from "@mui/material";
 import { Paper } from "@mui/material";
 import { Typography } from "@mui/material";
 import { Button } from "@mui/material";
-import { Dialog } from "@mui/material";
-import { DialogTitle } from "@mui/material";
-import { DialogContent } from "@mui/material";
-import { DialogContentText } from "@mui/material";
-import { DialogActions } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import SaveIcon from "@mui/icons-material/Save";
@@ -42,6 +37,7 @@ import { GembaWalkCalendarService } from "@services";
 import { GembaWalkCalendar } from "@interfaces";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import PageHeader from "@shared/components/PageHeader";
+import ConfirmDialog from "@shared/components/ConfirmDialog";
 import DialogCalendarEvent, {
   CalendarOption,
   DialogState,
@@ -697,35 +693,23 @@ const GembaWalkCalendarFormPage = () => {
         onEdit={handleEdit}
         onRemoveNew={handleRemoveNew}
       />
-      <Dialog
+      <ConfirmDialog
         open={isCancelConfirmOpen}
         onClose={() => setIsCancelConfirmOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>Eventos sin guardar</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Tienes{" "}
-            {[
-              newCount && `${newCount} evento(s) nuevo(s)`,
-              modifiedCount && `${modifiedCount} evento(s) modificado(s)`,
-            ]
-              .filter(Boolean)
-              .join(" y ")}{" "}
-            sin guardar. Si cancelas, se perderán estos cambios. ¿Estás seguro
-            de que deseas cancelar?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsCancelConfirmOpen(false)} autoFocus>
-            Regresar
-          </Button>
-          <Button color="error" onClick={goBack}>
-            Salir sin guardar
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onConfirm={goBack}
+        title="Eventos sin guardar"
+        description={`Tienes ${[
+          newCount && `${newCount} evento(s) nuevo(s)`,
+          modifiedCount && `${modifiedCount} evento(s) modificado(s)`,
+        ]
+          .filter(Boolean)
+          .join(
+            " y ",
+          )} sin guardar. Si cancelas, se perderán estos cambios. ¿Estás seguro de que deseas cancelar?`}
+        cancelLabel="Regresar"
+        confirmLabel="Salir sin guardar"
+        tone="danger"
+      />
     </Grid>
   );
 };

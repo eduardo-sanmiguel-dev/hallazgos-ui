@@ -13,14 +13,14 @@ import { v4 as uuidv4 } from "uuid";
 import confetti from "canvas-confetti";
 
 import { dataURLtoFile, notify } from "@shared/utils";
-import { EvidencesService, handleErrorResponse } from "@services";
+import { EvidencesService } from "@services";
 
 import "react-html5-camera-photo/build/css/index.css";
 import ImageORCamera from "@shared/components/ImageORCamera";
-import { EvidenceGraphql } from "@hooks";
+import { EvidenceGraphql, useIdempotencyKey } from "@hooks";
 import { Grid, Paper, TextField } from "@mui/material";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
-import { isUnsafeBehaviorType } from "@routes/hallazgos/_constants/mainTypes";
+import { requiresPhotoEvidence } from "@routes/hallazgos/_constants/mainTypes";
 
 export const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -65,11 +65,11 @@ export default function CloseEvidence({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [descriptionSolution, setDescriptionSolution] = useState<string>("");
-  // Del hallazgo que se cierra (antes un estado que solo se activaba).
-  const isUnsafeBehavior = isUnsafeBehaviorType(
-    evidenceCurrent?.mainType?.name,
-  );
+  // La clasificación del hallazgo decide si la foto es obligatoria.
+  const isUnsafeBehavior = !requiresPhotoEvidence(evidenceCurrent?.mainType);
   const { confirm, confirmDialog } = useConfirmDialog();
+  // Por hallazgo: el diálogo se reutiliza entre filas.
+  const submission = useIdempotencyKey(idRow);
 
   const currentDescriptionSolution = useMemo(
     () => descriptionSolution.trim(),
@@ -94,13 +94,16 @@ export default function CloseEvidence({
     formData.append("descriptionSolution", descriptionSolution);
 
     setIsLoading(true);
-    return EvidencesService.solution(idRow, formData)
+    return EvidencesService.solution(idRow, formData, {
+      idempotencyKey: submission.key(),
+    })
       .then(() => {
+        submission.settle();
         notify("Hallazgo cerrado correctamente", true);
         celebrateClose();
         handleClose(true);
       })
-      .catch(handleErrorResponse)
+      .catch(submission.settle)
       .finally(() => setIsLoading(false));
   };
 
@@ -155,11 +158,7 @@ export default function CloseEvidence({
                 md: 6,
               }}
             >
-              <b>
-                {evidenceCurrent?.description
-                  ? `Descripción del comportamiento inseguro: `
-                  : ""}
-              </b>
+              <b>{evidenceCurrent?.description ? "Lo que se observó: " : ""}</b>
               {evidenceCurrent?.description ? evidenceCurrent.description : ""}
             </Grid>
           )}
@@ -183,12 +182,12 @@ export default function CloseEvidence({
                   onChange={(e) => setDescriptionSolution(e.target.value)}
                   label={
                     currentDescriptionSolution
-                      ? "Descripción de la solución para el comportamiento inseguro"
+                      ? "Describe cómo se resolvió"
                       : ""
                   }
                   helperText={
                     !currentDescriptionSolution
-                      ? "Por favor, ingrese una descripción de la solución, para el comportamiento inseguro"
+                      ? "Describe cómo se resolvió para poder guardar."
                       : ""
                   }
                   error={!currentDescriptionSolution}
@@ -219,7 +218,7 @@ export default function CloseEvidence({
             confirm({
               title: `¿Cerrar el hallazgo #${idRow}?`,
               description:
-                "Ya no se podrá modificar y se avisará por correo al personal de la planta.",
+                "Ya no se podrá modificar y se enviará un aviso por correo.",
               confirmLabel: "Cerrar hallazgo",
               cancelLabel: "Revisar",
               action: saveSolution,

@@ -40,7 +40,7 @@ const GembaWalkObserversFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, errorOf } = useFieldErrors<
+  const { fail, failFromApi, errorOf } = useFieldErrors<
     | "manufacturingPlantId"
     | "gembaWalkZoneId"
     | "userIds"
@@ -82,6 +82,7 @@ const GembaWalkObserversFormPage = () => {
           );
           cancel();
         })
+        .catch(failFromApi)
         .finally(() => setIsLoading(false));
     } else {
       GembaWalkObserversService.update(idCurrent, {
@@ -93,6 +94,7 @@ const GembaWalkObserversFormPage = () => {
           toast.success("Observador actualizado correctamente");
           cancel();
         })
+        .catch(failFromApi)
         .finally(() => setIsLoading(false));
     }
   };

@@ -30,7 +30,7 @@ const GembaWalkZonesFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, errorOf, fieldProps } = useFieldErrors<
+  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
     | "manufacturingPlantId"
     | "nameZone"
     | "nameLocation"
@@ -66,6 +66,7 @@ const GembaWalkZonesFormPage = () => {
           toast.success("Zona creada correctamente");
           cancel();
         })
+        .catch(failFromApi)
         .finally(() => setIsLoading(false));
     } else {
       GembaWalkZonesService.update(idCurrent, payload)
@@ -73,6 +74,7 @@ const GembaWalkZonesFormPage = () => {
           toast.success("Zona actualizada correctamente");
           cancel();
         })
+        .catch(failFromApi)
         .finally(() => setIsLoading(false));
     }
   };

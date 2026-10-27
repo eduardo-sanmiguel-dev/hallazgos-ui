@@ -35,7 +35,7 @@ const AreasFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, errorOf, fieldProps } = useFieldErrors<
+  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
     "name" | "manufacturingPlantId"
   >(form);
 
@@ -69,6 +69,7 @@ const AreasFormPage = () => {
           toast.success("Zona creada correctamente");
           cancel();
         })
+        .catch(failFromApi)
         .finally(() => setIsLoading(false));
     } else {
       AreasService.update(idCurrent, {
@@ -84,6 +85,7 @@ const AreasFormPage = () => {
           toast.success("Zona actualizada correctamente");
           cancel();
         })
+        .catch(failFromApi)
         .finally(() => setIsLoading(false));
     }
   };

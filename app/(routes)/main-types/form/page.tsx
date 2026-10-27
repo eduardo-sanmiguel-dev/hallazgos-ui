@@ -7,11 +7,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
-import { Grid } from "@mui/material";
+import { Checkbox, FormControlLabel, Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 import { toast } from "sonner";
 
 import { MainTypesService } from "@services";
+import { useUserSessionStore } from "@store";
+import { ROLE_ADMINISTRADOR } from "@shared/constants";
 import { useFieldErrors } from "@hooks/useFieldErrors";
 import PageHeader from "@shared/components/PageHeader";
 import FormSection from "@shared/components/FormSection";
@@ -21,12 +23,16 @@ const MainTypesFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [form, setForm] = useState({
     name: "",
+    requiresEvidence: true,
   });
   const [idCurrent, setIdCurrent] = useState<number>(0);
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, fieldProps } = useFieldErrors<"name">(form);
+  const { fail, failFromApi, fieldProps } = useFieldErrors<"name">(form);
+  // La foto obligatoria solo la cambia un administrador (el API también lo exige).
+  const isAdmin =
+    useUserSessionStore((state) => state.role) === ROLE_ADMINISTRADOR;
 
   const save = () => {
     const nameClean = form.name.trim();
@@ -37,23 +43,26 @@ const MainTypesFormPage = () => {
     }
     setIsLoading(true);
 
+    const payload = {
+      name: nameClean,
+      ...(isAdmin && { requiresEvidence: form.requiresEvidence }),
+    };
+
     if (!idCurrent) {
-      MainTypesService.create({
-        name: nameClean,
-      })
+      MainTypesService.create(payload)
         .then(() => {
           toast.success("Criterio creado correctamente");
           cancel();
         })
+        .catch(failFromApi)
         .finally(() => setIsLoading(false));
     } else {
-      MainTypesService.update(idCurrent, {
-        name: nameClean,
-      })
+      MainTypesService.update(idCurrent, payload)
         .then(() => {
           toast.success("Criterio actualizado correctamente");
           cancel();
         })
+        .catch(failFromApi)
         .finally(() => setIsLoading(false));
     }
   };
@@ -72,6 +81,7 @@ const MainTypesFormPage = () => {
     MainTypesService.findOne(id).then((data) => {
       setForm({
         name: data.name,
+        requiresEvidence: data.requiresEvidence !== false,
       });
     });
   }, [searchParams]);
@@ -103,6 +113,21 @@ const MainTypesFormPage = () => {
             }
           />
         </Grid>
+        {isAdmin && (
+          <Grid size={{ xs: 12 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={form.requiresEvidence}
+                  onChange={(e) =>
+                    setForm({ ...form, requiresEvidence: e.target.checked })
+                  }
+                />
+              }
+              label="Requiere evidencia fotográfica"
+            />
+          </Grid>
+        )}
       </FormSection>
       <FormActions
         onCancel={cancel}
@@ -115,4 +140,3 @@ const MainTypesFormPage = () => {
 };
 
 export default MainTypesFormPage;
-
