@@ -300,7 +300,9 @@ si deben tenerla.
     a "Cancelar".
   - Lo que depende de la planta (zona, colaborador, cargo, máquina, tarea) y
     el líder de área (depende de la zona) quedan deshabilitados hasta
-    elegirlas.
+    elegirlas. Si se cambia la planta o la zona, se limpian y un aviso dice
+    cuáles volver a elegir (antes se conservaban aunque fueran de otra
+    planta).
   - En celular, la lista se ve en tarjetas.
 - **Para el cliente:**
   - "Guardar" marca **de una vez todo lo que falta**, junto a cada campo, y

@@ -502,6 +502,12 @@ Archivos en `app/(routes)/ciael/`.
   `autoFocus`). Lo que depende de la planta (zona, colaborador, cargo,
   máquina, tarea) y de la zona (líder de área) queda deshabilitado hasta
   elegirla, con "Cargando…" mientras llega el catálogo.
+- **Dependencias:** al cambiar la planta se limpian zona, colaborador, cargo,
+  máquina, tarea y líder de área; al cambiar la zona, el líder de área
+  (`changeCiaelField` en `components/ciaelForm.ts`). Si alguno ya estaba
+  elegido, un aviso dice cuáles hay que volver a elegir ("Vuelve a elegir
+  zona y colaborador: dependen de la planta."). Antes se conservaban y se
+  podía guardar, por ejemplo, un colaborador de otra planta.
 - **Errores:**
   - "Guardar" nunca está deshabilitado. Al tocarlo se marcan **todos** los
     obligatorios que faltan, junto a su campo, y el foco va al primero

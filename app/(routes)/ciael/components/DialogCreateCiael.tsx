@@ -45,6 +45,7 @@ import {
 } from "@services";
 import {
   FormProps,
+  changeCiaelField,
   initialForm,
   isFormDirty,
   missingCiaelFields,
@@ -200,12 +201,12 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
     }
   };
 
+  // Al cambiar la planta o la zona se limpia lo que depende de ellas.
   const onChangeSelect = (event: SelectChangeEvent<string>) => {
     const { name, value } = event.target;
-    setForm({
-      ...form,
-      [name]: value,
-    });
+    const change = changeCiaelField(form, name as keyof FormProps, value);
+    setForm(change.form);
+    if (change.notice) toast.info(change.notice);
   };
 
   const saveCiael = () => {

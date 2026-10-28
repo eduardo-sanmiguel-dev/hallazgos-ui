@@ -342,6 +342,16 @@ Por regla del plan, no se modifican.
      ve "Corto plazo (8 días)", y al revés. Son unos 304 hallazgos con 2 u 8
      días; otros 16, del 4 al 26 de junio, no se puede saber con cuál mapeo se
      capturaron.
+7. **Endpoints de CIAEL que no hacen nada (pendiente).** Quedaron del
+   esqueleto de NestJS y la UI no los usa (`hallazgos-api/src/ciaels/`):
+   - `PATCH /ciaels/:id` responde el mismo id y cuerpo que recibió, sin
+     guardar.
+   - `DELETE /ciaels/:id` responde "Esta acción elimina el registro CIAEL
+     #N", pero **no elimina nada**.
+   - `POST /ciaels/seed` responde "Se llamó al método seed" y no hace nada.
+
+   Quien llame al API directamente podría creer que editó o borró un
+   registro. Falta decidir si se quitan o se implementan (con sus permisos).
 
 ---
 

@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 
 import {
   REQUIRED_FIELDS,
+  changeCiaelField,
   initialForm,
   isFormDirty,
   missingCiaelFields,
@@ -52,6 +53,66 @@ test.describe("Formulario CIAEL", () => {
         eventDate: dayjs("2026-10-01"),
       }),
     ).toEqual({});
+  });
+
+  test("cambiar la planta limpia lo que depende de ella y avisa qué", () => {
+    const form = {
+      ...initialForm,
+      manufacturingPlant: "1",
+      zone: "5",
+      employee: "7",
+      areaLeader: "9",
+      bodyPart: "3",
+    };
+
+    const { form: next, notice } = changeCiaelField(
+      form,
+      "manufacturingPlant",
+      "2",
+    );
+
+    expect(next).toMatchObject({
+      manufacturingPlant: "2",
+      zone: "",
+      employee: "",
+      accidentPosition: "",
+      machine: "",
+      associatedTask: "",
+      areaLeader: "",
+      // No depende de la planta: se conserva.
+      bodyPart: "3",
+    });
+    expect(notice).toBe(
+      "Vuelve a elegir zona, colaborador y líder de área: dependen de la planta.",
+    );
+  });
+
+  test("cambiar la zona limpia solo el líder de área", () => {
+    const form = {
+      ...initialForm,
+      manufacturingPlant: "1",
+      zone: "5",
+      employee: "7",
+      areaLeader: "9",
+    };
+
+    const { form: next, notice } = changeCiaelField(form, "zone", "6");
+
+    expect(next).toMatchObject({ zone: "6", employee: "7", areaLeader: "" });
+    expect(notice).toBe("Vuelve a elegir líder de área: depende de la zona.");
+  });
+
+  test("sin nada elegido que dependa, o eligiendo lo mismo, no avisa", () => {
+    expect(
+      changeCiaelField(initialForm, "manufacturingPlant", "1").notice,
+    ).toBeNull();
+    const form = { ...initialForm, manufacturingPlant: "1", zone: "5" };
+    expect(changeCiaelField(form, "manufacturingPlant", "1")).toEqual({
+      form,
+      notice: null,
+    });
+    // Otros selects no limpian nada.
+    expect(changeCiaelField(form, "bodyPart", "3").form.zone).toBe("5");
   });
 
   test("detecta si hay algo capturado, también solo los opcionales", () => {

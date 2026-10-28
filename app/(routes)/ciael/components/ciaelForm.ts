@@ -103,6 +103,52 @@ export const isFormDirty = (form: FormProps) =>
     (field) => form[field] !== initialForm[field],
   );
 
+// Campos que dependen de otro: al cambiarlo dejan de ser válidos (los
+// catálogos se piden por planta; los líderes, por zona).
+const DEPENDENTS: Partial<
+  Record<keyof FormProps, Array<[keyof FormProps, string]>>
+> = {
+  manufacturingPlant: [
+    ["zone", "zona"],
+    ["employee", "colaborador"],
+    ["accidentPosition", "cargo"],
+    ["machine", "máquina"],
+    ["associatedTask", "tarea"],
+    ["areaLeader", "líder de área"],
+  ],
+  zone: [["areaLeader", "líder de área"]],
+};
+
+const joinLabels = (labels: string[]) =>
+  labels.length === 1
+    ? labels[0]
+    : `${labels.slice(0, -1).join(", ")} y ${labels.at(-1)}`;
+
+/**
+ * Cambia un select y limpia lo que depende de él. Si se borró algo que el
+ * usuario ya había elegido, `notice` lo dice (para el aviso).
+ */
+export const changeCiaelField = (
+  form: FormProps,
+  name: keyof FormProps,
+  value: string,
+) => {
+  const next = { ...form, [name]: value };
+  if (form[name] === value) return { form: next, notice: null };
+
+  const cleared: string[] = [];
+  for (const [field, label] of DEPENDENTS[name] ?? []) {
+    if (next[field]) cleared.push(label);
+    next[field] = initialForm[field] as never;
+  }
+
+  const notice = cleared.length
+    ? `Vuelve a elegir ${joinLabels(cleared)}: ${cleared.length === 1 ? "depende" : "dependen"} de la ${name === "zone" ? "zona" : "planta"}.`
+    : null;
+
+  return { form: next, notice };
+};
+
 export const trueFalseOptions = [
   {
     id: "1",

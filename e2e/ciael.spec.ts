@@ -82,6 +82,12 @@ const openDialog = async (page: Page) => {
                 area: { id: 61, name: "E2E Zona" },
                 manufacturingPlant: { id: 1, name: "Planta" },
               },
+              {
+                id: 52,
+                name: "E2E Otro lugar",
+                area: { id: 61, name: "E2E Zona" },
+                manufacturingPlant: { id: 1, name: "Planta" },
+              },
             ],
           })
         : route.fallback(),
@@ -111,6 +117,49 @@ test.describe("CIAEL", () => {
     await expect(
       dialog.getByLabel("Tiempo laborado previo al AT (H) *"),
     ).toHaveAttribute("inputmode", "numeric");
+  });
+
+  test("cambiar la planta o la zona limpia lo que depende de ellas y avisa", async ({
+    page,
+  }) => {
+    const dialog = await openDialog(page);
+    const plants = await sessionPlants(page);
+    test.skip(plants.length < 2, "El usuario de e2e necesita dos plantas.");
+    /** Texto elegido en un select (SelectDefault lo pinta junto al input). */
+    const selected = (label: string) =>
+      dialog.locator(".MuiAutocomplete-root", {
+        has: page.getByRole("combobox", { name: label, exact: true }),
+      });
+
+    await pickOption(page, "Planta *", plants[0].name);
+    await pickOption(page, "Zona *", "E2E Lugar");
+    await pickOption(page, "Colaborador *");
+    await pickOption(page, "Líder de área *", "E2E Líder");
+    await pickOption(page, "Parte del cuerpo afectada *");
+
+    // La zona: solo se limpia el líder de área.
+    await pickOption(page, "Zona *", "E2E Otro lugar");
+    await expect(
+      toast(page, "Vuelve a elegir líder de área: depende de la zona."),
+    ).toBeVisible();
+    await expect(selected("Líder de área *")).not.toContainText("E2E Líder");
+    await expect(selected("Colaborador *")).toContainText("E2E Colaborador");
+
+    // La planta: zona, colaborador y lo demás que depende de ella.
+    await pickOption(page, "Líder de área *", "E2E Líder");
+    await pickOption(page, "Planta *", plants[1].name);
+    await expect(
+      toast(
+        page,
+        "Vuelve a elegir zona, colaborador y líder de área: dependen de la planta.",
+      ),
+    ).toBeVisible();
+    await expect(selected("Zona *")).not.toContainText("E2E");
+    await expect(selected("Colaborador *")).not.toContainText("E2E");
+    await expect(selected("Líder de área *")).not.toContainText("E2E");
+    await expect(dialog.getByRole("combobox", { name: "Líder de área *" })).toBeDisabled();
+    // Lo que no depende de la planta se conserva.
+    await expect(selected("Parte del cuerpo afectada *")).toContainText("E2E Mano");
   });
 
   test("marca todo lo que falta y crea el registro (sin guardar)", async ({
