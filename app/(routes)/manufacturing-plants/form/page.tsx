@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -12,29 +12,72 @@ import { TextField } from "@mui/material";
 import { toast } from "sonner";
 
 import { ManufacturingPlantsService } from "@services";
-import { useFieldErrors } from "@hooks/useFieldErrors";
+import { useFormFieldErrors } from "@hooks/useFieldErrors";
+import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
+import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
+import EditRecordState from "@shared/components/EditRecordState";
+
+const LIST_HREF = "/manufacturing-plants";
+
+interface PlantForm {
+  name: string;
+  link: string;
+  lat: string;
+  lng: string;
+}
+
+const EMPTY_FORM: PlantForm = { name: "", link: "", lat: "", lng: "" };
+
+// Coordenada en grados decimales con punto (19.4326, -99.1332). Teclado de
+// texto (B1): la longitud es negativa en México y Colombia y el teclado
+// decimal del iPhone no tiene signo menos. Mismos rangos que valida el API.
+const COORDINATE = /^-?\d{1,3}(\.\d+)?$/;
+
+const coordinateError = (
+  value: string,
+  label: "latitud" | "longitud",
+  max: number,
+) => {
+  if (!value) return `Escribe la ${label}.`;
+  const number = Number(value);
+  return COORDINATE.test(value) && Math.abs(number) <= max
+    ? undefined
+    : `La ${label} debe ser un número entre -${max} y ${max}, con punto decimal (por ejemplo, ${label === "latitud" ? "19.4326" : "-99.1332"}).`;
+};
+
+// Se acepta la coma decimal al escribir; se guarda con punto.
+const normalizeCoordinate = (value: string) =>
+  value.replace(",", ".").replace(/\s/g, "");
 
 const ManufacturingPlantsFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [form, setForm] = useState({
-    name: "",
-    link: "",
-    lat: "",
-    lng: "",
-  });
-  const [idCurrent, setIdCurrent] = useState<number>(0);
+  const [form, setForm] = useState<PlantForm>(EMPTY_FORM);
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, failFromApi, fieldProps } = useFieldErrors<
-    | "name"
-    | "link"
-    | "lat"
-    | "lng"
-  >(form);
+  const idCurrent = Number(searchParams.get("id") || 0);
+
+  // Cada error se quita al cambiar su campo; los demás siguen marcados.
+  const { failAll, failFromApi, fieldProps } = useFormFieldErrors(form);
+  const leave = useLeaveConfirm(form, { isEditing: !!idCurrent });
+
+  const record = useEditRecord(
+    idCurrent,
+    ManufacturingPlantsService.findOne,
+    (data) => {
+      const loaded = {
+        name: data.name,
+        link: data.link,
+        lat: data.lat.toString(),
+        lng: data.lng.toString(),
+      };
+      setForm(loaded);
+      leave.markPristine(loaded);
+    },
+  );
 
   const save = () => {
     const nameClean = form.name.trim();
@@ -42,95 +85,71 @@ const ManufacturingPlantsFormPage = () => {
     const latClean = form.lat.trim();
     const lngClean = form.lng.trim();
 
-    if (!nameClean) {
-      fail("name", "El nombre es requerido");
-      return;
-    }
-
-    if (!linkClean) {
-      fail("link", "El link es requerido");
-      return;
-    }
-
-    if (!latClean) {
-      fail("lat", "La latitud es requerida");
-      return;
-    }
-
-    if (!lngClean) {
-      fail("lng", "La longitud es requerida");
+    // Todo lo que falta o no tiene formato, en el orden de la pantalla.
+    if (
+      failAll({
+        name: !nameClean ? "Escribe el nombre." : undefined,
+        link: !linkClean ? "Escribe el link." : undefined,
+        lat: coordinateError(latClean, "latitud", 90),
+        lng: coordinateError(lngClean, "longitud", 180),
+      })
+    ) {
       return;
     }
 
     setIsLoading(true);
 
+    const payload = {
+      name: nameClean,
+      link: linkClean,
+      lat: Number(latClean),
+      lng: Number(lngClean),
+    };
+
     if (!idCurrent) {
-      ManufacturingPlantsService.create({
-        name: nameClean,
-        link: linkClean,
-        lat: Number(latClean),
-        lng: Number(lngClean),
-      })
+      ManufacturingPlantsService.create(payload)
         .then(() => {
           toast.success("Planta creada correctamente");
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch(failFromApi)
         .finally(() => setIsLoading(false));
     } else {
-      ManufacturingPlantsService.update(idCurrent, {
-        name: nameClean,
-        link: linkClean,
-        lat: Number(latClean),
-        lng: Number(lngClean),
-      })
+      ManufacturingPlantsService.update(idCurrent, payload)
         .then(() => {
           toast.success("Planta actualizada correctamente");
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch(failFromApi)
         .finally(() => setIsLoading(false));
     }
   };
 
-  const cancel = () => {
-    router.push("/manufacturing-plants");
-  };
+  const title = idCurrent ? "Editar planta" : "Nueva planta";
 
-  const isValidateForm = useMemo(
-    () =>
-      !form.name?.trim() ||
-      !form.link?.trim() ||
-      !form.lat?.trim() ||
-      !form.lng?.trim(),
-    [form]
-  );
-
-  useEffect(() => {
-    const id = Number(searchParams.get("id") || 0);
-    if (!id) return;
-
-    setIdCurrent(id);
-    ManufacturingPlantsService.findOne(id).then((data) => {
-      setForm({
-        name: data.name,
-        link: data.link,
-        lat: data.lat.toString(),
-        lng: data.lng.toString(),
-      });
-    });
-  }, [searchParams]);
+  if (isEditRecordPending(record.status)) {
+    return (
+      <EditRecordState
+        status={record.status}
+        onRetry={record.retry}
+        title={title}
+        notFoundTitle="Planta no encontrada"
+        listHref={LIST_HREF}
+      />
+    );
+  }
 
   return (
     <>
-      <PageHeader title={idCurrent ? "Editar planta" : "Nueva planta"} />
+      <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
       <FormSection>
         <Grid
           size={{
             xs: 12,
             sm: 6,
-            md: 3
-          }}>
+            md: 3,
+          }}
+        >
           <TextField
             {...fieldProps("name")}
             required
@@ -151,8 +170,9 @@ const ManufacturingPlantsFormPage = () => {
           size={{
             xs: 12,
             sm: 6,
-            md: 3
-          }}>
+            md: 3,
+          }}
+        >
           <TextField
             {...fieldProps("link")}
             required
@@ -161,6 +181,10 @@ const ManufacturingPlantsFormPage = () => {
             fullWidth
             autoComplete="off"
             value={form.link}
+            // Teclado de direcciones web, sin mayúscula inicial.
+            slotProps={{
+              htmlInput: { inputMode: "url", autoCapitalize: "none" },
+            }}
             onChange={(e) =>
               setForm({
                 ...form,
@@ -173,13 +197,12 @@ const ManufacturingPlantsFormPage = () => {
           size={{
             xs: 12,
             sm: 6,
-            md: 3
-          }}>
+            md: 3,
+          }}
+        >
           <TextField
             {...fieldProps("lat")}
             required
-            type="number"
-            onKeyDown={(evt) => evt.key === "e" && evt.preventDefault()}
             label="Latitud"
             variant="outlined"
             fullWidth
@@ -188,7 +211,7 @@ const ManufacturingPlantsFormPage = () => {
             onChange={(e) =>
               setForm({
                 ...form,
-                lat: e.target.value,
+                lat: normalizeCoordinate(e.target.value),
               })
             }
           />
@@ -197,13 +220,12 @@ const ManufacturingPlantsFormPage = () => {
           size={{
             xs: 12,
             sm: 6,
-            md: 3
-          }}>
+            md: 3,
+          }}
+        >
           <TextField
             {...fieldProps("lng")}
             required
-            type="number"
-            onKeyDown={(evt) => evt.key === "e" && evt.preventDefault()}
             label="Longitud"
             variant="outlined"
             fullWidth
@@ -212,21 +234,20 @@ const ManufacturingPlantsFormPage = () => {
             onChange={(e) =>
               setForm({
                 ...form,
-                lng: e.target.value,
+                lng: normalizeCoordinate(e.target.value),
               })
             }
           />
         </Grid>
       </FormSection>
       <FormActions
-        onCancel={cancel}
+        onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={isLoading}
-        isSaveDisabled={isValidateForm}
       />
+      {leave.confirmDialog}
     </>
   );
 };
 
 export default ManufacturingPlantsFormPage;
-

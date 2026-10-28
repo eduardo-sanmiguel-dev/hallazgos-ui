@@ -449,3 +449,34 @@ si deben tenerla.
     Procesos › …" sobre el título.
 - **Para el cliente:** si edita un proceso y no cambia nada, "Cancelar" sale
   directo; si cambió algo, pregunta antes de descartarlo.
+
+#### Grupo 2: General (Usuarios, Colaboradores, Plantas, Lugares y Zonas)
+
+- **Sin migraciones, variables, dependencias ni cambios de nginx.**
+- **API:** solo textos (compatibles con la UI anterior).
+  - Ids con un solo formato: "Usuario #N no encontrado", "Planta #N no
+    encontrada", "Zona #N no encontrada" (antes "con id N" o "con ID N").
+  - Catálogos de colaboradores: "Área #N no encontrada", "Puesto #N no
+    encontrado", "Género #N no encontrado" (antes "Área con id N no
+    encontrado").
+  - "Ya existe un colaborador con el código N…" (antes "un empleado").
+  - Zonas (`/areas`): "área" y "está" con acento, "Reactívela", y "Área #N no
+    encontrada" (antes "Area con ID N no encontrado").
+  - `POST /employees/seed` responde "Carga inicial de colaboradores
+    completada." (antes "Seed completed successfully2").
+- **UI:**
+  - Los cinco formularios: "Guardar" marca de una vez lo que falta,
+    confirmación al salir con algo capturado, carga y aviso de "no
+    encontrado" al editar, y la ruta "Configuración › …" en tablet y
+    escritorio.
+  - En celular, las listas de colaboradores, plantas, lugares y zonas se ven
+    en tarjetas.
+- **Para el cliente:**
+  - **Usuarios:** el rol se marca si falta (antes "Guardar" se quedaba
+    deshabilitado sin decir por qué).
+  - **Colaboradores:** el género se marca si falta; el campo se llama
+    "Código de colaborador".
+  - **Plantas:** la latitud y la longitud se escriben con el teclado normal
+    (para poder poner el signo menos) y se revisa que sean números válidos;
+    se puede escribir con coma decimal.
+

@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -25,75 +25,111 @@ import MultiSelectManufacturingPlants from "@components/MultiSelectManufacturing
 import MultiSelectZones from "@components/MultiSelectZones";
 import { isValidEmail } from "@shared/utils";
 import MultiSelectProcesses from "@components/MultiSelectProcesses";
-import { useFieldErrors } from "@hooks/useFieldErrors";
+import { useFormFieldErrors } from "@hooks/useFieldErrors";
+import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
+import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
+import EditRecordState from "@shared/components/EditRecordState";
+
+const LIST_HREF = "/users";
+
+interface UserForm {
+  name: string;
+  email: string;
+  password: string;
+  rule: string;
+  manufacturingPlantNames: string[];
+  zoneNames: string[];
+  processNames: string[];
+}
+
+const EMPTY_FORM: UserForm = {
+  name: "",
+  email: "",
+  password: "",
+  rule: "",
+  manufacturingPlantNames: [],
+  zoneNames: [],
+  processNames: [],
+};
 
 const UsersFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [idCurrent, setIdCurrent] = useState<number>(0);
-  const [form, setForm] = useState<{
-    name: string;
-    email: string;
-    password: string;
-    rule: string;
-    manufacturingPlantNames: string[];
-    zoneNames: string[];
-    processNames: string[];
-  }>({
-    name: "",
-    email: "",
-    password: "",
-    rule: "",
-    manufacturingPlantNames: [],
-    zoneNames: [],
-    processNames: [],
-  });
+  const [form, setForm] = useState<UserForm>(EMPTY_FORM);
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
-    | "name"
-    | "email"
-    | "password"
-    | "manufacturingPlantNames"
-    | "zoneNames"
-  >(form);
+  const idCurrent = Number(searchParams.get("id") || 0);
+
+  // Cada error se quita al cambiar su campo; los demás siguen marcados.
+  const { failAll, failFromApi, errorOf, fieldProps } =
+    useFormFieldErrors(form);
+  const leave = useLeaveConfirm(form, { isEditing: !!idCurrent });
+
+  const record = useEditRecord(idCurrent, UsersService.findOne, (data) => {
+    const zoneNames =
+      data.role === "Supervisor"
+        ? data.zones.map(
+            (zone) => `${zone.manufacturingPlant.name} - ${zone.name}`,
+          )
+        : [];
+
+    const processNames =
+      data.role === "Supervisor"
+        ? data.processes.map(
+            (process) => `${process.manufacturingPlant.name} - ${process.name}`,
+          )
+        : [];
+
+    const loaded = {
+      name: data.name,
+      email: data.email,
+      password: "",
+      rule: data.role,
+      manufacturingPlantNames: data.manufacturingPlants.map(
+        (plant) => plant.name,
+      ),
+      zoneNames,
+      processNames,
+    };
+    setForm(loaded);
+    leave.markPristine(loaded);
+  });
 
   const save = () => {
     const nameClean = form.name.trim();
     const emailClean = form.email.trim();
     const passwordClean = form.password.trim();
 
-    if (!nameClean) {
-      fail("name", "El nombre es requerido");
-      return;
-    }
-
-    if (!emailClean) {
-      fail("email", "El correo electrónico es requerido");
-      return;
-    }
-
-    if (!isValidEmail(emailClean)) {
-      fail("email", "El correo electrónico no es válido");
-      return;
-    }
-
-    if (!idCurrent && !passwordClean) {
-      fail("password", "La contraseña es requerida");
-      return;
-    }
-
-    if (!form.manufacturingPlantNames.length) {
-      fail("manufacturingPlantNames", "La planta de manufactura es requerida");
-      return;
-    }
-
-    if (form.rule === "Supervisor" && !form.zoneNames.length) {
-      fail("zoneNames", "La zona es requerida");
+    // Todo lo que falta, en el orden de la pantalla. Mismas reglas que antes
+    // (el rol deshabilitaba "Guardar" sin decir nada). Las plantas y las
+    // zonas aparecen al elegir el rol: solo se marcan si están en pantalla.
+    if (
+      failAll({
+        name: !nameClean ? "Escribe el nombre." : undefined,
+        email: !emailClean
+          ? "Escribe el correo electrónico."
+          : !isValidEmail(emailClean)
+            ? "El correo electrónico no es válido."
+            : undefined,
+        password:
+          !idCurrent && !passwordClean ? "Escribe la contraseña." : undefined,
+        rule: !form.rule ? "Selecciona el rol." : undefined,
+        manufacturingPlantNames:
+          form.rule && !form.manufacturingPlantNames.length
+            ? "Selecciona al menos una planta."
+            : undefined,
+        zoneNames:
+          form.rule === "Supervisor" &&
+          form.manufacturingPlantNames.length &&
+          !form.zoneNames.length
+            ? "Selecciona al menos una zona."
+            : undefined,
+      })
+    ) {
       return;
     }
 
@@ -113,7 +149,7 @@ const UsersFormPage = () => {
       UsersService.create(payload)
         .then(() => {
           toast.success("Usuario creado correctamente");
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch(failFromApi)
         .finally(() => setIsLoading(false));
@@ -121,65 +157,30 @@ const UsersFormPage = () => {
       UsersService.update(idCurrent, payload)
         .then(() => {
           toast.success("Usuario actualizado correctamente");
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch(failFromApi)
         .finally(() => setIsLoading(false));
     }
   };
 
-  const cancel = () => {
-    router.push("/users");
-  };
+  const title = idCurrent ? "Editar usuario" : "Nuevo usuario";
 
-  const isValidateForm = useMemo(
-    () =>
-      !form.name?.trim() ||
-      !form.email?.trim() ||
-      (!idCurrent && !form.password?.trim()) ||
-      !form.rule?.trim() ||
-      !form.manufacturingPlantNames?.length,
-    [form, idCurrent],
-  );
-
-  useEffect(() => {
-    const id = Number(searchParams.get("id") || 0);
-    if (!id) return;
-
-    setIdCurrent(id);
-    UsersService.findOne(id).then((data) => {
-      const zoneNames =
-        data.role === "Supervisor"
-          ? data.zones.map(
-              (zone) => `${zone.manufacturingPlant.name} - ${zone.name}`,
-            )
-          : [];
-
-      const processNames =
-        data.role === "Supervisor"
-          ? data.processes.map(
-              (process) =>
-                `${process.manufacturingPlant.name} - ${process.name}`,
-            )
-          : [];
-
-      setForm({
-        name: data.name,
-        email: data.email,
-        password: "",
-        rule: data.role,
-        manufacturingPlantNames: data.manufacturingPlants.map(
-          (plant) => plant.name,
-        ),
-        zoneNames,
-        processNames,
-      });
-    });
-  }, [searchParams]);
+  if (isEditRecordPending(record.status)) {
+    return (
+      <EditRecordState
+        status={record.status}
+        onRetry={record.retry}
+        title={title}
+        notFoundTitle="Usuario no encontrado"
+        listHref={LIST_HREF}
+      />
+    );
+  }
 
   return (
     <>
-      <PageHeader title={idCurrent ? "Editar usuario" : "Nuevo usuario"} />
+      <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
       <FormSection>
         <Grid
           size={{
@@ -218,6 +219,10 @@ const UsersFormPage = () => {
             variant="outlined"
             fullWidth
             autoComplete="off"
+            // Teclado de correo (con @) y sin mayúscula inicial.
+            slotProps={{
+              htmlInput: { inputMode: "email", autoCapitalize: "none" },
+            }}
             value={form.email}
             onChange={(e) =>
               setForm({
@@ -263,7 +268,11 @@ const UsersFormPage = () => {
                       aria-pressed={showPassword}
                       edge="end"
                     >
-                      {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      {showPassword ? (
+                        <VisibilityOffIcon />
+                      ) : (
+                        <VisibilityIcon />
+                      )}
                     </IconButton>
                   </InputAdornment>
                 ),
@@ -278,7 +287,7 @@ const UsersFormPage = () => {
             md: 3,
           }}
         >
-          <FormControl fullWidth>
+          <FormControl fullWidth error={!!errorOf("rule")}>
             <InputLabel id="rule-select-label">Rol</InputLabel>
             <Select
               labelId="rule-select-label"
@@ -296,6 +305,11 @@ const UsersFormPage = () => {
               <MenuItem value="General">General</MenuItem>
               <MenuItem value="Supervisor">Supervisor</MenuItem>
             </Select>
+            {errorOf("rule") && (
+              <FormHelperText data-error-for="rule" error>
+                {errorOf("rule")}
+              </FormHelperText>
+            )}
           </FormControl>
         </Grid>
 
@@ -345,7 +359,9 @@ const UsersFormPage = () => {
                   manufacturingPlantNames={form.manufacturingPlantNames}
                 />
                 {errorOf("zoneNames") && (
-                  <FormHelperText data-error-for="zoneNames" error>{errorOf("zoneNames")}</FormHelperText>
+                  <FormHelperText data-error-for="zoneNames" error>
+                    {errorOf("zoneNames")}
+                  </FormHelperText>
                 )}
               </Grid>
               <Grid
@@ -370,14 +386,13 @@ const UsersFormPage = () => {
           )}
       </FormSection>
       <FormActions
-        onCancel={cancel}
+        onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={isLoading}
-        isSaveDisabled={isValidateForm}
       />
+      {leave.confirmDialog}
     </>
   );
 };
 
 export default UsersFormPage;
-

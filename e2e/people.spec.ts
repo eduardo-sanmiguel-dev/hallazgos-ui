@@ -45,14 +45,16 @@ test.describe("Usuarios", () => {
 
     await saveButton(page).click();
     await expect(fieldError(page, "email")).toHaveText(
-      "El correo electrónico no es válido",
+      "El correo electrónico no es válido.",
     );
     await expect(page.locator("#campo-email")).toBeFocused();
 
-    await page.getByLabel("Correo electrónico").fill("e2e-supervisor@example.com");
+    await page
+      .getByLabel("Correo electrónico")
+      .fill("e2e-supervisor@example.com");
     await saveButton(page).click();
     await expect(fieldError(page, "zoneNames")).toHaveText(
-      "La zona es requerida",
+      "Selecciona al menos una zona.",
     );
     expect(writes).toEqual([]);
 
@@ -143,8 +145,12 @@ test.describe("Usuarios", () => {
     await page.goto("/users");
     const row = page.getByRole("row", { name: /E2E Supervisor/ });
     await expect(row).toContainText("Planta A, Planta B");
-    await expect(page.getByRole("columnheader", { name: "Plantas" })).toBeVisible();
-    await expect(page.getByRole("columnheader", { name: "Zonas" })).toHaveCount(0);
+    await expect(
+      page.getByRole("columnheader", { name: "Plantas" }),
+    ).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "Zonas" })).toHaveCount(
+      0,
+    );
     await expect(
       page.getByRole("columnheader", { name: "Procesos" }),
     ).toHaveCount(0);
@@ -162,7 +168,9 @@ test.describe("Usuarios", () => {
     const email = await page.getByLabel("Correo electrónico").inputValue();
 
     await saveButton(page).click();
-    await expect(toast(page, "Usuario actualizado correctamente")).toBeVisible();
+    await expect(
+      toast(page, "Usuario actualizado correctamente"),
+    ).toBeVisible();
 
     expect(writes).toEqual([
       {
@@ -181,15 +189,23 @@ test.describe("Colaboradores", () => {
     const writes = await captureWrites(page);
 
     await page.goto("/employees/form");
-    await page.getByLabel("Código de empleado").fill("990001");
-    await page.getByLabel("Nombre completo").fill("E2E Colaborador (no se guarda)");
+    await page.getByLabel("Código de colaborador").fill("990001");
+    await page
+      .getByLabel("Nombre completo")
+      .fill("E2E Colaborador (no se guarda)");
     await fillDate(page, "Fecha de nacimiento *", "15/03/1990");
     await fillDate(page, "Fecha de admisión *", "01/02/2020");
-    await pickOption(page, "Area *");
+    await pickOption(page, "Área *");
     await pickOption(page, "Puesto *");
-    await expect(saveButton(page)).toBeDisabled();
-    await pickOption(page, "Género *");
+    // Sin género: "Guardar" lo marca junto al campo (antes, deshabilitado y
+    // sin decir qué faltaba).
     await pickMany(page, "Plantas");
+    await saveButton(page).click();
+    await expect(fieldError(page, "gender")).toHaveText(
+      "Selecciona el género.",
+    );
+    expect(writes).toEqual([]);
+    await pickOption(page, "Género *");
 
     await saveButton(page).click();
     await expect(toast(page, "Colaborador creado correctamente")).toBeVisible();
@@ -324,15 +340,19 @@ test("edita un colaborador al que le faltan datos (sin guardar)", async ({
   await expect(page.getByLabel("Nombre completo")).toHaveValue(
     "E2E Colaborador incompleto",
   );
-  // Faltan datos obligatorios: no se puede guardar hasta completarlos.
-  await expect(saveButton(page)).toBeDisabled();
+  // Faltan datos obligatorios: "Guardar" los marca todos y no envía nada.
+  await saveButton(page).click();
+  await expect(toast(page, "Completa los 6 campos marcados.")).toBeVisible();
+  expect(writes).toEqual([]);
   await fillDate(page, "Fecha de nacimiento *", "15/03/1990");
   await fillDate(page, "Fecha de admisión *", "01/02/2020");
-  await pickOption(page, "Area *");
+  await pickOption(page, "Área *");
   await pickOption(page, "Puesto *");
   await pickOption(page, "Género *");
   await pickMany(page, "Plantas");
   await saveButton(page).click();
-  await expect(toast(page, "Colaborador actualizado correctamente")).toBeVisible();
+  await expect(
+    toast(page, "Colaborador actualizado correctamente"),
+  ).toBeVisible();
   expect(writes[0]).toMatchObject({ method: "PATCH", path: "/employees/9851" });
 });

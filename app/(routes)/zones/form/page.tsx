@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -16,10 +16,15 @@ import { ZonesService } from "@services";
 import SelectManufacturingPlants from "@components/SelectManufacturingPlants";
 import SelectDefault from "@components/SelectDefault";
 import { useAreas } from "@hooks";
-import { useFieldErrors } from "@hooks/useFieldErrors";
+import { useFormFieldErrors } from "@hooks/useFieldErrors";
+import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
+import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
+import EditRecordState from "@shared/components/EditRecordState";
+
+const LIST_HREF = "/zones";
 
 const ZonesFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -28,26 +33,39 @@ const ZonesFormPage = () => {
     manufacturingPlantId: "",
     areaId: "",
   });
-  const [idCurrent, setIdCurrent] = useState<number>(0);
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
-    | "name"
-    | "manufacturingPlantId"
-  >(form);
+  const idCurrent = Number(searchParams.get("id") || 0);
+
+  // Cada error se quita al cambiar su campo; los demás siguen marcados.
+  const { failAll, failFromApi, errorOf, fieldProps } =
+    useFormFieldErrors(form);
+  const leave = useLeaveConfirm(form, { isEditing: !!idCurrent });
+
+  const record = useEditRecord(idCurrent, ZonesService.findOne, (data) => {
+    const loaded = {
+      name: data.name,
+      manufacturingPlantId: `${data.manufacturingPlant.id}`,
+      areaId: data.area?.id ? `${data.area.id}` : "",
+    };
+    setForm(loaded);
+    leave.markPristine(loaded);
+  });
 
   const save = () => {
     const nameClean = form.name.trim();
     const manufacturingPlantId = Number(form.manufacturingPlantId);
 
-    if (!nameClean) {
-      fail("name", "El nombre es requerido");
-      return;
-    }
-
-    if (!manufacturingPlantId) {
-      fail("manufacturingPlantId", "La planta es requerida");
+    // Todo lo que falta, en el orden de la pantalla.
+    if (
+      failAll({
+        name: !nameClean ? "Escribe el nombre." : undefined,
+        manufacturingPlantId: !manufacturingPlantId
+          ? "Selecciona la planta."
+          : undefined,
+      })
+    ) {
       return;
     }
 
@@ -61,7 +79,7 @@ const ZonesFormPage = () => {
       })
         .then(() => {
           toast.success("Lugar creado correctamente");
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch(failFromApi)
         .finally(() => setIsLoading(false));
@@ -73,35 +91,12 @@ const ZonesFormPage = () => {
       })
         .then(() => {
           toast.success("Lugar actualizado correctamente");
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch(failFromApi)
         .finally(() => setIsLoading(false));
     }
   };
-
-  const cancel = () => {
-    router.push("/zones");
-  };
-
-  const isValidateForm = useMemo(
-    () => !form.name?.trim() || !form.manufacturingPlantId,
-    [form],
-  );
-
-  useEffect(() => {
-    const id = Number(searchParams.get("id") || 0);
-    if (!id) return;
-
-    setIdCurrent(id);
-    ZonesService.findOne(id).then((data) => {
-      setForm({
-        name: data.name,
-        manufacturingPlantId: `${data.manufacturingPlant.id}`,
-        areaId: data.area?.id ? `${data.area.id}` : "",
-      });
-    });
-  }, [searchParams]);
 
   const { data: allAreas } = useAreas();
   const areas = useMemo(
@@ -112,9 +107,23 @@ const ZonesFormPage = () => {
     [allAreas],
   );
 
+  const title = idCurrent ? "Editar lugar" : "Nuevo lugar";
+
+  if (isEditRecordPending(record.status)) {
+    return (
+      <EditRecordState
+        status={record.status}
+        onRetry={record.retry}
+        title={title}
+        notFoundTitle="Lugar no encontrado"
+        listHref={LIST_HREF}
+      />
+    );
+  }
+
   return (
     <>
-      <PageHeader title={idCurrent ? "Editar lugar" : "Nuevo lugar"} />
+      <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
       <FormSection>
         <Grid
           size={{
@@ -183,14 +192,13 @@ const ZonesFormPage = () => {
         </Grid>
       </FormSection>
       <FormActions
-        onCancel={cancel}
+        onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={isLoading}
-        isSaveDisabled={isValidateForm}
       />
+      {leave.confirmDialog}
     </>
   );
 };
 
 export default ZonesFormPage;
-

@@ -2,25 +2,29 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
-import { FormHelperText } from "@mui/material";
 import { toast } from "sonner";
 
 import { AreasService } from "@services";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
-import { useFieldErrors } from "@hooks/useFieldErrors";
+import { useFormFieldErrors } from "@hooks/useFieldErrors";
+import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
+import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
+import EditRecordState from "@shared/components/EditRecordState";
 import AreaImageCoordinateSelector, {
   type AreaMarkedPoint,
 } from "../_components/AreaImageCoordinateSelector";
+
+const LIST_HREF = "/areas";
 
 const AreasFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -31,25 +35,55 @@ const AreasFormPage = () => {
     name: "",
     manufacturingPlantId: "",
   });
-  const [idCurrent, setIdCurrent] = useState<number>(0);
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
-    "name" | "manufacturingPlantId"
-  >(form);
+  const idCurrent = Number(searchParams.get("id") || 0);
+
+  // Cada error se quita al cambiar su campo; los demás siguen marcados.
+  const { failAll, failFromApi, errorOf, fieldProps } =
+    useFormFieldErrors(form);
+  // El punto del plano también cuenta como captura. Con una sola planta, el
+  // selector la elige solo: al crear no cuenta.
+  const leave = useLeaveConfirm(
+    { ...form, point: pointToPersist },
+    { isEditing: !!idCurrent, ignoreOnCreate: ["manufacturingPlantId"] },
+  );
+
+  const record = useEditRecord(idCurrent, AreasService.findOne, (data) => {
+    const loaded = {
+      name: data.name,
+      manufacturingPlantId: `${data.manufacturingPlant?.id || ""}`,
+    };
+    const point =
+      data.coordinateX !== null &&
+      data.coordinateX !== undefined &&
+      data.coordinateY !== null &&
+      data.coordinateY !== undefined
+        ? {
+            x: data.coordinateX,
+            y: data.coordinateY,
+            zoom: data.zoomLevel || 1,
+          }
+        : null;
+    setForm(loaded);
+    setPointToPersist(point);
+    leave.markPristine({ ...loaded, point });
+  });
 
   const save = () => {
     const nameClean = form.name.trim();
     const manufacturingPlantId = Number(form.manufacturingPlantId);
 
-    if (!nameClean) {
-      fail("name", "El nombre es requerido");
-      return;
-    }
-
-    if (!manufacturingPlantId) {
-      fail("manufacturingPlantId", "La planta es requerida");
+    // Todo lo que falta, en el orden de la pantalla.
+    if (
+      failAll({
+        name: !nameClean ? "Escribe el nombre." : undefined,
+        manufacturingPlantId: !manufacturingPlantId
+          ? "Selecciona la planta."
+          : undefined,
+      })
+    ) {
       return;
     }
 
@@ -67,7 +101,7 @@ const AreasFormPage = () => {
       })
         .then(() => {
           toast.success("Zona creada correctamente");
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch(failFromApi)
         .finally(() => setIsLoading(false));
@@ -83,54 +117,30 @@ const AreasFormPage = () => {
       })
         .then(() => {
           toast.success("Zona actualizada correctamente");
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch(failFromApi)
         .finally(() => setIsLoading(false));
     }
   };
 
-  const cancel = () => {
-    router.push("/areas");
-  };
+  const title = idCurrent ? "Editar zona" : "Nueva zona";
 
-  const isValidateForm = useMemo(
-    () => !form.name?.trim() || !form.manufacturingPlantId,
-    [form],
-  );
-
-  useEffect(() => {
-    const id = Number(searchParams.get("id") || 0);
-    if (!id) return;
-
-    setIdCurrent(id);
-    AreasService.findOne(id).then((data) => {
-      setForm({
-        name: data.name,
-        manufacturingPlantId: `${data.manufacturingPlant?.id || ""}`,
-      });
-
-      if (
-        data.coordinateX !== null &&
-        data.coordinateX !== undefined &&
-        data.coordinateY !== null &&
-        data.coordinateY !== undefined
-      ) {
-        const zoom = data.zoomLevel || 1;
-        setPointToPersist({
-          x: data.coordinateX,
-          y: data.coordinateY,
-          zoom,
-        });
-      } else {
-        setPointToPersist(null);
-      }
-    });
-  }, [searchParams]);
+  if (isEditRecordPending(record.status)) {
+    return (
+      <EditRecordState
+        status={record.status}
+        onRetry={record.retry}
+        title={title}
+        notFoundTitle="Zona no encontrada"
+        listHref={LIST_HREF}
+      />
+    );
+  }
 
   return (
     <>
-      <PageHeader title={idCurrent ? "Editar zona" : "Nueva zona"} />
+      <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
       <FormSection>
         <Grid
           size={{
@@ -163,14 +173,8 @@ const AreasFormPage = () => {
               manufacturingPlantId: e.target.value,
             })
           }
+          error={errorOf("manufacturingPlantId")}
         />
-        {errorOf("manufacturingPlantId") && (
-          <Grid size={{ xs: 12 }}>
-            <FormHelperText data-error-for="manufacturingPlantId" error>
-              {errorOf("manufacturingPlantId")}
-            </FormHelperText>
-          </Grid>
-        )}
       </FormSection>
       <FormSection title="Ubicación en el plano">
         <Grid size={{ xs: 12 }} sx={{ display: "flex" }}>
@@ -182,14 +186,13 @@ const AreasFormPage = () => {
         </Grid>
       </FormSection>
       <FormActions
-        onCancel={cancel}
+        onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={isLoading}
-        isSaveDisabled={isValidateForm}
       />
+      {leave.confirmDialog}
     </>
   );
 };
 
 export default AreasFormPage;
-

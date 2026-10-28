@@ -13,13 +13,10 @@ import {
   EditAction,
   RowActions,
 } from "@shared/components/RowActions";
-import {
-  StyledTableCell,
-  StyledTableRow,
-} from "@shared/components/TableDefault";
-import TableDefaultServer, {
-  type ServerPagination,
-} from "@shared/components/TableDefaultServer";
+import type { ServerPagination } from "@shared/components/TableDefaultServer";
+import ResponsiveTable, {
+  type ResponsiveColumn,
+} from "@shared/components/ResponsiveTable";
 import { EmployeesService } from "@services";
 
 interface Props {
@@ -28,17 +25,64 @@ interface Props {
   pagination: ServerPagination;
 }
 
-const columns = [
-  "Código",
-  "Nombre",
-  "Fecha de admisión",
-  "Fecha de nacimiento",
-  "Estado",
-  "Área",
-  "Puesto",
-  "Genero",
-  "Plantas",
-  "Acciones",
+// Tabla en tablet y escritorio; tarjetas en celular (ResponsiveTable, M6):
+// nombre, código, estado, área, puesto, plantas y admisión.
+const columns: ResponsiveColumn<Employee>[] = [
+  {
+    id: "code",
+    header: "Código",
+    cell: (row) => row.code,
+    rowHeader: true,
+    card: "hidden",
+  },
+  { id: "name", header: "Nombre", cell: (row) => row.name, card: "title" },
+  {
+    id: "codeCard",
+    header: "Código",
+    cell: (row) => `Código ${row.code}`,
+    card: "subtitle",
+    hideInTable: true,
+  },
+  {
+    id: "dateOfAdmission",
+    header: "Fecha de admisión",
+    cell: (row) =>
+      row.dateOfAdmission ? stringToDate(row.dateOfAdmission) : "",
+    cellSx: { minWidth: 180 },
+  },
+  {
+    id: "birthdate",
+    header: "Fecha de nacimiento",
+    cell: (row) => (row.birthdate ? stringToDate(row.birthdate) : ""),
+    cellSx: { minWidth: 180 },
+    card: "hidden",
+  },
+  {
+    id: "isActive",
+    header: "Estado",
+    cell: (row) => (
+      <Chip
+        icon={row.isActive ? <CheckCircleOutlineIcon /> : <HighlightOffIcon />}
+        label={row.isActive ? "Activo" : "Inactivo"}
+        color={row.isActive ? "success" : "error"}
+        size="small"
+      />
+    ),
+  },
+  { id: "area", header: "Área", cell: (row) => row.area?.name || "" },
+  { id: "position", header: "Puesto", cell: (row) => row.position?.name || "" },
+  {
+    id: "gender",
+    header: "Género",
+    cell: (row) => row.gender?.name || "",
+    card: "hidden",
+  },
+  {
+    id: "plants",
+    header: "Plantas",
+    cell: (row) =>
+      row.manufacturingPlants.map((plant) => plant.name).join(", "),
+  },
 ];
 
 export default function TableEmployees({ rows, getData, pagination }: Props) {
@@ -69,60 +113,28 @@ export default function TableEmployees({ rows, getData, pagination }: Props) {
 
   return (
     <>
-      <TableDefaultServer
+      <ResponsiveTable
         rows={rows}
         columns={columns}
-        {...pagination}
-        paintRows={(row: Employee) => {
-          return (
-            <StyledTableRow key={row.id}>
-              <StyledTableCell component="th" scope="row">
-                {row.code}
-              </StyledTableCell>
-              <StyledTableCell>{row.name}</StyledTableCell>
-              <StyledTableCell style={{ minWidth: 180 }}>
-                {row.dateOfAdmission ? stringToDate(row.dateOfAdmission) : ""}
-              </StyledTableCell>
-              <StyledTableCell style={{ minWidth: 180 }}>
-                {row.birthdate ? stringToDate(row.birthdate) : ""}
-              </StyledTableCell>
-              <StyledTableCell>
-                <Chip
-                  icon={
-                    row.isActive ? (
-                      <CheckCircleOutlineIcon />
-                    ) : (
-                      <HighlightOffIcon />
-                    )
-                  }
-                  label={row.isActive ? "Activo" : "Inactivo"}
-                  color={row.isActive ? "success" : "error"}
-                  size="small"
-                />
-              </StyledTableCell>
-              <StyledTableCell>{row.area?.name || ""}</StyledTableCell>
-              <StyledTableCell>{row.position?.name || ""}</StyledTableCell>
-              <StyledTableCell>{row.gender?.name || ""}</StyledTableCell>
-              <StyledTableCell>
-                {row.manufacturingPlants.map((plant) => plant.name).join(", ")}
-              </StyledTableCell>
-              <StyledTableCell>
-                <RowActions>
-                  <EditAction
-                    onClick={() => router.push("/employees/form?id=" + row.id)}
-                  />
-                  {row.isActive && (
-                    <DeleteAction
-                      label="Desactivar"
-                      onClick={() => confirmRemove(row)}
-                      disabled={isLoading}
-                    />
-                  )}
-                </RowActions>
-              </StyledTableCell>
-            </StyledTableRow>
-          );
-        }}
+        getRowKey={(row) => row.id}
+        pagination={pagination}
+        ariaLabel="Colaboradores"
+        emptyTitle="Sin registros de colaboradores"
+        emptyDescription="No hay registros con los filtros actuales."
+        actions={(row) => (
+          <RowActions>
+            <EditAction
+              onClick={() => router.push("/employees/form?id=" + row.id)}
+            />
+            {row.isActive && (
+              <DeleteAction
+                label="Desactivar"
+                onClick={() => confirmRemove(row)}
+                disabled={isLoading}
+              />
+            )}
+          </RowActions>
+        )}
       />
       {confirmDialog}
     </>

@@ -2,6 +2,8 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
+import { Link } from "@mui/material";
+
 import { notify, stringToDateWithTime, updatedDateLabel } from "@shared/utils";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import {
@@ -9,13 +11,10 @@ import {
   EditAction,
   RowActions,
 } from "@shared/components/RowActions";
-import {
-  StyledTableCell,
-  StyledTableRow,
-} from "@shared/components/TableDefault";
-import TableDefaultServer, {
-  type ServerPagination,
-} from "@shared/components/TableDefaultServer";
+import type { ServerPagination } from "@shared/components/TableDefaultServer";
+import ResponsiveTable, {
+  type ResponsiveColumn,
+} from "@shared/components/ResponsiveTable";
 import { ManufacturingPlant } from "@interfaces";
 import { ManufacturingPlantsService } from "@services";
 
@@ -25,15 +24,50 @@ interface Props {
   pagination: ServerPagination;
 }
 
-const columns = [
-  "ID",
-  "Nombre",
-  "Latitud",
-  "Longitud",
-  "Link",
-  "Creación",
-  "Ultima actualización",
-  "Acciones",
+// Tabla en tablet y escritorio; tarjetas en celular (ResponsiveTable). En la
+// tarjeta, el link (largo) se cambia por "Abrir mapa".
+const columns: ResponsiveColumn<ManufacturingPlant>[] = [
+  {
+    id: "id",
+    header: "ID",
+    cell: (row) => row.id,
+    rowHeader: true,
+    card: "hidden",
+  },
+  { id: "name", header: "Nombre", cell: (row) => row.name, card: "title" },
+  { id: "lat", header: "Latitud", cell: (row) => row.lat },
+  { id: "lng", header: "Longitud", cell: (row) => row.lng },
+  {
+    id: "link",
+    header: "Link",
+    cell: (row) => (
+      <Link href={row.link} target="_blank" rel="noreferrer">
+        {row.link}
+      </Link>
+    ),
+    card: "hidden",
+  },
+  {
+    id: "map",
+    header: "Mapa",
+    cell: (row) => (
+      <Link href={row.link} target="_blank" rel="noreferrer">
+        Abrir mapa
+      </Link>
+    ),
+    hideInTable: true,
+  },
+  {
+    id: "createdAt",
+    header: "Creación",
+    cell: (row) => stringToDateWithTime(row.createdAt),
+    card: "hidden",
+  },
+  {
+    id: "updatedAt",
+    header: "Última actualización",
+    cell: (row) => updatedDateLabel(row.createdAt, row.updatedAt) ?? "-",
+  },
 ];
 
 export default function TableManufacturingPlants({
@@ -68,43 +102,26 @@ export default function TableManufacturingPlants({
 
   return (
     <>
-      <TableDefaultServer
+      <ResponsiveTable
         rows={rows}
         columns={columns}
-        {...pagination}
-        paintRows={(row: ManufacturingPlant) => (
-          <StyledTableRow key={row.id}>
-            <StyledTableCell component="th" scope="row">
-              {row.id}
-            </StyledTableCell>
-            <StyledTableCell>{row.name}</StyledTableCell>
-            <StyledTableCell>{row.lat}</StyledTableCell>
-            <StyledTableCell>{row.lng}</StyledTableCell>
-            <StyledTableCell>
-              <a href={row.link} target="_blank" rel="noreferrer">
-                {row.link}
-              </a>
-            </StyledTableCell>
-            <StyledTableCell>
-              {stringToDateWithTime(row.createdAt)}
-            </StyledTableCell>
-            <StyledTableCell>
-              {updatedDateLabel(row.createdAt, row.updatedAt) ?? "-"}
-            </StyledTableCell>
-            <StyledTableCell>
-              <RowActions>
-                <EditAction
-                  onClick={() =>
-                    router.push("/manufacturing-plants/form?id=" + row.id)
-                  }
-                />
-                <DeleteAction
-                  onClick={() => confirmRemove(row)}
-                  disabled={isLoading}
-                />
-              </RowActions>
-            </StyledTableCell>
-          </StyledTableRow>
+        getRowKey={(row) => row.id}
+        pagination={pagination}
+        ariaLabel="Plantas"
+        emptyTitle="Sin registros de plantas"
+        emptyDescription="No hay registros con los filtros actuales."
+        actions={(row) => (
+          <RowActions>
+            <EditAction
+              onClick={() =>
+                router.push("/manufacturing-plants/form?id=" + row.id)
+              }
+            />
+            <DeleteAction
+              onClick={() => confirmRemove(row)}
+              disabled={isLoading}
+            />
+          </RowActions>
         )}
       />
       {confirmDialog}

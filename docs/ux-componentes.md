@@ -820,9 +820,61 @@ General, (3) criterios, equipos y HDS, (4) configuración de Gemba Walk (G8).
   celular; vacío "Sin registros de procesos".
 - API: "Proceso #N no encontrado" (antes "Proceso con ID N no encontrado").
 
+### General (grupo 2)
+
+Usuarios, Colaboradores, Plantas, Lugares (`/zones`) y Zonas (`/areas`), con
+la base común: "Guardar" que marca todo, confirmación al salir, estados de
+carga en edición, breadcrumbs y lista con `ResponsiveTable`.
+
+- **Usuarios:** el rol era obligatorio (deshabilitaba "Guardar") pero nunca
+  se marcaba; ahora sí ("Selecciona el rol."). Las plantas y las zonas se
+  marcan solo cuando están en pantalla (aparecen al elegir el rol). El
+  correo abre el teclado de correo (`inputMode="email"`, sin mayúscula
+  inicial). La lista ya tenía tarjetas.
+- **Colaboradores (M6):** el género también era obligatorio sin marcarse;
+  ahora "Selecciona el género." (y el error del API de `genderId` va a su
+  campo). "Código de colaborador" (antes "de empleado") con `NUMERIC_INPUT`
+  y "Área" con acento. Tarjetas con nombre, código, admisión, estado, área,
+  puesto y plantas; nacimiento y género solo en la tabla.
+- **Plantas:** latitud y longitud con **teclado de texto** (B1, decisión
+  aprobada): la longitud es negativa en México y Colombia y el teclado
+  decimal del iPhone no tiene signo menos. Al guardar se valida el formato
+  (grados decimales con punto) y el rango (-90 a 90, -180 a 180, como el
+  API); la coma decimal se cambia por punto al escribir. El link abre el
+  teclado de direcciones web. En la tarjeta, el link largo es "Abrir mapa"
+  (`Link` de MUI, verde de texto del tema; antes, azul del navegador).
+- **Lugares y Zonas:** tarjetas con nombre y planta (y zona, en Lugares). En
+  Zonas, el punto del plano cuenta como cambio para la confirmación al
+  salir, y la planta sola no cuenta como captura al crear (como en ICS): con
+  una sola planta, el selector la elige solo. Su error va en el propio
+  selector (`SelectManufacturingPlantsOwn` con `error`).
+- Encabezados corregidos: "Última actualización", "Género".
+- **Nomenclatura (sin cambio):** en el panel, `/zones` se llama "Lugares" y
+  `/areas` "Zonas", pero el API y otras pantallas (CIAEL, Gemba Walk) dicen
+  "zona" y "área" para esas mismas entidades. No se cambió: queda fuera de
+  las correcciones aprobadas y afecta a toda la app.
+
 ---
 
 ## 12. Pendiente para otras fases
+
+Para la Fase 5 (verificación):
+
+- **Aviso nativo al recargar o cerrar la pestaña** (`beforeunload`) con algo
+  capturado, en todos los formularios que usan `useLeaveConfirm` o borrador
+  local (`useFormDraft`). Hoy solo preguntan "Cancelar" y los breadcrumbs; el
+  menú lateral y el botón "atrás" del navegador no.
+- **Aviso de MUI "out-of-range value"** en el selector de planta
+  (`SelectManufacturingPlants`) al editar: aparece en la consola mientras
+  carga el catálogo de plantas, porque el valor del registro llega antes que
+  las opciones. No cambia el funcionamiento.
+- **Errores 404 sin manejar** (`unhandledRejection` en la consola del
+  navegador) en la prueba de acceso "el usuario de EPP entra a EPP pero no a
+  HDS" (`e2e/route-access.spec.ts`), al abrir `/epp` con el usuario simulado.
+  Ya aparecían antes del panel administrativo; falta ubicar qué consulta no
+  maneja su error.
+
+Otros:
 
 - Los borradores de iniciar o cerrar de un hallazgo que ya cambió de estado
   (por ejemplo, cerrado desde otro dispositivo) no se pueden abrir desde la

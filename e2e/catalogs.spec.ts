@@ -87,6 +87,7 @@ const CATALOGS: CatalogCase[] = [
       await pickOption(page, "Zona (opcional)");
       return { ...plant, areaId: expect.any(Number) };
     },
+    marksMissingOnSave: true,
   },
   {
     name: "zonas",
@@ -95,6 +96,7 @@ const CATALOGS: CatalogCase[] = [
     createdToast: "Zona creada correctamente",
     updatedToast: "Zona actualizada correctamente",
     fill: pickPlant,
+    marksMissingOnSave: true,
   },
   {
     name: "plantas",
@@ -112,6 +114,7 @@ const CATALOGS: CatalogCase[] = [
         lng: -99.1332,
       };
     },
+    marksMissingOnSave: true,
   },
 ];
 
@@ -127,8 +130,10 @@ for (const catalog of CATALOGS) {
       await page.goto(`${catalog.route}/form`);
       if (catalog.marksMissingOnSave) {
         await saveButton(page).click();
+        // Con una sola planta, el selector la elige solo: puede faltar solo
+        // el nombre.
         await expect(
-          toast(page, /Completa los \d+ campos marcados/),
+          toast(page, /Completa los \d+ campos marcados|Escribe el nombre\./),
         ).toBeVisible();
         expect(writes).toEqual([]);
       } else {

@@ -9,13 +9,10 @@ import {
   EditAction,
   RowActions,
 } from "@shared/components/RowActions";
-import {
-  StyledTableCell,
-  StyledTableRow,
-} from "@shared/components/TableDefault";
-import TableDefaultServer, {
-  type ServerPagination,
-} from "@shared/components/TableDefaultServer";
+import type { ServerPagination } from "@shared/components/TableDefaultServer";
+import ResponsiveTable, {
+  type ResponsiveColumn,
+} from "@shared/components/ResponsiveTable";
 import { Zone } from "@interfaces";
 import { ZonesService } from "@services";
 
@@ -25,16 +22,45 @@ interface Props {
   pagination: ServerPagination;
 }
 
-const columns = [
-  "ID",
-  "Nombre",
-  "Planta",
-  "Zona",
-  "Creado por",
-  "Actualizado por",
-  "Creación",
-  "Ultima actualización",
-  "Acciones",
+// Tabla en tablet y escritorio; tarjetas en celular (ResponsiveTable).
+const columns: ResponsiveColumn<Zone>[] = [
+  {
+    id: "id",
+    header: "ID",
+    cell: (row) => row.id,
+    rowHeader: true,
+    card: "hidden",
+  },
+  { id: "name", header: "Nombre", cell: (row) => row.name, card: "title" },
+  {
+    id: "manufacturingPlant",
+    header: "Planta",
+    cell: (row) => row.manufacturingPlant.name,
+    card: "subtitle",
+  },
+  { id: "area", header: "Zona", cell: (row) => row.area?.name || "-" },
+  {
+    id: "createdBy",
+    header: "Creado por",
+    cell: (row) => row.createdBy?.name || "-",
+  },
+  {
+    id: "updatedBy",
+    header: "Actualizado por",
+    cell: (row) => row.updatedBy?.name || "-",
+    card: "hidden",
+  },
+  {
+    id: "createdAt",
+    header: "Creación",
+    cell: (row) => stringToDateWithTime(row.createdAt),
+    card: "hidden",
+  },
+  {
+    id: "updatedAt",
+    header: "Última actualización",
+    cell: (row) => updatedDateLabel(row.createdAt, row.updatedAt) ?? "-",
+  },
 ];
 
 export default function TableZones({ rows, getData, pagination }: Props) {
@@ -65,38 +91,24 @@ export default function TableZones({ rows, getData, pagination }: Props) {
 
   return (
     <>
-      <TableDefaultServer
+      <ResponsiveTable
         rows={rows}
         columns={columns}
-        {...pagination}
-        paintRows={(row: Zone) => (
-          <StyledTableRow key={row.id}>
-            <StyledTableCell component="th" scope="row">
-              {row.id}
-            </StyledTableCell>
-            <StyledTableCell>{row.name}</StyledTableCell>
-            <StyledTableCell>{row.manufacturingPlant.name}</StyledTableCell>
-            <StyledTableCell>{row.area?.name || "-"}</StyledTableCell>
-            <StyledTableCell>{row.createdBy?.name || "-"}</StyledTableCell>
-            <StyledTableCell>{row.updatedBy?.name || "-"}</StyledTableCell>
-            <StyledTableCell>
-              {stringToDateWithTime(row.createdAt)}
-            </StyledTableCell>
-            <StyledTableCell>
-              {updatedDateLabel(row.createdAt, row.updatedAt) ?? "-"}
-            </StyledTableCell>
-            <StyledTableCell>
-              <RowActions>
-                <EditAction
-                  onClick={() => router.push("/zones/form?id=" + row.id)}
-                />
-                <DeleteAction
-                  onClick={() => confirmRemove(row)}
-                  disabled={isLoading}
-                />
-              </RowActions>
-            </StyledTableCell>
-          </StyledTableRow>
+        getRowKey={(row) => row.id}
+        pagination={pagination}
+        ariaLabel="Lugares"
+        emptyTitle="Sin registros de lugares"
+        emptyDescription="No hay registros con los filtros actuales."
+        actions={(row) => (
+          <RowActions>
+            <EditAction
+              onClick={() => router.push("/zones/form?id=" + row.id)}
+            />
+            <DeleteAction
+              onClick={() => confirmRemove(row)}
+              disabled={isLoading}
+            />
+          </RowActions>
         )}
       />
       {confirmDialog}

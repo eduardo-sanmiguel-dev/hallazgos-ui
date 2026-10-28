@@ -1,9 +1,8 @@
 "use client";
 
-
 export const dynamic = "force-dynamic";
 
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useState } from "react";
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -24,55 +23,85 @@ import { EmployeesService } from "@services";
 import SelectDefault from "@components/SelectDefault";
 import { SelectChangeEvent } from "@mui/material";
 import MultiSelectManufacturingPlants from "@components/MultiSelectManufacturingPlants";
-import { useFieldErrors } from "@hooks/useFieldErrors";
+import { useFormFieldErrors } from "@hooks/useFieldErrors";
+import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
+import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
+import EditRecordState from "@shared/components/EditRecordState";
+import { NUMERIC_INPUT } from "@shared/utils/inputModes";
 
-// Campos del API con otro nombre en el formulario. El género no se marca
-// junto a un campo: queda en el aviso.
+const LIST_HREF = "/employees";
+
+// Campos del API con otro nombre en el formulario.
 const EMPLOYEE_API_FIELDS = {
   areaId: "area",
   positionId: "position",
   manufacturingPlantsIds: "manufacturingPlantNames",
-  genderId: null,
+  genderId: "gender",
 };
+
+interface EmployeeForm {
+  code: string;
+  name: string;
+  birthdate: Dayjs | null;
+  dateOfAdmission: Dayjs | null;
+  area: string;
+  position: string;
+  gender: string;
+  manufacturingPlantNames: string[];
+}
+
+const EMPTY_FORM: EmployeeForm = {
+  code: "",
+  name: "",
+  birthdate: null,
+  dateOfAdmission: null,
+  area: "",
+  position: "",
+  gender: "",
+  manufacturingPlantNames: [],
+};
+
+// Fecha obligatoria: vacía o incompleta ("Invalid Date" mientras se escribe).
+const dateError = (date: Dayjs | null, label: string) =>
+  !date
+    ? `Escribe la fecha de ${label}.`
+    : !date.isValid()
+      ? `La fecha de ${label} no es válida.`
+      : undefined;
 
 const EmployeesFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [idCurrent, setIdCurrent] = useState<number>(0);
   const { data: catalogs } = useEmployeeCatalogs();
-  const [form, setForm] = useState<{
-    code: string;
-    name: string;
-    birthdate: Dayjs | null;
-    dateOfAdmission: Dayjs | null;
-    area: string;
-    position: string;
-    gender: string;
-    manufacturingPlantNames: string[];
-  }>({
-    code: "",
-    name: "",
-    birthdate: null,
-    dateOfAdmission: null,
-    area: "",
-    position: "",
-    gender: "",
-    manufacturingPlantNames: [],
-  });
+  const [form, setForm] = useState<EmployeeForm>(EMPTY_FORM);
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
-    | "code"
-    | "name"
-    | "birthdate"
-    | "dateOfAdmission"
-    | "area"
-    | "position"
-    | "manufacturingPlantNames"
-  >(form);
+  const idCurrent = Number(searchParams.get("id") || 0);
+
+  // Cada error se quita al cambiar su campo; los demás siguen marcados.
+  const { failAll, failFromApi, errorOf, fieldProps } =
+    useFormFieldErrors(form);
+  const leave = useLeaveConfirm(form, { isEditing: !!idCurrent });
+
+  const record = useEditRecord(idCurrent, EmployeesService.findOne, (data) => {
+    const loaded = {
+      code: `${data.code}`,
+      name: data.name,
+      birthdate: data.birthdate ? dayjs(data.birthdate) : null,
+      dateOfAdmission: data.dateOfAdmission
+        ? dayjs(data.dateOfAdmission)
+        : null,
+      area: data.area?.id ? `${data.area.id}` : "",
+      position: data.position?.id ? `${data.position.id}` : "",
+      gender: data.gender?.id ? `${data.gender.id}` : "",
+      manufacturingPlantNames: data.manufacturingPlants.map((mp) => mp.name),
+    };
+    setForm(loaded);
+    leave.markPristine(loaded);
+  });
 
   const save = () => {
     const codeClean = form.code.trim();
@@ -83,48 +112,24 @@ const EmployeesFormPage = () => {
     const positionClean = form.position;
     const manufacturingPlantNamesClean = form.manufacturingPlantNames;
 
-    if (!codeClean) {
-      fail("code", "El código es requerido");
-      return;
-    }
-
-    if (!nameClean) {
-      fail("name", "El nombre es requerido");
-      return;
-    }
-
-    if (!birthdateClean) {
-      fail("birthdate", "La fecha de nacimiento es requerida");
-      return;
-    }
-
-    if (!birthdateClean.isValid()) {
-      fail("birthdate", "La fecha de nacimiento no es válida");
-      return;
-    }
-
-    if (!dateOfAdmissionClean) {
-      fail("dateOfAdmission", "La fecha de admisión es requerida");
-      return;
-    }
-
-    if (!dateOfAdmissionClean.isValid()) {
-      fail("dateOfAdmission", "La fecha de admisión no es válida");
-      return;
-    }
-
-    if (!areaClean) {
-      fail("area", "El área es requerida");
-      return;
-    }
-
-    if (!positionClean) {
-      fail("position", "El puesto es requerido");
-      return;
-    }
-
-    if (!manufacturingPlantNamesClean.length) {
-      fail("manufacturingPlantNames", "Seleccione al menos una planta");
+    // Todo lo que falta, en el orden de la pantalla. Mismas reglas que antes
+    // deshabilitaban "Guardar" (el género no se marcaba en ningún lado).
+    if (
+      failAll({
+        code: !codeClean ? "Escribe el código." : undefined,
+        name: !nameClean ? "Escribe el nombre completo." : undefined,
+        birthdate: dateError(birthdateClean, "nacimiento"),
+        dateOfAdmission: dateError(dateOfAdmissionClean, "admisión"),
+        area: !areaClean ? "Selecciona el área." : undefined,
+        position: !positionClean ? "Selecciona el puesto." : undefined,
+        gender: !form.gender ? "Selecciona el género." : undefined,
+        manufacturingPlantNames: !manufacturingPlantNamesClean.length
+          ? "Selecciona al menos una planta."
+          : undefined,
+      }) ||
+      !birthdateClean ||
+      !dateOfAdmissionClean
+    ) {
       return;
     }
 
@@ -148,7 +153,7 @@ const EmployeesFormPage = () => {
       EmployeesService.create(payload)
         .then(() => {
           toast.success("Colaborador creado correctamente");
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch((error) => failFromApi(error, EMPLOYEE_API_FIELDS))
         .finally(() => setIsLoading(false));
@@ -156,52 +161,12 @@ const EmployeesFormPage = () => {
       EmployeesService.update(idCurrent, payload)
         .then(() => {
           toast.success("Colaborador actualizado correctamente");
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch((error) => failFromApi(error, EMPLOYEE_API_FIELDS))
         .finally(() => setIsLoading(false));
     }
   };
-
-  const cancel = () => {
-    router.push("/employees");
-  };
-
-  const isValidateForm = useMemo(
-    () =>
-      !form.code?.trim() ||
-      !form.name?.trim() ||
-      !form.birthdate ||
-      !form.dateOfAdmission ||
-      !form.area ||
-      !form.position ||
-      !form.gender ||
-      !form.manufacturingPlantNames.length ||
-      !form.birthdate.isValid() ||
-      !form.dateOfAdmission.isValid(),
-    [form],
-  );
-
-  useEffect(() => {
-    const id = Number(searchParams.get("id") || 0);
-    if (!id) return;
-
-    setIdCurrent(id);
-    EmployeesService.findOne(id).then((data) => {
-      setForm({
-        code: `${data.code}`,
-        name: data.name,
-        birthdate: data.birthdate ? dayjs(data.birthdate) : null,
-        dateOfAdmission: data.dateOfAdmission
-          ? dayjs(data.dateOfAdmission)
-          : null,
-        area: data.area?.id ? `${data.area.id}` : "",
-        position: data.position?.id ? `${data.position.id}` : "",
-        gender: data.gender?.id ? `${data.gender.id}` : "",
-        manufacturingPlantNames: data.manufacturingPlants.map((mp) => mp.name),
-      });
-    });
-  }, [searchParams]);
 
   const onChangeSelect = (
     event:
@@ -215,11 +180,23 @@ const EmployeesFormPage = () => {
     });
   };
 
+  const title = idCurrent ? "Editar colaborador" : "Nuevo colaborador";
+
+  if (isEditRecordPending(record.status)) {
+    return (
+      <EditRecordState
+        status={record.status}
+        onRetry={record.retry}
+        title={title}
+        notFoundTitle="Colaborador no encontrado"
+        listHref={LIST_HREF}
+      />
+    );
+  }
+
   return (
     <>
-      <PageHeader
-        title={idCurrent ? "Editar colaborador" : "Nuevo colaborador"}
-      />
+      <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
       <FormSection>
         <Grid
           size={{
@@ -233,14 +210,14 @@ const EmployeesFormPage = () => {
             // Si hay error se muestra el error; si no, la ayuda.
             helperText={errorOf("code") ?? "Solo números"}
             required
-            label="Código de empleado"
+            label="Código de colaborador"
             variant="outlined"
             fullWidth
             autoComplete="off"
             value={form.code}
             onChange={onChangeSelect}
             name="code"
-            slotProps={{ htmlInput: { inputMode: "numeric" } }}
+            slotProps={{ htmlInput: NUMERIC_INPUT }}
           />
         </Grid>
         <Grid
@@ -291,7 +268,9 @@ const EmployeesFormPage = () => {
               }}
             />
             {errorOf("birthdate") && (
-              <FormHelperText data-error-for="birthdate" error>{errorOf("birthdate")}</FormHelperText>
+              <FormHelperText data-error-for="birthdate" error>
+                {errorOf("birthdate")}
+              </FormHelperText>
             )}
           </LocalizationProvider>
         </Grid>
@@ -339,13 +318,15 @@ const EmployeesFormPage = () => {
         >
           <SelectDefault
             data={catalogs?.areas || []}
-            label="Area *"
+            label="Área *"
             value={form.area}
             onChange={onChangeSelect}
             name="area"
           />
           {errorOf("area") && (
-            <FormHelperText data-error-for="area" error>{errorOf("area")}</FormHelperText>
+            <FormHelperText data-error-for="area" error>
+              {errorOf("area")}
+            </FormHelperText>
           )}
         </Grid>
         <Grid
@@ -363,7 +344,9 @@ const EmployeesFormPage = () => {
             name="position"
           />
           {errorOf("position") && (
-            <FormHelperText data-error-for="position" error>{errorOf("position")}</FormHelperText>
+            <FormHelperText data-error-for="position" error>
+              {errorOf("position")}
+            </FormHelperText>
           )}
         </Grid>
         <Grid
@@ -380,6 +363,11 @@ const EmployeesFormPage = () => {
             onChange={onChangeSelect}
             name="gender"
           />
+          {errorOf("gender") && (
+            <FormHelperText data-error-for="gender" error>
+              {errorOf("gender")}
+            </FormHelperText>
+          )}
         </Grid>
         <Grid
           size={{
@@ -405,14 +393,13 @@ const EmployeesFormPage = () => {
         </Grid>
       </FormSection>
       <FormActions
-        onCancel={cancel}
+        onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={isLoading}
-        isSaveDisabled={isValidateForm}
       />
+      {leave.confirmDialog}
     </>
   );
 };
 
 export default EmployeesFormPage;
-
