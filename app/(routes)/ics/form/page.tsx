@@ -25,6 +25,7 @@ import {
 import { EmployeesService, IcsService } from "@services";
 import SelectDefault from "@components/SelectDefault";
 import { useUserSessionStore } from "@store";
+import { NUMERIC_INPUT } from "@shared/utils/inputModes";
 import ImageORCamera from "@shared/components/ImageORCamera";
 import { dataURLtoFile, notify } from "@shared/utils";
 import { useFormFieldErrors } from "@hooks/useFieldErrors";
@@ -75,9 +76,6 @@ const ICS_API_FIELDS: Record<string, IcsField | null> = {
 
 const icsApiField = (path: string) =>
   ICS_API_FIELDS[path.split(".")[0]] ?? null;
-
-// Solo dígitos, con el teclado numérico del teléfono (B1).
-const NUMERIC_INPUT = { inputMode: "numeric", pattern: "[0-9]*" } as const;
 
 // La planta sola no cuenta: es lo primero que se elige y no vale un borrador.
 const hasCapture = (form: IcsForm, photo: File | null) =>

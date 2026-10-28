@@ -432,3 +432,20 @@ si deben tenerla.
     nada en el servidor.
   - Sin hallazgos o entregas en el periodo se ofrece ampliarlo (90 días en
     el dashboard, 3 meses en EPP).
+
+### Panel administrativo
+
+#### Grupo 1: base común y Procesos
+
+- **Sin migraciones, variables, dependencias ni cambios de nginx.**
+- **API:** solo un texto. "Proceso #N no encontrado" (antes "Proceso con ID
+  N no encontrado"). Compatible con la UI anterior.
+- **UI:**
+  - Procesos: "Guardar" ya no está deshabilitado y marca de una vez lo que
+    falta; "Cancelar" con algo capturado pide confirmar; al editar, se ve
+    una carga mientras llega el registro y un aviso si no existe o no cargó.
+  - En celular, la lista de procesos se ve en tarjetas.
+  - En tablet y escritorio, el formulario muestra la ruta "Configuración ›
+    Procesos › …" sobre el título.
+- **Para el cliente:** si edita un proceso y no cambia nada, "Cancelar" sale
+  directo; si cambió algo, pregunta antes de descartarlo.

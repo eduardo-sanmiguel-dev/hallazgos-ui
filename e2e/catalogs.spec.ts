@@ -17,6 +17,11 @@ interface CatalogCase {
   fill?: (page: Page) => Promise<Record<string, unknown>>;
   /** Completa lo que un registro existente pueda traer vacío. */
   completeEdit?: (page: Page) => Promise<void>;
+  /**
+   * Formulario del panel administrativo ya revisado (Fase 4): "Guardar"
+   * siempre activo, que marca lo que falta (antes, deshabilitado).
+   */
+  marksMissingOnSave?: boolean;
 }
 
 const pickPlant = async (page: Page) => {
@@ -69,6 +74,7 @@ const CATALOGS: CatalogCase[] = [
     createdToast: "Proceso creado correctamente",
     updatedToast: "Proceso actualizado correctamente",
     fill: pickPlant,
+    marksMissingOnSave: true,
   },
   {
     name: "lugares",
@@ -119,7 +125,15 @@ for (const catalog of CATALOGS) {
       const writes = await captureWrites(page);
 
       await page.goto(`${catalog.route}/form`);
-      await expect(saveButton(page)).toBeDisabled();
+      if (catalog.marksMissingOnSave) {
+        await saveButton(page).click();
+        await expect(
+          toast(page, /Completa los \d+ campos marcados/),
+        ).toBeVisible();
+        expect(writes).toEqual([]);
+      } else {
+        await expect(saveButton(page)).toBeDisabled();
+      }
 
       const name = `E2E ${catalog.name} (no se guarda)`;
       await page.getByLabel("Nombre").fill(name);
@@ -223,9 +237,7 @@ test("criterios: sin rol de administrador la página dice que no tiene acceso", 
   const writes = await captureWrites(page);
 
   await page.goto("/main-types/form");
-  await expect(
-    page.getByText("No tienes acceso a esta sección"),
-  ).toBeVisible();
+  await expect(page.getByText("No tienes acceso a esta sección")).toBeVisible();
   await expect(page.getByLabel("Nombre")).toHaveCount(0);
   expect(writes).toEqual([]);
 });

@@ -259,6 +259,9 @@ equipos y coordenadas de plantas): se revisan con el panel administrativo.*
 
 **B2 · Breadcrumbs** — Los formularios y los detalles no indican de dónde vienen. En
 escritorio ayudaría una ruta corta ("Configuración › Lugares › Editar"). [S]
+*En curso (Fase 4, panel administrativo): el componente y la ruta desde el
+menú ya existen y se usan en Procesos (ver `docs/ux-componentes.md`,
+sección 11). Faltan los demás formularios de Configuración (grupos 2 a 4).*
 
 **B3 · Indicador de Next.js** — La burbuja redonda de abajo a la izquierda que se ve
 en desarrollo es el indicador de Next.js. No existe en producción, así que no

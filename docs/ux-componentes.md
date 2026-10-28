@@ -767,7 +767,62 @@ gráficas; la prueba e2e ahora valida el archivo y el número de páginas.
 
 ---
 
-## 11. Pendiente para otras fases
+## 11. Panel administrativo (Fase 4)
+
+Inventario y grupos aprobados: (1) base común y Procesos como piloto, (2)
+General, (3) criterios, equipos y HDS, (4) configuración de Gemba Walk (G8).
+
+### Base común (grupo 1)
+
+- **"Guardar" marca todo lo que falta:** `useFormFieldErrors` + `failAll`,
+  como en CIAEL e ICS. Ya no se usa `isSaveDisabled` para campos
+  obligatorios.
+- **Confirmar al salir:** `useLeaveConfirm(form, { isEditing,
+  ignoreOnCreate })` (`app/_hooks/useLeaveConfirm.ts`).
+  - "Algo capturado": al crear, cualquier cambio respecto al formulario
+    vacío; al editar, respecto a lo cargado (`markPristine(loaded)`), así que
+    volver al valor original ya no pregunta.
+  - `ignoreOnCreate`: campos que no cuentan al crear (p. ej. la planta que se
+    elige sola cuando el usuario tiene una).
+  - `go(href)` navega y, con cambios, pregunta "¿Descartar el registro?" (al
+    crear) o "¿Descartar los cambios?" (al editar), con "Seguir editando". Lo
+    usan "Cancelar" y el enlace de la lista en los breadcrumbs. Guardar
+    navega directo.
+  - Como en los demás módulos, el menú lateral y el botón "atrás" del
+    navegador no preguntan.
+- **Registro en edición:** `useEditRecord(id, Service.findOne, onLoad)`
+  (`app/_hooks/useEditRecord.ts`) y `EditRecordState`
+  (`app/_shared/components/EditRecordState.tsx`). Mientras carga,
+  `FormSkeleton` (antes se veía el formulario vacío y lo que se escribiera se
+  pisaba al llegar los datos); con 404, "Proceso no encontrado" y "Volver a
+  la lista"; con otro error, `ErrorState` con "Reintentar" (antes quedaba
+  vacío sin aviso). El id se lee de la URL al renderizar (antes, un estado
+  que se llenaba en un efecto).
+- **Breadcrumbs (B2):** `PageHeader` ganó `breadcrumbs` y `onNavigate`;
+  `PageBreadcrumbs` (MUI `Breadcrumbs`, sin librería) arma la ruta con
+  `breadcrumbTrail(pathname)` de `menu.tsx`: sección › subgrupo › lista ›
+  título de la página. El subgrupo se omite si es "General" o si se llama
+  igual que la lista. Sección y subgrupo son texto; la lista, un enlace (con
+  `onNavigate`, pasa por la confirmación). La última miga lleva
+  `aria-current="page"`. Solo desde 600 px (tablet y escritorio). Ejemplos:
+  "Configuración › Procesos › Editar proceso", "Configuración › Gemba Walk ›
+  Zonas › Nueva zona".
+- **Teclados (B1):** `NUMERIC_INPUT` (enteros) y `DECIMAL_INPUT` (precio,
+  capacidad) en `app/_shared/utils/inputModes.ts`. CIAEL e ICS usan el
+  compartido (antes, cada uno el suyo).
+
+### Procesos (piloto)
+
+- Formulario: nombre y planta, "Guardar" marca ambos ("Escribe el nombre.",
+  "Selecciona la planta."), confirmación al salir, carga del registro con
+  sus estados y breadcrumbs.
+- Lista: `ResponsiveTable` con nombre de título y planta de subtítulo en
+  celular; vacío "Sin registros de procesos".
+- API: "Proceso #N no encontrado" (antes "Proceso con ID N no encontrado").
+
+---
+
+## 12. Pendiente para otras fases
 
 - Los borradores de iniciar o cerrar de un hallazgo que ya cambió de estado
   (por ejemplo, cerrado desde otro dispositivo) no se pueden abrir desde la

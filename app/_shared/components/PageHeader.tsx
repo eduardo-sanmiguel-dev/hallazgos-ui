@@ -4,12 +4,18 @@ import { Box } from "@mui/material";
 import { Typography } from "@mui/material";
 
 import { TOUCH_MEDIA } from "../../theme";
+import PageBreadcrumbs from "./PageBreadcrumbs";
 
 interface PageHeaderProps {
   title: string;
   description?: ReactNode;
   // Acciones de la página (Crear, Actualizar, Exportar...), a la derecha.
   children?: ReactNode;
+  // Ruta según el menú sobre el título (formularios y detalles, B2). La
+  // última miga es el título.
+  breadcrumbs?: boolean;
+  // Navegación de las migas (p. ej. confirmar antes de salir).
+  onNavigate?: (href: string) => void;
 }
 
 // Encabezado de página: título principal (h1) y acciones.
@@ -17,6 +23,8 @@ export default function PageHeader({
   title,
   description,
   children,
+  breadcrumbs = false,
+  onNavigate,
 }: PageHeaderProps) {
   return (
     <Box
@@ -32,6 +40,9 @@ export default function PageHeader({
       }}
     >
       <Box sx={{ minWidth: 0 }}>
+        {breadcrumbs && (
+          <PageBreadcrumbs current={title} onNavigate={onNavigate} />
+        )}
         <Typography
           variant="h4"
           component="h1"

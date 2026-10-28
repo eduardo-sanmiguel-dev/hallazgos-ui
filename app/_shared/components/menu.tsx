@@ -362,6 +362,39 @@ const menuOwnerOf = (pathname: string) =>
     (a, b) => b.url.length - a.url.length,
   )[0];
 
+export interface BreadcrumbTrail {
+  // Sección y subgrupo del menú (texto: no tienen página).
+  parents: string[];
+  // La lista a la que pertenece la página.
+  list: { title: string; url: string };
+}
+
+// Ruta de una página interna (formulario o detalle) según el menú (B2):
+// sección › subgrupo › lista. El subgrupo se omite si es "General" o si se
+// llama igual que la lista (Criterios › Criterios). Sin ruta (null) en las
+// listas mismas y en páginas que no están en el menú.
+export const breadcrumbTrail = (pathname: string): BreadcrumbTrail | null => {
+  const owner = menuOwnerOf(pathname);
+  if (!owner || owner.url === pathname) return null;
+
+  for (const section of MENU_SECTIONS) {
+    for (const entry of section.entries) {
+      const group = isGroup(entry) ? entry : null;
+      const links = group ? group.items : [entry as MenuLinkConfig];
+      if (!links.includes(owner)) continue;
+
+      const parents = [
+        section.title,
+        group && group.title !== "General" && group.title !== owner.title
+          ? group.title
+          : undefined,
+      ].filter((title): title is string => !!title);
+      return { parents, list: { title: owner.title, url: owner.url } };
+    }
+  }
+  return null;
+};
+
 // Una página se puede ver si su opción del menú es visible para el usuario.
 // Así la página y el menú nunca se contradicen. Las rutas que no están en el
 // menú no se bloquean aquí. Es solo para la UI: el API valida cada petición.

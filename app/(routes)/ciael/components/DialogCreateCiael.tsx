@@ -21,6 +21,7 @@ import "dayjs/locale/es";
 import { AssociatedTasksService } from "_services/associated-tasks.service";
 import { Transition } from "@routes/hallazgos/_components/EvidencePreview";
 import { TypeOfLinksService } from "_services/type-of-links.service";
+import { NUMERIC_INPUT } from "@shared/utils/inputModes";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
@@ -60,9 +61,6 @@ const ciaelApiField = (path: string) => {
   if (field === "machineName") return "machine";
   return field;
 };
-
-// Solo dígitos, como el teclado numérico que abren.
-const NUMERIC_INPUT = { inputMode: "numeric", pattern: "[0-9]*" } as const;
 
 interface Props {
   open: boolean;
