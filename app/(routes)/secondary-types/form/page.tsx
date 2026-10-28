@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -18,10 +18,15 @@ import { MenuItem } from "@mui/material";
 
 import { SecondaryTypesService } from "@services";
 import SelectMainTypes from "@components/SelectMainTypes";
-import { useFieldErrors } from "@hooks/useFieldErrors";
+import { useFormFieldErrors } from "@hooks/useFieldErrors";
+import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
+import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
+import EditRecordState from "@shared/components/EditRecordState";
+
+const LIST_HREF = "/secondary-types";
 
 const SecondaryTypesFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -30,33 +35,46 @@ const SecondaryTypesFormPage = () => {
     mainTypeId: "",
     typeResponsible: "",
   });
-  const [idCurrent, setIdCurrent] = useState<number>(0);
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
-    | "name"
-    | "mainTypeId"
-    | "typeResponsible"
-  >(form);
+  const idCurrent = Number(searchParams.get("id") || 0);
+
+  // Cada error se quita al cambiar su campo; los demás siguen marcados.
+  const { failAll, failFromApi, errorOf, fieldProps } =
+    useFormFieldErrors(form);
+  const leave = useLeaveConfirm(form, { isEditing: !!idCurrent });
+
+  const record = useEditRecord(
+    idCurrent,
+    SecondaryTypesService.findOne,
+    (data) => {
+      const loaded = {
+        name: data.name,
+        mainTypeId: `${data.mainType.id}`,
+        // Hay registros sin responsable: al guardar se pide elegirlo.
+        typeResponsible: data.typeResponsible ?? "",
+      };
+      setForm(loaded);
+      leave.markPristine(loaded);
+    },
+  );
 
   const save = () => {
     const nameClean = form.name.trim();
     const mainTypeId = Number(form.mainTypeId);
     const typeResponsible = form.typeResponsible;
 
-    if (!nameClean) {
-      fail("name", "El nombre es requerido");
-      return;
-    }
-
-    if (!mainTypeId) {
-      fail("mainTypeId", "El tipo de criterio es requerido");
-      return;
-    }
-
-    if (!typeResponsible) {
-      fail("typeResponsible", "El tipo de responsable es requerido");
+    // Todo lo que falta, en el orden de la pantalla.
+    if (
+      failAll({
+        name: !nameClean ? "Escribe el nombre." : undefined,
+        mainTypeId: !mainTypeId ? "Selecciona el criterio." : undefined,
+        typeResponsible: !typeResponsible
+          ? "Selecciona el responsable."
+          : undefined,
+      })
+    ) {
       return;
     }
 
@@ -72,7 +90,7 @@ const SecondaryTypesFormPage = () => {
       SecondaryTypesService.create(payload)
         .then(() => {
           toast.success("Tipo de criterio creado correctamente");
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch(failFromApi)
         .finally(() => setIsLoading(false));
@@ -80,48 +98,40 @@ const SecondaryTypesFormPage = () => {
       SecondaryTypesService.update(idCurrent, payload)
         .then(() => {
           toast.success("Tipo de criterio actualizado correctamente");
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch(failFromApi)
         .finally(() => setIsLoading(false));
     }
   };
 
-  const cancel = () => {
-    router.push("/secondary-types");
-  };
+  const title = idCurrent
+    ? "Editar tipo de criterio"
+    : "Nuevo tipo de criterio";
 
-  const isValidateForm = useMemo(
-    () => !form.name?.trim() || !form.mainTypeId,
-    [form]
-  );
-
-  useEffect(() => {
-    const id = Number(searchParams.get("id") || 0);
-    if (!id) return;
-
-    setIdCurrent(id);
-    SecondaryTypesService.findOne(id).then((data) => {
-      setForm({
-        name: data.name,
-        mainTypeId: `${data.mainType.id}`,
-        typeResponsible: data.typeResponsible,
-      });
-    });
-  }, [searchParams]);
+  if (isEditRecordPending(record.status)) {
+    return (
+      <EditRecordState
+        status={record.status}
+        onRetry={record.retry}
+        title={title}
+        notFoundTitle="Tipo de criterio no encontrado"
+        listHref={LIST_HREF}
+      />
+    );
+  }
 
   return (
     <>
-      <PageHeader
-        title={idCurrent ? "Editar tipo de criterio" : "Nuevo tipo de criterio"}
-      />
+      <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
       <FormSection>
         <Grid
           size={{
             xs: 12,
             sm: 6,
-            md: 4
-          }}>
+            md: 4,
+          }}
+        >
           <TextField
             {...fieldProps("name")}
             required
@@ -142,8 +152,9 @@ const SecondaryTypesFormPage = () => {
           size={{
             xs: 12,
             sm: 6,
-            md: 4
-          }}>
+            md: 4,
+          }}
+        >
           <SelectMainTypes
             value={form.mainTypeId}
             onChange={(e) =>
@@ -154,20 +165,19 @@ const SecondaryTypesFormPage = () => {
             }
           />
           {errorOf("mainTypeId") && (
-            <FormHelperText data-error-for="mainTypeId" error>{errorOf("mainTypeId")}</FormHelperText>
+            <FormHelperText data-error-for="mainTypeId" error>
+              {errorOf("mainTypeId")}
+            </FormHelperText>
           )}
         </Grid>
         <Grid
           size={{
             xs: 12,
             sm: 6,
-            md: 4
-          }}>
-          <FormControl
-            fullWidth
-            required
-            error={!!errorOf("typeResponsible")}
-          >
+            md: 4,
+          }}
+        >
+          <FormControl fullWidth required error={!!errorOf("typeResponsible")}>
             <InputLabel id="responsible-type-select-label">
               Responsable
             </InputLabel>
@@ -195,14 +205,13 @@ const SecondaryTypesFormPage = () => {
         </Grid>
       </FormSection>
       <FormActions
-        onCancel={cancel}
+        onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={isLoading}
-        isSaveDisabled={isValidateForm}
       />
+      {leave.confirmDialog}
     </>
   );
 };
 
 export default SecondaryTypesFormPage;
-

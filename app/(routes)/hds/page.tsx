@@ -16,11 +16,9 @@ import FilterBar, {
 } from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 import { RowActions, ViewAction } from "@shared/components/RowActions";
-import {
-  StyledTableRow,
-  StyledTableCell,
-} from "@shared/components/TableDefault";
-import TableDefaultServer from "@shared/components/TableDefaultServer";
+import ResponsiveTable, {
+  type ResponsiveColumn,
+} from "@shared/components/ResponsiveTable";
 import { HdsService } from "@services";
 import { Hds } from "@interfaces";
 
@@ -40,7 +38,16 @@ const ORDER_OPTIONS = [
   { id: "desc", name: "Z - A" },
 ];
 
-const columns = ["Nombre", "Visualizar archivo"];
+// Tabla en tablet y escritorio; tarjetas en celular (ResponsiveTable).
+const columns: ResponsiveColumn<Hds>[] = [
+  {
+    id: "name",
+    header: "Nombre",
+    cell: (row) => row.name,
+    rowHeader: true,
+    card: "title",
+  },
+];
 
 const HdsPage = () => {
   const [filters, setFilters] = useState<IFiltersHds>(DEFAULT_FILTERS_HDS);
@@ -129,25 +136,21 @@ const HdsPage = () => {
       {isLoading ? (
         <LoadingLinear />
       ) : (
-        <TableDefaultServer
+        <ResponsiveTable
           rows={data}
           columns={columns}
-          {...pagination}
+          getRowKey={(row) => row.name}
+          pagination={pagination}
           ariaLabel="Hojas de datos de seguridad"
-          paintRows={(row: Hds) => (
-            <StyledTableRow key={row.name}>
-              <StyledTableCell component="th" scope="row">
-                {row.name}
-              </StyledTableCell>
-              <StyledTableCell>
-                <RowActions>
-                  <ViewAction
-                    label="Ver archivo"
-                    onClick={() => HdsService.downloadFile(row.name)}
-                  />
-                </RowActions>
-              </StyledTableCell>
-            </StyledTableRow>
+          emptyTitle="Sin registros de hojas de datos"
+          emptyDescription="No hay hojas de datos con los filtros actuales."
+          actions={(row) => (
+            <RowActions>
+              <ViewAction
+                label="Ver archivo"
+                onClick={() => HdsService.downloadFile(row.name)}
+              />
+            </RowActions>
           )}
         />
       )}

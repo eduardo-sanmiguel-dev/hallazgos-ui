@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -11,15 +11,20 @@ import Grid from "@mui/material/Grid";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import { toast } from "sonner";
-import { FormHelperText } from "@mui/material";
 
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import { EmergencyTeamsService } from "@services";
 import { ExtinguisherType } from "@interfaces";
-import { useFieldErrors } from "@hooks/useFieldErrors";
+import { useFormFieldErrors } from "@hooks/useFieldErrors";
+import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
+import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
+import EditRecordState from "@shared/components/EditRecordState";
+import { DECIMAL_INPUT, toDecimal } from "@shared/utils/inputModes";
+
+const LIST_HREF = "/emergency-teams";
 
 const extinguisherTypes = [
   ExtinguisherType.PQS,
@@ -38,45 +43,58 @@ const EmergencyTeamsFormPage = () => {
     typeOfExtinguisher: "" as ExtinguisherType | "",
     capacity: "",
   });
-  const [idCurrent, setIdCurrent] = useState<number>(0);
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
-    | "manufacturingPlantId"
-    | "location"
-    | "extinguisherNumber"
-    | "capacity"
-    | "typeOfExtinguisher"
-  >(form);
+  const idCurrent = Number(searchParams.get("id") || 0);
+
+  // Cada error se quita al cambiar su campo; los demás siguen marcados.
+  const { failAll, failFromApi, errorOf, fieldProps } =
+    useFormFieldErrors(form);
+  // Con una sola planta se elige sola: al crear no cuenta como captura.
+  const leave = useLeaveConfirm(form, {
+    isEditing: !!idCurrent,
+    ignoreOnCreate: ["manufacturingPlantId"],
+  });
+
+  const record = useEditRecord(
+    idCurrent,
+    EmergencyTeamsService.findOne,
+    (data) => {
+      const loaded = {
+        manufacturingPlantId: data.manufacturingPlant?.id?.toString() || "",
+        location: data.location,
+        extinguisherNumber: data.extinguisherNumber.toString(),
+        typeOfExtinguisher: data.typeOfExtinguisher,
+        capacity: data.capacity.toString(),
+      };
+      setForm(loaded);
+      leave.markPristine(loaded);
+    },
+  );
 
   const save = () => {
     const locationClean = form.location.trim();
     const extinguisherNumberClean = form.extinguisherNumber.trim();
     const capacityClean = form.capacity.trim();
 
-    if (!form.manufacturingPlantId) {
-      fail("manufacturingPlantId", "La planta es requerida");
-      return;
-    }
-
-    if (!locationClean) {
-      fail("location", "La ubicación es requerida");
-      return;
-    }
-
-    if (!extinguisherNumberClean) {
-      fail("extinguisherNumber", "El número de extintor es requerido");
-      return;
-    }
-
-    if (!capacityClean) {
-      fail("capacity", "La capacidad es requerida");
-      return;
-    }
-
-    if (!form.typeOfExtinguisher) {
-      fail("typeOfExtinguisher", "El tipo de extintor es requerido");
+    // Todo lo que falta, en el orden de la pantalla (antes "Guardar" se
+    // deshabilitaba sin decir qué faltaba).
+    if (
+      failAll({
+        manufacturingPlantId: !form.manufacturingPlantId
+          ? "Selecciona la planta."
+          : undefined,
+        location: !locationClean ? "Escribe la ubicación." : undefined,
+        extinguisherNumber: !extinguisherNumberClean
+          ? "Escribe el número de extintor."
+          : undefined,
+        typeOfExtinguisher: !form.typeOfExtinguisher
+          ? "Selecciona el tipo de extintor."
+          : undefined,
+        capacity: !capacityClean ? "Escribe la capacidad." : undefined,
+      })
+    ) {
       return;
     }
 
@@ -94,7 +112,7 @@ const EmergencyTeamsFormPage = () => {
       EmergencyTeamsService.create(payload)
         .then(() => {
           toast.success("Equipo de emergencia creado correctamente");
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch(failFromApi)
         .finally(() => setIsLoading(false));
@@ -102,48 +120,32 @@ const EmergencyTeamsFormPage = () => {
       EmergencyTeamsService.update(idCurrent, payload)
         .then(() => {
           toast.success("Equipo de emergencia actualizado correctamente");
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch(failFromApi)
         .finally(() => setIsLoading(false));
     }
   };
 
-  const cancel = () => {
-    router.push("/emergency-teams");
-  };
+  const title = idCurrent
+    ? "Editar equipo de emergencia"
+    : "Nuevo equipo de emergencia";
 
-  const isValidateForm = useMemo(
-    () =>
-      !form.manufacturingPlantId ||
-      !form.location?.trim() ||
-      !form.extinguisherNumber?.trim() ||
-      !form.typeOfExtinguisher ||
-      !form.capacity?.trim(),
-    [form],
-  );
-
-  useEffect(() => {
-    const id = Number(searchParams.get("id") || 0);
-    if (!id) return;
-
-    setIdCurrent(id);
-    EmergencyTeamsService.findOne(id).then((data) => {
-      setForm({
-        manufacturingPlantId: data.manufacturingPlant?.id?.toString() || "",
-        location: data.location,
-        extinguisherNumber: data.extinguisherNumber.toString(),
-        typeOfExtinguisher: data.typeOfExtinguisher,
-        capacity: data.capacity.toString(),
-      });
-    });
-  }, [searchParams]);
+  if (isEditRecordPending(record.status)) {
+    return (
+      <EditRecordState
+        status={record.status}
+        onRetry={record.retry}
+        title={title}
+        notFoundTitle="Equipo de emergencia no encontrado"
+        listHref={LIST_HREF}
+      />
+    );
+  }
 
   return (
     <>
-      <PageHeader
-        title={idCurrent ? "Editar equipo de emergencia" : "Nuevo equipo de emergencia"}
-      />
+      <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
       <FormSection>
         <SelectManufacturingPlantsOwn
           value={form.manufacturingPlantId}
@@ -153,14 +155,8 @@ const EmergencyTeamsFormPage = () => {
               manufacturingPlantId: e.target.value,
             })
           }
+          error={errorOf("manufacturingPlantId")}
         />
-        {errorOf("manufacturingPlantId") && (
-          <Grid size={{ xs: 12 }}>
-            <FormHelperText data-error-for="manufacturingPlantId" error>
-              {errorOf("manufacturingPlantId")}
-            </FormHelperText>
-          </Grid>
-        )}
         <Grid
           size={{
             xs: 12,
@@ -253,29 +249,29 @@ const EmergencyTeamsFormPage = () => {
           <TextField
             {...fieldProps("capacity")}
             required
-            type="number"
-            onKeyDown={(evt) => evt.key === "e" && evt.preventDefault()}
             label="Capacidad"
             variant="outlined"
             fullWidth
             autoComplete="off"
             value={form.capacity}
             disabled={!form.manufacturingPlantId}
+            // Teclado numérico con punto (B1): hasta 2 decimales, como el API.
+            slotProps={{ htmlInput: DECIMAL_INPUT }}
             onChange={(e) =>
               setForm({
                 ...form,
-                capacity: e.target.value,
+                capacity: toDecimal(e.target.value),
               })
             }
           />
         </Grid>
       </FormSection>
       <FormActions
-        onCancel={cancel}
+        onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={isLoading}
-        isSaveDisabled={isValidateForm}
       />
+      {leave.confirmDialog}
     </>
   );
 };

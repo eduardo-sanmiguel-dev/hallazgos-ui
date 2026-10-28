@@ -20,6 +20,7 @@ interface Options<T> {
 //   const leave = useLeaveConfirm(form, { isEditing: !!id });
 //   leave.markPristine(loaded);                 // al terminar de cargar
 //   <FormActions onCancel={() => leave.go("/processes")} … />
+//   if (await leave.confirmDiscard()) closeDialog();  // en un diálogo
 //   {leave.confirmDialog}
 export function useLeaveConfirm<T extends object>(
   value: T,
@@ -45,26 +46,26 @@ export function useLeaveConfirm<T extends object>(
   /** Lo cargado en edición pasa a ser el punto de comparación. */
   const markPristine = (loaded: T) => setPristine(snapshot(loaded));
 
+  /**
+   * ¿Se puede salir? Sin cambios, sí; con cambios, pregunta. Para cerrar un
+   * diálogo con formulario (Equipos de protección); para navegar, `go`.
+   */
+  const confirmDiscard = async () =>
+    !isDirty ||
+    confirm({
+      title: isEditing ? "¿Descartar los cambios?" : "¿Descartar el registro?",
+      description: isEditing
+        ? "Se perderán los cambios que hiciste."
+        : "Se perderá lo que capturaste en el formulario.",
+      confirmLabel: "Descartar",
+      cancelLabel: "Seguir editando",
+      tone: "danger",
+    });
+
   /** Navega a `href`; con cambios, pregunta antes. */
   const go = async (href: string) => {
-    if (
-      isDirty &&
-      !(await confirm({
-        title: isEditing
-          ? "¿Descartar los cambios?"
-          : "¿Descartar el registro?",
-        description: isEditing
-          ? "Se perderán los cambios que hiciste."
-          : "Se perderá lo que capturaste en el formulario.",
-        confirmLabel: "Descartar",
-        cancelLabel: "Seguir editando",
-        tone: "danger",
-      }))
-    ) {
-      return;
-    }
-    router.push(href);
+    if (await confirmDiscard()) router.push(href);
   };
 
-  return { isDirty, markPristine, go, confirmDialog };
+  return { isDirty, markPristine, go, confirmDiscard, confirmDialog };
 }

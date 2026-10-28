@@ -12,10 +12,19 @@ import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import TableCell from "@mui/material/TableCell";
 import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import type { Theme } from "@mui/material/styles";
 
 import { notify, stringToDateWithTime, updatedDateLabel } from "@shared/utils";
 import TablePaginationActions from "@shared/components/TablePaginationActions";
-import EmptyState from "@shared/components/EmptyState";
+import {
+  TableBodyState,
+  type ServerPagination,
+} from "@shared/components/TableDefaultServer";
+import ResponsiveTable, {
+  type ResponsiveColumn,
+} from "@shared/components/ResponsiveTable";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import {
   DeleteAction,
@@ -36,25 +45,23 @@ interface Props {
   selectedIds: number[];
   setSelectedIds: (ids: number[]) => void;
   getData: () => void;
-  page: number;
-  setPage: (page: number) => void;
-  rowsPerPage: number;
-  setRowsPerPage: (rowsPerPage: number) => void;
-  count: number;
+  // De usePaginatedList: página, filas por página, total y error.
+  pagination: ServerPagination;
 }
+
+const EMPTY_TITLE = "Sin registros de equipos de emergencia";
 
 export default function EmergencyTeamsTable({
   rows,
   selectedIds,
   setSelectedIds,
   getData,
-  page,
-  setPage,
-  rowsPerPage,
-  setRowsPerPage,
-  count,
+  pagination,
 }: Props) {
+  const { page, setPage, rowsPerPage, setRowsPerPage, count } = pagination;
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  // En celular, tarjetas (ResponsiveTable) con su casilla para imprimir.
+  const isPhone = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
 
   const router = useRouter();
   const { confirm, confirmDialog } = useConfirmDialog();
@@ -137,6 +144,88 @@ export default function EmergencyTeamsTable({
     setPage(0);
   };
 
+  const rowActions = (row: EmergencyTeam) => (
+    <RowActions>
+      <EditAction
+        onClick={() => router.push("/emergency-teams/form?id=" + row.id)}
+      />
+      <DeleteAction onClick={() => confirmRemove(row)} disabled={isLoading} />
+    </RowActions>
+  );
+
+  if (isPhone) {
+    // La casilla va en el título de la tarjeta: tocar el texto también
+    // selecciona.
+    const cardColumns: ResponsiveColumn<EmergencyTeam>[] = [
+      {
+        id: "select",
+        header: "Seleccionar",
+        cell: (row) => (
+          <FormControlLabel
+            sx={{ m: 0, alignItems: "flex-start" }}
+            control={
+              <Checkbox
+                checked={isSelected(row.id)}
+                onChange={(e) => handleSelectOne(row.id, e.target.checked)}
+                sx={{ mt: -1.25, ml: -1.5 }}
+              />
+            }
+            label={`#${row.id} · ${row.location}`}
+          />
+        ),
+        card: "title",
+      },
+      {
+        id: "plant",
+        header: "Planta",
+        cell: (row) => row.manufacturingPlant?.name || "-",
+        card: "subtitle",
+      },
+      {
+        id: "extinguisherNumber",
+        header: "N. Extintor",
+        cell: (row) => row.extinguisherNumber,
+      },
+      { id: "type", header: "Tipo", cell: (row) => row.typeOfExtinguisher },
+      { id: "capacity", header: "Capacidad", cell: (row) => row.capacity },
+      {
+        id: "updatedAt",
+        header: "Última actualización",
+        cell: (row) => updatedDateLabel(row.createdAt, row.updatedAt) ?? "-",
+      },
+    ];
+
+    return (
+      <>
+        {rows.length > 0 && (
+          <Paper variant="outlined" sx={{ px: 2, py: 0.5, mb: 1.5 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={allChecked}
+                  indeterminate={someChecked}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                />
+              }
+              label="Seleccionar todos los de esta página"
+            />
+          </Paper>
+        )}
+        <ResponsiveTable
+          rows={rows}
+          columns={cardColumns}
+          getRowKey={(row) => row.id}
+          pagination={pagination}
+          ariaLabel="Equipos de emergencia"
+          emptyTitle={EMPTY_TITLE}
+          emptyDescription="No hay registros con los filtros actuales."
+          actions={rowActions}
+        />
+        {confirmDialog}
+      </>
+    );
+  }
+
   return (
     <>
       <TableContainer component={Paper}>
@@ -163,7 +252,7 @@ export default function EmergencyTeamsTable({
               <StyledTableCell>Capacidad</StyledTableCell>
               <StyledTableCell>Creación</StyledTableCell>
               <StyledTableCell>Creado por</StyledTableCell>
-              <StyledTableCell>Ultima actualización</StyledTableCell>
+              <StyledTableCell>Última actualización</StyledTableCell>
               <StyledTableCell>Actualizado por</StyledTableCell>
               <StyledTableCell>Acciones</StyledTableCell>
             </StyledTableRow>
@@ -172,7 +261,12 @@ export default function EmergencyTeamsTable({
             {!rows.length && (
               <TableRow>
                 <TableCell colSpan={12} sx={{ borderBottom: 0 }}>
-                  <EmptyState size="small" />
+                  {/* Vacío o, si la consulta falló, error con "Reintentar". */}
+                  <TableBodyState
+                    isError={pagination.isError}
+                    onRetry={pagination.onRetry}
+                    emptyTitle={EMPTY_TITLE}
+                  />
                 </TableCell>
               </TableRow>
             )}
@@ -205,19 +299,7 @@ export default function EmergencyTeamsTable({
                   {updatedDateLabel(row.createdAt, row.updatedAt) ?? "-"}
                 </StyledTableCell>
                 <StyledTableCell>{row.updatedBy?.name || "-"}</StyledTableCell>
-                <StyledTableCell>
-                  <RowActions>
-                    <EditAction
-                      onClick={() =>
-                        router.push("/emergency-teams/form?id=" + row.id)
-                      }
-                    />
-                    <DeleteAction
-                      onClick={() => confirmRemove(row)}
-                      disabled={isLoading}
-                    />
-                  </RowActions>
-                </StyledTableCell>
+                <StyledTableCell>{rowActions(row)}</StyledTableCell>
               </StyledTableRow>
             ))}
             {emptyRows > 0 && (

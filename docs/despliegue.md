@@ -480,3 +480,31 @@ si deben tenerla.
     (para poder poner el signo menos) y se revisa que sean números válidos;
     se puede escribir con coma decimal.
 
+#### Grupo 3: Criterios, Tipos de criterios, Equipos de protección, Equipos de emergencia y HDS
+
+- **Sin migraciones, variables, dependencias ni cambios de nginx.**
+- **API:** solo textos (compatibles con la UI anterior).
+  - "Criterio #N no encontrado", "Tipo de criterio #N no encontrado" (antes
+    "Tipo de critero con ID N…") y "Equipo #N no encontrado" (antes "Equipo
+    con id N no encontrado.").
+  - HDS: "Archivo no encontrado." (antes "File not found"); los endpoints
+    sin implementar de `/safety-data-files` responden su texto en español.
+  - `POST /equipments/seed` responde "Carga inicial de equipos completada."
+    (antes "Equipments seeded successfully").
+- **UI:**
+  - Criterios, Tipos de criterios y Equipos de emergencia: la base común
+    (marcar lo que falta, confirmar al salir, carga en edición y ruta
+    "Configuración › …").
+  - Equipos de protección: el diálogo abre a pantalla completa en celular,
+    con "Guardar" y "Cancelar" al pie, y pregunta antes de cerrarse con algo
+    capturado.
+  - En celular, las listas de criterios, tipos, equipos de protección,
+    equipos de emergencia y HDS se ven en tarjetas.
+- **Para el cliente:**
+  - **Equipos de emergencia en celular:** cada tarjeta tiene su casilla para
+    imprimir el QR, y hay "Seleccionar todos los de esta página" arriba.
+  - Frecuencia de entrega, precio y capacidad abren el teclado numérico; el
+    precio y la capacidad aceptan coma decimal.
+  - En HDS, la columna del botón "Ver archivo" se llama "Acciones" (antes
+    "Visualizar archivo").
+

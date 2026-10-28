@@ -232,8 +232,9 @@ nombres y correos se parten en 2–3 líneas (por ejemplo, en Usuarios). → Uso
 en celular, aunque es menos frecuente. → Componente `ResponsiveTable`: tabla en
 escritorio y tarjetas en celular, empezando por Usuarios y Colaboradores. [M]
 *En curso (Fase 4): tarjetas en Usuarios, Colaboradores, Plantas, Lugares,
-Zonas y Procesos (grupos 1 y 2; ver `docs/ux-componentes.md`, sección 11).
-Faltan los grupos 3 y 4.*
+Zonas, Procesos, Criterios, Tipos de criterios, Equipos de protección,
+Equipos de emergencia y HDS (grupos 1 a 3; ver `docs/ux-componentes.md`,
+sección 11). Falta el grupo 4 (configuración de Gemba Walk, G8).*
 
 **M7 · Estados vacío, sin permisos y error** — Ya existe un componente `EmptyState`,
 pero solo lo usan 4 pantallas (CIAEL, equipos de emergencia y dos de Análisis de datos
@@ -260,14 +261,16 @@ CIAEL; el código de colaborador ya lo hacía. Quedan con `type="number"` solo
 campos del panel administrativo (capacidad en equipos de emergencia, campos de
 equipos y coordenadas de plantas): se revisan con el panel administrativo.
 Coordenadas de plantas ya resueltas (grupo 2): teclado de texto con
-validación de formato, por el signo menos de la longitud.*
+validación de formato, por el signo menos de la longitud. Frecuencia de
+entrega (numérico), precio y capacidad (decimal) resueltos en el grupo 3: ya
+no queda ningún `type="number"` en el panel administrativo.*
 
 **B2 · Breadcrumbs** — Los formularios y los detalles no indican de dónde vienen. En
 escritorio ayudaría una ruta corta ("Configuración › Lugares › Editar"). [S]
 *En curso (Fase 4, panel administrativo): el componente y la ruta desde el
 menú ya existen y se usan en Procesos, Usuarios, Colaboradores, Plantas,
-Lugares y Zonas (ver `docs/ux-componentes.md`, sección 11). Faltan los
-grupos 3 y 4.*
+Lugares, Zonas, Criterios, Tipos de criterios y Equipos de emergencia (ver
+`docs/ux-componentes.md`, sección 11). Falta el grupo 4.*
 
 **B3 · Indicador de Next.js** — La burbuja redonda de abajo a la izquierda que se ve
 en desarrollo es el indicador de Next.js. No existe en producción, así que no

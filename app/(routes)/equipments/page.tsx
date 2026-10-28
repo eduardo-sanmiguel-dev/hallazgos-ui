@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
@@ -11,8 +11,13 @@ import { DialogContent } from "@mui/material";
 import { DialogActions } from "@mui/material";
 import { FormHelperText } from "@mui/material";
 import { IconButton } from "@mui/material";
+import { InputAdornment } from "@mui/material";
+import { Skeleton } from "@mui/material";
+import { Stack } from "@mui/material";
+import { useMediaQuery } from "@mui/material";
+import type { Theme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
-import SaveIcon from "@mui/icons-material/Save";
+import SearchOffIcon from "@mui/icons-material/SearchOff";
 import { toast } from "sonner";
 
 import { BootstrapDialog } from "@routes/hallazgos/_components/CloseEvidence";
@@ -32,12 +37,21 @@ import {
   EditAction,
   RowActions,
 } from "@shared/components/RowActions";
+import ResponsiveTable, {
+  type ResponsiveColumn,
+} from "@shared/components/ResponsiveTable";
+import FormActions from "@shared/components/FormActions";
+import EmptyState from "@shared/components/EmptyState";
+import ErrorState from "@shared/components/ErrorState";
+import { useFormFieldErrors } from "@hooks/useFieldErrors";
+import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
+import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import {
-  StyledTableCell,
-  StyledTableRow,
-} from "@shared/components/TableDefault";
-import TableDefaultServer from "@shared/components/TableDefaultServer";
-import { useFieldErrors } from "@hooks/useFieldErrors";
+  DECIMAL_INPUT,
+  NUMERIC_INPUT,
+  toDecimal,
+  toPositiveInteger,
+} from "@shared/utils/inputModes";
 import { Equipment, ManufacturingPlant } from "@interfaces";
 import SelectDefault from "@components/SelectDefault";
 import { stringToDateWithTime, updatedDateLabel } from "@shared/utils";
@@ -49,18 +63,71 @@ export interface IFiltersTopics {
   name?: string;
 }
 
-const columns = [
-  "ID",
-  "Nombre",
-  "Frecuencia de entrega (dias)",
-  "Precio",
-  "Planta",
-  "Fecha de creación",
-  "Creado por",
-  "Fecha de actualización",
-  "Actualizado por",
-  "Acciones",
+// Tabla en tablet y escritorio; tarjetas en celular (ResponsiveTable).
+const columns: ResponsiveColumn<Equipment>[] = [
+  {
+    id: "id",
+    header: "ID",
+    cell: (row) => row.id,
+    rowHeader: true,
+    card: "hidden",
+  },
+  { id: "name", header: "Nombre", cell: (row) => row.name, card: "title" },
+  {
+    id: "manufacturingPlantCard",
+    header: "Planta",
+    cell: (row) => row.manufacturingPlant.name,
+    card: "subtitle",
+    hideInTable: true,
+  },
+  {
+    id: "deliveryFrequency",
+    header: "Frecuencia de entrega (días)",
+    cell: (row) => row.deliveryFrequency,
+  },
+  {
+    id: "price",
+    header: "Precio",
+    cell: (row) =>
+      row.costHistory.length ? `$ ${row.costHistory[0].price}` : "",
+  },
+  {
+    id: "manufacturingPlant",
+    header: "Planta",
+    cell: (row) => row.manufacturingPlant.name,
+    card: "hidden",
+  },
+  {
+    id: "createdAt",
+    header: "Fecha de creación",
+    cell: (row) => stringToDateWithTime(row.createdAt),
+    card: "hidden",
+  },
+  {
+    id: "createdBy",
+    header: "Creado por",
+    cell: (row) => row.createdBy.name,
+    card: "hidden",
+  },
+  {
+    id: "updatedAt",
+    header: "Fecha de actualización",
+    cell: (row) => updatedDateLabel(row.createdAt, row.updatedAt) ?? "-",
+  },
+  {
+    id: "updatedBy",
+    header: "Actualizado por",
+    cell: (row) => row.updatedBy?.name,
+    card: "hidden",
+  },
 ];
+
+const EMPTY_FORM = {
+  name: "",
+  deliveryFrequency: "",
+  manufacturingPlantId: "",
+  price: "",
+};
 
 const ScreenForm = ({
   currentId,
@@ -71,37 +138,47 @@ const ScreenForm = ({
   closeDialog: () => void;
   manufacturingPlants: ManufacturingPlant[];
 }) => {
-  const [form, setForm] = useState<{
-    name: string;
-    deliveryFrequency: string;
-    manufacturingPlantId: string;
-    price: string;
-  }>({
-    name: "",
-    deliveryFrequency: "",
-    manufacturingPlantId: "",
-    price: "",
-  });
+  const [form, setForm] = useState(EMPTY_FORM);
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
-    "name" | "manufacturingPlantId"
-  >(form);
+  // A pantalla completa en celular, como los demás formularios en diálogo.
+  const isPhone = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
+
+  // Cada error se quita al cambiar su campo; los demás siguen marcados.
+  const { failAll, failFromApi, errorOf, fieldProps } =
+    useFormFieldErrors(form);
+  // Con una sola planta se elige sola: al crear no cuenta como captura.
+  const leave = useLeaveConfirm(form, {
+    isEditing: !!currentId,
+    ignoreOnCreate: ["manufacturingPlantId"],
+  });
+
+  const record = useEditRecord(currentId, EquipmentsService.findOne, (data) => {
+    const loaded = {
+      name: data.name,
+      deliveryFrequency: data?.deliveryFrequency
+        ? String(data.deliveryFrequency)
+        : "",
+      manufacturingPlantId: String(data.manufacturingPlant.id),
+      price: data?.costHistory.length ? String(data.costHistory[0].price) : "",
+    };
+    setForm(loaded);
+    leave.markPristine(loaded);
+  });
 
   const saveData = () => {
     const nameCleaned = form.name.trim();
     const deliveryFrequencyCleaned = Number(form.deliveryFrequency.trim() || 0);
     const priceCleaned = Number(form.price.trim() || 0);
 
-    if (!nameCleaned) {
-      fail("name", "El nombre es requerido");
-      return;
-    }
-
-    if (!form.manufacturingPlantId) {
-      fail(
-        "manufacturingPlantId",
-        "Debe seleccionar una planta de manufactura.",
-      );
+    // Todo lo que falta, en el orden de la pantalla.
+    if (
+      failAll({
+        manufacturingPlantId: !form.manufacturingPlantId
+          ? "Selecciona la planta."
+          : undefined,
+        name: !nameCleaned ? "Escribe el nombre." : undefined,
+      })
+    ) {
       return;
     }
 
@@ -126,39 +203,11 @@ const ScreenForm = ({
     request.catch(failFromApi).finally(() => setIsSaving(false));
   };
 
-  const handleClose = (shouldSave: boolean) => {
+  // X, Esc, clic afuera y "Cancelar": con algo capturado, pregunta antes.
+  const requestClose = async () => {
     if (isSaving) return;
-
-    if (!shouldSave) {
-      closeDialog();
-      return;
-    }
-
-    saveData();
+    if (await leave.confirmDiscard()) closeDialog();
   };
-
-  const getData = useCallback(() => {
-    if (!currentId) return;
-
-    EquipmentsService.findOne(currentId).then((data) => {
-      setForm({
-        name: data.name,
-        deliveryFrequency: data?.deliveryFrequency
-          ? String(data.deliveryFrequency)
-          : "",
-        manufacturingPlantId: String(data.manufacturingPlant.id),
-        price: data?.costHistory.length
-          ? String(data.costHistory[0].price)
-          : "",
-      });
-    });
-  }, [currentId]);
-
-  useEffect(() => {
-    if (currentId) {
-      getData();
-    }
-  }, [getData, currentId]);
 
   useEffect(() => {
     if (!currentId && manufacturingPlants.length === 1) {
@@ -169,19 +218,23 @@ const ScreenForm = ({
     }
   }, [manufacturingPlants, currentId]);
 
+  const title = currentId ? "Editar equipo" : "Nuevo equipo";
+  const isPending = isEditRecordPending(record.status);
+
   return (
     <BootstrapDialog
-      onClose={() => handleClose(false)}
+      onClose={requestClose}
       aria-labelledby="customized-dialog-title"
       open={true}
       fullWidth={true}
+      fullScreen={isPhone}
     >
-      <DialogTitle sx={{ m: 0, p: 2 }} id="customized-dialog-title">
-        {currentId ? "Editar equipo" : "Nuevo equipo"}
+      <DialogTitle sx={{ m: 0, p: 2, pr: 7 }} id="customized-dialog-title">
+        {title}
       </DialogTitle>
       <IconButton
         aria-label="Cerrar"
-        onClick={() => handleClose(false)}
+        onClick={requestClose}
         sx={{
           position: "absolute",
           right: 8,
@@ -192,136 +245,139 @@ const ScreenForm = ({
         <CloseIcon />
       </IconButton>
       <DialogContent dividers>
-        <Grid container spacing={2}>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 12,
-              md: 12,
-            }}
-          >
-            <SelectManufacturingPlants
-              value={form.manufacturingPlantId}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  manufacturingPlantId: e.target.value,
-                })
-              }
-            />
-            {errorOf("manufacturingPlantId") && (
-              <FormHelperText data-error-for="manufacturingPlantId" error>
-                {errorOf("manufacturingPlantId")}
-              </FormHelperText>
-            )}
-          </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 12,
-              md: 12,
-            }}
-          >
-            <TextField
-              {...fieldProps("name")}
-              required
-              label="Nombre"
-              variant="outlined"
-              fullWidth
-              autoComplete="off"
-              value={form.name}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  name: e.target.value,
-                })
-              }
-            />
-          </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 12,
-              md: 12,
-            }}
-          >
-            <TextField
-              label="Frecuencia de entrega (dias)"
-              variant="outlined"
-              fullWidth
-              autoComplete="off"
-              type="number"
-              slotProps={{ htmlInput: { min: 1, step: 0 } }}
-              onKeyDown={(evt) => {
-                const forbidden = ["e", "E", "-", "+", "."];
-                if (forbidden.includes(evt.key)) evt.preventDefault();
+        {record.status === "loading" ? (
+          <Stack spacing={2} role="status" aria-label="Cargando…">
+            {[0, 1, 2, 3].map((index) => (
+              <Skeleton key={index} variant="rounded" height={56} />
+            ))}
+          </Stack>
+        ) : record.status === "notFound" ? (
+          <EmptyState
+            icon={<SearchOffIcon />}
+            title="Equipo no encontrado"
+            description="Puede que se haya eliminado."
+          />
+        ) : record.status === "error" ? (
+          <ErrorState
+            offline={typeof navigator !== "undefined" && !navigator.onLine}
+            onRetry={record.retry}
+          />
+        ) : (
+          <Grid container spacing={2}>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 12,
+                md: 12,
               }}
-              onChange={(e) => {
-                const val = e.target.value;
-                const num = Number(val);
-                if (val === "" || (!Number.isNaN(num) && num > 0)) {
+            >
+              <SelectManufacturingPlants
+                value={form.manufacturingPlantId}
+                onChange={(e) =>
                   setForm({
                     ...form,
-                    deliveryFrequency: e.target.value,
-                  });
+                    manufacturingPlantId: e.target.value,
+                  })
                 }
+              />
+              {errorOf("manufacturingPlantId") && (
+                <FormHelperText data-error-for="manufacturingPlantId" error>
+                  {errorOf("manufacturingPlantId")}
+                </FormHelperText>
+              )}
+            </Grid>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 12,
+                md: 12,
               }}
-              value={form.deliveryFrequency}
-            />
-          </Grid>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 12,
-              md: 12,
-            }}
-          >
-            <TextField
-              label="Precio"
-              variant="outlined"
-              fullWidth
-              autoComplete="off"
-              type="number"
-              slotProps={{ htmlInput: { min: 1, step: 0.01 } }}
-              onKeyDown={(evt) => {
-                const forbidden = ["e", "E", "-", "+"];
-                if (forbidden.includes(evt.key)) evt.preventDefault();
-              }}
-              onChange={(e) => {
-                const val = e.target.value;
-                const num = Number(val);
-
-                if (val === "" || (!Number.isNaN(num) && num > 0)) {
-                  const rounded = Math.round(num * 100) / 100;
+            >
+              <TextField
+                {...fieldProps("name")}
+                required
+                label="Nombre"
+                variant="outlined"
+                fullWidth
+                autoComplete="off"
+                value={form.name}
+                onChange={(e) =>
                   setForm({
                     ...form,
-                    price: rounded.toString(),
-                  });
+                    name: e.target.value,
+                  })
                 }
+              />
+            </Grid>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 12,
+                md: 12,
               }}
-              value={form.price}
-            />
+            >
+              <TextField
+                {...fieldProps("deliveryFrequency")}
+                label="Frecuencia de entrega (días)"
+                variant="outlined"
+                fullWidth
+                autoComplete="off"
+                // Teclado numérico (B1); antes type="number" con teclas
+                // bloqueadas.
+                slotProps={{ htmlInput: NUMERIC_INPUT }}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    deliveryFrequency: toPositiveInteger(e.target.value),
+                  })
+                }
+                value={form.deliveryFrequency}
+              />
+            </Grid>
+            <Grid
+              size={{
+                xs: 12,
+                sm: 12,
+                md: 12,
+              }}
+            >
+              <TextField
+                {...fieldProps("price")}
+                label="Precio"
+                variant="outlined"
+                fullWidth
+                autoComplete="off"
+                // Teclado numérico con punto (B1).
+                slotProps={{
+                  htmlInput: DECIMAL_INPUT,
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">$</InputAdornment>
+                    ),
+                  },
+                }}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    price: toDecimal(e.target.value),
+                  })
+                }
+                value={form.price}
+              />
+            </Grid>
           </Grid>
-        </Grid>
+        )}
       </DialogContent>
-      <DialogActions>
-        <Button
-          onClick={() => handleClose(false)}
-          variant="text"
-          disabled={isSaving}
-        >
-          Cancelar
-        </Button>
-        <Button
-          onClick={() => handleClose(true)}
-          variant="contained"
-          loading={isSaving}
-          loadingPosition="start"
-          startIcon={<SaveIcon />}
-        >
-          Guardar
-        </Button>
+      {/* FormActions a todo el ancho (en celular, botones apilados). */}
+      <DialogActions sx={{ p: 2, "& > *": { flex: 1 } }}>
+        <FormActions
+          onCancel={requestClose}
+          onSave={saveData}
+          isSaving={isSaving}
+          isSaveDisabled={isPending}
+        />
       </DialogActions>
+      {leave.confirmDialog}
     </BootstrapDialog>
   );
 };
@@ -480,42 +536,24 @@ export default function EquipmentsPage() {
       {isLoading ? (
         <LoadingLinear />
       ) : (
-        <TableDefaultServer
+        <ResponsiveTable
           rows={rows}
           columns={columns}
-          {...pagination}
+          getRowKey={(row) => row.id}
+          pagination={pagination}
           ariaLabel="Equipos de protección personal"
-          paintRows={(row) => (
-            <StyledTableRow key={row.name}>
-              <StyledTableCell component="th" scope="row">
-                {row.id}
-              </StyledTableCell>
-              <StyledTableCell>{row.name}</StyledTableCell>
-              <StyledTableCell>{row.deliveryFrequency}</StyledTableCell>
-              <StyledTableCell>
-                {row.costHistory.length ? `$ ${row.costHistory[0].price}` : ""}
-              </StyledTableCell>
-              <StyledTableCell>{row.manufacturingPlant.name}</StyledTableCell>
-              <StyledTableCell>
-                {stringToDateWithTime(row.createdAt)}
-              </StyledTableCell>
-              <StyledTableCell>{row.createdBy.name}</StyledTableCell>
-              <StyledTableCell>
-                {updatedDateLabel(row.createdAt, row.updatedAt) ?? "-"}
-              </StyledTableCell>
-              <StyledTableCell>{row.updatedBy?.name}</StyledTableCell>
-              <StyledTableCell>
-                <RowActions>
-                  <EditAction
-                    onClick={() => {
-                      setIsOpen(true);
-                      setCurrentId(row.id);
-                    }}
-                  />
-                  <DeleteAction onClick={() => confirmRemove(row)} />
-                </RowActions>
-              </StyledTableCell>
-            </StyledTableRow>
+          emptyTitle="Sin registros de equipos"
+          emptyDescription="No hay equipos con los filtros actuales."
+          actions={(row) => (
+            <RowActions>
+              <EditAction
+                onClick={() => {
+                  setIsOpen(true);
+                  setCurrentId(row.id);
+                }}
+              />
+              <DeleteAction onClick={() => confirmRemove(row)} />
+            </RowActions>
           )}
         />
       )}

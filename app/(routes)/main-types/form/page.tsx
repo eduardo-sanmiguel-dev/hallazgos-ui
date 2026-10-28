@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -14,10 +14,15 @@ import { toast } from "sonner";
 import { MainTypesService } from "@services";
 import { useUserSessionStore } from "@store";
 import { ROLE_ADMINISTRADOR } from "@shared/constants";
-import { useFieldErrors } from "@hooks/useFieldErrors";
+import { useFormFieldErrors } from "@hooks/useFieldErrors";
+import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
+import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
+import EditRecordState from "@shared/components/EditRecordState";
+
+const LIST_HREF = "/main-types";
 
 const MainTypesFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -25,20 +30,31 @@ const MainTypesFormPage = () => {
     name: "",
     requiresEvidence: true,
   });
-  const [idCurrent, setIdCurrent] = useState<number>(0);
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, failFromApi, fieldProps } = useFieldErrors<"name">(form);
+  const idCurrent = Number(searchParams.get("id") || 0);
+
+  const { failAll, failFromApi, fieldProps } = useFormFieldErrors(form);
+  const leave = useLeaveConfirm(form, { isEditing: !!idCurrent });
   // La foto obligatoria solo la cambia un administrador (el API también lo exige).
   const isAdmin =
     useUserSessionStore((state) => state.role) === ROLE_ADMINISTRADOR;
 
+  const record = useEditRecord(idCurrent, MainTypesService.findOne, (data) => {
+    const loaded = {
+      name: data.name,
+      requiresEvidence: data.requiresEvidence !== false,
+    };
+    setForm(loaded);
+    leave.markPristine(loaded);
+  });
+
   const save = () => {
     const nameClean = form.name.trim();
 
-    if (!nameClean) {
-      fail("name", "El nombre es requerido");
+    // Antes "Guardar" se deshabilitaba sin decir qué faltaba.
+    if (failAll({ name: !nameClean ? "Escribe el nombre." : undefined })) {
       return;
     }
     setIsLoading(true);
@@ -52,7 +68,7 @@ const MainTypesFormPage = () => {
       MainTypesService.create(payload)
         .then(() => {
           toast.success("Criterio creado correctamente");
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch(failFromApi)
         .finally(() => setIsLoading(false));
@@ -60,35 +76,30 @@ const MainTypesFormPage = () => {
       MainTypesService.update(idCurrent, payload)
         .then(() => {
           toast.success("Criterio actualizado correctamente");
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch(failFromApi)
         .finally(() => setIsLoading(false));
     }
   };
 
-  const cancel = () => {
-    router.push("/main-types");
-  };
+  const title = idCurrent ? "Editar criterio" : "Nuevo criterio";
 
-  const isValidateForm = useMemo(() => !form.name?.trim(), [form]);
-
-  useEffect(() => {
-    const id = Number(searchParams.get("id") || 0);
-    if (!id) return;
-
-    setIdCurrent(id);
-    MainTypesService.findOne(id).then((data) => {
-      setForm({
-        name: data.name,
-        requiresEvidence: data.requiresEvidence !== false,
-      });
-    });
-  }, [searchParams]);
+  if (isEditRecordPending(record.status)) {
+    return (
+      <EditRecordState
+        status={record.status}
+        onRetry={record.retry}
+        title={title}
+        notFoundTitle="Criterio no encontrado"
+        listHref={LIST_HREF}
+      />
+    );
+  }
 
   return (
     <>
-      <PageHeader title={idCurrent ? "Editar criterio" : "Nuevo criterio"} />
+      <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
       <FormSection>
         <Grid
           size={{
@@ -130,11 +141,11 @@ const MainTypesFormPage = () => {
         )}
       </FormSection>
       <FormActions
-        onCancel={cancel}
+        onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={isLoading}
-        isSaveDisabled={isValidateForm}
       />
+      {leave.confirmDialog}
     </>
   );
 };

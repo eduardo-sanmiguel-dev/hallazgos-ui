@@ -252,11 +252,7 @@ const EmergencyTeamsPage = () => {
           selectedIds={selectedIds}
           setSelectedIds={setSelectedIds}
           getData={getData}
-          page={pagination.page}
-          setPage={pagination.setPage}
-          rowsPerPage={pagination.rowsPerPage}
-          setRowsPerPage={pagination.setRowsPerPage}
-          count={count}
+          pagination={pagination}
         />
       )}
     </>

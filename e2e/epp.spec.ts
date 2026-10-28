@@ -60,21 +60,30 @@ test.describe("EPP: equipos", () => {
     const dialog = page.getByRole("dialog", { name: "Nuevo equipo" });
 
     const save = dialog.getByRole("button", { name: "Guardar" });
-    await save.click();
-    await expect(toast(page, "El nombre es requerido")).toBeVisible();
-    await dialog.getByLabel("Nombre").fill("  E2E Lentes  ");
-
     const plants = await sessionPlants(page);
-    if (plants.length > 1) {
-      await save.click();
-      await expect(
-        toast(page, "Debe seleccionar una planta de manufactura."),
-      ).toBeVisible();
-      await pickOption(page, "Planta", plants[0].name);
-    }
+    // "Guardar" marca a la vez lo que falta: nombre y, con varias plantas,
+    // la planta (con una sola se elige sola).
+    await save.click();
+    await expect(
+      toast(
+        page,
+        plants.length > 1
+          ? "Completa los 2 campos marcados."
+          : "Escribe el nombre.",
+      ),
+    ).toBeVisible();
+    await expect(dialog.getByText("Escribe el nombre.")).toBeVisible();
+    await dialog.getByLabel("Nombre").fill("  E2E Lentes  ");
+    if (plants.length > 1) await pickOption(page, "Planta", plants[0].name);
 
-    // Solo números positivos; el precio se redondea a centavos.
-    const frequency = dialog.getByLabel("Frecuencia de entrega (dias)");
+    // Teclado numérico (B1); solo números positivos y el precio se redondea
+    // a centavos.
+    const frequency = dialog.getByLabel("Frecuencia de entrega (días)");
+    await expect(frequency).toHaveAttribute("inputmode", "numeric");
+    await expect(dialog.getByLabel("Precio")).toHaveAttribute(
+      "inputmode",
+      "decimal",
+    );
     await frequency.pressSequentially("e-.0");
     await expect(frequency).toHaveValue("");
     await frequency.fill("15");

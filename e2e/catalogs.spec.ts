@@ -43,6 +43,7 @@ const CATALOGS: CatalogCase[] = [
       ).toBeChecked();
       return { requiresEvidence: true };
     },
+    marksMissingOnSave: true,
   },
   {
     name: "tipos de criterio",
@@ -66,6 +67,7 @@ const CATALOGS: CatalogCase[] = [
         await pickOption(page, "Responsable", "Seguridad");
       }
     },
+    marksMissingOnSave: true,
   },
   {
     name: "procesos",
@@ -195,10 +197,10 @@ test("tipos de criterio: exige el responsable al guardar", async ({ page }) => {
   await page.getByLabel("Nombre").fill("E2E sin responsable");
   await pickOption(page, "Criterio");
 
-  // El botón se habilita sin responsable; la validación ocurre al guardar.
+  // "Guardar" siempre está activo; la validación ocurre al guardar.
   await saveButton(page).click();
   await expect(page.locator('[data-error-for="typeResponsible"]')).toHaveText(
-    "El tipo de responsable es requerido",
+    "Selecciona el responsable.",
   );
   expect(writes).toEqual([]);
 });
@@ -247,8 +249,15 @@ test("criterios: sin rol de administrador la página dice que no tiene acceso", 
   expect(writes).toEqual([]);
 });
 
-test("un nombre de puros espacios no habilita Guardar", async ({ page }) => {
+test("un nombre de puros espacios se marca al guardar y no se envía", async ({
+  page,
+}) => {
+  const writes = await captureWrites(page);
   await page.goto("/main-types/form");
   await page.getByLabel("Nombre").fill("   ");
-  await expect(saveButton(page)).toBeDisabled();
+  await saveButton(page).click();
+  await expect(page.locator("#campo-name-helper-text")).toHaveText(
+    "Escribe el nombre.",
+  );
+  expect(writes).toEqual([]);
 });

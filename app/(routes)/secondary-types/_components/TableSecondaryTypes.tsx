@@ -9,13 +9,10 @@ import {
   EditAction,
   RowActions,
 } from "@shared/components/RowActions";
-import {
-  StyledTableCell,
-  StyledTableRow,
-} from "@shared/components/TableDefault";
-import TableDefaultServer, {
-  type ServerPagination,
-} from "@shared/components/TableDefaultServer";
+import type { ServerPagination } from "@shared/components/TableDefaultServer";
+import ResponsiveTable, {
+  type ResponsiveColumn,
+} from "@shared/components/ResponsiveTable";
 import { SecondaryType } from "@interfaces";
 import { SecondaryTypesService } from "@services";
 
@@ -25,14 +22,38 @@ interface Props {
   pagination: ServerPagination;
 }
 
-const columns = [
-  "ID",
-  "Nombre",
-  "Criterio",
-  "Responsable",
-  "Creación",
-  "Ultima actualización",
-  "Acciones",
+// Tabla en tablet y escritorio; tarjetas en celular (ResponsiveTable).
+const columns: ResponsiveColumn<SecondaryType>[] = [
+  {
+    id: "id",
+    header: "ID",
+    cell: (row) => row.id,
+    rowHeader: true,
+    card: "hidden",
+  },
+  { id: "name", header: "Nombre", cell: (row) => row.name, card: "title" },
+  {
+    id: "mainType",
+    header: "Criterio",
+    cell: (row) => row.mainType.name,
+    card: "subtitle",
+  },
+  {
+    id: "typeResponsible",
+    header: "Responsable",
+    cell: (row) => row.typeResponsible,
+  },
+  {
+    id: "createdAt",
+    header: "Creación",
+    cell: (row) => stringToDateWithTime(row.createdAt),
+    card: "hidden",
+  },
+  {
+    id: "updatedAt",
+    header: "Última actualización",
+    cell: (row) => updatedDateLabel(row.createdAt, row.updatedAt) ?? "-",
+  },
 ];
 
 export default function TableSecondaryTypes({
@@ -67,38 +88,24 @@ export default function TableSecondaryTypes({
 
   return (
     <>
-      <TableDefaultServer
+      <ResponsiveTable
         rows={rows}
         columns={columns}
-        {...pagination}
-        paintRows={(row: SecondaryType) => (
-          <StyledTableRow key={row.id}>
-            <StyledTableCell component="th" scope="row">
-              {row.id}
-            </StyledTableCell>
-            <StyledTableCell>{row.name}</StyledTableCell>
-            <StyledTableCell>{row.mainType.name}</StyledTableCell>
-            <StyledTableCell>{row.typeResponsible}</StyledTableCell>
-            <StyledTableCell>
-              {stringToDateWithTime(row.createdAt)}
-            </StyledTableCell>
-            <StyledTableCell>
-              {updatedDateLabel(row.createdAt, row.updatedAt) ?? "-"}
-            </StyledTableCell>
-            <StyledTableCell>
-              <RowActions>
-                <EditAction
-                  onClick={() =>
-                    router.push("/secondary-types/form?id=" + row.id)
-                  }
-                />
-                <DeleteAction
-                  onClick={() => confirmRemove(row)}
-                  disabled={isLoading}
-                />
-              </RowActions>
-            </StyledTableCell>
-          </StyledTableRow>
+        getRowKey={(row) => row.id}
+        pagination={pagination}
+        ariaLabel="Tipos de criterios"
+        emptyTitle="Sin registros de tipos de criterios"
+        emptyDescription="No hay registros con los filtros actuales."
+        actions={(row) => (
+          <RowActions>
+            <EditAction
+              onClick={() => router.push("/secondary-types/form?id=" + row.id)}
+            />
+            <DeleteAction
+              onClick={() => confirmRemove(row)}
+              disabled={isLoading}
+            />
+          </RowActions>
         )}
       />
       {confirmDialog}

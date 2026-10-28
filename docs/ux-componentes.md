@@ -854,6 +854,43 @@ carga en edición, breadcrumbs y lista con `ResponsiveTable`.
   "zona" y "área" para esas mismas entidades. No se cambió: queda fuera de
   las correcciones aprobadas y afecta a toda la app.
 
+### Criterios, equipos y HDS (grupo 3)
+
+- **Criterios y Tipos de criterios:** la base común. En Tipos, "Guardar"
+  marca nombre, criterio y responsable a la vez (antes, uno por uno y con
+  "Guardar" deshabilitado); un registro sin responsable (`null`) carga vacío
+  y se pide al guardar.
+- **Equipos de protección (formulario en diálogo):**
+  - A pantalla completa en celular, `FormActions` al pie (antes, "Cancelar"
+    como texto y "Guardar" sueltos) y "Guardar" que marca planta y nombre a
+    la vez.
+  - Cerrar con X, Esc, clic afuera o "Cancelar" con algo capturado pide
+    confirmar: `useLeaveConfirm` ganó `confirmDiscard()` (solo pregunta, sin
+    navegar; `go` lo usa por dentro). La planta que se elige sola no cuenta.
+  - Al editar, `useEditRecord` dentro del diálogo: skeleton mientras carga,
+    "Equipo no encontrado" o `ErrorState` con "Reintentar"; "Guardar" queda
+    deshabilitado mientras tanto.
+  - Teclados (B1): frecuencia con `NUMERIC_INPUT` (enteros desde 1) y precio
+    con `DECIMAL_INPUT` y "$" al inicio. Antes, `type="number"` con teclas
+    bloqueadas. La coma decimal se cambia por punto y se redondea a dos
+    decimales, como antes. Los saneadores quedaron en
+    `app/_shared/utils/inputModes.ts` (`toPositiveInteger`, `toDecimal`).
+  - Sin breadcrumbs: no es una página.
+- **Equipos de emergencia:**
+  - Formulario con la base común; capacidad con `DECIMAL_INPUT` y
+    `toDecimal` (hasta 2 decimales, como el API).
+  - La tabla es propia (casillas para imprimir QR y su paginación). En
+    celular usa `ResponsiveTable` con la casilla en el título de cada
+    tarjeta ("#N · ubicación") y una barra "Seleccionar todos los de esta
+    página" arriba; la selección y "Imprimir (N)" funcionan igual. En
+    escritorio la tabla no cambia, pero sin filas muestra `TableBodyState`:
+    vacío o, si la consulta falló, `ErrorState` con "Reintentar" (antes, solo
+    vacío). Recibe `pagination` completo de `usePaginatedList`.
+- **HDS:** `ResponsiveTable` con el nombre y "Ver archivo" (la columna de la
+  tabla pasó de "Visualizar archivo" a "Acciones", como en las demás).
+- Encabezados corregidos: "Última actualización", "Frecuencia de entrega
+  (días)".
+
 ---
 
 ## 12. Pendiente para otras fases
