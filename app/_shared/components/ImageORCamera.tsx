@@ -11,6 +11,7 @@ interface Props {
   setAttachedFile: (file: File | null) => void;
   attachedFile: File | null;
   uploadProgress?: number | null;
+  readOnly?: boolean;
 }
 
 // Envoltorio de PhotoCapture con la interfaz que ya usan los formularios de
@@ -20,10 +21,12 @@ const ImageORCamera = ({
   setAttachedFile,
   attachedFile,
   uploadProgress,
+  readOnly,
 }: Props) => (
   <PhotoCapture
     file={attachedFile}
     uploadProgress={uploadProgress}
+    readOnly={readOnly}
     onChange={(file) => {
       setImage("");
       setAttachedFile(file);

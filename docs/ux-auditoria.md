@@ -105,6 +105,10 @@ hay borradores, reintentos, tiempo límite en las peticiones ni aviso de "sin
 conexión". Si falla el envío o se cierra la pestaña, se pierde lo capturado, foto
 incluida. → Retrabajo y hallazgos que no se registran. → Ver la sección
 "Conectividad" (propuesta: borrador local por formulario). [M–L]
+*Resuelto en Hallazgos (crear, iniciar y cerrar) en la Fase 4: borrador
+local con la foto y envío sin confirmar en solo lectura (ver
+`docs/ux-componentes.md`, sección 4). Falta decidir si se extiende a ICS y
+EPP.*
 
 **C4 · Cerrar e iniciar un hallazgo (diálogos)** — Cerrar es irreversible y no pide
 confirmación. Además, los diálogos no se abren a pantalla completa en celular

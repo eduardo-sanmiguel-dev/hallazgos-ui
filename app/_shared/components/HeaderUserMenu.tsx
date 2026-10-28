@@ -32,6 +32,8 @@ import { ROLE_ADMINISTRADOR } from "@shared/constants";
 import { notify } from "@shared/utils";
 import { AuthService } from "@services";
 import { useInstallApp } from "@hooks";
+import { deleteUserDrafts, listUserDrafts } from "@shared/drafts/draftStore";
+import { useConfirmDialog } from "./ConfirmDialog";
 
 const initialsOf = (name: string, email: string) => {
   const words = name.trim().split(/\s+/).filter(Boolean);
@@ -55,9 +57,11 @@ export default function HeaderUserMenu() {
   const [isIosHelpOpen, setIsIosHelpOpen] = useState(false);
   const { mode: installMode, promptInstall } = useInstallApp();
 
-  const { name, email, role, manufacturingPlants, resetSession } =
+  const { confirm, confirmDialog } = useConfirmDialog();
+  const { userId, name, email, role, manufacturingPlants, resetSession } =
     useUserSessionStore(
       useShallow((state) => ({
+        userId: state.id,
         name: state.name,
         email: state.email,
         role: state.role,
@@ -71,8 +75,28 @@ export default function HeaderUserMenu() {
   const initials = initialsOf(name || "", email || "");
   const isOpen = Boolean(anchorEl);
 
-  const logout = () => {
+  // Cerrar sesión a propósito borra los borradores del usuario en este
+  // dispositivo (hay celulares compartidos); si tiene alguno, se avisa antes.
+  // Si la sesión vence, en cambio, se conservan para recuperarlos.
+  const logout = async () => {
     setAnchorEl(null);
+    if (userId) {
+      const drafts = await listUserDrafts(userId);
+      if (drafts.length) {
+        const confirmed = await confirm({
+          title: "¿Cerrar sesión?",
+          description:
+            drafts.length === 1
+              ? "Tienes un borrador sin enviar en este dispositivo. Si cierras sesión, se borrará."
+              : `Tienes ${drafts.length} borradores sin enviar en este dispositivo. Si cierras sesión, se borrarán.`,
+          confirmLabel: "Cerrar sesión",
+          cancelLabel: "Volver",
+          tone: "danger",
+        });
+        if (!confirmed) return;
+      }
+      await deleteUserDrafts(userId);
+    }
     AuthService.logout().then(({ message }) => {
       notify(message, true);
       router.push("/");
@@ -306,6 +330,7 @@ export default function HeaderUserMenu() {
           </Button>
         </DialogActions>
       </Dialog>
+      {confirmDialog}
     </>
   );
 }

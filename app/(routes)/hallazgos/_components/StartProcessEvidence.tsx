@@ -7,6 +7,7 @@ import { DialogTitle } from "@mui/material";
 import { DialogContent } from "@mui/material";
 import { DialogActions } from "@mui/material";
 import { IconButton } from "@mui/material";
+import { Box } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
@@ -17,7 +18,8 @@ import { dataURLtoFile, notify } from "@shared/utils";
 import { EvidencesService } from "@services";
 import ImageORCamera from "@shared/components/ImageORCamera";
 import { useUploadProgress } from "@hooks/useUploadProgress";
-import { useIdempotencyKey } from "@hooks/useIdempotencyKey";
+import { useFormDraft } from "@hooks/useFormDraft";
+import DraftNotice from "@shared/components/DraftNotice";
 
 export const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -43,12 +45,23 @@ export default function StartProcessEvidence({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const upload = useUploadProgress();
-  // Por hallazgo: el diálogo se reutiliza entre filas.
-  const submission = useIdempotencyKey(idRow);
+  // Borrador local por hallazgo (C3): la foto queda en el dispositivo hasta
+  // enviarse; incluye la clave de idempotencia.
+  const draft = useFormDraft<Record<string, never>>({
+    form: idRow ? `iniciar:${idRow}` : null,
+    content: { fields: {}, photo: attachedFile },
+    hasContent: ({ photo }) => !!photo,
+    onRestore: ({ photo }) => {
+      setImage("");
+      setAttachedFile(photo);
+    },
+  });
+  const isLocked = !!draft.lock;
   // En celular a pantalla completa: con la cámara adentro quedaba apretado.
   const isPhone = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
 
-  const saveProcessStart = () => {
+  // También es "Reintentar envío" de un borrador en solo lectura.
+  const saveProcessStart = async () => {
     const formData = new FormData();
     const uuid = uuidv4();
 
@@ -61,20 +74,33 @@ export default function StartProcessEvidence({
     }
 
     setIsLoading(true);
+    await draft.markSending();
     EvidencesService.processStart(idRow, formData, {
       onUploadProgress: upload.onUploadProgress,
-      idempotencyKey: submission.key(),
+      idempotencyKey: draft.key(),
     })
-      .then(() => {
-        submission.settle();
-        notify("Estatus actualizado a En progreso", true);
+      .then(async ({ replayed }) => {
+        await draft.settle();
+        notify(
+          replayed
+            ? `Ya se había guardado (hallazgo #${idRow})`
+            : "Estatus actualizado a En progreso",
+          true,
+        );
         handleClose(true);
       })
-      .catch(submission.settle)
+      .catch(draft.settle)
       .finally(() => {
         setIsLoading(false);
         upload.reset();
       });
+  };
+
+  // Descartar: si estaba en solo lectura se quita la foto.
+  const discardDraft = async () => {
+    if (!(await draft.discard())) return;
+    setImage("");
+    setAttachedFile(null);
   };
 
   const isDisabled = useMemo(
@@ -111,15 +137,31 @@ export default function StartProcessEvidence({
         <CloseIcon />
       </IconButton>
       <DialogContent dividers>
+        {(draft.offer || draft.lock) && (
+          <Box sx={{ mb: 2 }}>
+            <DraftNotice
+              offer={draft.offer}
+              lock={draft.lock}
+              onRestore={draft.restore}
+              onDiscard={discardDraft}
+              onRetry={saveProcessStart}
+              isSending={isLoading}
+            />
+          </Box>
+        )}
         <ImageORCamera
           setImage={setImage}
           image={image}
           setAttachedFile={setAttachedFile}
           attachedFile={attachedFile}
           uploadProgress={upload.progress}
+          readOnly={isLocked}
         />
       </DialogContent>
-      <DialogActions sx={{ justifyContent: "center" }}>
+      {/* Con un envío pendiente, las acciones son las del aviso. */}
+      <DialogActions
+        sx={{ justifyContent: "center", ...(isLocked && { display: "none" }) }}
+      >
         <Button
           onClick={saveProcessStart}
           variant="contained"

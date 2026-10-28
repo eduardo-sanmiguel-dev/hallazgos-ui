@@ -18,7 +18,6 @@ import { EvidencesService, UsersService } from "@services";
 import { useUserSessionStore } from "@store";
 import {
   EMPTY_CATALOG,
-  useIdempotencyKey,
   useMainTypes,
   useProcesses,
   useUploadProgress,
@@ -26,6 +25,8 @@ import {
 } from "@hooks";
 import { useFieldErrors } from "@hooks/useFieldErrors";
 import ImageORCamera from "@shared/components/ImageORCamera";
+import DraftNotice from "@shared/components/DraftNotice";
+import { useFormDraft } from "@hooks/useFormDraft";
 import { dataURLtoFile, notify } from "@shared/utils";
 import SelectDefault from "@components/SelectDefault";
 import { SecondaryType, User } from "@interfaces";
@@ -55,6 +56,18 @@ type EvidenceField =
   | "priorityDays"
   | "photo";
 
+// Lo que se guarda en el borrador local (la foto va aparte).
+interface EvidenceDraftFields {
+  manufacturingPlantId: string;
+  typeHallazgo: string;
+  secondaryType: string;
+  zone: string;
+  process: string;
+  supervisor: string;
+  description: string;
+  priorityDays: string;
+}
+
 // Campos del API con otro nombre en el formulario (type es el tipo).
 const EVIDENCE_API_FIELDS = { type: "secondaryType", file: "photo" };
 
@@ -83,7 +96,6 @@ export default function HallazgosFormPage() {
   >("idle");
   const [supervisor, setSupervisor] = useState<string>("");
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
-  const [isUnsafeBehavior, setIsUnsafeBehavior] = useState<boolean>(false);
   const [description, setDescription] = useState<string>("");
   const [priorityDays, setPriorityDays] = useState<string>("");
 
@@ -102,8 +114,61 @@ export default function HallazgosFormPage() {
   const userId = useUserSessionStore((state) => state.id);
 
   const router = useRouter();
-  const submission = useIdempotencyKey();
   const upload = useUploadProgress();
+
+  // La clasificación decide si la foto es obligatoria. Se calcula (antes era
+  // un estado que se actualizaba al elegir) para que también aplique al
+  // recuperar un borrador.
+  const isUnsafeBehavior = useMemo(
+    () =>
+      !!typeHallazgo &&
+      !requiresPhotoEvidence(
+        mainTypes.find((data) => data.id === Number(typeHallazgo)),
+      ),
+    [typeHallazgo, mainTypes],
+  );
+
+  // Borrador local (C3): lo capturado y la foto quedan en el dispositivo
+  // hasta enviarse; la planta y el lugar propuestos no cuentan como captura.
+  const draftFields: EvidenceDraftFields = {
+    manufacturingPlantId,
+    typeHallazgo,
+    secondaryType,
+    zone,
+    process,
+    supervisor,
+    description,
+    priorityDays,
+  };
+  const draft = useFormDraft<EvidenceDraftFields>({
+    form: "nuevo-hallazgo",
+    content: { fields: draftFields, photo: attachedFile },
+    hasContent: ({ fields, photo }) =>
+      !!photo ||
+      [
+        fields.typeHallazgo,
+        fields.secondaryType,
+        fields.process,
+        fields.supervisor,
+        fields.description.trim(),
+        fields.priorityDays,
+      ].some(Boolean),
+    onRestore: ({ fields, photo }) => {
+      // El lugar recuperado gana al último usado.
+      lastZoneRestored.current = true;
+      setManufacturingPlantId(fields.manufacturingPlantId);
+      setTypeHallazgo(fields.typeHallazgo);
+      setSecondaryType(fields.secondaryType);
+      setZone(fields.zone);
+      setProcess(fields.process);
+      setSupervisor(fields.supervisor);
+      setDescription(fields.description);
+      setPriorityDays(fields.priorityDays);
+      setImage("");
+      setAttachedFile(photo);
+    },
+  });
+  const isLocked = !!draft.lock;
   // Los errores aparecen al intentar guardar, no desde que se abre (A5).
   const { fail, failFromApi, errorOf, fieldProps } =
     useFieldErrors<EvidenceField>(
@@ -219,13 +284,18 @@ export default function HallazgosFormPage() {
     return null;
   };
 
-  const saveEvidence = async () => {
+  const saveEvidence = () => {
     const missing = firstMissing();
     if (missing) {
       fail(...missing);
       return;
     }
+    send();
+  };
 
+  // También es "Reintentar envío" de un borrador en solo lectura: mismos
+  // datos y misma clave.
+  const send = async () => {
     const formData = new FormData();
 
     formData.append("manufacturingPlantId", manufacturingPlantId);
@@ -256,22 +326,30 @@ export default function HallazgosFormPage() {
     }
 
     setIsLoading(true);
+    // Antes de enviar queda como envío pendiente en el borrador, con su clave:
+    // si se pierde la señal o se cierra la app, reenviarlo no duplica.
+    await draft.markSending();
     // Sin conexión o tiempo agotado: el aviso trae "Reintentar" y la foto y
     // los datos siguen aquí; la misma clave evita un hallazgo duplicado.
     EvidencesService.create(formData, {
       onUploadProgress: upload.onUploadProgress,
-      idempotencyKey: submission.key(),
+      idempotencyKey: draft.key(),
     })
-      .then(() => {
-        submission.settle();
+      .then(async ({ data, replayed }) => {
+        await draft.settle();
         if (userId) {
           saveLastLocation(userId, { manufacturingPlantId, zoneId: zone });
         }
-        notify("Hallazgo creado correctamente", true);
+        notify(
+          replayed
+            ? `Ya se había guardado (hallazgo #${data.id})`
+            : "Hallazgo creado correctamente",
+          true,
+        );
         router.push("/hallazgos");
       })
-      .catch((error) => {
-        submission.settle(error);
+      .catch(async (error) => {
+        await draft.settle(error);
         failFromApi(error, EVIDENCE_API_FIELDS);
       })
       .finally(() => {
@@ -280,20 +358,36 @@ export default function HallazgosFormPage() {
       });
   };
 
-  // Se recalcula con cada clasificación: antes solo se activaba y, al cambiar
-  // a otra, la foto dejaba de ser obligatoria.
-  const validateUnsafeBehavior = (value: string) => {
-    const mainTypeCurrent = mainTypes.find(
-      (data) => data.id === Number(value ?? 0),
-    );
-
-    setIsUnsafeBehavior(!requiresPhotoEvidence(mainTypeCurrent));
+  // Descartar el borrador. Si estaba en solo lectura, se limpia lo capturado
+  // (la planta y el lugar se quedan como propuesta).
+  const discardDraft = async () => {
+    if (!(await draft.discard())) return;
+    setTypeHallazgo("");
+    setSecondaryType("");
+    setProcess("");
+    setSupervisor("");
+    setDescription("");
+    setPriorityDays("");
+    setImage("");
+    setAttachedFile(null);
   };
 
   return (
     <>
       <PageHeader title="Nuevo hallazgo" />
       <Grid container spacing={2}>
+        {(draft.offer || draft.lock) && (
+          <Grid size={12}>
+            <DraftNotice
+              offer={draft.offer}
+              lock={draft.lock}
+              onRestore={draft.restore}
+              onDiscard={discardDraft}
+              onRetry={send}
+              isSending={isLoading}
+            />
+          </Grid>
+        )}
         <Grid
           size={{
             xs: 12,
@@ -306,6 +400,7 @@ export default function HallazgosFormPage() {
             label="Planta"
             value={manufacturingPlantId}
             onChange={(e) => setManufacturingPlantId(e.target.value)}
+            disabled={isLocked}
           />
           <FieldError
             field="manufacturingPlantId"
@@ -326,8 +421,8 @@ export default function HallazgosFormPage() {
             onChange={({ target: { value } }) => {
               setTypeHallazgo(value);
               setSecondaryType("");
-              validateUnsafeBehavior(value);
             }}
+            disabled={isLocked}
           />
           <FieldError field="typeHallazgo" message={errorOf("typeHallazgo")} />
         </Grid>
@@ -344,6 +439,7 @@ export default function HallazgosFormPage() {
             value={secondaryType}
             onChange={(e) => setSecondaryType(e.target.value)}
             helperText={!typeHallazgo ? "Seleccione un hallazgo" : ""}
+            disabled={isLocked}
           />
           <FieldError
             field="secondaryType"
@@ -366,6 +462,7 @@ export default function HallazgosFormPage() {
             value={zone}
             onChange={(e) => setZone(e.target.value)}
             helperText={!manufacturingPlantId ? "Seleccione una planta" : ""}
+            disabled={isLocked}
           />
           <FieldError field="zone" message={errorOf("zone")} />
         </Grid>
@@ -385,6 +482,7 @@ export default function HallazgosFormPage() {
             value={process}
             onChange={(e) => setProcess(e.target.value)}
             helperText={!manufacturingPlantId ? "Seleccione una planta" : ""}
+            disabled={isLocked}
           />
           <FieldError field="process" message={errorOf("process")} />
         </Grid>
@@ -413,6 +511,7 @@ export default function HallazgosFormPage() {
                   ? "Este lugar no tiene supervisores asignados"
                   : undefined
             }
+            disabled={isLocked}
           />
           <FieldError field="supervisor" message={errorOf("supervisor")} />
         </Grid>
@@ -432,6 +531,7 @@ export default function HallazgosFormPage() {
             value={priorityDays}
             onChange={(e) => setPriorityDays(e.target.value)}
             isFilter={true}
+            disabled={isLocked}
           />
         </Grid>
         <Grid
@@ -450,6 +550,7 @@ export default function HallazgosFormPage() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             label="Describe lo que observaste"
+            slotProps={{ input: { readOnly: isLocked } }}
             helperText={
               errorOf("description") ??
               "Qué viste, dónde y por qué es un riesgo."
@@ -469,6 +570,7 @@ export default function HallazgosFormPage() {
             setAttachedFile={setAttachedFile}
             attachedFile={attachedFile}
             uploadProgress={upload.progress}
+            readOnly={isLocked}
           />
           <FieldError field="photo" message={errorOf("photo")} />
         </Grid>
@@ -496,16 +598,19 @@ export default function HallazgosFormPage() {
             >
               Cancelar
             </Button>
-            <Button
-              variant="contained"
-              startIcon={<SaveIcon />}
-              onClick={saveEvidence}
-              loading={isLoading}
-              loadingPosition="start"
-              disabled={isLoading}
-            >
-              Crear hallazgo
-            </Button>
+            {/* Con un envío pendiente, las acciones son las del aviso. */}
+            {!isLocked && (
+              <Button
+                variant="contained"
+                startIcon={<SaveIcon />}
+                onClick={saveEvidence}
+                loading={isLoading}
+                loadingPosition="start"
+                disabled={isLoading}
+              >
+                Crear hallazgo
+              </Button>
+            )}
           </Box>
         </Grid>
       </Grid>

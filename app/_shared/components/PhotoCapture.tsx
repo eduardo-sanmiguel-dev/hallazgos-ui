@@ -50,6 +50,9 @@ export interface PhotoCaptureProps {
   // 0-100 mientras se sube; null o undefined si no se está subiendo.
   uploadProgress?: number | null;
   disabled?: boolean;
+  // Solo se ve la foto, sin cambiarla ni quitarla (borrador con un envío
+  // pendiente: ver useFormDraft).
+  readOnly?: boolean;
 }
 
 // Foto de evidencia: cámara del teléfono (principal), galería o, como
@@ -60,6 +63,7 @@ export default function PhotoCapture({
   onChange,
   uploadProgress,
   disabled = false,
+  readOnly = false,
 }: PhotoCaptureProps) {
   const [mode, setMode] = useState<"pick" | "browserCamera">("pick");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -130,7 +134,8 @@ export default function PhotoCapture({
           </Button>
         </Box>
       ) : (
-        !file && (
+        !file &&
+        !readOnly && (
           <Stack spacing={1.5}>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
               <Button
@@ -200,6 +205,12 @@ export default function PhotoCapture({
         </Alert>
       )}
 
+      {readOnly && !file && (
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          Sin foto.
+        </Typography>
+      )}
+
       {file && previewUrl && (
         <Paper variant="outlined" sx={{ overflow: "hidden" }}>
           <Box
@@ -233,14 +244,16 @@ export default function PhotoCapture({
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
               Foto lista · {formatFileSize(file.size)}
             </Typography>
-            <Button
-              color="error"
-              startIcon={<DeleteOutlineIcon />}
-              onClick={() => onChange(null)}
-              disabled={isBusy}
-            >
-              Quitar foto
-            </Button>
+            {!readOnly && (
+              <Button
+                color="error"
+                startIcon={<DeleteOutlineIcon />}
+                onClick={() => onChange(null)}
+                disabled={isBusy}
+              >
+                Quitar foto
+              </Button>
+            )}
           </Stack>
           {isUploading && (
             <Box sx={{ px: 2, pb: 2 }} role="status">

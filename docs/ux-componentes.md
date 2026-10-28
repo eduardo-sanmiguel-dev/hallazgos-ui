@@ -368,9 +368,67 @@ Archivos en `app/(routes)/hallazgos/`.
   - Descripción con contorno, como el resto de los campos (M8).
   - Progreso de subida y errores del API marcados en su campo.
 
+### Borrador local (C3, opción A)
+
+En crear, iniciar y cerrar hallazgo. Sirve igual para otros formularios de
+campo (ICS, EPP).
+
+- **Almacén:** `app/_shared/drafts/draftStore.ts`, IndexedDB nativo (sin
+  librería). Base `hallazgos-borradores`, almacén `drafts`, clave
+  `{userId}:{formulario}` (`nuevo-hallazgo`, `iniciar:{id}`, `cerrar:{id}`).
+  Guarda los campos, la foto como Blob, la clave de idempotencia y el estado
+  del último envío. Sin IndexedDB (modo privado), no hace nada.
+- **Hook:** `useFormDraft` (`app/_hooks/useFormDraft.ts`) y el aviso
+  `DraftNotice`.
+
+```tsx
+const draft = useFormDraft<Fields>({
+  form: "nuevo-hallazgo",              // null lo desactiva
+  content: { fields, photo },
+  hasContent: ({ fields, photo }) => !!photo || !!fields.description,
+  onRestore: ({ fields, photo }) => { /* poner en el formulario */ },
+});
+
+await draft.markSending();             // envío pendiente, con su clave
+Service.create(formData, { idempotencyKey: draft.key() })
+  .then(() => draft.settle())          // se borra
+  .catch(draft.settle);                // solo lectura o editable, según el error
+
+<DraftNotice offer={draft.offer} lock={draft.lock}
+  onRestore={draft.restore} onDiscard={…} onRetry={send} />
+```
+
+- **Mientras se captura:** se guarda solo (~0.8 s después de cada cambio) si
+  hay algo que valga guardar. En "Nuevo hallazgo", la planta y el lugar
+  propuestos no cuentan.
+- **Al volver a abrir:** "Tienes un borrador (con foto)" con **Recuperar** o
+  **Descartar**. Nada se aplica ni se sobrescribe hasta elegir.
+- **Envío sin respuesta** (sin conexión, tiempo agotado, en proceso) o error
+  500: el borrador queda en **solo lectura** (campos y foto) con **Reintentar
+  envío** (misma clave) o **Descartar**. Así una edición nunca se pierde en
+  silencio: si el primer envío sí se guardó, el API devolvería ese y no la
+  edición. También aplica en la misma pantalla, sin recargar.
+- **Resultado del reintento:**
+  - Si el API ya lo había procesado (header `Idempotent-Replayed`), se
+    avisa "Ya se había guardado (hallazgo #N)" y se borra el borrador.
+  - Si se guardó ahora, se muestra el aviso normal y se borra el borrador.
+  - Con un error de datos (4xx, incluidos 401 y "sin confirmar"), se puede
+    editar y el siguiente envío lleva clave nueva, como siempre.
+- **Sesión:** por usuario. Cerrar sesión a propósito avisa y borra los
+  borradores del usuario; si la sesión vence, se conservan y el diálogo "Tu
+  sesión terminó" dice que lo capturado quedó guardado.
+- **Vencimiento:** 7 días desde que se crea el borrador. La clave del API
+  también dura 7 días y se crea después (al enviar), así que el borrador
+  nunca dura más que su clave. Los vencidos se borran al abrir la app.
+- **Se borra** al enviar con éxito.
+- `PhotoCapture` e `ImageORCamera` ganaron `readOnly`: muestran la foto sin
+  "Quitar foto" ni los botones para cambiarla.
+
 ---
 
 ## 5. Pendiente para otras fases
 
-- **Hallazgos:** borrador local (C3, opción A), pendiente de aprobar el
-  diseño.
+- **Borrador local** en ICS y EPP, si se decide extenderlo.
+- Los borradores de iniciar o cerrar de un hallazgo que ya cambió de estado
+  (por ejemplo, cerrado desde otro dispositivo) no se pueden abrir desde la
+  lista; se borran a los 7 días o al cerrar sesión.

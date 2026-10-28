@@ -19,7 +19,9 @@ import { EvidencesService } from "@services";
 
 import "react-html5-camera-photo/build/css/index.css";
 import ImageORCamera from "@shared/components/ImageORCamera";
-import { EvidenceGraphql, useIdempotencyKey, useUploadProgress } from "@hooks";
+import { EvidenceGraphql, useUploadProgress } from "@hooks";
+import { useFormDraft } from "@hooks/useFormDraft";
+import DraftNotice from "@shared/components/DraftNotice";
 import { Grid, Paper, TextField } from "@mui/material";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { requiresPhotoEvidence } from "@routes/hallazgos/_constants/mainTypes";
@@ -70,8 +72,20 @@ export default function CloseEvidence({
   // La clasificación del hallazgo decide si la foto es obligatoria.
   const isUnsafeBehavior = !requiresPhotoEvidence(evidenceCurrent?.mainType);
   const { confirm, confirmDialog } = useConfirmDialog();
-  // Por hallazgo: el diálogo se reutiliza entre filas.
-  const submission = useIdempotencyKey(idRow);
+  // Borrador local por hallazgo (C3): descripción y foto quedan en el
+  // dispositivo hasta enviarse; incluye la clave de idempotencia.
+  const draft = useFormDraft<{ descriptionSolution: string }>({
+    form: idRow ? `cerrar:${idRow}` : null,
+    content: { fields: { descriptionSolution }, photo: attachedFile },
+    hasContent: ({ fields, photo }) =>
+      !!photo || !!fields.descriptionSolution.trim(),
+    onRestore: ({ fields, photo }) => {
+      setDescriptionSolution(fields.descriptionSolution);
+      setImage("");
+      setAttachedFile(photo);
+    },
+  });
+  const isLocked = !!draft.lock;
   const upload = useUploadProgress();
   // En celular a pantalla completa: con la cámara adentro quedaba apretado.
   const isPhone = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
@@ -81,7 +95,9 @@ export default function CloseEvidence({
     [descriptionSolution],
   );
 
-  const saveSolution = () => {
+  // También es "Reintentar envío" de un borrador en solo lectura: mismos
+  // datos y misma clave, sin volver a confirmar.
+  const saveSolution = async () => {
     const formData = new FormData();
 
     const uuid = uuidv4();
@@ -99,21 +115,35 @@ export default function CloseEvidence({
     formData.append("descriptionSolution", descriptionSolution);
 
     setIsLoading(true);
+    await draft.markSending();
     return EvidencesService.solution(idRow, formData, {
       onUploadProgress: upload.onUploadProgress,
-      idempotencyKey: submission.key(),
+      idempotencyKey: draft.key(),
     })
-      .then(() => {
-        submission.settle();
-        notify("Hallazgo cerrado correctamente", true);
-        celebrateClose();
+      .then(async ({ replayed }) => {
+        await draft.settle();
+        notify(
+          replayed
+            ? `Ya se había guardado (hallazgo #${idRow})`
+            : "Hallazgo cerrado correctamente",
+          true,
+        );
+        if (!replayed) celebrateClose();
         handleClose(true);
       })
-      .catch(submission.settle)
+      .catch(draft.settle)
       .finally(() => {
         setIsLoading(false);
         upload.reset();
       });
+  };
+
+  // Descartar: si estaba en solo lectura se limpia lo capturado.
+  const discardDraft = async () => {
+    if (!(await draft.discard())) return;
+    setDescriptionSolution("");
+    setImage("");
+    setAttachedFile(null);
   };
 
   const isDisabled = useMemo(() => {
@@ -160,6 +190,18 @@ export default function CloseEvidence({
       </IconButton>
       <DialogContent dividers>
         <Grid container spacing={2}>
+          {(draft.offer || draft.lock) && (
+            <Grid size={12}>
+              <DraftNotice
+                offer={draft.offer}
+                lock={draft.lock}
+                onRestore={draft.restore}
+                onDiscard={discardDraft}
+                onRetry={saveSolution}
+                isSending={isLoading}
+              />
+            </Grid>
+          )}
           {isUnsafeBehavior && (
             <Grid
               size={{
@@ -191,6 +233,7 @@ export default function CloseEvidence({
                   value={descriptionSolution}
                   onChange={(e) => setDescriptionSolution(e.target.value)}
                   label="Describe cómo se resolvió"
+                  slotProps={{ input: { readOnly: isLocked } }}
                   // Sin rojo de entrada: "Guardar" se habilita al escribirla.
                   helperText="Obligatoria para cerrar este hallazgo."
                 />
@@ -211,10 +254,14 @@ export default function CloseEvidence({
             setAttachedFile={setAttachedFile}
             attachedFile={attachedFile}
             uploadProgress={upload.progress}
+            readOnly={isLocked}
           />
         </Grid>
       </DialogContent>
-      <DialogActions sx={{ justifyContent: "center" }}>
+      {/* Con un envío pendiente, las acciones son las del aviso. */}
+      <DialogActions
+        sx={{ justifyContent: "center", ...(isLocked && { display: "none" }) }}
+      >
         <Button
           // Cerrar es irreversible: se confirma antes de enviar. La
           // confirmación se cierra al aceptar para que se vea el progreso de

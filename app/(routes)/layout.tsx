@@ -30,6 +30,7 @@ import ThemeSelector from "@shared/components/ThemeSelector";
 import RouteAccessGuard from "@shared/components/RouteAccessGuard";
 import MobileBottomNav from "@shared/components/MobileBottomNav";
 import SessionEndedDialog from "@shared/components/SessionEndedDialog";
+import { purgeExpiredDrafts } from "@shared/drafts/draftStore";
 import { useUserSessionStore } from "@store";
 import { AppThemeName, createAppTheme, isAppThemeName } from "../theme";
 import { UsersService } from "@services";
@@ -169,6 +170,12 @@ export default function MainLayout({ children }: { children: ReactNode }) {
       });
     }
   }, [userId, setSession]);
+
+  // Borradores locales de más de 7 días, de cualquier usuario del
+  // dispositivo, al abrir la app.
+  useEffect(() => {
+    purgeExpiredDrafts();
+  }, []);
 
   const changeTheme = (name: AppThemeName) => {
     setThemeName(name);

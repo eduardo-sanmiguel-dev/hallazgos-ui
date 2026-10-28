@@ -777,3 +777,62 @@ test.describe("Hallazgos en celular", () => {
     await expect(toast(page, "Hallazgo cerrado correctamente")).toBeVisible();
   });
 });
+
+// Borrador local del cierre (C3): la foto y la descripción quedan en el
+// dispositivo por hallazgo; al volver a abrir el cierre se ofrece recuperarlo.
+test.describe("Hallazgos: borrador del cierre", () => {
+  test("al volver a abrir el cierre ofrece recuperar la foto y la descripción", async ({
+    page,
+  }) => {
+    await openList(page, { asSupervisor: true });
+
+    const openClose = async () => {
+      await (
+        await openActions(page, 9001)
+      )
+        .getByRole("menuitem", { name: "Cerrar hallazgo" })
+        .click();
+      return page.getByRole("dialog", { name: "Cerrar hallazgo #9001" });
+    };
+
+    let dialog = await openClose();
+    await dialog
+      .locator("#description-multiline-solution")
+      .fill("E2E borrador del cierre");
+    await dialog.getByLabel("Elegir de galería").setInputFiles({
+      name: "solucion.png",
+      mimeType: "image/png",
+      buffer: PNG_1X1,
+    });
+    // Guardado automático (~1 s) y se cierra el diálogo sin enviar.
+    await page.waitForTimeout(1_500);
+    await dialog.getByRole("button", { name: "Cerrar", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+
+    dialog = await openClose();
+    await expect(dialog.getByText("Tienes un borrador")).toBeVisible();
+    await dialog.getByRole("button", { name: "Recuperar" }).click();
+    await expect(dialog.locator("#description-multiline-solution")).toHaveValue(
+      "E2E borrador del cierre",
+    );
+    await expect(
+      dialog.getByAltText("Vista previa de la evidencia"),
+    ).toBeVisible();
+
+    // Otro hallazgo no ve este borrador.
+    await dialog.getByRole("button", { name: "Cerrar", exact: true }).click();
+    await card9002Close(page);
+  });
+});
+
+/** Abre el cierre de 9002 (en progreso) y comprueba que no hay borrador. */
+const card9002Close = async (page: Page) => {
+  await (
+    await openActions(page, 9002)
+  )
+    .getByRole("menuitem", { name: "Cerrar hallazgo" })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Cerrar hallazgo #9002" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText("Tienes un borrador")).toHaveCount(0);
+};

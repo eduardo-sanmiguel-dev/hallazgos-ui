@@ -1,4 +1,4 @@
-import type { AxiosProgressEvent } from "axios";
+import type { AxiosProgressEvent, AxiosResponse } from "axios";
 
 import axiosWrapper, { idempotencyHeaders } from "./axiosWrapper";
 import {
@@ -70,6 +70,21 @@ const uploadConfig = (options: UploadOptions) => ({
   onUploadProgress: options.onUploadProgress,
 });
 
+/**
+ * Respuesta de un envío con clave de idempotencia. `replayed`: el API ya lo
+ * había procesado con esa clave (borrador reenviado, reintento tras un corte)
+ * y devolvió aquel resultado sin guardar otra vez.
+ */
+export interface SubmitResult<T> {
+  data: T;
+  replayed: boolean;
+}
+
+const submitResult = <T>({ data, headers }: AxiosResponse<T>) => ({
+  data,
+  replayed: headers["idempotent-replayed"] === "true",
+});
+
 interface PermissionsConfigResponse {
   supervisorOverrideEmails: string[];
   cancelEvidenceEmails: string[];
@@ -84,40 +99,36 @@ const findAll = async (params: FiltersEvidences) => {
 
 // Las subidas pasan por el interceptor (antes usaban axios directo): tiempo
 // límite de 90 s, aviso por tipo de error y "Reintentar" sin perder la foto.
-const create = async (formData: FormData, options: UploadOptions = {}) => {
-  const { data } = await api.post<Evidence>(
-    "",
-    formData,
-    uploadConfig(options),
+// Responde el id del hallazgo creado.
+const create = async (
+  formData: FormData,
+  options: UploadOptions = {},
+): Promise<SubmitResult<{ id: number }>> =>
+  submitResult(
+    await api.post<{ id: number }>("", formData, uploadConfig(options)),
   );
-  return data;
-};
 
 const solution = async (
   id: number,
   formData: FormData,
   options: UploadOptions = {},
-) => {
-  const { data } = await api.post<Evidence>(
-    `/solution/${id}`,
-    formData,
-    uploadConfig(options),
+): Promise<SubmitResult<Evidence>> =>
+  submitResult(
+    await api.post<Evidence>(
+      `/solution/${id}`,
+      formData,
+      uploadConfig(options),
+    ),
   );
-  return data;
-};
 
 const processStart = async (
   id: number,
   formData: FormData,
   options: UploadOptions = {},
-) => {
-  const { data } = await api.post<Evidence>(
-    `/process/${id}`,
-    formData,
-    uploadConfig(options),
+): Promise<SubmitResult<Evidence>> =>
+  submitResult(
+    await api.post<Evidence>(`/process/${id}`, formData, uploadConfig(options)),
   );
-  return data;
-};
 
 // Cancelar, comentar y reasignar mandan correos o crean registros: también
 // llevan clave para que "Reintentar" no los repita.

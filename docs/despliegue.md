@@ -208,3 +208,26 @@ si deben tenerla.
   mientras falta algo; al tocarlo, se indica qué completar. La planta y el
   lugar se guardan solo en ese navegador; no hay que hacer nada en el
   servidor.
+
+#### Borrador local (crear, iniciar y cerrar hallazgo)
+
+- **No requiere nada en el servidor:** ni migraciones ni configuración. Los
+  borradores viven en IndexedDB de cada navegador y se borran solos a los 7
+  días.
+- **Cambios del API que lo acompañan (compatibles con la UI anterior):**
+  - `POST /evidences` responde `{ "id": N }` en lugar del texto `ok`. La UI
+    anterior no lee esa respuesta.
+  - Un reintento ya procesado (misma clave de idempotencia) responde con el
+    header `Idempotent-Replayed: true`, expuesto por CORS en `main.ts` junto a
+    `Content-Disposition`. No hay que tocar nginx: el header pasa tal cual.
+- **Para el cliente:**
+  - Lo capturado en esos tres formularios, foto incluida, se guarda en el
+    dispositivo mientras se escribe. Al volver se ofrece "Recuperar" o
+    "Descartar".
+  - **Al cerrar sesión se borran los borradores sin enviar de ese
+    dispositivo**, con aviso previo. Si la sesión vence sola, se conservan y
+    el mismo usuario los recupera al volver a entrar.
+  - Si un envío se quedó sin respuesta, el borrador queda en solo lectura
+    con "Reintentar envío" o "Descartar"; el reintento nunca duplica el
+    hallazgo. Si ya se había guardado, se avisa "Ya se había guardado
+    (hallazgo #N)".
