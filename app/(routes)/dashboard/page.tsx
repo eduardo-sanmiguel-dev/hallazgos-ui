@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dayjs, { Dayjs } from "dayjs";
 
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import {
+  Box,
   Button,
   Fab,
   Grid,
   Paper,
   SelectChangeEvent,
+  Skeleton,
   Typography,
   Zoom,
 } from "@mui/material";
@@ -23,6 +25,9 @@ import { DashboardService, UsersService } from "@services";
 import { useUserSessionStore } from "@store";
 import { EMPTY_CATALOG, useAreas, useMainTypes } from "@hooks";
 import { useHighchartsTheme } from "@hooks/useHighchartsTheme";
+import EmptyState from "@shared/components/EmptyState";
+import ErrorState from "@shared/components/ErrorState";
+import { proposedPlantId, saveLastPlant } from "@shared/utils/lastPlant";
 import AreaImageCoordinateSelector from "../areas/_components/AreaImageCoordinateSelector";
 import AreasChart from "./charts/AreasChart";
 import MainTypesChart from "./charts/MainTypesChart";
@@ -39,6 +44,10 @@ import {
   DashboardFiltersBar,
   type DashboardFilters,
 } from "./_components/DashboardFiltersBar";
+import {
+  hasCompleteFilters,
+  useDashboardSummary,
+} from "./_components/useDashboardSummary";
 
 // Título solo para lectores de pantalla: la barra de filtros es lo primero
 // que se ve en la página.
@@ -53,6 +62,20 @@ const visuallyHidden = {
 
 const restrictedDashboardEmail = "glora@hadainternational.com";
 
+// Periodo por omisión (M5): los últimos 30 días, hoy incluido. Con "el mes en
+// curso" (lo de antes), los primeros días del mes casi no había datos.
+const DEFAULT_PERIOD_DAYS = 30;
+
+// "Ampliar el periodo" del aviso sin hallazgos.
+const WIDER_PERIOD_DAYS = 90;
+
+const DATE_FORMAT = "DD/MM/YYYY";
+
+const daysAgo = (days: number) =>
+  dayjs()
+    .subtract(days - 1, "day")
+    .format(DATE_FORMAT);
+
 const DashboardPage = () => {
   const router = useRouter();
   // Al cambiar de tema se vuelven a crear las gráficas con sus colores.
@@ -63,15 +86,13 @@ const DashboardPage = () => {
   );
 
   const email = useUserSessionStore((state) => state.email);
-
-  const currentMonthStart = dayjs().startOf("month").format("DD/MM/YYYY");
-  const currentMonthEnd = dayjs().format("DD/MM/YYYY");
+  const userId = useUserSessionStore((state) => state.id);
 
   const [filters, setFilters] = useState<DashboardFilters>({
     manufacturingPlantId: "",
     manufacturingPlantName: "",
-    startDate: currentMonthStart,
-    endDate: currentMonthEnd,
+    startDate: daysAgo(DEFAULT_PERIOD_DAYS),
+    endDate: dayjs().format(DATE_FORMAT),
     areaIds: [],
     areaNames: [],
     responsibleIds: [],
@@ -123,6 +144,10 @@ const DashboardPage = () => {
       (item) => String(item.id) === event.target.value,
     );
 
+    if (selectedPlant && userId) {
+      saveLastPlant(userId, "dashboard", event.target.value);
+    }
+
     setFilters((prev) => ({
       ...prev,
       manufacturingPlantId: event.target.value,
@@ -133,6 +158,72 @@ const DashboardPage = () => {
       responsibleNames: [],
     }));
   };
+
+  // Al entrar ya se ven datos (M5): la única planta del usuario o la última
+  // que eligió aquí en este dispositivo. Una sola vez; si el usuario ya eligió
+  // una (o la quitó), no se toca.
+  const plantProposed = useRef(false);
+  useEffect(() => {
+    if (plantProposed.current || !userId || !manufacturingPlants.length) {
+      return;
+    }
+    plantProposed.current = true;
+
+    const plantId = proposedPlantId(manufacturingPlants, userId, "dashboard");
+    const plant = manufacturingPlants.find(
+      (item) => String(item.id) === plantId,
+    );
+    if (!plant) return;
+
+    setFilters((prev) =>
+      prev.manufacturingPlantId
+        ? prev
+        : {
+            ...prev,
+            manufacturingPlantId: plantId,
+            manufacturingPlantName: plant.name,
+          },
+    );
+  }, [userId, manufacturingPlants]);
+
+  // Estado de la pantalla: un solo aviso (sin planta, sin periodo, sin
+  // hallazgos o error) en lugar de uno por gráfica. Las gráficas se montan
+  // solo con datos que mostrar.
+  const summary = useDashboardSummary(filters);
+  const hasExtraFilters =
+    filters.areaIds.length > 0 ||
+    filters.responsibleIds.length > 0 ||
+    filters.mainTypeIds.length > 0;
+  const screenState = !filters.manufacturingPlantId
+    ? "noPlant"
+    : !hasCompleteFilters(filters)
+      ? "noPeriod"
+      : summary.isError
+        ? "error"
+        : !summary.data
+          ? "loading"
+          : summary.data.total === 0
+            ? "empty"
+            : "ready";
+  const showCharts = screenState === "ready";
+
+  const clearExtraFilters = () =>
+    setFilters((prev) => ({
+      ...prev,
+      areaIds: [],
+      areaNames: [],
+      responsibleIds: [],
+      responsibleNames: [],
+      mainTypeIds: [],
+      mainTypeNames: [],
+    }));
+
+  const widenPeriod = () =>
+    setFilters((prev) => ({
+      ...prev,
+      startDate: daysAgo(WIDER_PERIOD_DAYS),
+      endDate: dayjs().format(DATE_FORMAT),
+    }));
 
   // Zonas de la planta elegida (caché compartida).
   const areas =
@@ -494,12 +585,11 @@ const DashboardPage = () => {
               sm: 12,
               md: 12,
             }}
+            // Fija solo en escritorio: en celular y tablet, abierta ocupaba
+            // toda la pantalla y cerrada tapaba las gráficas al bajar.
             sx={{
-              position: "sticky",
-              top: {
-                xs: 56,
-                sm: 80,
-              },
+              position: { md: "sticky" },
+              top: { md: 80 },
               zIndex: (theme) => theme.zIndex.appBar - 1,
             }}
           >
@@ -513,6 +603,7 @@ const DashboardPage = () => {
               setIsHeatmapView={setIsHeatmapView}
               setIsHistoricalView={setIsHistoricalView}
               isDownloadingPdfReport={isDownloadingPdfReport}
+              canDownloadPdf={showCharts}
               parseDate={parseDate}
               handlePlantChange={handlePlantChange}
               handleToggleHeatmapView={handleToggleHeatmapView}
@@ -522,7 +613,65 @@ const DashboardPage = () => {
             />
           </Grid>
 
-          {isHeatmapView && (
+          {!showCharts && (
+            <Grid size={{ xs: 12 }}>
+              {screenState === "loading" ? (
+                <Box role="status" aria-label="Cargando gráficas">
+                  <Grid container spacing={2}>
+                    {[0, 1].map((index) => (
+                      <Grid key={index} size={{ xs: 12, md: 6 }}>
+                        <Skeleton variant="rounded" height={320} />
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              ) : screenState === "error" ? (
+                <Paper sx={{ p: 2 }}>
+                  <ErrorState
+                    offline={
+                      typeof navigator !== "undefined" && !navigator.onLine
+                    }
+                    onRetry={() => summary.refetch()}
+                    isRetrying={summary.isFetching}
+                  />
+                </Paper>
+              ) : (
+                <Paper sx={{ p: 2 }}>
+                  {screenState === "noPlant" ? (
+                    <EmptyState
+                      title="Elige una planta"
+                      description="En Filtros, elige la planta para ver sus gráficas."
+                    />
+                  ) : screenState === "noPeriod" ? (
+                    <EmptyState
+                      title="Elige el periodo"
+                      description="En Filtros, elige la fecha de inicio y la de fin."
+                    >
+                      <Button variant="outlined" onClick={widenPeriod}>
+                        Ver los últimos {WIDER_PERIOD_DAYS} días
+                      </Button>
+                    </EmptyState>
+                  ) : (
+                    <EmptyState
+                      title="Sin hallazgos en este periodo"
+                      description={`No hay hallazgos de ${filters.manufacturingPlantName || "la planta"} del ${filters.startDate} al ${filters.endDate}${hasExtraFilters ? " con los filtros elegidos" : ""}.`}
+                    >
+                      {hasExtraFilters && (
+                        <Button variant="outlined" onClick={clearExtraFilters}>
+                          Quitar zonas, responsables y clasificación
+                        </Button>
+                      )}
+                      <Button variant="outlined" onClick={widenPeriod}>
+                        Ver los últimos {WIDER_PERIOD_DAYS} días
+                      </Button>
+                    </EmptyState>
+                  )}
+                </Paper>
+              )}
+            </Grid>
+          )}
+
+          {showCharts && isHeatmapView && (
             <Grid
               size={{
                 xs: 12,
@@ -541,7 +690,7 @@ const DashboardPage = () => {
             </Grid>
           )}
 
-          {!isHeatmapView && (
+          {showCharts && !isHeatmapView && (
             <Grid
               size={{
                 xs: 12,
@@ -556,7 +705,7 @@ const DashboardPage = () => {
             </Grid>
           )}
 
-          {!isHeatmapView && (
+          {showCharts && !isHeatmapView && (
             <Grid
               size={{
                 xs: 12,
@@ -571,7 +720,7 @@ const DashboardPage = () => {
             </Grid>
           )}
 
-          {!isHeatmapView && (
+          {showCharts && !isHeatmapView && (
             <Grid
               size={{
                 xs: 12,
@@ -586,7 +735,7 @@ const DashboardPage = () => {
             </Grid>
           )}
 
-          {!isHeatmapView && !shouldHideProjectionCharts && (
+          {showCharts && !isHeatmapView && !shouldHideProjectionCharts && (
             <Grid
               size={{
                 xs: 12,
@@ -601,7 +750,7 @@ const DashboardPage = () => {
             </Grid>
           )}
 
-          {!isHeatmapView && (
+          {showCharts && !isHeatmapView && (
             <Grid
               size={{
                 xs: 12,
@@ -614,7 +763,7 @@ const DashboardPage = () => {
             </Grid>
           )}
 
-          {!isHeatmapView && (
+          {showCharts && !isHeatmapView && (
             <Grid
               size={{
                 xs: 12,
@@ -627,7 +776,7 @@ const DashboardPage = () => {
             </Grid>
           )}
 
-          {!isHeatmapView && !shouldHideProjectionCharts && (
+          {showCharts && !isHeatmapView && !shouldHideProjectionCharts && (
             <Grid
               size={{
                 xs: 12,
@@ -642,7 +791,7 @@ const DashboardPage = () => {
             </Grid>
           )}
 
-          {!isHeatmapView && (
+          {showCharts && !isHeatmapView && (
             <Grid
               size={{
                 xs: 12,
@@ -657,7 +806,7 @@ const DashboardPage = () => {
             </Grid>
           )}
 
-          {!isHeatmapView && (
+          {showCharts && !isHeatmapView && (
             <Grid
               size={{
                 xs: 12,
@@ -672,7 +821,7 @@ const DashboardPage = () => {
             </Grid>
           )}
 
-          {!isHeatmapView && (
+          {showCharts && !isHeatmapView && (
             <Grid
               size={{
                 xs: 12,

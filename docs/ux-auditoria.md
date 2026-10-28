@@ -108,7 +108,8 @@ incluida. → Retrabajo y hallazgos que no se registran. → Ver la sección
 *Resuelto en Hallazgos (crear, iniciar y cerrar) en la Fase 4: borrador
 local con la foto y envío sin confirmar en solo lectura (ver
 `docs/ux-componentes.md`, sección 4). También en el registro de recorridos de
-Gemba Walk (G1, sección 8). Falta decidir si se extiende a ICS y EPP.*
+Gemba Walk (G1, sección 8) y en el registro de ICS (sección 9). EPP quedó sin
+borrador: la idempotencia y "Reintentar" cubren el envío fallido (sección 5).*
 
 **C4 · Cerrar e iniciar un hallazgo (diálogos)** — Cerrar es irreversible y no pide
 confirmación. Además, los diálogos no se abren a pantalla completa en celular
@@ -218,6 +219,13 @@ directo sin el interceptor de errores y la pantalla no tenía `.catch`.
 seleccionada y ve todas las gráficas vacías con "Seleccione planta, fecha inicio y
 fecha fin". → Primera impresión de "no funciona". → Preseleccionar la planta (la
 única, o la última usada) y un estado vacío único en lugar de uno por gráfica. [S]
+*Resuelto en la Fase 4, también en Análisis de datos EPP (ver
+`docs/ux-componentes.md`, sección 10): planta propuesta (la única o la última
+elegida por el usuario en esa pantalla y dispositivo), periodo por omisión de
+los últimos 30 días (antes, el mes en curso: casi vacío los primeros días del
+mes) y un solo aviso para la pantalla (sin planta, sin periodo, sin datos o
+error con "Reintentar"). En celular, los filtros ya no quedan fijos y las
+donas no cortan sus etiquetas.*
 
 **M6 · Tablas del panel administrativo (celular)** — Se desplazan de lado, y los
 nombres y correos se parten en 2–3 líneas (por ejemplo, en Usuarios). → Uso incómodo
@@ -242,6 +250,12 @@ en el tema y en componentes base. [S]
 **B1 · Teclados por tipo de campo** — Solo 4 campos usan `inputMode` y 6 usan
 `type="number|tel|email"`. Por ejemplo, "Personas totales" (ICS) y los códigos de
 colaborador deberían abrir el teclado numérico. [S]
+*Resuelto en los formularios de campo (Fase 4): "Personas totales" de ICS
+abre el teclado numérico (`inputMode="numeric"`, solo enteros desde 1; antes
+`type="number"`), igual que los días de incapacidad y las horas laboradas de
+CIAEL; el código de colaborador ya lo hacía. Quedan con `type="number"` solo
+campos del panel administrativo (capacidad en equipos de emergencia, campos de
+equipos y coordenadas de plantas): se revisan con el panel administrativo.*
 
 **B2 · Breadcrumbs** — Los formularios y los detalles no indican de dónde vienen. En
 escritorio ayudaría una ruta corta ("Configuración › Lugares › Editar"). [S]
@@ -374,6 +388,19 @@ Por regla del plan, no se modifican.
 
    Quien llame al API directamente podría creer que editó o borró un
    registro. Falta decidir si se quitan o se implementan (con sus permisos).
+8. **Endpoints de ICS que no hacen nada (pendiente).** Igual que en CIAEL
+   (punto 7); la UI no los usa. Se tradujeron sus textos, sin cambiar lo que
+   hacen:
+   - `PATCH /ics/:id` responde el id y el cuerpo que recibió, sin guardar.
+   - `POST`, `GET`, `GET /:id`, `PATCH /:id` y `DELETE /:id` de
+     `/rules-of-life` (catálogo de reglas de vida) responden un texto ("Esta
+     acción elimina la regla de vida #N") o el mismo cuerpo, sin consultar ni
+     guardar nada. ICS lee el catálogo de `GET /ics/catalogs`.
+   - `POST /rules-of-life/seed` (solo administradores) vuelve a insertar el
+     catálogo completo en cada llamada (duplicados); ya hay una prueba
+     marcada como fallida que lo documenta.
+   - En la UI, `/ics/form?id=N` dice "Editar registro de ICS" pero no carga
+     ni guarda nada (la lista no ofrece editar).
 
 ---
 

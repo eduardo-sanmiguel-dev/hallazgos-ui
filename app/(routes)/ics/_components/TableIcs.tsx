@@ -1,20 +1,13 @@
 import { useState } from "react";
-//import { useRouter } from "next/navigation";
 
-//import EditIcon from "@mui/icons-material/Edit";
-
-//import { notify, stringToDateWithTime } from "@shared/utils";
 import { notify } from "@shared/utils";
 import { ICSData } from "@interfaces";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { DeleteAction, RowActions } from "@shared/components/RowActions";
-import {
-  StyledTableCell,
-  StyledTableRow,
-} from "@shared/components/TableDefault";
-import TableDefaultServer, {
-  type ServerPagination,
-} from "@shared/components/TableDefaultServer";
+import type { ServerPagination } from "@shared/components/TableDefaultServer";
+import ResponsiveTable, {
+  type ResponsiveColumn,
+} from "@shared/components/ResponsiveTable";
 import { IcsService } from "@services";
 
 interface Props {
@@ -23,24 +16,77 @@ interface Props {
   pagination: ServerPagination;
 }
 
-const columns = [
-  "ID",
-  "Planta",
-  "Regla de vida",
-  "Estandar de comportamiento",
-  "Área al que aplica",
-  "Personas totales",
-  "Personas cumpliendo el estándar",
-  "Personas no cumpliendo el estándar",
-  "Índice de comportamiento seguro (%)",
-  //"Fecha de creación",
-  "Acciones",
+// Tabla en tablet y escritorio; tarjetas en celular (ResponsiveTable). La
+// tabla conserva sus columnas de siempre.
+const columns: ResponsiveColumn<ICSData>[] = [
+  {
+    id: "title",
+    header: "Registro",
+    cell: (row) => `ICS #${row.id} · ${row.icsPercentage}%`,
+    card: "title",
+    hideInTable: true,
+  },
+  {
+    id: "id",
+    header: "ID",
+    cell: (row) => row.id,
+    rowHeader: true,
+    card: "hidden",
+  },
+  {
+    id: "manufacturingPlant",
+    header: "Planta",
+    cell: (row) => row.manufacturingPlant.name,
+    card: "subtitle",
+  },
+  {
+    id: "ruleOfLife",
+    header: "Regla de vida",
+    cell: (row) => row.ruleOfLife.name,
+  },
+  {
+    id: "standardOfBehavior",
+    header: "Estandar de comportamiento",
+    cell: (row) => row.standardOfBehavior?.name || "",
+  },
+  {
+    id: "areaOfBehavior",
+    header: "Área al que aplica",
+    cell: (row) => row.areaOfBehavior?.name || "",
+  },
+  {
+    id: "totalPeople",
+    header: "Personas totales",
+    cell: (row) => row.totalPeople,
+  },
+  {
+    id: "totalCorrectPeople",
+    header: "Personas cumpliendo el estándar",
+    cell: (row) => row.totalCorrectPeople,
+    card: "hidden",
+  },
+  {
+    id: "totalIncorrectPeople",
+    header: "Personas no cumpliendo el estándar",
+    cell: (row) => row.totalIncorrectPeople,
+    card: "hidden",
+  },
+  {
+    id: "people",
+    header: "Cumplen / No cumplen",
+    cell: (row) => `${row.totalCorrectPeople} / ${row.totalIncorrectPeople}`,
+    hideInTable: true,
+  },
+  {
+    id: "icsPercentage",
+    header: "Índice de comportamiento seguro (%)",
+    cell: (row) => `${row.icsPercentage}%`,
+    card: "hidden",
+  },
 ];
 
 export default function TableIcs({ rows, getData, pagination }: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  //const router = useRouter();
 
   const { confirm, confirmDialog } = useConfirmDialog();
 
@@ -48,7 +94,7 @@ export default function TableIcs({ rows, getData, pagination }: Props) {
     setIsLoading(true);
     return IcsService.remove(id)
       .then(() => {
-        notify("Ics eliminado correctamente", true);
+        notify("ICS eliminado correctamente", true);
         getData();
       })
       .finally(() => setIsLoading(false));
@@ -66,48 +112,22 @@ export default function TableIcs({ rows, getData, pagination }: Props) {
 
   return (
     <>
-      <TableDefaultServer
+      <ResponsiveTable
         rows={rows}
         columns={columns}
-        {...pagination}
-        paintRows={(row: ICSData) => {
-          return (
-            <StyledTableRow key={row.id}>
-              <StyledTableCell component="th" scope="row">
-                {row.id}
-              </StyledTableCell>
-              <StyledTableCell>{row.manufacturingPlant.name}</StyledTableCell>
-              <StyledTableCell>{row.ruleOfLife.name}</StyledTableCell>
-              <StyledTableCell>
-                {row.standardOfBehavior?.name || ""}
-              </StyledTableCell>
-              <StyledTableCell>
-                {row.areaOfBehavior?.name || ""}
-              </StyledTableCell>
-              <StyledTableCell>{row.totalPeople}</StyledTableCell>
-              <StyledTableCell>{row.totalCorrectPeople}</StyledTableCell>
-              <StyledTableCell>{row.totalIncorrectPeople}</StyledTableCell>
-              <StyledTableCell>{row.icsPercentage}%</StyledTableCell>
-              {/* <StyledTableCell style={{ minWidth: 180 }}>
-                {row.createdAt ? stringToDateWithTime(row.createdAt) : ""}
-              </StyledTableCell> */}
-              <StyledTableCell>
-                <RowActions>
-                  {/* <Chip
-                    icon={<EditIcon />}
-                    label="Editar"
-                    color="warning"
-                    onClick={() => router.push("/employees/form?id=" + row.id)}
-                  /> */}
-                  <DeleteAction
-                    onClick={() => confirmRemove(row)}
-                    disabled={isLoading}
-                  />
-                </RowActions>
-              </StyledTableCell>
-            </StyledTableRow>
-          );
-        }}
+        getRowKey={(row) => row.id}
+        pagination={pagination}
+        ariaLabel="Registros de ICS"
+        emptyTitle="Sin registros de ICS"
+        emptyDescription="No hay registros con los filtros actuales."
+        actions={(row) => (
+          <RowActions>
+            <DeleteAction
+              onClick={() => confirmRemove(row)}
+              disabled={isLoading}
+            />
+          </RowActions>
+        )}
       />
       {confirmDialog}
     </>

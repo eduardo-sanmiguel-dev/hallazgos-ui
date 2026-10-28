@@ -484,6 +484,41 @@ test.describe("Gemba Walk: borrador del recorrido", () => {
     expect(await storedDrafts(page)).toHaveLength(1);
   });
 
+  // Sin esperar al guardado automático (~0.8 s): "Salir" guarda en ese
+  // momento lo último capturado, como promete el aviso.
+  test("salir justo después de un cambio lo guarda en el borrador", async ({
+    page,
+  }) => {
+    await captureWrites(page, { respond });
+    await startWalkWithDraft(page, startedAt);
+
+    await page.getByLabel("Comentarios").first().fill("Último cambio e2e");
+    await page.getByRole("button", { name: "Cancelar" }).click();
+    await page
+      .getByRole("dialog", { name: "¿Salir del recorrido?" })
+      .getByRole("button", { name: "Salir" })
+      .click();
+    await expect(page).toHaveURL(/\/gemba-walk$/);
+
+    const saved = await page.evaluate(
+      () =>
+        new Promise<string>((resolve) => {
+          const open = indexedDB.open("hallazgos-borradores", 1);
+          open.onsuccess = () => {
+            const query = open.result
+              .transaction("drafts", "readonly")
+              .objectStore("drafts")
+              .getAll();
+            query.onsuccess = () => {
+              resolve(JSON.stringify(query.result.map(({ fields }) => fields)));
+              open.result.close();
+            };
+          };
+        }),
+    );
+    expect(saved).toContain("Último cambio e2e");
+  });
+
   test("sin almacén de borradores (modo privado), salir avisa que se perderá", async ({
     page,
   }) => {

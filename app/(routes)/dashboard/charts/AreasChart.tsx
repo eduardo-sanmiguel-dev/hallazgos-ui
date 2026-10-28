@@ -11,6 +11,7 @@ import "highcharts/esm/modules/accessibility.src.js";
 import { ResponseDashboardStatusByFilters } from "@interfaces";
 import { DashboardService } from "@services";
 import { optionsChartDefault } from "@shared/libs";
+import { donutResponsive } from "./donutResponsive";
 
 type ChartWithCustomLabel = Highcharts.Chart & {
   customLabel?: Highcharts.SVGElement;
@@ -219,6 +220,7 @@ const AreasChart = ({ filters }: Props) => {
               showInLegend: true,
             },
           },
+          responsive: donutResponsive,
           series: [
             {
               name: "Áreas",

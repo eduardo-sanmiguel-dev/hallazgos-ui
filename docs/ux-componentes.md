@@ -379,14 +379,15 @@ Archivos en `app/(routes)/hallazgos/`.
 
 ### Borrador local (C3, opción A)
 
-En crear, iniciar y cerrar hallazgo. Sirve igual para otros formularios de
-campo (ICS, EPP).
+En crear, iniciar y cerrar hallazgo. También en el recorrido de Gemba Walk
+(sección 8) y en el registro de ICS (sección 9).
 
 - **Almacén:** `app/_shared/drafts/draftStore.ts`, IndexedDB nativo (sin
   librería). Base `hallazgos-borradores`, almacén `drafts`, clave
   `{userId}:{formulario}` (`nuevo-hallazgo`, `iniciar:{id}`, `cerrar:{id}`).
   Guarda los campos, la foto como Blob, la clave de idempotencia y el estado
-  del último envío. Sin IndexedDB (modo privado), no hace nada.
+  del último envío. Sin IndexedDB (modo privado), no hace nada. ICS usa la
+  clave `{userId}:ics`.
 - **Hook:** `useFormDraft` (`app/_hooks/useFormDraft.ts`) y el aviso
   `DraftNotice`.
 
@@ -405,7 +406,15 @@ Service.create(formData, { idempotencyKey: draft.key() })
 
 <DraftNotice offer={draft.offer} lock={draft.lock}
   onRestore={draft.restore} onDiscard={…} onRetry={send} />
+
+await draft.flush();                   // antes de salir: guarda ya lo último
 ```
+
+- **`flush()`** (desde ICS): guarda en ese momento lo capturado, sin esperar
+  los ~0.8 s del guardado automático (que se cancela al salir de la
+  pantalla). No pisa un borrador que se está ofreciendo ni uno en solo
+  lectura. Úsalo antes de navegar cuando un aviso promete que lo capturado
+  quedó guardado.
 
 - **Mientras se captura:** se guarda solo (~0.8 s después de cada cambio) si
   hay algo que valga guardar. En "Nuevo hallazgo", la planta y el lugar
@@ -432,7 +441,7 @@ Service.create(formData, { idempotencyKey: draft.key() })
   sesión terminó" dice "Este navegador no permite guardar borradores (por
   ejemplo, en modo privado): lo que capturaste en esta pantalla se perderá."
   Aplica a toda la app (Hallazgos: crear, iniciar y cerrar; recorrido de
-  Gemba Walk).
+  Gemba Walk; registro de ICS).
 - **Vencimiento:** 7 días desde que se crea el borrador. La clave del API
   también dura 7 días y se crea después (al enviar), así que el borrador
   nunca dura más que su clave. Los vencidos se borran al abrir la app.
@@ -595,7 +604,9 @@ Archivos en `app/(routes)/gemba-walk/`. Revisión y prioridades en
 - **Salir (G3):** "Cancelar" con un recorrido iniciado pregunta "¿Salir del
   recorrido?": lo capturado queda en el borrador para retomarlo hoy. Sin
   almacén de borradores (modo privado), el aviso dice que lo capturado se
-  perderá y "Salir" va en rojo.
+  perderá y "Salir" va en rojo. Al confirmar "Salir" se guarda en ese momento
+  lo último capturado (`draft.flush()`): antes, si se confirmaba menos de
+  ~0.8 s después del último cambio, ese cambio no alcanzaba a guardarse.
 - **Cumple / No cumple (G4):** dos botones (`ToggleButtonGroup`, nombrado
   con el concepto) en lugar de "NC · switch · C · chip". A ancho completo en
   celular.
@@ -627,11 +638,137 @@ Archivos en `app/(routes)/gemba-walk/`. Revisión y prioridades en
   calendario siguen desplazándose de lado en celular. Se harán con el panel
   administrativo.
 
+## 9. Módulo ICS (Fase 4)
+
+Archivos en `app/(routes)/ics/`.
+
+### Registro (`/form`)
+
+- **Borrador local (C3):** `useFormDraft` con el formulario `ics`, igual que
+  "Nuevo hallazgo": campos y foto se guardan solos mientras se captura; al
+  volver, "Recuperar" o "Descartar"; un envío sin respuesta o un 500 deja el
+  borrador en **solo lectura** con "Reintentar envío" (misma clave de
+  idempotencia) y, si ya había llegado, "Ya se había guardado (ICS #N)".
+  `IcsService.create` devuelve `{ data, replayed }` (`submitResult`). En
+  edición (`?id=`) no hay borrador.
+  - La planta sola no cuenta como captura (es lo primero que se elige).
+  - **Campos dependientes:** al cambiar la regla de vida se limpian estándar
+    y área; al cambiar el estándar, el área; al cambiar la planta, las
+    personas que no cumplen (`changeField`). Antes lo hacían efectos que
+    también borraban el estándar y el área al recuperar un borrador.
+- **Guardar (marca todo):** nunca está deshabilitado (antes sí, sin decir qué
+  faltaba). Con `useFormFieldErrors` y `failAll` marca a la vez planta,
+  regla de vida, personas totales y personas que no cumplen, junto a cada
+  campo, y enfoca el primero. "Personas totales" menor que las personas que
+  no cumplen se marca en su campo (antes, solo un aviso). Misma regla que
+  antes; el API la sigue validando.
+- **Errores del API** por campo con `failFromApi` (`icsApiField`:
+  `ruleOfLifeId` → regla de vida, `employeesIds.N` → personas que no
+  cumplen…). La foto (`file`) queda en el aviso.
+- **Salir:** "Cancelar" con algo capturado pregunta "¿Salir del registro?":
+  lo capturado queda en el borrador (se guarda en ese momento con
+  `draft.flush()`, como en Gemba Walk). Sin almacén de borradores (modo
+  privado), el aviso dice que se perderá y "Salir" va en rojo. Con un envío sin confirmar ya
+  guardado, sale directo. Vacío (o solo con la planta), sale directo.
+- **Teclado (B1):** "Personas totales" con `inputMode="numeric"` y
+  `pattern="[0-9]*"`, solo enteros desde 1 (antes `type="number"` con teclas
+  bloqueadas). Es el único campo numérico de ICS.
+- **Carga y error:** regla de vida con "Cargando…" en el campo; si el
+  catálogo o los colaboradores no cargan, `ErrorState` chico en su lugar con
+  "Reintentar". Los colaboradores usan `useCatalog("employees")` (la misma
+  caché que CIAEL).
+- **Personas que no cumplen:** el campo siempre está; deshabilitado hasta
+  elegir planta ("Elige una planta para ver a sus colaboradores.") y "Esta
+  planta no tiene colaboradores activos." si no hay. Antes era un párrafo
+  suelto. La etiqueta pasó a "Personas que no cumplen *": la anterior se
+  cortaba a 390 px.
+- Descripción con contorno (M8), foto con `PhotoCapture` (progreso de subida
+  y solo lectura con un envío pendiente). "Estándar de comportamiento" (con
+  acento) y "Área" sin asterisco: nunca fueron obligatorios ni en la UI ni en
+  el API.
+
+### Lista
+
+- `ResponsiveTable`: en celular, tarjetas con "ICS #N · porcentaje" de
+  título, planta, regla de vida, estándar, área, personas totales,
+  "Cumplen / No cumplen" y "Eliminar". En escritorio, las mismas columnas de
+  siempre. Vacío "Sin registros de ICS" y error con "Reintentar".
+
 ---
 
-## 9. Pendiente para otras fases
+## 10. Dashboards (Fase 4)
 
-- **Borrador local** en ICS y EPP, si se decide extenderlo.
+Archivos en `app/(routes)/dashboard/` y
+`app/(routes)/business-intelligence/epp/`.
+
+### Al entrar (M5)
+
+- **Planta propuesta:** `proposedPlantId` (`app/_shared/utils/lastPlant.ts`):
+  la única planta del usuario o, si tiene varias, la última que eligió **en
+  esa pantalla** en ese dispositivo (`localStorage` por usuario y pantalla:
+  `dashboard` o `bi-epp`), solo si todavía la tiene asignada. Se guarda al
+  elegir una planta.
+  - Dashboard: sin planta clara (varias y ninguna elegida antes), pide
+    elegirla. Con una sola, el selector ya la elegía solo.
+  - Análisis de datos EPP: la planta es obligatoria; sin planta clara usa la
+    primera, como antes.
+- **Periodo por omisión: los últimos 30 días** (hoy y los 29 anteriores) en
+  ambos tableros. Antes era el mes en curso: el día 1 solo había un día de
+  datos y los primeros días del mes casi todo salía vacío. En EPP es el
+  atajo nuevo "Últimos 30 días" (primero de la lista); la API lo compara con
+  los 30 días previos (cualquier rango que no empieza en día 1 se compara con
+  el periodo anterior de igual duración). Los demás atajos no cambian.
+
+### Un solo estado para la pantalla
+
+- **Dashboard:** `useDashboardSummary` (React Query) pide
+  `status-by-filters`; lo comparten la página y la gráfica de estatus (una
+  sola petición, como antes). Según el resultado, en lugar de las gráficas
+  se ve un solo aviso:
+  - "Elige una planta" o "Elige el periodo" (con "Ver los últimos 90 días").
+  - Cargando: dos bloques de skeleton, solo la primera vez. Al cambiar un
+    filtro se conservan las gráficas hasta tener el nuevo resultado
+    (`keepPreviousData`).
+  - Sin hallazgos: "Sin hallazgos en este periodo", con "Quitar zonas,
+    responsables y clasificación" (si hay) y "Ver los últimos 90 días".
+  - Error: `ErrorState` con "Reintentar" (y "Sin conexión" sin red).
+  - Las gráficas se montan solo con datos: sin ellas no hacen sus 10
+    consultas. Antes, cada una decía "Seleccione planta, fecha inicio y fecha
+    fin" o quedaba vacía.
+  - "Descargar informe PDF" aparece solo con gráficas en pantalla
+    (`canDownloadPdf`).
+- **EPP:** sin entregas en el periodo, "Sin entregas de EPP en este periodo"
+  (con "Ver los últimos 3 meses") en lugar de las pestañas con "Sin datos"
+  en cada gráfica; los indicadores se quedan, porque comparan con el periodo
+  anterior. Si falla la consulta, `ErrorState` con "Reintentar": antes la
+  pantalla se quedaba en carga para siempre.
+
+### Celular
+
+- **Filtros del dashboard:** la barra es fija (`sticky`) solo desde
+  escritorio (`md`). En celular y tablet, abierta ocupaba toda la pantalla y
+  cerrada tapaba las gráficas al bajar.
+- **Donas** (estatus, zona y clasificación): `donutResponsive` en
+  `charts/donutResponsive.ts`. Con menos de 500 px de ancho de gráfica, sin
+  etiquetas afuera (encogían la dona y se cortaban: "Incumplimi…"); la
+  leyenda lleva nombre, cantidad y porcentaje y, con muchas opciones,
+  pagina con flechas (máximo 120 px de alto). Aplica también a la dona de
+  clasificación en escritorio, cuya tarjeta es angosta.
+- **EPP:** indicadores de dos en dos en celular y tablet (uno por renglón
+  obligaba a bajar unos 600 px antes de la primera gráfica); el "vs …" de la
+  comparación baja de renglón en lugar de cortarse.
+- Revisado a 390 px: nada se desplaza de lado en ninguno de los dos.
+
+### Informe PDF
+
+Sin cambios en cómo se genera (`html2canvas` + `jsPDF`, las gráficas en
+pantalla, 2 por página). Revisado: se descarga un PDF válido con todas las
+gráficas; la prueba e2e ahora valida el archivo y el número de páginas.
+
+---
+
+## 11. Pendiente para otras fases
+
 - Los borradores de iniciar o cerrar de un hallazgo que ya cambió de estado
   (por ejemplo, cerrado desde otro dispositivo) no se pueden abrir desde la
   lista; se borran a los 7 días o al cerrar sesión.

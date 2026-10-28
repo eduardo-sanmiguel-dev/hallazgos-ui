@@ -53,6 +53,8 @@ interface DashboardFiltersBarProps {
   setIsHeatmapView: Dispatch<SetStateAction<boolean>>;
   setIsHistoricalView: Dispatch<SetStateAction<boolean>>;
   isDownloadingPdfReport: boolean;
+  // Hay gráficas en pantalla (sin datos o con error no hay qué exportar).
+  canDownloadPdf: boolean;
   parseDate: (value: string) => Dayjs | null;
   handlePlantChange: (event: SelectChangeEvent<string>) => void;
   handleToggleHeatmapView: () => void;
@@ -72,6 +74,7 @@ export const DashboardFiltersBar = ({
   setIsHeatmapView,
   setIsHistoricalView,
   isDownloadingPdfReport,
+  canDownloadPdf,
   parseDate,
   handlePlantChange,
   handleToggleHeatmapView,
@@ -158,7 +161,7 @@ export const DashboardFiltersBar = ({
             </IconButton>
           </Tooltip>
 
-          {!!filters.manufacturingPlantId && (
+          {canDownloadPdf && (
             <Tooltip
               title={
                 isDownloadingPdfReport

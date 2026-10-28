@@ -167,6 +167,16 @@ export function useFormDraft<T>({
     return () => clearTimeout(timer);
   }, [fieldsKey, content.photo, ready, lock, form, userId, save]);
 
+  /**
+   * Guarda ya lo capturado, sin esperar al guardado automático (por ejemplo,
+   * antes de salir: al desmontar se cancela el que estaba por ocurrir). No
+   * pisa un borrador que todavía se está ofreciendo ni uno en solo lectura.
+   */
+  const flush = async () => {
+    if (!ready || lock || !form || !userId) return;
+    if (hasContentRef.current(contentRef.current)) await save("none");
+  };
+
   /** Aplica el borrador ofrecido; con envío pendiente, en solo lectura. */
   const restore = () => {
     if (!offerRecord) return;
@@ -246,7 +256,7 @@ export function useFormDraft<T>({
     lastSendAt: offerRecord.lastSendAt,
   };
 
-  return { offer, lock, restore, discard, key, markSending, settle };
+  return { offer, lock, restore, discard, key, markSending, settle, flush };
 }
 
 const toContent = <T>(draft: DraftRecord<T>): DraftContent<T> => ({

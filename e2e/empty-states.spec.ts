@@ -67,7 +67,8 @@ test.describe("Sin datos", () => {
   test("si la lista no carga, lo dice y deja reintentar", async ({ page }) => {
     let fail = true;
     await page.route(
-      (url) => url.pathname.endsWith("/api/v1/zones") && url.searchParams.has("page"),
+      (url) =>
+        url.pathname.endsWith("/api/v1/zones") && url.searchParams.has("page"),
       (route) =>
         fail
           ? route.fulfill({ status: 500, json: { message: "E2E caído" } })
@@ -89,7 +90,9 @@ test.describe("Sin datos", () => {
     );
     await page.goto("/zones");
 
-    const alert = page.getByRole("alert").filter({ hasText: "No se pudo cargar" });
+    const alert = page
+      .getByRole("alert")
+      .filter({ hasText: "No se pudo cargar" });
     await expect(alert).toBeVisible();
     // No se confunde con "no hay datos".
     await expect(page.getByText(/^Sin registros/)).toHaveCount(0);
@@ -138,12 +141,15 @@ test.describe("Sin datos", () => {
     } else {
       await page.reload();
     }
-    await expect(page.getByText("Sin datos").first()).toBeVisible();
-    await clickTabs(page);
+    // Un solo aviso en lugar de "Sin datos" en cada gráfica.
+    await expect(
+      page.getByText("Sin entregas de EPP en este periodo"),
+    ).toHaveCount(1);
+    await expect(page.getByText("Sin datos", { exact: true })).toHaveCount(0);
     expect(errors).toEqual([]);
   });
 
-  test("el dashboard sin fechas muestra qué falta en cada gráfica", async ({
+  test("el dashboard sin fechas lo dice una sola vez (no en cada gráfica)", async ({
     page,
   }) => {
     const errors = trackPageErrors(page);
@@ -161,9 +167,8 @@ test.describe("Sin datos", () => {
         .getByRole("button", { name: /Borrar|Limpiar|Clear/i })
         .click();
     }
-    await expect(
-      page.getByText("Seleccione planta, fecha inicio y fecha fin").first(),
-    ).toBeVisible();
+    await expect(page.getByText("Elige el periodo")).toHaveCount(1);
+    await expect(page.locator("[data-dashboard-export=chart]")).toHaveCount(0);
 
     await page.getByRole("button", { name: "Mapa de calor" }).click();
     await page.getByRole("button", { name: "Ir a Hallazgos" }).click();

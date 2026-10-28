@@ -358,3 +358,77 @@ si deben tenerla.
     botones (antes 44 px).
   - Reintentar un registro que se quedó sin respuesta nunca lo duplica: si
     ya había llegado, avisa "Ya se había registrado (recorrido #N)".
+
+### ICS (comportamiento seguro)
+
+- **Sin migraciones, variables, dependencias ni cambios de nginx.** La clave
+  de idempotencia usa la tabla `idempotency_key` que ya existe (`POST /ics`
+  ya tenía `@Idempotent()`).
+- **API:** solo textos (compatibles con la UI anterior).
+  - "Registro de ICS #N no encontrado" (antes "Ics with id N not found").
+  - Colaboradores de otra planta: "Uno o más colaboradores no pertenecen a la
+    planta seleccionada." (antes "Empleado no encontrado en la planta
+    seleccionada").
+  - Más personas que no cumplen que personas totales: "Las personas que no
+    cumplen con el estándar no pueden ser más que las personas totales."
+    (mismas palabras que la pantalla).
+  - Catálogo de reglas de vida: `POST /rules-of-life/seed` responde
+    "Catálogo de reglas de vida cargado." (antes "Seeded successfully"), y los
+    endpoints sin implementar de `/rules-of-life` responden su texto en
+    español (siguen sin hacer nada; ver `docs/ux-auditoria.md`, sección 5,
+    punto 8).
+- **UI:**
+  - Registro de ICS con borrador local (foto incluida), como "Nuevo
+    hallazgo".
+  - "Guardar" ya no está deshabilitado: marca de una vez todo lo que falta,
+    junto a cada campo. Los errores del API se marcan en su campo.
+  - "Personas totales" abre el teclado numérico.
+  - En celular, la lista de ICS se ve en tarjetas.
+  - Si no cargan las reglas de vida o los colaboradores, se dice en el campo
+    con "Reintentar".
+- **Para el cliente:**
+  - **Lo capturado en un registro de ICS ya no se pierde** si se recarga la
+    página, se cierra la app o se pierde la señal. Al volver se ofrece
+    "Recuperar" o "Descartar". Vive solo en ese dispositivo y navegador, y
+    al cerrar sesión se borra (con aviso), como en Hallazgos.
+  - Si un envío se quedó sin respuesta o el servidor falló, el registro
+    queda en solo lectura con "Reintentar envío" o "Descartar"; el reintento
+    nunca lo duplica. Si ya había llegado: "Ya se había guardado (ICS #N)".
+  - "Cancelar" con algo capturado pregunta "¿Salir del registro?". En modo
+    privado avisa que lo capturado se perderá.
+  - Textos de la pantalla: "Estándar de comportamiento" (con acento) y "Área"
+    sin asterisco, porque nunca fueron obligatorios; "Personas que no cumplen
+    con el estándar" pasó a "Personas que no cumplen" (en celular se cortaba).
+    El aviso de éxito dice "ICS creado correctamente" (antes "Ics…").
+
+### Gemba Walk: salir del recorrido (después de ICS)
+
+- **Solo UI.** Al confirmar "Salir del recorrido" se guarda en ese momento
+  lo último capturado. Antes, si se confirmaba menos de ~0.8 s después del
+  último cambio, ese cambio no alcanzaba a guardarse en el borrador.
+
+### Dashboards (hallazgos y Análisis de datos EPP)
+
+- **Sin migraciones, variables, dependencias, cambios de nginx ni del API.**
+- **UI:**
+  - Al entrar se propone la planta: la única del usuario o la última que
+    eligió en esa pantalla en ese dispositivo.
+  - **Periodo por omisión: los últimos 30 días** en ambos tableros (antes,
+    el mes en curso). En EPP hay un atajo nuevo, "Últimos 30 días".
+  - Un solo aviso para la pantalla (elegir planta o periodo, sin datos,
+    error con "Reintentar") en lugar de uno por gráfica.
+  - En celular: los filtros del dashboard ya no quedan fijos arriba, las
+    donas muestran cantidades en la leyenda sin cortar nombres y los
+    indicadores de EPP van de dos en dos.
+- **Para el cliente:**
+  - **El dashboard abre con datos de los últimos 30 días** (antes, del día 1
+    del mes a hoy). Las cifras de entrada cambian respecto a lo que se veía,
+    sobre todo a principio y fin de mes. El informe PDF dice el periodo, como
+    siempre; para el mes en curso basta elegir las fechas.
+  - En Análisis de datos EPP, la comparación por omisión es contra los 30
+    días anteriores (antes, contra los mismos días del mes anterior). "Este
+    mes" sigue en la lista de periodos.
+  - La planta elegida se recuerda solo en ese navegador; no hay que hacer
+    nada en el servidor.
+  - Sin hallazgos o entregas en el periodo se ofrece ampliarlo (90 días en
+    el dashboard, 3 meses en EPP).

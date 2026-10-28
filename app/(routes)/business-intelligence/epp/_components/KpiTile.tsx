@@ -63,7 +63,15 @@ function DeltaRow({ delta }: { delta: KpiDelta }) {
 
   return (
     <Box
-      sx={{ display: "flex", alignItems: "center", gap: 0.5, minHeight: 24 }}
+      // Con dos indicadores por fila (celular), "vs …" baja de renglón en
+      // lugar de salirse de la tarjeta.
+      sx={{
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        columnGap: 0.5,
+        minHeight: 24,
+      }}
       aria-label={`${verb} ${direction === 0 ? "" : text} contra ${delta.comparedTo}`}
     >
       <Box
@@ -78,7 +86,7 @@ function DeltaRow({ delta }: { delta: KpiDelta }) {
         <Icon fontSize="small" aria-hidden />
         {direction === 0 ? "Sin cambio" : text}
       </Box>
-      <Typography variant="caption" color="text.secondary" noWrap>
+      <Typography variant="caption" color="text.secondary">
         vs {delta.comparedTo}
       </Typography>
     </Box>

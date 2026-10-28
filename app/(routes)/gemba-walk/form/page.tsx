@@ -304,6 +304,8 @@ const GembaWalkForm = () => {
         tone: saved ? "default" : "danger",
       });
       if (!confirmed) return;
+      // Lo último que se capturó puede no haberse guardado todavía.
+      await draft.flush();
     }
     router.push("/gemba-walk");
   };

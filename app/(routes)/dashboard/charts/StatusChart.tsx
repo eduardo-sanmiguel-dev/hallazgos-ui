@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 
 import Highcharts from "highcharts/esm/highcharts.src.js";
@@ -8,9 +8,12 @@ import { Chart } from "@highcharts/react";
 
 import "highcharts/esm/modules/accessibility.src.js";
 
-import { ResponseDashboardStatusByFilters } from "@interfaces";
-import { DashboardService } from "@services";
 import { optionsChartDefault } from "@shared/libs";
+import {
+  hasCompleteFilters as isComplete,
+  useDashboardSummary,
+} from "../_components/useDashboardSummary";
+import { donutResponsive } from "./donutResponsive";
 
 type ChartWithCustomLabel = Highcharts.Chart & {
   customLabel?: Highcharts.SVGElement;
@@ -35,39 +38,10 @@ const statusOrder = ["Abierto", "En progreso", "Cerrado", "Cancelado"];
 
 const StatusChart = ({ filters }: Props) => {
   const theme = useTheme();
-  const [statusData, setStatusData] =
-    useState<ResponseDashboardStatusByFilters | null>(null);
+  // La misma consulta que usa la página para su estado (una sola petición).
+  const statusData = useDashboardSummary(filters).data ?? null;
 
-  const hasCompleteFilters =
-    !!filters.manufacturingPlantId && !!filters.startDate && !!filters.endDate;
-
-  useEffect(() => {
-    if (!hasCompleteFilters) {
-      setStatusData(null);
-      return;
-    }
-
-    DashboardService.findStatusByFilters({
-      manufacturingPlantId: filters.manufacturingPlantId,
-      startDate: filters.startDate,
-      endDate: filters.endDate,
-      ...(filters.areaIds.length > 0 && { areaIds: filters.areaIds }),
-      ...(filters.responsibleIds.length > 0 && {
-        responsibleIds: filters.responsibleIds,
-      }),
-      ...(filters.mainTypeIds.length > 0 && {
-        mainTypeIds: filters.mainTypeIds,
-      }),
-    }).then(setStatusData);
-  }, [
-    hasCompleteFilters,
-    filters.areaIds,
-    filters.responsibleIds,
-    filters.mainTypeIds,
-    filters.manufacturingPlantId,
-    filters.startDate,
-    filters.endDate,
-  ]);
+  const hasCompleteFilters = isComplete(filters);
 
   const seriesData = useMemo(() => {
     const dataMap = new Map(
@@ -229,6 +203,7 @@ const StatusChart = ({ filters }: Props) => {
               showInLegend: true,
             },
           },
+          responsive: donutResponsive,
           series: [
             {
               name: "Estatus",

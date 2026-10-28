@@ -19,9 +19,14 @@ import {
 test.describe("Análisis EPP: atajos de periodo", () => {
   const today = new Date(2026, 9, 22); // 22 oct 2026
 
-  test("este mes (por omisión), mes anterior, 3 meses y este año", () => {
+  test("últimos 30 días (por omisión), este mes, mes anterior, 3 meses y este año", () => {
+    // Hoy y los 29 días anteriores.
     expect(DEFAULT_PERIOD(today)).toEqual({
-      preset: "month",
+      preset: "last30",
+      startDate: "23/09/2026",
+      endDate: "22/10/2026",
+    });
+    expect(presetRange("month", today)).toMatchObject({
       startDate: "01/10/2026",
       endDate: "22/10/2026",
     });
@@ -36,6 +41,18 @@ test.describe("Análisis EPP: atajos de periodo", () => {
     expect(presetRange("year", today)).toMatchObject({
       startDate: "01/01/2026",
       endDate: "22/10/2026",
+    });
+  });
+
+  test("los últimos 30 días cruzan el cambio de mes y de año", () => {
+    expect(presetRange("last30", new Date(2026, 0, 10))).toMatchObject({
+      startDate: "12/12/2025",
+      endDate: "10/01/2026",
+    });
+    // Marzo: febrero tiene 28 días.
+    expect(presetRange("last30", new Date(2026, 2, 1))).toMatchObject({
+      startDate: "31/01/2026",
+      endDate: "01/03/2026",
     });
   });
 

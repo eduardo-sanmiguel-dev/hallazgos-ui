@@ -37,7 +37,7 @@ const fillIcsForm = async (page: Page) => {
   await pickOption(page, "Planta *", plant.name);
   await pickOption(page, "Regla de vida *", "E2E Regla");
   await page.getByLabel(/^Personas totales/).fill("3");
-  await pickMany(page, "Personas que no cumplen con el estándar *");
+  await pickMany(page, "Personas que no cumplen *");
   await page.getByLabel("Elegir de galería").setInputFiles({
     name: "evidencia.png",
     mimeType: "image/png",
@@ -116,7 +116,9 @@ test.describe("Errores del API", () => {
     await expect(toast(page, "Sin conexión")).toBeVisible();
     // La pantalla sigue esperando: no se perdió nada de lo capturado.
     await expect(page).toHaveURL(/\/ics\/form$/);
-    await expect(page.getByAltText("Vista previa de la evidencia")).toBeVisible();
+    await expect(
+      page.getByAltText("Vista previa de la evidencia"),
+    ).toBeVisible();
     await expect(saveButton(page)).toBeDisabled();
 
     await page
@@ -124,7 +126,7 @@ test.describe("Errores del API", () => {
       .getByRole("button", { name: "Reintentar" })
       .click();
 
-    await expect(toast(page, "Ics creado correctamente")).toBeVisible();
+    await expect(toast(page, "ICS creado correctamente")).toBeVisible();
     expect(requests).toHaveLength(2);
     const [first, retry] = requests;
     const key = first.headers()["idempotency-key"];
@@ -158,7 +160,7 @@ test.describe("Errores del API", () => {
     await saveButton(page).click();
 
     await expect(toast(page, "Confirmando envío")).toBeVisible();
-    await expect(toast(page, "Ics creado correctamente")).toBeVisible();
+    await expect(toast(page, "ICS creado correctamente")).toBeVisible();
     expect(requests).toHaveLength(2);
     expect(requests[1].headers()["idempotency-key"]).toBe(
       requests[0].headers()["idempotency-key"],
@@ -193,8 +195,18 @@ test.describe("Errores del API", () => {
         .locator("[data-sonner-toast]")
         .getByRole("button", { name: "Copiar referencia" }),
     ).toBeVisible();
-    await expect(saveButton(page)).toBeEnabled();
-    await expect(page.getByAltText("Vista previa de la evidencia")).toBeVisible();
+    // Pudo haberse guardado: el borrador queda en solo lectura con
+    // "Reintentar envío" (misma clave), sin perder la foto.
+    await expect(
+      page.getByRole("status").filter({ hasText: "Envío sin confirmar" }),
+    ).toContainText("el servidor falló");
+    await expect(saveButton(page)).toBeDisabled();
+    await expect(
+      page.getByRole("button", { name: "Reintentar envío" }),
+    ).toBeVisible();
+    await expect(
+      page.getByAltText("Vista previa de la evidencia"),
+    ).toBeVisible();
   });
 
   test("sesión terminada: avisa antes de mandar al login (un solo diálogo)", async ({
@@ -220,8 +232,9 @@ test.describe("Errores del API", () => {
     await expect(dialog).toContainText(
       "Tu sesión terminó. Inicia sesión de nuevo.",
     );
+    // ICS tiene borrador local: lo capturado se conserva.
     await expect(dialog).toContainText(
-      "Lo que capturaste en esta pantalla no se guardó.",
+      "Lo que capturaste quedó guardado como borrador en este dispositivo",
     );
     await expect(page.getByRole("alertdialog")).toHaveCount(1);
     // No redirige solo.

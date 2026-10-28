@@ -4,19 +4,31 @@ import { useEffect, useMemo, useState, type ComponentType } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Alert, Box, Grid, Paper, Skeleton, Tab, Tabs } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  Grid,
+  Paper,
+  Skeleton,
+  Tab,
+  Tabs,
+} from "@mui/material";
 
 import { DashboardService } from "@services";
 import SelectDefault from "@components/SelectDefault";
 import { useUserSessionStore } from "@store";
 import { useHighchartsTheme } from "@hooks/useHighchartsTheme";
 import PageHeader from "@shared/components/PageHeader";
+import EmptyState from "@shared/components/EmptyState";
+import ErrorState from "@shared/components/ErrorState";
 import { ROLE_ADMINISTRADOR } from "@shared/constants";
+import { proposedPlantId, saveLastPlant } from "@shared/utils/lastPlant";
 
 import KpiTile from "./_components/KpiTile";
 import OutOfRangePanel from "./_components/OutOfRangePanel";
 import PeriodFilter from "./_components/PeriodFilter";
-import { DEFAULT_PERIOD, type PeriodValue } from "./_lib/period";
+import { DEFAULT_PERIOD, presetRange, type PeriodValue } from "./_lib/period";
 import {
   BiData,
   computeKpis,
@@ -86,8 +98,11 @@ const EPPCharts = () => {
   const [activeTitle, setActiveTitle] = useState(chartGroups[0].title);
   const [data, setData] = useState<BiData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
+  // "Reintentar" vuelve a pedir lo mismo.
+  const [retryCount, setRetryCount] = useState(0);
   const [manufacturingPlantId, setManufacturingPlantId] = useState("");
-  // Por omisión el mes en curso a la fecha; la API calcula la comparación.
+  // Por omisión los últimos 30 días (M5); la API calcula la comparación.
   const [period, setPeriod] = useState<PeriodValue>(() => DEFAULT_PERIOD());
   const { startDate, endDate } = period;
 
@@ -98,24 +113,36 @@ const EPPCharts = () => {
   // mientras carga la sesión: no se redirige ni se piden datos hasta tenerlo.
   const router = useRouter();
   const role = useUserSessionStore((state) => state.role);
+  const userId = useUserSessionStore((state) => state.id);
   const isAdmin = role === ROLE_ADMINISTRADOR;
 
   useEffect(() => {
     if (role && !isAdmin) router.replace("/dashboard");
   }, [role, isAdmin, router]);
 
-  // La planta es obligatoria: los indicadores se calculan por planta.
+  // La planta es obligatoria: los indicadores se calculan por planta. Se
+  // propone la única del usuario o la última que eligió aquí en este
+  // dispositivo (M5); si no hay, la primera, como antes.
   useEffect(() => {
     if (manufacturingPlants.length && !manufacturingPlantId) {
-      setManufacturingPlantId(manufacturingPlants[0].id.toString());
+      setManufacturingPlantId(
+        proposedPlantId(manufacturingPlants, userId, "bi-epp") ||
+          manufacturingPlants[0].id.toString(),
+      );
     }
-  }, [manufacturingPlants, manufacturingPlantId]);
+  }, [manufacturingPlants, manufacturingPlantId, userId]);
+
+  const changePlant = (plantId: string) => {
+    setManufacturingPlantId(plantId);
+    if (plantId && userId) saveLastPlant(userId, "bi-epp", plantId);
+  };
 
   useEffect(() => {
     if (!manufacturingPlantId || !isAdmin) return;
 
     let ignore = false;
     setIsLoading(true);
+    setIsError(false);
 
     DashboardService.findBusinessIntelligenceEpp({
       manufacturingPlantId,
@@ -125,6 +152,11 @@ const EPPCharts = () => {
       .then((response) => {
         if (!ignore) setData(response);
       })
+      // El aviso lo muestra el interceptor. Antes, si fallaba la primera
+      // consulta, la pantalla se quedaba cargando para siempre.
+      .catch(() => {
+        if (!ignore) setIsError(true);
+      })
       .finally(() => {
         if (!ignore) setIsLoading(false);
       });
@@ -132,9 +164,15 @@ const EPPCharts = () => {
     return () => {
       ignore = true;
     };
-  }, [manufacturingPlantId, startDate, endDate, isAdmin]);
+  }, [manufacturingPlantId, startDate, endDate, isAdmin, retryCount]);
 
   const kpis = useMemo(() => (data ? computeKpis(data) : null), [data]);
+  // Sin entregas en el periodo: un solo aviso en lugar de "Sin datos" en
+  // cada gráfica. Los indicadores se quedan (comparan con el periodo
+  // anterior).
+  const hasNoDeliveries = !!data && data.kpis.actual.entregas === 0;
+  // Atajo para ampliar el periodo, si el elegido es más corto.
+  const canWiden = !["last3", "year"].includes(period.preset);
   const isFirstLoad = !data;
   // Mientras carga se asume que la planta lo tiene todo (no se oculta nada
   // de antemano).
@@ -195,7 +233,7 @@ const EPPCharts = () => {
               data={manufacturingPlants}
               label="Planta"
               value={manufacturingPlantId}
-              onChange={(e) => setManufacturingPlantId(e.target.value)}
+              onChange={(e) => changePlant(e.target.value)}
             />
           </Box>
         </Box>
@@ -209,166 +247,205 @@ const EPPCharts = () => {
         }}
         aria-busy={isLoading}
       >
-        {hiddenNotice && (
-          <Alert severity="info" sx={{ mb: 2 }}>
-            {hiddenNotice} Puedes capturarlos en Equipos.
-          </Alert>
-        )}
+        {isError ? (
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <ErrorState
+              offline={typeof navigator !== "undefined" && !navigator.onLine}
+              onRetry={() => setRetryCount((count) => count + 1)}
+              isRetrying={isLoading}
+            />
+          </Paper>
+        ) : (
+          <>
+            {hiddenNotice && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                {hiddenNotice} Puedes capturarlos en Equipos.
+              </Alert>
+            )}
 
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          {[
-            {
-              label: "Gasto",
-              requires: "prices" as Requirement,
-              value: kpis ? formatMoney(kpis.spend.current) : "",
-              delta: kpis && {
-                ...kpis.spend,
-                mode: "relative" as const,
-                polarity: "neutral" as const,
-              },
-            },
-            {
-              label: "Unidades entregadas",
-              value: kpis ? formatNumber(kpis.units.current) : "",
-              delta: kpis && {
-                ...kpis.units,
-                mode: "relative" as const,
-                polarity: "neutral" as const,
-              },
-            },
-            {
-              label: "Entregas fuera de rango",
-              requires: "frequency" as Requirement,
-              value: kpis ? formatPercent(kpis.outOfRange.current) : "",
-              caption: kpis
-                ? `${formatNumber(kpis.outOfRange.deliveries)} ${kpis.outOfRange.deliveries === 1 ? "entrega" : "entregas"} en el periodo`
-                : undefined,
-              delta: kpis && {
-                ...kpis.outOfRange,
-                mode: "points" as const,
-                polarity: "bad" as const,
-              },
-            },
-            {
-              label: "Gasto promedio por colaborador",
-              requires: "prices" as Requirement,
-              value: kpis ? formatMoney(kpis.averagePerEmployee.current) : "",
-              caption: kpis
-                ? `Promedio global ${formatMoney(kpis.averagePerEmployee.globalAverage)}`
-                : undefined,
-              delta: kpis && {
-                ...kpis.averagePerEmployee,
-                mode: "relative" as const,
-                polarity: "neutral" as const,
-              },
-            },
-            {
-              label: "Primera entrega de EPP",
-              value: kpis ? formatNumber(kpis.newEmployees.current) : "",
-              caption: "Colaboradores nuevos en EPP",
-              delta: kpis && {
-                ...kpis.newEmployees,
-                mode: "relative" as const,
-                polarity: "neutral" as const,
-              },
-            },
-          ]
-            .filter(({ requires }) => isAvailable(requires))
-            .map(({ label, value, caption, delta }, _, tiles) => (
-              <Grid
-                key={label}
-                // 3 por fila (4 indicadores: 2 por fila); en pantallas
-                // grandes, todos en una fila.
-                size={{
-                  xs: 12,
-                  sm: 6,
-                  md: tiles.length === 4 ? 6 : 4,
-                  xl: 12 / tiles.length,
-                }}
-              >
-                <KpiTile
-                  label={label}
-                  value={value}
-                  caption={caption}
-                  isLoading={isFirstLoad}
-                  delta={
-                    delta
-                      ? {
-                          current: delta.current,
-                          previous: delta.previous,
-                          mode: delta.mode,
-                          polarity: delta.polarity,
-                          comparedTo: previousName,
-                        }
-                      : undefined
-                  }
-                />
-              </Grid>
-            ))}
-        </Grid>
-
-        <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}>
-          <Tabs
-            value={activeTab}
-            onChange={(_, newValue: number) =>
-              setActiveTitle(groups[newValue].title)
-            }
-            aria-label="Grupos de indicadores EPP"
-            variant="scrollable"
-            scrollButtons="auto"
-            allowScrollButtonsMobile
-          >
-            {groups.map((group, index) => (
-              <Tab
-                key={group.title}
-                label={group.title}
-                id={`epp-group-tab-${index}`}
-                aria-controls={`epp-group-panel-${index}`}
-                sx={{ fontWeight: 600 }}
-              />
-            ))}
-          </Tabs>
-        </Box>
-
-        <Grid
-          key={`${chartsMode}-${activeTab}`}
-          container
-          spacing={2}
-          role="tabpanel"
-          id={`epp-group-panel-${activeTab}`}
-          aria-labelledby={`epp-group-tab-${activeTab}`}
-        >
-          {activeGroup.panel === "outOfRange" && (
-            <Grid size={{ xs: 12 }}>
-              <OutOfRangePanel
-                manufacturingPlantId={manufacturingPlantId}
-                startDate={startDate}
-                endDate={endDate}
-              />
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+              {[
+                {
+                  label: "Gasto",
+                  requires: "prices" as Requirement,
+                  value: kpis ? formatMoney(kpis.spend.current) : "",
+                  delta: kpis && {
+                    ...kpis.spend,
+                    mode: "relative" as const,
+                    polarity: "neutral" as const,
+                  },
+                },
+                {
+                  label: "Unidades entregadas",
+                  value: kpis ? formatNumber(kpis.units.current) : "",
+                  delta: kpis && {
+                    ...kpis.units,
+                    mode: "relative" as const,
+                    polarity: "neutral" as const,
+                  },
+                },
+                {
+                  label: "Entregas fuera de rango",
+                  requires: "frequency" as Requirement,
+                  value: kpis ? formatPercent(kpis.outOfRange.current) : "",
+                  caption: kpis
+                    ? `${formatNumber(kpis.outOfRange.deliveries)} ${kpis.outOfRange.deliveries === 1 ? "entrega" : "entregas"} en el periodo`
+                    : undefined,
+                  delta: kpis && {
+                    ...kpis.outOfRange,
+                    mode: "points" as const,
+                    polarity: "bad" as const,
+                  },
+                },
+                {
+                  label: "Gasto promedio por colaborador",
+                  requires: "prices" as Requirement,
+                  value: kpis
+                    ? formatMoney(kpis.averagePerEmployee.current)
+                    : "",
+                  caption: kpis
+                    ? `Promedio global ${formatMoney(kpis.averagePerEmployee.globalAverage)}`
+                    : undefined,
+                  delta: kpis && {
+                    ...kpis.averagePerEmployee,
+                    mode: "relative" as const,
+                    polarity: "neutral" as const,
+                  },
+                },
+                {
+                  label: "Primera entrega de EPP",
+                  value: kpis ? formatNumber(kpis.newEmployees.current) : "",
+                  caption: "Colaboradores nuevos en EPP",
+                  delta: kpis && {
+                    ...kpis.newEmployees,
+                    mode: "relative" as const,
+                    polarity: "neutral" as const,
+                  },
+                },
+              ]
+                .filter(({ requires }) => isAvailable(requires))
+                .map(({ label, value, caption, delta }, _, tiles) => (
+                  <Grid
+                    key={label}
+                    // 2 por fila en celular y tablet (uno por fila obligaba a
+                    // bajar mucho antes de ver una gráfica); 3 por fila (4
+                    // indicadores: 2 por fila); en pantallas grandes, todos en
+                    // una fila.
+                    size={{
+                      xs: 6,
+                      md: tiles.length === 4 ? 6 : 4,
+                      xl: 12 / tiles.length,
+                    }}
+                  >
+                    <KpiTile
+                      label={label}
+                      value={value}
+                      caption={caption}
+                      isLoading={isFirstLoad}
+                      delta={
+                        delta
+                          ? {
+                              current: delta.current,
+                              previous: delta.previous,
+                              mode: delta.mode,
+                              polarity: delta.polarity,
+                              comparedTo: previousName,
+                            }
+                          : undefined
+                      }
+                    />
+                  </Grid>
+                ))}
             </Grid>
-          )}
-          {charts.map((chart, index) => {
-            const { Component } = chart;
-            return (
-              <Grid
-                key={`${activeGroup.title}-${index}`}
-                size={{
-                  xs: 12,
-                  lg: chart.fullWidth || chart === loneHalf ? 12 : 6,
-                }}
-              >
-                {data ? (
-                  <Component data={data} />
-                ) : (
-                  <Paper variant="outlined" sx={{ p: 2 }}>
-                    <Skeleton variant="text" width="45%" />
-                    <Skeleton variant="rounded" height={300} sx={{ mt: 1 }} />
-                  </Paper>
-                )}
-              </Grid>
-            );
-          })}
-        </Grid>
+
+            {hasNoDeliveries ? (
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <EmptyState
+                  title="Sin entregas de EPP en este periodo"
+                  description={`No hay entregas registradas del ${currentName} en esta planta.`}
+                >
+                  {canWiden && (
+                    <Button
+                      variant="outlined"
+                      onClick={() => setPeriod(presetRange("last3"))}
+                    >
+                      Ver los últimos 3 meses
+                    </Button>
+                  )}
+                </EmptyState>
+              </Paper>
+            ) : (
+              <>
+                <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}>
+                  <Tabs
+                    value={activeTab}
+                    onChange={(_, newValue: number) =>
+                      setActiveTitle(groups[newValue].title)
+                    }
+                    aria-label="Grupos de indicadores EPP"
+                    variant="scrollable"
+                    scrollButtons="auto"
+                    allowScrollButtonsMobile
+                  >
+                    {groups.map((group, index) => (
+                      <Tab
+                        key={group.title}
+                        label={group.title}
+                        id={`epp-group-tab-${index}`}
+                        aria-controls={`epp-group-panel-${index}`}
+                        sx={{ fontWeight: 600 }}
+                      />
+                    ))}
+                  </Tabs>
+                </Box>
+
+                <Grid
+                  key={`${chartsMode}-${activeTab}`}
+                  container
+                  spacing={2}
+                  role="tabpanel"
+                  id={`epp-group-panel-${activeTab}`}
+                  aria-labelledby={`epp-group-tab-${activeTab}`}
+                >
+                  {activeGroup.panel === "outOfRange" && (
+                    <Grid size={{ xs: 12 }}>
+                      <OutOfRangePanel
+                        manufacturingPlantId={manufacturingPlantId}
+                        startDate={startDate}
+                        endDate={endDate}
+                      />
+                    </Grid>
+                  )}
+                  {charts.map((chart, index) => {
+                    const { Component } = chart;
+                    return (
+                      <Grid
+                        key={`${activeGroup.title}-${index}`}
+                        size={{
+                          xs: 12,
+                          lg: chart.fullWidth || chart === loneHalf ? 12 : 6,
+                        }}
+                      >
+                        {data ? (
+                          <Component data={data} />
+                        ) : (
+                          <Paper variant="outlined" sx={{ p: 2 }}>
+                            <Skeleton variant="text" width="45%" />
+                            <Skeleton
+                              variant="rounded"
+                              height={300}
+                              sx={{ mt: 1 }}
+                            />
+                          </Paper>
+                        )}
+                      </Grid>
+                    );
+                  })}
+                </Grid>
+              </>
+            )}
+          </>
+        )}
       </Box>
     </>
   );

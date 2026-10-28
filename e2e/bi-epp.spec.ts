@@ -179,11 +179,18 @@ test.describe("Análisis de datos EPP", () => {
     const ddmmyyyy = (d: Date) =>
       `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
     const today = new Date();
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    // Por omisión: este mes a la fecha.
+    const thirtyDays = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() - 29,
+    );
+    // Por omisión: los últimos 30 días (antes, este mes a la fecha).
     await expect
       .poll(() => periods[0])
-      .toBe(`${ddmmyyyy(monthStart)}-${ddmmyyyy(today)}`);
+      .toBe(`${ddmmyyyy(thirtyDays)}-${ddmmyyyy(today)}`);
+    await expect(page.getByRole("combobox", { name: "Periodo" })).toHaveText(
+      "Últimos 30 días",
+    );
 
     await page.getByRole("combobox", { name: "Periodo" }).click();
     await page.getByRole("option", { name: "Mes anterior" }).click();
@@ -371,5 +378,132 @@ test.describe("Análisis de datos EPP", () => {
     // Solo avisos de MUI (Next.js agrega su propio role="alert").
     await expect(page.locator(".MuiAlert-root")).toHaveCount(1);
     await expect(page.getByRole("tab")).toHaveText(["Entregas"]);
+  });
+});
+
+// Estado de la pantalla y planta propuesta (M5).
+test.describe("Análisis de datos EPP: al entrar y estado de la pantalla", () => {
+  const PLANTS = [PLANT, { id: 2, name: "Planta E2E Dos" }];
+
+  const asAdminWithPlants = (page: Page) =>
+    mockGet(page, "/users/get-information-current-user", {
+      id: 7402,
+      name: "E2E Admin",
+      email: "e2e-admin@example.com",
+      role: "Administrador",
+      isActive: true,
+      manufacturingPlants: PLANTS,
+      zones: [],
+    });
+
+  /** Plantas y periodos pedidos a la API, en orden. */
+  const biRequests = (page: Page) => {
+    const urls: URL[] = [];
+    page.on("request", (request) => {
+      const url = new URL(request.url());
+      if (
+        url.pathname.endsWith("/api/v1/dashboard/business-intelligence/epp")
+      ) {
+        urls.push(url);
+      }
+    });
+    return urls;
+  };
+
+  test("propone la última planta elegida en este dispositivo", async ({
+    page,
+  }) => {
+    await asAdminWithPlants(page);
+    await mockGet(page, "/dashboard/business-intelligence/epp", biData(true));
+    const requests = biRequests(page);
+    await page.goto("/business-intelligence/epp");
+    // Sin historial, la primera (como antes).
+    await expect
+      .poll(() => requests[0]?.searchParams.get("manufacturingPlantId"))
+      .toBe("1");
+
+    await page.getByRole("combobox", { name: "Planta", exact: true }).click();
+    await page.getByRole("option", { name: "Planta E2E Dos" }).click();
+    await expect
+      .poll(() => requests.at(-1)?.searchParams.get("manufacturingPlantId"))
+      .toBe("2");
+
+    const before = requests.length;
+    await page.goto("/business-intelligence/epp");
+    await expect
+      .poll(() => requests[before]?.searchParams.get("manufacturingPlantId"))
+      .toBe("2");
+  });
+
+  test("sin entregas en el periodo: un solo aviso y se puede ampliar a 3 meses", async ({
+    page,
+  }) => {
+    const data = biData(true);
+    data.kpis.actual = { ...data.kpis.actual, entregas: 0, unidades: 0 };
+    await mockGet(page, "/dashboard/business-intelligence/epp", data);
+    const requests = biRequests(page);
+    await page.goto("/business-intelligence/epp");
+
+    await expect(
+      page.getByText("Sin entregas de EPP en este periodo"),
+    ).toBeVisible();
+    await expect(page.getByRole("tab")).toHaveCount(0);
+    // Los indicadores se quedan: comparan con el periodo anterior.
+    await expect(kpi(page, "Unidades entregadas")).toBeVisible();
+
+    await page.getByRole("button", { name: "Ver los últimos 3 meses" }).click();
+    await expect(page.getByRole("combobox", { name: "Periodo" })).toHaveText(
+      "Últimos 3 meses",
+    );
+    const today = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const start = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+    await expect
+      .poll(() => requests.at(-1)?.searchParams.get("startDate"))
+      .toBe(`01/${pad(start.getMonth() + 1)}/${start.getFullYear()}`);
+  });
+
+  test("si falla la consulta: error con Reintentar (antes, cargando para siempre)", async ({
+    page,
+  }) => {
+    let fail = true;
+    await page.route(
+      (url) =>
+        url.pathname.endsWith("/api/v1/dashboard/business-intelligence/epp"),
+      (route) =>
+        fail
+          ? route.fulfill({ status: 500, json: { statusCode: 500 } })
+          : route.fulfill({ json: biData(true) }),
+    );
+    await page.goto("/business-intelligence/epp");
+
+    const error = page
+      .getByRole("alert")
+      .filter({ hasText: "No se pudo cargar" });
+    await expect(error).toBeVisible();
+    fail = false;
+    await error.getByRole("button", { name: "Reintentar" }).click();
+    await expect(page.getByRole("tab", { name: "Entregas" })).toBeVisible();
+  });
+
+  test.describe("en celular", () => {
+    test.use({
+      viewport: { width: 390, height: 844 },
+      hasTouch: true,
+      isMobile: true,
+    });
+
+    test("indicadores de dos en dos y nada se desplaza de lado", async ({
+      page,
+    }) => {
+      await openAnalysis(page, true);
+      const first = await kpi(page, "Gasto").boundingBox();
+      const second = await kpi(page, "Unidades entregadas").boundingBox();
+      expect(Math.round(first!.y)).toBe(Math.round(second!.y));
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      );
+      expect(overflow).toBeLessThanOrEqual(0);
+    });
   });
 });
