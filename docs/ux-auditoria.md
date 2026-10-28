@@ -149,6 +149,8 @@ diálogo ocupa toda la pantalla. Además **se puede guardar una firma vacía**:
 registro que debe tener validez. → Lienzo que ocupe el ancho disponible (y aproveche
 la orientación horizontal), botón "Guardar" deshabilitado mientras no haya trazo, y
 "Limpiar" visible. [S]
+*Resuelto: firma vacía bloqueada (Fase 2); lienzo al ancho de la pantalla,
+casi todo el alto en horizontal, trazo más grueso y fondo blanco (Fase 4).*
 
 **A5 · Formulario de nuevo hallazgo** — Tiene 9 campos y todos aparecen en rojo de
 error desde que se abre, antes de que el usuario haga algo. El texto de la
@@ -182,6 +184,9 @@ celular con 3–4 accesos según el rol (Hallazgos, Nuevo hallazgo, Gemba Walk, 
 evaluación", luego "Cancelar" y al final "Guardar". → Se toca "Cancelar" por error. →
 Agregar evaluación arriba y, al pie, "Guardar" como principal y "Cancelar" como
 secundario, igual que en el resto de formularios. [S]
+*Resuelto en la Fase 4: "Agregar evaluación" arriba de las evaluaciones y
+`FormActions` al pie; además, secciones, errores por campo (incluidos los de
+cada evaluación) y lista en tarjetas en celular.*
 
 **M2 · Botones de evidencia (Hallazgos, ICS)** — "Capturar evidencia | Adjuntar
 imagen" es un `ButtonGroup` que en celular se aprieta en dos líneas. La vista previa

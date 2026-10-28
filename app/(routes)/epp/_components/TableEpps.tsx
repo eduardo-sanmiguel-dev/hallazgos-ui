@@ -34,6 +34,10 @@ import { useUserSessionStore } from "@store";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { EppService } from "@services";
 import { Epp, EppHistoryItem, EppSortableColumn } from "@interfaces";
+import { useMediaQuery } from "@mui/material";
+import type { Theme } from "@mui/material/styles";
+import ErrorState from "@shared/components/ErrorState";
+import { TableBodyState } from "@shared/components/TableDefaultServer";
 import { constants } from "@constants";
 
 const HISTORY_COLUMNS = 7;
@@ -55,18 +59,21 @@ function HistorySkeleton() {
   ));
 }
 
-function Row({
-  epp,
-  manufacturingPlantId,
-  currentUserId,
-  onHistoryEmptied,
-}: {
+interface HistoryProps {
   epp: Epp;
   manufacturingPlantId: string;
   currentUserId: number;
   onHistoryEmptied: () => void;
-}) {
-  const [open, setOpen] = useState(false);
+}
+
+// Historial de entregas de un colaborador: se pide al abrirlo y al recargar
+// la lista con él abierto. Lo usan la fila de la tabla y la tarjeta de celular.
+function useEmployeeHistory({
+  epp,
+  manufacturingPlantId,
+  onHistoryEmptied,
+  open,
+}: Omit<HistoryProps, "currentUserId"> & { open: boolean }) {
   // null = todavía no se ha cargado (se pide al expandir la fila).
   const [history, setHistory] = useState<EppHistoryItem[] | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
@@ -115,6 +122,37 @@ function Row({
   };
 
   const isFirstLoad = history === null && status !== "error";
+
+  return {
+    history,
+    status,
+    loadHistory,
+    confirmRemoveHistory,
+    confirmDialog,
+    isFirstLoad,
+  };
+}
+
+function Row({
+  epp,
+  manufacturingPlantId,
+  currentUserId,
+  onHistoryEmptied,
+}: HistoryProps) {
+  const [open, setOpen] = useState(false);
+  const {
+    history,
+    status,
+    loadHistory,
+    confirmRemoveHistory,
+    confirmDialog,
+    isFirstLoad,
+  } = useEmployeeHistory({
+    epp,
+    manufacturingPlantId,
+    onHistoryEmptied,
+    open,
+  });
 
   return (
     <>
@@ -254,7 +292,13 @@ function Row({
                           <Image
                             src={item.signature}
                             alt="Firma digital"
-                            style={{ border: "1px solid #ccc" }}
+                            // Las firmas se guardan transparentes: con fondo
+                            // blanco se leen también en el tema oscuro.
+                            style={{
+                              border: "1px solid #ccc",
+                              background: "#fff",
+                              objectFit: "contain",
+                            }}
                             width={75}
                             height={50}
                           />
@@ -286,6 +330,177 @@ function Row({
   );
 }
 
+/**
+ * Colaborador en celular: tarjeta con sus datos, descarga y el historial
+ * desplegable como lista (en la tabla había que desplazarse de lado).
+ */
+function EppCard({
+  epp,
+  manufacturingPlantId,
+  currentUserId,
+  onHistoryEmptied,
+}: HistoryProps) {
+  const [open, setOpen] = useState(false);
+  const {
+    history,
+    status,
+    loadHistory,
+    confirmRemoveHistory,
+    confirmDialog,
+    isFirstLoad,
+  } = useEmployeeHistory({
+    epp,
+    manufacturingPlantId,
+    onHistoryEmptied,
+    open,
+  });
+
+  return (
+    <Paper component="li" variant="outlined" sx={{ p: 2 }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{ alignItems: "flex-start", justifyContent: "space-between" }}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontWeight: 600, overflowWrap: "anywhere" }}>
+            {epp.name}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Cédula {epp.code}
+          </Typography>
+        </Box>
+        <IconButton
+          aria-label={`Descargar archivo de ${epp.name}`}
+          onClick={() => EppService.downloadFile(epp.id, epp.code)}
+          sx={{ color: "text.brand" }}
+        >
+          <SimCardDownloadIcon />
+        </IconButton>
+      </Stack>
+      <Box
+        component="dl"
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "minmax(64px, auto) 1fr",
+          columnGap: 1.5,
+          rowGap: 0.5,
+          mt: 1,
+          mb: 0,
+          "& dt": { color: "text.secondary", typography: "body2" },
+          "& dd": { m: 0, typography: "body2", overflowWrap: "anywhere" },
+        }}
+      >
+        <dt>Cargo</dt>
+        <dd>{epp.position.name}</dd>
+        <dt>Área</dt>
+        <dd>{epp.area.name}</dd>
+      </Box>
+
+      <Button
+        fullWidth
+        variant="outlined"
+        aria-expanded={open}
+        endIcon={open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+        onClick={() => setOpen(!open)}
+        sx={{ mt: 1.5 }}
+      >
+        {open ? "Ocultar historial" : "Ver historial"}
+      </Button>
+
+      <Collapse in={open} timeout="auto" unmountOnExit>
+        <Box sx={{ mt: 1.5 }} aria-busy={status === "loading"}>
+          {isFirstLoad && (
+            <Stack
+              direction="row"
+              spacing={1}
+              role="status"
+              sx={{ alignItems: "center" }}
+            >
+              <CircularProgress size={16} aria-hidden />
+              <Typography variant="body2" color="text.secondary">
+                Cargando historial…
+              </Typography>
+            </Stack>
+          )}
+          {status === "error" && (
+            <ErrorState
+              size="small"
+              title={
+                history
+                  ? "No se pudo actualizar el historial"
+                  : "No se pudo cargar el historial"
+              }
+              onRetry={() => void loadHistory()}
+            />
+          )}
+          {history?.length === 0 && (
+            <Typography variant="body2" color="text.secondary">
+              Sin entregas registradas en esta planta.
+            </Typography>
+          )}
+          <Stack
+            component="ul"
+            spacing={1}
+            aria-label={`Historial de entrega de ${epp.name}`}
+            sx={{ listStyle: "none", m: 0, p: 0 }}
+          >
+            {history?.map((item) => (
+              <Box
+                component="li"
+                key={item.id}
+                sx={{
+                  display: "flex",
+                  gap: 1.5,
+                  alignItems: "center",
+                  borderTop: 1,
+                  borderColor: "divider",
+                  pt: 1,
+                }}
+              >
+                <Image
+                  src={item.signature}
+                  alt="Firma digital"
+                  width={96}
+                  height={64}
+                  style={{
+                    border: "1px solid #ccc",
+                    background: "#fff",
+                    objectFit: "contain",
+                    flexShrink: 0,
+                  }}
+                />
+                <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {item.equipment.name}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {stringYYYYMMDDToDDMMYYYY(item.deliveryDate)}
+                    {item.createBy?.name ? ` · ${item.createBy.name}` : ""}
+                  </Typography>
+                  {item.observations && (
+                    <Typography variant="body2">{item.observations}</Typography>
+                  )}
+                </Box>
+                {item.createBy?.id === currentUserId && (
+                  <IconButton
+                    aria-label="Eliminar registro del historial"
+                    color="error"
+                    onClick={() => confirmRemoveHistory(item.id)}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                )}
+              </Box>
+            ))}
+          </Stack>
+        </Box>
+      </Collapse>
+      {confirmDialog}
+    </Paper>
+  );
+}
+
 interface Props {
   rows: Epp[];
   // Planta de la lista: el historial de cada fila se pide para esta planta.
@@ -303,6 +518,9 @@ interface Props {
   onRowsPerPageChange: (rowsPerPage: number) => void;
   onSortChange: (order: SortOrder, orderBy: EppSortableColumn | null) => void;
   onHistoryDeleted: () => void;
+  // La consulta falló: sin filas se muestra ErrorState con "Reintentar".
+  isError?: boolean;
+  onRetry?: () => void;
 }
 
 const SORTABLE_HEADERS: Array<{ column: EppSortableColumn; label: string }> = [
@@ -328,8 +546,28 @@ export default function TableEpps({
   onRowsPerPageChange,
   onSortChange,
   onHistoryDeleted,
+  isError = false,
+  onRetry,
 }: Props) {
   const currentUserId = useUserSessionStore((state) => state.id);
+  // En celular, tarjetas: la tabla con historial anidado obligaba a
+  // desplazarse de lado.
+  const isPhone = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
+
+  // Sin filas: vacío (con o sin filtros) o error con "Reintentar", con los
+  // componentes compartidos.
+  const bodyState = (
+    <TableBodyState
+      isError={isError}
+      onRetry={onRetry}
+      emptyTitle={hasFilters ? "Sin resultados" : "Sin entregas de EPP"}
+      emptyDescription={
+        hasFilters
+          ? "No se encontraron resultados con los filtros actuales."
+          : "No hay registros de EPP para esta planta."
+      }
+    />
+  );
 
   const handleRequestSort = (property: EppSortableColumn) => {
     const { nextOrder, nextOrderBy } = resolveTriStateSort(
@@ -342,73 +580,80 @@ export default function TableEpps({
   };
 
   return (
-    <Paper>
-      <Box sx={{ height: 4 }}>{isLoading && <LinearProgress />}</Box>
-      <TableContainer>
-        <Table aria-label="Entregas de EPP por colaborador" size="small">
-          <TableHead>
-            <StyledTableRow>
-              <StyledTableCell />
-              {SORTABLE_HEADERS.map(({ column, label }) => (
-                <StyledTableCell
-                  key={column}
-                  sortDirection={orderBy === column ? order : false}
-                >
-                  <TableSortLabel
-                    active={orderBy === column}
-                    direction={orderBy === column ? order : "asc"}
-                    onClick={() => handleRequestSort(column)}
-                  >
-                    {label}
-                  </TableSortLabel>
-                </StyledTableCell>
+    <Paper aria-busy={isLoading}>
+      <Box sx={{ height: 4 }}>
+        {isLoading && <LinearProgress aria-label="Cargando entregas" />}
+      </Box>
+      {isPhone ? (
+        <Box sx={{ p: 1.5 }}>
+          {!rows.length && !isLoading ? (
+            bodyState
+          ) : (
+            <Stack
+              component="ul"
+              aria-label="Entregas de EPP por colaborador"
+              spacing={1.5}
+              sx={{ listStyle: "none", m: 0, p: 0 }}
+            >
+              {rows.map((epp) => (
+                <EppCard
+                  key={`${manufacturingPlantId}-${epp.id}`}
+                  epp={epp}
+                  manufacturingPlantId={manufacturingPlantId}
+                  currentUserId={currentUserId}
+                  onHistoryEmptied={onHistoryDeleted}
+                />
               ))}
-              <StyledTableCell align="center">
-                Descargar archivo
-              </StyledTableCell>
-            </StyledTableRow>
-          </TableHead>
-          <TableBody>
-            {!rows.length && !isLoading && (
+            </Stack>
+          )}
+        </Box>
+      ) : (
+        <TableContainer>
+          <Table aria-label="Entregas de EPP por colaborador" size="small">
+            <TableHead>
               <StyledTableRow>
-                <StyledTableCell
-                  colSpan={6}
-                  sx={{ py: 2, textAlign: "center" }}
-                >
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    // En celular la tabla es más ancha que la pantalla: el
-                    // mensaje se queda visible a la izquierda, sin cortarse.
-                    sx={{
-                      position: { xs: "sticky", sm: "static" },
-                      left: 0,
-                      maxWidth: { xs: "calc(100vw - 64px)", sm: "none" },
-                      textAlign: { xs: "left", sm: "center" },
-                    }}
+                <StyledTableCell />
+                {SORTABLE_HEADERS.map(({ column, label }) => (
+                  <StyledTableCell
+                    key={column}
+                    sortDirection={orderBy === column ? order : false}
                   >
-                    {hasFilters
-                      ? "No se encontraron resultados con los filtros actuales."
-                      : "No hay registros de EPP para esta planta."}
-                  </Typography>
+                    <TableSortLabel
+                      active={orderBy === column}
+                      direction={orderBy === column ? order : "asc"}
+                      onClick={() => handleRequestSort(column)}
+                    >
+                      {label}
+                    </TableSortLabel>
+                  </StyledTableCell>
+                ))}
+                <StyledTableCell align="center">
+                  Descargar archivo
                 </StyledTableCell>
               </StyledTableRow>
-            )}
+            </TableHead>
+            <TableBody>
+              {!rows.length && !isLoading && (
+                <StyledTableRow>
+                  <StyledTableCell colSpan={6}>{bodyState}</StyledTableCell>
+                </StyledTableRow>
+              )}
 
-            {rows.map((epp) => (
-              <Row
-                // Con la planta en la llave, cambiar de planta descarta el
-                // historial cargado (un colaborador puede estar en varias).
-                key={`${manufacturingPlantId}-${epp.id}`}
-                epp={epp}
-                manufacturingPlantId={manufacturingPlantId}
-                currentUserId={currentUserId}
-                onHistoryEmptied={onHistoryDeleted}
-              />
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+              {rows.map((epp) => (
+                <Row
+                  // Con la planta en la llave, cambiar de planta descarta el
+                  // historial cargado (un colaborador puede estar en varias).
+                  key={`${manufacturingPlantId}-${epp.id}`}
+                  epp={epp}
+                  manufacturingPlantId={manufacturingPlantId}
+                  currentUserId={currentUserId}
+                  onHistoryEmptied={onHistoryDeleted}
+                />
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
       <TablePagination
         component="div"
         count={count}

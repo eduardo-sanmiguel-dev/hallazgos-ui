@@ -10,28 +10,69 @@ import { useRouter } from "next/navigation";
 import { stringToDateWithTime } from "@shared/utils";
 import { ExtinguisherInspectionsService } from "@services";
 import { ExtinguisherInspection } from "@interfaces";
-import {
-  StyledTableCell,
-  StyledTableRow,
-} from "@shared/components/TableDefault";
-import TableDefaultServer, {
-  type ServerPagination,
-} from "@shared/components/TableDefaultServer";
+import { type ServerPagination } from "@shared/components/TableDefaultServer";
+import ResponsiveTable, {
+  type ResponsiveColumn,
+} from "@shared/components/ResponsiveTable";
 
 interface Props {
   rows: ExtinguisherInspection[];
   pagination: ServerPagination;
 }
 
-const columns = [
-  "ID",
-  "Planta",
-  "Responsable",
-  "Fecha inspección",
-  "Evaluaciones",
-  "Creación",
-  "Creado por",
-  "Acciones",
+const inspectionDate = (row: ExtinguisherInspection) =>
+  dayjs(row.inspectionDate).isValid()
+    ? dayjs(row.inspectionDate).locale("es").format("DD MMMM YYYY")
+    : "-";
+
+// Tabla en tablet y escritorio; tarjetas en celular (ResponsiveTable).
+const columns: ResponsiveColumn<ExtinguisherInspection>[] = [
+  {
+    id: "id",
+    header: "ID",
+    cell: (row) => row.id,
+    rowHeader: true,
+    card: "hidden",
+  },
+  {
+    id: "title",
+    header: "Inspección",
+    cell: (row) => `Inspección #${row.id} · ${inspectionDate(row)}`,
+    card: "title",
+    hideInTable: true,
+  },
+  {
+    id: "plant",
+    header: "Planta",
+    cell: (row) => row.manufacturingPlant?.name || "-",
+    card: "subtitle",
+  },
+  {
+    id: "responsible",
+    header: "Responsable",
+    cell: (row) => row.responsible?.name || "-",
+  },
+  {
+    id: "date",
+    header: "Fecha inspección",
+    cell: inspectionDate,
+    card: "hidden",
+  },
+  {
+    id: "evaluations",
+    header: "Evaluaciones",
+    cell: (row) => row.evaluations?.length || 0,
+  },
+  {
+    id: "createdAt",
+    header: "Creación",
+    cell: (row) => stringToDateWithTime(row.createdAt),
+  },
+  {
+    id: "createdBy",
+    header: "Creado por",
+    cell: (row) => row.createdBy?.name || "-",
+  },
 ];
 
 export default function ExtinguisherInspectionsTable({
@@ -41,55 +82,41 @@ export default function ExtinguisherInspectionsTable({
   const router = useRouter();
 
   return (
-    <TableDefaultServer
+    <ResponsiveTable
       rows={rows}
       columns={columns}
-      {...pagination}
-      paintRows={(row: ExtinguisherInspection) => (
-        <StyledTableRow key={row.id} hover>
-          <StyledTableCell>{row.id}</StyledTableCell>
-          <StyledTableCell>
-            {row.manufacturingPlant?.name || "-"}
-          </StyledTableCell>
-          <StyledTableCell>{row.responsible?.name || "-"}</StyledTableCell>
-          <StyledTableCell>
-            {dayjs(row.inspectionDate).isValid()
-              ? dayjs(row.inspectionDate).locale("es").format("DD MMMM YYYY")
-              : "-"}
-          </StyledTableCell>
-          <StyledTableCell>{row.evaluations?.length || 0}</StyledTableCell>
-          <StyledTableCell>
-            {stringToDateWithTime(row.createdAt)}
-          </StyledTableCell>
-          <StyledTableCell>{row.createdBy?.name || "-"}</StyledTableCell>
-          <StyledTableCell>
-            <Stack direction="row" spacing={1}>
-              <Tooltip title="Descargar Excel">
-                <IconButton
-                  color="primary"
-                  onClick={() =>
-                    ExtinguisherInspectionsService.downloadFile(row.id)
-                  }
-                >
-                  <SimCardDownloadIcon />
-                </IconButton>
-              </Tooltip>
+      getRowKey={(row) => row.id}
+      pagination={pagination}
+      ariaLabel="Inspecciones de extintores"
+      emptyDescription="No hay inspecciones con los filtros actuales."
+      actions={(row) => (
+        <Stack direction="row" spacing={1}>
+          <Tooltip title="Descargar Excel">
+            <IconButton
+              aria-label={`Descargar Excel de la inspección ${row.id}`}
+              sx={{ color: "text.brand" }}
+              onClick={() =>
+                ExtinguisherInspectionsService.downloadFile(row.id)
+              }
+            >
+              <SimCardDownloadIcon />
+            </IconButton>
+          </Tooltip>
 
-              {dayjs(row.inspectionDate).isSame(dayjs(), "day") && (
-                <Tooltip title="Agregar más evaluaciones">
-                  <IconButton
-                    color="secondary"
-                    onClick={() =>
-                      router.push(`/extinguisher-inspection/form?id=${row.id}`)
-                    }
-                  >
-                    <AddCircleOutlineIcon />
-                  </IconButton>
-                </Tooltip>
-              )}
-            </Stack>
-          </StyledTableCell>
-        </StyledTableRow>
+          {dayjs(row.inspectionDate).isSame(dayjs(), "day") && (
+            <Tooltip title="Agregar más evaluaciones">
+              <IconButton
+                aria-label={`Agregar evaluaciones a la inspección ${row.id}`}
+                color="secondary"
+                onClick={() =>
+                  router.push(`/extinguisher-inspection/form?id=${row.id}`)
+                }
+              >
+                <AddCircleOutlineIcon />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Stack>
       )}
     />
   );

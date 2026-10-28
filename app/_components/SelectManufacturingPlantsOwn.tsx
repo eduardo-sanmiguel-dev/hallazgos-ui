@@ -1,4 +1,5 @@
 import { SelectChangeEvent } from "@mui/material";
+import { FormHelperText } from "@mui/material";
 import { Grid } from "@mui/material";
 
 import { useUserSessionStore } from "@store";
@@ -9,12 +10,15 @@ interface Props {
   value: string;
   onChange: (event: SelectChangeEvent<string>) => void;
   isFilter?: boolean;
+  // Error junto al campo (useFieldErrors lo encuentra para el foco).
+  error?: string;
 }
 
 const SelectManufacturingPlantsOwn = ({
   value,
   onChange,
   isFilter = false,
+  error,
 }: Props) => {
   const manufacturingPlants = useUserSessionStore(
     (state) => state.manufacturingPlants || [],
@@ -45,6 +49,11 @@ const SelectManufacturingPlantsOwn = ({
         onChange={onChange}
         isFilter={isFilter}
       />
+      {error && (
+        <FormHelperText data-error-for="manufacturingPlantId" error>
+          {error}
+        </FormHelperText>
+      )}
     </Grid>
   );
 };

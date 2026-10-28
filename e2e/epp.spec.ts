@@ -183,7 +183,7 @@ test.describe("EPP: entregas", () => {
     await dialog.getByRole("button", { name: "Firmar" }).click();
     const signature = page
       .getByRole("dialog")
-      .filter({ hasText: "Firma electrónica" });
+      .filter({ hasText: "Firma del colaborador" });
     const canvas = signature.locator("canvas");
     // El trazo lleva el nombre de acción que el RUM descarta (no es rage click).
     await expect(
@@ -195,7 +195,7 @@ test.describe("EPP: entregas", () => {
     await expect(saveSignature).toBeDisabled();
     await expect(clearSignature).toBeDisabled();
     await expect(
-      signature.getByText("Firme dentro del recuadro para poder guardar."),
+      signature.getByText("Firma dentro del recuadro para poder guardar."),
     ).toBeVisible();
     await sign(page, canvas);
     await expect(saveSignature).toBeEnabled();
@@ -495,5 +495,315 @@ test.describe("EPP: lista de entregas", () => {
       page.getByText("Sin entregas registradas en esta planta."),
     ).toBeVisible();
     await expect.poll(() => listRequests.length).toBeGreaterThan(loadedLists);
+  });
+
+  test.describe("en celular", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("muestra tarjetas con el historial desplegable, sin desplazarse de lado", async ({
+      page,
+    }) => {
+      const errors = trackPageErrors(page);
+      let userId = 0;
+      await page.route(HISTORY, (route) =>
+        route.fulfill({ json: [historyItem(9901, userId)] }),
+      );
+      ({ userId } = await openList(page));
+
+      await expect(page.getByRole("table")).toHaveCount(0);
+      const list = page.getByRole("list", {
+        name: "Entregas de EPP por colaborador",
+      });
+      const card = list.getByRole("listitem").filter({ hasText: "E2E Ana" });
+      await expect(card).toContainText("Cédula 9901");
+      await expect(card).toContainText("E2E Puesto");
+      await expect(
+        card.getByRole("button", { name: "Descargar archivo de E2E Ana" }),
+      ).toBeVisible();
+
+      await card.getByRole("button", { name: "Ver historial" }).click();
+      const history = card.getByRole("list", {
+        name: "Historial de entrega de E2E Ana",
+      });
+      await expect(history).toContainText("E2E Casco");
+      await expect(history).toContainText("Talla M");
+      await expect(history.getByAltText("Firma digital")).toBeVisible();
+      await expect(
+        history.getByRole("button", {
+          name: "Eliminar registro del historial",
+        }),
+      ).toBeVisible();
+
+      // Nada se sale del ancho de la pantalla.
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      );
+      expect(overflow).toBeLessThanOrEqual(0);
+      expect(errors).toEqual([]);
+    });
+
+    test("sin entregas o con error usa los estados compartidos", async ({
+      page,
+    }) => {
+      let fail = false;
+      await page.route(
+        (url) =>
+          url.pathname.endsWith("/api/v1/epps") && url.searchParams.has("page"),
+        (route) =>
+          fail
+            ? route.fulfill({ status: 500, json: { message: "Caída" } })
+            : route.fulfill({
+                json: { data: [], count: 0, page: 1, limit: 5 },
+              }),
+      );
+      await page.goto("/epp");
+      const [plant] = await sessionPlants(page);
+      const filters = page.getByRole("region", { name: "Filtros" });
+      await openFilters(page);
+      if (await filters.getByRole("combobox", { name: "Planta" }).isVisible()) {
+        await pickOption(page, "Planta", plant.name);
+      }
+
+      await expect(page.getByText("Sin entregas de EPP")).toBeVisible();
+      await expect(
+        page.getByText("No hay registros de EPP para esta planta."),
+      ).toBeVisible();
+
+      fail = true;
+      await page.getByRole("button", { name: "Actualizar" }).click();
+      const alert = page
+        .getByRole("alert")
+        .filter({ hasText: "No se pudo cargar" });
+      await expect(alert).toBeVisible();
+      fail = false;
+      await alert.getByRole("button", { name: "Reintentar" }).click();
+      await expect(page.getByText("Sin entregas de EPP")).toBeVisible();
+    });
+  });
+});
+
+// Firma en celular (A4): el lienzo ocupa el ancho y, en horizontal, el alto.
+test.describe("EPP: firma en celular", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  const openSignature = async (page: Page) => {
+    await mockGet(page, "/equipments", EQUIPMENTS);
+    await mockGet(page, "/employees", [
+      { id: 9801, code: 501, name: "E2E Colaborador" },
+    ]);
+    await page.goto("/epp");
+    await page.getByRole("button", { name: "Crear registro" }).click();
+    const dialog = page.getByRole("dialog");
+    const [plant] = await sessionPlants(page);
+    await pickOption(page, "Planta", plant.name);
+    await pickOption(page, "Colaborador", "501 - E2E Colaborador");
+    await pickOption(page, "Equipo", "E2E Guantes");
+    await dialog.getByRole("button", { name: "Agregar" }).click();
+    await dialog.getByRole("button", { name: "Firmar" }).click();
+    const signature = page
+      .getByRole("dialog")
+      .filter({ hasText: "Firma del colaborador" });
+    return { dialog, signature, canvas: signature.locator("canvas") };
+  };
+
+  /** Medidas, esquina y peso de la firma guardada (data URL del <img>). */
+  const savedSignature = (preview: Locator) =>
+    preview.evaluate(async (img: HTMLImageElement) => {
+      const image = new Image();
+      image.src = img.currentSrc || img.src;
+      await image.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const context = canvas.getContext("2d")!;
+      context.drawImage(image, 0, 0);
+      const pixels = context.getImageData(
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+      ).data;
+      // Primera fila y columna con trazo: el margen que se dejó alrededor.
+      let top = canvas.height;
+      let left = canvas.width;
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          if (pixels[(y * canvas.width + x) * 4 + 3] > 0) {
+            top = Math.min(top, y);
+            left = Math.min(left, x);
+          }
+        }
+      }
+      return {
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+        corner: Array.from(context.getImageData(0, 0, 1, 1).data),
+        top,
+        left,
+        background: getComputedStyle(img).backgroundColor,
+        bytes: (img.currentSrc || img.src).length,
+      };
+    });
+
+  test("en vertical el lienzo ocupa el ancho en proporción 2.5:1 e invita a girar; la firma se guarda recortada y transparente, y se muestra sobre blanco", async ({
+    page,
+  }) => {
+    const { dialog, signature, canvas } = await openSignature(page);
+
+    await expect(
+      signature.getByText("Gira el teléfono para firmar con más espacio."),
+    ).toBeVisible();
+    const portrait = (await canvas.boundingBox())!;
+    // Antes 300 × 200 px; ahora casi todo el ancho de 390 px.
+    expect(portrait.width).toBeGreaterThan(350);
+    // Alargado, como una línea de firma (antes casi cuadrado): ~2.5:1.
+    const ratio = portrait.width / portrait.height;
+    expect(ratio).toBeGreaterThan(2.3);
+    expect(ratio).toBeLessThan(2.7);
+
+    await sign(page, canvas);
+    await signature.getByRole("button", { name: "Guardar" }).click();
+    const preview = dialog.getByAltText("Firma del colaborador");
+    await expect(preview).toBeVisible();
+
+    const saved = await savedSignature(preview);
+    // Transparente: en el Excel no tapa los bordes de la celda.
+    expect(saved.corner).toEqual([0, 0, 0, 0]);
+    // Recortada al trazo (el trazo mide ~220 × 50 px) con margen de 8 px.
+    expect(saved.width).toBeLessThanOrEqual(600);
+    expect(saved.height).toBeLessThanOrEqual(200);
+    expect(saved.width).toBeLessThan(portrait.width);
+    expect(saved.top).toBeGreaterThanOrEqual(6);
+    expect(saved.left).toBeGreaterThanOrEqual(6);
+    // En pantalla, sobre blanco (se lee también en el tema oscuro).
+    expect(saved.background).toBe("rgb(255, 255, 255)");
+  });
+
+  test.describe("celular de alta densidad", () => {
+    test.use({
+      viewport: { width: 844, height: 390 },
+      deviceScaleFactor: 3,
+    });
+
+    /** Firma trazo por trazo en proporciones del lienzo (0–1). */
+    const drawStrokes = async (
+      page: Page,
+      canvas: Locator,
+      strokes: number[][][],
+    ) => {
+      await canvas.evaluate((element) =>
+        Promise.all(
+          (element.closest(".MuiDialog-root") ?? document)
+            .getAnimations({ subtree: true })
+            .map((animation) => animation.finished.catch(() => undefined)),
+        ),
+      );
+      const box = (await canvas.boundingBox())!;
+      for (const stroke of strokes) {
+        const [first, ...rest] = stroke;
+        await page.mouse.move(
+          box.x + first[0] * box.width,
+          box.y + first[1] * box.height,
+        );
+        await page.mouse.down();
+        for (const [x, y] of rest) {
+          await page.mouse.move(box.x + x * box.width, box.y + y * box.height, {
+            steps: 10,
+          });
+        }
+        await page.mouse.up();
+      }
+    };
+
+    const signAndMeasure = async (page: Page, strokes: number[][][]) => {
+      const { dialog, signature, canvas } = await openSignature(page);
+      await drawStrokes(page, canvas, strokes);
+      await signature.getByRole("button", { name: "Guardar" }).click();
+      return savedSignature(dialog.getByAltText("Firma del colaborador"));
+    };
+
+    test("una firma horizontal normal pesa menos de 30 KB (antes ~100 KB, el límite del API)", async ({
+      page,
+    }) => {
+      const saved = await signAndMeasure(page, [
+        [
+          [0.1, 0.6],
+          [0.2, 0.3],
+          [0.28, 0.7],
+          [0.36, 0.35],
+          [0.45, 0.65],
+        ],
+        [
+          [0.5, 0.5],
+          [0.6, 0.3],
+          [0.7, 0.6],
+          [0.8, 0.35],
+          [0.9, 0.55],
+        ],
+        [
+          [0.15, 0.8],
+          [0.85, 0.78],
+        ],
+      ]);
+      expect(saved.width).toBeLessThanOrEqual(600);
+      expect(saved.height).toBeLessThanOrEqual(200);
+      expect(saved.bytes).toBeLessThan(30_000);
+    });
+
+    test("aun un garabato que llena el recuadro queda con margen bajo el límite", async ({
+      page,
+    }) => {
+      const zigzag = (y: number) =>
+        Array.from({ length: 13 }, (_, step) => [
+          0.03 + (step * 0.94) / 12,
+          y + (step % 2 ? 0.08 : -0.03),
+        ]);
+      const saved = await signAndMeasure(
+        page,
+        [0.12, 0.27, 0.42, 0.57, 0.72, 0.87].map(zigzag),
+      );
+      expect(saved.bytes).toBeLessThan(80_000);
+    });
+  });
+
+  test("en horizontal el lienzo usa casi toda la pantalla y al girar pide firmar de nuevo", async ({
+    page,
+  }) => {
+    const { signature, canvas } = await openSignature(page);
+    await sign(page, canvas);
+    const save = signature.getByRole("button", { name: "Guardar" });
+    await expect(save).toBeEnabled();
+
+    await page.setViewportSize({ width: 844, height: 390 });
+    await expect(
+      signature.getByText("Gira el teléfono para firmar con más espacio."),
+    ).toHaveCount(0);
+    // Al cambiar de tamaño el lienzo se limpia: no se guarda una firma
+    // cortada o deformada.
+    await expect(save).toBeDisabled();
+    const landscape = (await canvas.boundingBox())!;
+    expect(landscape.width).toBeGreaterThan(800);
+    expect(landscape.height).toBeGreaterThan(220);
+
+    await sign(page, canvas);
+    await expect(save).toBeEnabled();
+  });
+
+  test("los equipos agregados se ven en lista, sin tabla ancha", async ({
+    page,
+  }) => {
+    const { dialog } = await openSignature(page);
+    await page
+      .getByRole("dialog")
+      .filter({ hasText: "Firma del colaborador" })
+      .getByRole("button", { name: "Cerrar sin firmar" })
+      .click();
+
+    const items = dialog.getByRole("list", { name: "Equipos a entregar" });
+    await expect(items).toContainText("E2E Guantes");
+    await expect(
+      items.getByRole("button", { name: "Quitar E2E Guantes" }),
+    ).toBeVisible();
+    await expect(dialog.getByRole("table")).toHaveCount(0);
   });
 });

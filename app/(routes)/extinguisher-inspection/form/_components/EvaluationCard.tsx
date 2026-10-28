@@ -9,6 +9,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
+import Alert from "@mui/material/Alert";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableContainer from "@mui/material/TableContainer";
@@ -21,6 +22,7 @@ import {
 } from "@shared/components/TableDefault";
 import {
   LocalEvaluation,
+  OBSERVATIONS_MAX_LENGTH,
   groupedConceptFields,
   groupedConceptLabelMap,
   groupedStatusValues,
@@ -30,6 +32,8 @@ import {
 interface EvaluationCardProps {
   evaluation: LocalEvaluation;
   index: number;
+  // Errores del API de esta evaluación ("Capacidad: debe ser 1 o mayor.").
+  errors?: string[];
   removeEvaluation: (index: number) => void;
   updateNoveltyDraft: (
     index: number,
@@ -44,6 +48,7 @@ interface EvaluationCardProps {
 export const EvaluationCard = ({
   evaluation,
   index,
+  errors,
   removeEvaluation,
   updateNoveltyDraft,
   addNoveltyRecord,
@@ -56,8 +61,29 @@ export const EvaluationCard = ({
       md: 12,
     }}
   >
-    <Paper sx={{ p: 2 }}>
+    <Paper
+      id={`evaluacion-${index}`}
+      component="section"
+      aria-label={`Evaluación del extintor ${evaluation.extinguisherNumber}`}
+      variant="outlined"
+      sx={{ p: 2, ...(errors?.length && { borderColor: "error.main" }) }}
+    >
       <Grid container spacing={2}>
+        {!!errors?.length && (
+          <Grid size={12}>
+            <Alert severity="error">
+              {errors.length === 1 ? (
+                errors[0]
+              ) : (
+                <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                  {errors.map((error) => (
+                    <li key={error}>{error}</li>
+                  ))}
+                </Box>
+              )}
+            </Alert>
+          </Grid>
+        )}
         <Grid size={{ xs: 12, sm: 12, md: 4 }}>
           <Paper
             variant="outlined"
@@ -185,20 +211,19 @@ export const EvaluationCard = ({
                 label="Observaciones generales"
                 fullWidth
                 multiline
-                minRows={6}
+                minRows={3}
                 autoComplete="off"
+                // El API acepta hasta 500 caracteres: se limita aquí y se
+                // muestra cuánto queda.
+                slotProps={{
+                  htmlInput: { maxLength: OBSERVATIONS_MAX_LENGTH },
+                }}
+                helperText={`${evaluation.observations.length} / ${OBSERVATIONS_MAX_LENGTH}`}
                 value={evaluation.observations}
                 onChange={(e) =>
                   updateNoveltyDraft(index, "observations", e.target.value)
                 }
               />
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 12, md: 12 }}>
-              <Typography variant="body2" color="text.secondary">
-                Los conceptos no agregados en la tabla se enviarán como C:
-                CUMPLE.
-              </Typography>
             </Grid>
           </Grid>
         </Grid>
@@ -245,7 +270,7 @@ export const EvaluationCard = ({
 
         <Grid size={{ xs: 12, sm: 12, md: 12 }}>
           <Button
-            variant="contained"
+            variant="outlined"
             color="error"
             startIcon={<DeleteIcon />}
             onClick={() => removeEvaluation(index)}

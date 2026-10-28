@@ -37,7 +37,7 @@ const openWithCamera = async (page: Page, qr: string) => {
 };
 
 const scan = (page: Page) =>
-  page.getByRole("button", { name: "Crear evaluación" }).click();
+  page.getByRole("button", { name: "Agregar evaluación" }).click();
 
 const saveButton = (page: Page) =>
   page.getByRole("button", { name: "Guardar" });
@@ -56,7 +56,12 @@ test.describe("Inspección de extintores", () => {
     );
     await mockGet(page, `/emergency-teams/${TEAM_ID}`, emergencyTeam(plant.id));
 
-    await expect(saveButton(page)).toBeDisabled();
+    // Sin evaluaciones, Guardar marca lo que falta (antes estaba deshabilitado).
+    await saveButton(page).click();
+    await expect(page.locator('[data-error-for="evaluations"]')).toHaveText(
+      "Agrega al menos una evaluación: escanea el QR del extintor.",
+    );
+    expect(writes).toEqual([]);
     await scan(page);
     await expect(
       toast(page, `Equipo #${TEAM_ID} agregado a la inspección`),
@@ -158,7 +163,13 @@ test.describe("Inspección de extintores", () => {
 
     await page.getByRole("button", { name: "Eliminar evaluación" }).click();
     await expect(page.getByText("E2E Pasillo norte")).toHaveCount(0);
-    await expect(saveButton(page)).toBeDisabled();
+    // La fecha sigue en el pasado: es lo primero que se marca, junto al campo.
+    await saveButton(page).click();
+    await expect(
+      page
+        .locator("#contenido")
+        .getByText("La fecha de próxima recarga no puede ser anterior a hoy."),
+    ).toBeVisible();
     expect(writes).toEqual([]);
   });
 
@@ -179,9 +190,7 @@ test.describe("Inspección de extintores", () => {
     ).toBeVisible();
   });
 
-  test("un QR sin número avisa", async ({
-    page,
-  }) => {
+  test("un QR sin número avisa", async ({ page }) => {
     await fakeCamera(page, { qr: "sin-numero" });
     await page.goto("/extinguisher-inspection/form");
     const [plant] = await sessionPlants(page);
@@ -233,9 +242,9 @@ test.describe("Inspección de extintores", () => {
       const [plant] = await sessionPlants(page);
       await pickOption(page, "Planta", plant.name);
       await scan(page);
-      await expect(
-        page.getByRole("dialog").getByRole("alert"),
-      ).toContainText(message);
+      await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
+        message,
+      );
     });
   }
 
@@ -273,7 +282,9 @@ test.describe("Inspección de extintores", () => {
 
     await page.goto("/extinguisher-inspection/form?id=9600");
     await expect(
-      page.getByRole("heading", { name: "Agregar evaluaciones a la inspección" }),
+      page.getByRole("heading", {
+        name: "Agregar evaluaciones a la inspección",
+      }),
     ).toBeVisible();
     await expect(page.getByText("E2E Bodega")).toBeVisible();
     await expect(page.getByRole("cell", { name: "Válvula" })).toBeVisible();
@@ -344,5 +355,144 @@ test.describe("Inspección de extintores", () => {
       toast(page, "No se pueden guardar evaluaciones con IDs o números"),
     ).toBeVisible();
     expect(writes).toEqual([]);
+  });
+
+  test("los errores del API de cada evaluación se muestran en su tarjeta y la fecha en su campo", async ({
+    page,
+  }) => {
+    await page.route("**/api/v1/extinguisher-inspections", (route) =>
+      route.request().method() === "POST"
+        ? route.fulfill({
+            status: 400,
+            json: {
+              statusCode: 400,
+              code: "VALIDATION_FAILED",
+              message:
+                "Revisa 2 campos: Capacidad (renglón 1) y Próxima recarga (renglón 1).",
+              error: "Bad Request",
+              errors: {
+                "evaluations.0.capacity": "Debe ser 1 o mayor.",
+                "evaluations.0.nextRechargeDate": "Fecha no válida.",
+              },
+            },
+          })
+        : route.fallback(),
+    );
+    const plant = await openWithCamera(page, String(TEAM_ID));
+    await mockGet(page, `/emergency-teams/${TEAM_ID}`, emergencyTeam(plant.id));
+    await scan(page);
+    await expect(page.getByText("E2E Pasillo norte")).toBeVisible();
+
+    await saveButton(page).click();
+
+    const card = page.getByRole("region", {
+      name: "Evaluación del extintor E2E-501",
+    });
+    await expect(card.getByRole("alert")).toHaveText(
+      "Capacidad: debe ser 1 o mayor.",
+    );
+    // La fecha es una sola para todas: su error va al campo de arriba.
+    await expect(page.getByText("Fecha no válida.")).toBeVisible();
+    await expect(toast(page, "Revisa los datos")).toBeVisible();
+  });
+
+  test("M1: agregar va arriba de las evaluaciones; Guardar y Cancelar al pie, con Guardar como principal", async ({
+    page,
+  }) => {
+    const plant = await openWithCamera(page, String(TEAM_ID));
+    await mockGet(page, `/emergency-teams/${TEAM_ID}`, emergencyTeam(plant.id));
+    await scan(page);
+    const card = page.getByRole("region", {
+      name: "Evaluación del extintor E2E-501",
+    });
+    await expect(card).toBeVisible();
+
+    const add = (await page
+      .getByRole("button", { name: "Agregar evaluación" })
+      .boundingBox())!;
+    const cardBox = (await card.boundingBox())!;
+    const cancel = (await page
+      .getByRole("button", { name: "Cancelar", exact: true })
+      .boundingBox())!;
+    const save = (await saveButton(page).boundingBox())!;
+
+    expect(add.y).toBeLessThan(cardBox.y);
+    expect(cancel.y).toBeGreaterThan(cardBox.y + cardBox.height);
+    // En escritorio, Guardar a la derecha de Cancelar.
+    expect(save.x).toBeGreaterThan(cancel.x);
+    await expect(saveButton(page)).toHaveClass(/MuiButton-contained/);
+    await expect(
+      page.getByRole("button", { name: "Cancelar", exact: true }),
+    ).toHaveClass(/MuiButton-outlined/);
+
+    // Observaciones con su límite a la vista.
+    const observations = card.getByLabel("Observaciones generales");
+    await observations.fill("x".repeat(520));
+    await expect(observations).toHaveValue("x".repeat(500));
+    await expect(card.getByText("500 / 500")).toBeVisible();
+  });
+
+  test.describe("en celular", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("la lista se ve en tarjetas con sus acciones", async ({ page }) => {
+      await mockGet(
+        page,
+        "/extinguisher-inspections",
+        {
+          data: [
+            {
+              id: 9600,
+              inspectionDate: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
+              manufacturingPlant: { id: 1, name: "E2E Planta" },
+              responsible: { id: 1, name: "E2E Responsable" },
+              createdBy: { id: 1, name: "E2E Autor" },
+              evaluations: [{ id: 1 }, { id: 2 }],
+            },
+          ],
+          count: 1,
+        },
+        { when: (url) => url.searchParams.has("page") },
+      );
+      await page.goto("/extinguisher-inspection");
+
+      await expect(page.getByRole("table")).toHaveCount(0);
+      const card = page
+        .getByRole("list", { name: "Inspecciones de extintores" })
+        .getByRole("listitem");
+      await expect(card).toContainText("Inspección #9600");
+      await expect(card).toContainText("E2E Planta");
+      await expect(card).toContainText("E2E Responsable");
+      await expect(
+        card.getByRole("button", {
+          name: "Descargar Excel de la inspección 9600",
+        }),
+      ).toBeVisible();
+      // Inspección de hoy: se le pueden agregar evaluaciones.
+      await expect(
+        card.getByRole("button", {
+          name: "Agregar evaluaciones a la inspección 9600",
+        }),
+      ).toBeVisible();
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      );
+      expect(overflow).toBeLessThanOrEqual(0);
+    });
+
+    test("sin inspecciones muestra el vacío compartido", async ({ page }) => {
+      await mockGet(
+        page,
+        "/extinguisher-inspections",
+        { data: [], count: 0 },
+        { when: (url) => url.searchParams.has("page") },
+      );
+      await page.goto("/extinguisher-inspection");
+      await expect(page.getByText("Sin registros")).toBeVisible();
+      await expect(
+        page.getByText("No hay inspecciones con los filtros actuales."),
+      ).toBeVisible();
+    });
   });
 });

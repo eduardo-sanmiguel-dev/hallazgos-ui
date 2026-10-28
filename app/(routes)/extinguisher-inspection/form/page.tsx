@@ -2,16 +2,15 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useRouter, useSearchParams } from "next/navigation";
 
 import Grid from "@mui/material/Grid";
-import SaveIcon from "@mui/icons-material/Save";
 import Button from "@mui/material/Button";
 import CloseIcon from "@mui/icons-material/Close";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
-import Divider from "@mui/material/Divider";
+import FormHelperText from "@mui/material/FormHelperText";
 import Typography from "@mui/material/Typography";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -30,9 +29,13 @@ import "dayjs/locale/es";
 
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import PageHeader from "@shared/components/PageHeader";
+import FormSection from "@shared/components/FormSection";
+import FormActions from "@shared/components/FormActions";
+import { useFieldErrors } from "@hooks/useFieldErrors";
 import {
   EmergencyTeamsService,
   ExtinguisherInspectionsService,
+  parseApiError,
 } from "@services";
 import { EvaluationValues } from "@interfaces";
 
@@ -46,8 +49,10 @@ import {
   GroupedConceptKey,
   GroupedConceptStatus,
   LocalEvaluation,
+  evaluationApiErrors,
   getDefaultEvaluationFromEmergencyTeam,
   groupedConceptFields,
+  inspectionApiField,
 } from "./_lib/evaluation";
 import { EvaluationCard } from "./_components/EvaluationCard";
 
@@ -77,6 +82,21 @@ const ExtinguisherInspectionFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Errores junto al campo al intentar guardar (como en el resto de los
+  // formularios); se quitan al cambiar el dato.
+  const { fail, failFromApi, errorOf } = useFieldErrors<
+    "manufacturingPlantId" | "sharedNextRechargeDate" | "evaluations"
+  >(form.manufacturingPlantId, form.sharedNextRechargeDate, form.evaluations);
+  // Errores del API de cada evaluación (evaluations.N.campo), en su tarjeta.
+  // Se quitan en cuanto cambian las evaluaciones.
+  const [evaluationErrors, setEvaluationErrors] = useState<{
+    byIndex: Record<number, string[]>;
+    evaluations: LocalEvaluation[];
+  } | null>(null);
+  const evaluationErrorsOf = (index: number) =>
+    evaluationErrors?.evaluations === form.evaluations
+      ? evaluationErrors.byIndex[index]
+      : undefined;
 
   const mapEvaluationToLocal = (
     evaluation: ExtinguisherInspectionEvaluation,
@@ -512,22 +532,28 @@ const ExtinguisherInspectionFormPage = () => {
 
   const save = () => {
     if (!form.manufacturingPlantId) {
-      toast.error("La planta es requerida");
+      fail("manufacturingPlantId", "Selecciona la planta.");
       return;
     }
 
     if (!form.sharedNextRechargeDate) {
-      toast.error("La fecha de próxima recarga es requerida");
+      fail("sharedNextRechargeDate", "Elige la fecha de próxima recarga.");
       return;
     }
 
     if (dayjs(form.sharedNextRechargeDate).isBefore(today, "day")) {
-      toast.error("La fecha de próxima recarga no puede ser anterior a hoy");
+      fail(
+        "sharedNextRechargeDate",
+        "La fecha de próxima recarga no puede ser anterior a hoy.",
+      );
       return;
     }
 
     if (!form.evaluations.length) {
-      toast.error("Debe agregar al menos una evaluación");
+      fail(
+        "evaluations",
+        "Agrega al menos una evaluación: escanea el QR del extintor.",
+      );
       return;
     }
 
@@ -613,16 +639,20 @@ const ExtinguisherInspectionFormPage = () => {
         );
         cancel();
       })
+      // El aviso lo muestra el interceptor; aquí se marca dónde corregir.
+      .catch((error) => {
+        failFromApi(error, inspectionApiField);
+        const byIndex = evaluationApiErrors(parseApiError(error).fieldErrors);
+        setEvaluationErrors({ byIndex, evaluations: form.evaluations });
+        const first = Object.keys(byIndex)[0];
+        if (first !== undefined) {
+          document
+            .getElementById(`evaluacion-${first}`)
+            ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      })
       .finally(() => setIsLoading(false));
   };
-
-  const isValidateForm = useMemo(
-    () =>
-      !form.manufacturingPlantId ||
-      !form.sharedNextRechargeDate ||
-      !form.evaluations.length,
-    [form],
-  );
 
   return (
     <>
@@ -633,7 +663,7 @@ const ExtinguisherInspectionFormPage = () => {
             : "Nueva inspección de extintores"
         }
       />
-      <Grid container spacing={2}>
+      <FormSection title="Inspección">
         <SelectManufacturingPlantsOwn
           value={form.manufacturingPlantId}
           onChange={(e) =>
@@ -643,6 +673,7 @@ const ExtinguisherInspectionFormPage = () => {
               evaluations: [],
             }))
           }
+          error={errorOf("manufacturingPlantId")}
         />
 
         <Grid
@@ -688,103 +719,69 @@ const ExtinguisherInspectionFormPage = () => {
                 },
                 textField: {
                   fullWidth: true,
+                  id: "campo-sharedNextRechargeDate",
+                  error: !!errorOf("sharedNextRechargeDate"),
+                  helperText:
+                    errorOf("sharedNextRechargeDate") ??
+                    "Aplica a todas las evaluaciones.",
                 },
               }}
             />
           </LocalizationProvider>
         </Grid>
+      </FormSection>
 
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 2,
-          }}
-        >
+      <FormSection
+        title="Evaluaciones"
+        description="Escanea el QR de cada extintor. Los conceptos sin novedad se envían como C: CUMPLE."
+      >
+        {/* M1: agregar va arriba de las evaluaciones; Guardar y Cancelar,
+            al pie, como en el resto de los formularios. */}
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <Button
-            variant="contained"
-            color="primary"
-            size="small"
+            variant="outlined"
             fullWidth
             startIcon={<QrCodeScannerIcon />}
             onClick={openScanner}
-            sx={{ mt: 1, minHeight: 40 }}
+            sx={{ minHeight: 44 }}
           >
-            Crear evaluación
+            Agregar evaluación
           </Button>
+          {errorOf("evaluations") && (
+            <FormHelperText data-error-for="evaluations" error>
+              {errorOf("evaluations")}
+            </FormHelperText>
+          )}
         </Grid>
 
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 2,
-          }}
-        >
-          <Button
-            variant="outlined"
-            size="small"
-            fullWidth
-            startIcon={<CloseIcon />}
-            onClick={cancel}
-            sx={{ mt: 1, minHeight: 40 }}
-          >
-            Cancelar
-          </Button>
-        </Grid>
-
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 2,
-          }}
-        >
-          <Button
-            loading={isLoading}
-            loadingPosition="start"
-            startIcon={<SaveIcon />}
-            variant="contained"
-            color="primary"
-            size="small"
-            fullWidth
-            onClick={save}
-            disabled={isValidateForm || isLoading}
-            sx={{ mt: 1, minHeight: 40 }}
-          >
-            Guardar
-          </Button>
-        </Grid>
-
-        <Grid
-          size={{
-            xs: 12,
-            sm: 12,
-            md: 12,
-          }}
-        >
-          <Divider sx={{ my: 1 }} />
-          <Typography
-            variant="h6"
-            component="h2"
-            sx={{ color: "text.primary", fontWeight: 600 }}
-          >
-            Evaluaciones
-          </Typography>
-        </Grid>
+        {!form.evaluations.length && (
+          <Grid size={12}>
+            <Typography variant="body2" color="text.secondary">
+              Aún no hay evaluaciones.
+            </Typography>
+          </Grid>
+        )}
 
         {form.evaluations.map((evaluation, index) => (
           <EvaluationCard
             key={`evaluation-${evaluation.emergencyTeamId}-${index}`}
             evaluation={evaluation}
             index={index}
+            errors={evaluationErrorsOf(index)}
             removeEvaluation={removeEvaluation}
             updateNoveltyDraft={updateNoveltyDraft}
             addNoveltyRecord={addNoveltyRecord}
             removeNoveltyRecord={removeNoveltyRecord}
           />
         ))}
-      </Grid>
+      </FormSection>
+
+      <FormActions
+        onCancel={cancel}
+        onSave={save}
+        isSaving={isLoading}
+        saveLabel={idCurrent ? "Guardar evaluaciones" : "Guardar"}
+      />
 
       <Dialog
         open={isScannerOpen}

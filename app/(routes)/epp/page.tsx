@@ -37,7 +37,15 @@ export default function EppPage() {
   const {
     rows,
     count,
-    pagination: { page, setPage, rowsPerPage, setRowsPerPage, isFetching },
+    pagination: {
+      page,
+      setPage,
+      rowsPerPage,
+      setRowsPerPage,
+      isFetching,
+      isError,
+      onRetry,
+    },
     isLoading,
     refresh: getData,
   } = usePaginatedList({
@@ -142,6 +150,8 @@ export default function EppPage() {
               setOrderBy(nextOrderBy);
             }}
             onHistoryDeleted={getData}
+            isError={isError}
+            onRetry={onRetry}
           />
         </Grid>
       </Grid>

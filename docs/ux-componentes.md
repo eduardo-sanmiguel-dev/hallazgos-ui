@@ -424,9 +424,77 @@ Service.create(formData, { idempotencyKey: draft.key() })
 - `PhotoCapture` e `ImageORCamera` ganaron `readOnly`: muestran la foto sin
   "Quitar foto" ni los botones para cambiarla.
 
+## 5. Módulo EPP (Fase 4)
+
+Archivos en `app/(routes)/epp/`.
+
+- **Firma (A4):** `DialogSignatureEpp`. Sin `width`/`height` en
+  `canvasProps`, `react-signature-canvas` ajusta el lienzo a su tamaño en
+  pantalla (con la densidad de píxeles del equipo), así que el trazo queda
+  bajo el dedo.
+  - Ancho completo; en celular vertical, proporción 2.5:1 (`aspect-ratio`,
+    como una línea de firma: un recuadro casi cuadrado daba firmas que en el
+    Excel se veían muy chicas) y el aviso "Gira el teléfono para firmar con
+    más espacio". En horizontal (alto ≤ 500 px), casi todo el alto; en
+    escritorio, 320 px.
+  - **En el formato de Excel** (`hallazgos-api/src/epps/epp-signature-image.ts`):
+    las firmas nuevas caben en la celda con su proporción y quedan
+    centradas (desplazamientos en EMU); las anteriores (300 × 200 y 500 × 200
+    px) se estiran a 100 × 25 como siempre.
+  - Trazo de 1.5 a 3.5 px (antes de 0.5 a 2.5). `touch-action: none` evita
+    desplazar la página mientras se firma.
+  - **Lo que se guarda** (`_lib/signatureImage.ts`, `exportSignature`): el
+    lienzo recortado al trazo (`getTrimmedCanvas`), con 8 px de margen
+    transparente y reducido (nunca ampliado) a 600 × 200 px como máximo. Unos
+    20–25 KB; a pantalla completa y densidad 3x pesaba hasta ~100 KB, el
+    límite de cuerpo del API. Transparente para no tapar los bordes de la
+    celda en el formato de Excel.
+  - **Fondo blanco solo al mostrarla:** en el lienzo, la vista previa, la
+    tabla del historial y las tarjetas (con `object-fit: contain`), para que
+    se lea en el tema oscuro.
+  - Al girar o cambiar el tamaño, la librería limpia el lienzo; "Guardar" se
+    vuelve a deshabilitar hasta que haya trazo.
+- **Lista en celular:** `TableEpps` muestra tarjetas (`EppCard`) con nombre,
+  cédula, cargo, área, descarga y "Ver historial", que despliega las entregas
+  como lista (firma, equipo, fecha, quién entregó y eliminar). La tabla y la
+  tarjeta comparten `useEmployeeHistory`. En celular no hay orden por
+  columna; los filtros sí aplican.
+- **Estados:** sin filas, `TableBodyState` ("Sin entregas de EPP" o "Sin
+  resultados") o `ErrorState` con "Reintentar" si la consulta falló.
+- **Entrega:** en celular, los equipos agregados en lista (con "Fuera de la
+  frecuencia de entrega" como `StatusChip`), la vista previa de la firma al
+  ancho disponible y menos margen interior.
+- **Sin borrador local:** la idempotencia y "Reintentar" ya cubren el envío
+  fallido.
+
+## 6. Módulo Inspección de extintores (Fase 4)
+
+Archivos en `app/(routes)/extinguisher-inspection/`.
+
+- **Formulario (M1):** `FormSection` "Inspección" (planta y próxima recarga,
+  que aplica a todas las evaluaciones) y `FormSection` "Evaluaciones", con
+  "Agregar evaluación" (escanear el QR) arriba de las tarjetas y
+  `FormActions` al pie. En edición, el botón dice "Guardar evaluaciones".
+- **Errores:**
+  - Al guardar, `useFieldErrors` marca planta, fecha o "Agrega al menos una
+    evaluación" junto al campo. `SelectManufacturingPlantsOwn` ganó `error`
+    (opcional).
+  - Del API: `inspectionApiField` manda `evaluations.N.nextRechargeDate` (y
+    `maintenanceDate`) al campo de fecha compartido; `evaluationApiErrors`
+    agrupa el resto por evaluación con la etiqueta de la tarjeta
+    ("Capacidad: debe ser 1 o mayor."). La tarjeta muestra la alerta, borde
+    rojo y la página se desplaza a la primera con error.
+- **Teclado:** los datos del extintor vienen del QR y no se escriben; los
+  únicos campos de texto son las observaciones (texto libre, máximo 500
+  caracteres con contador) y la fecha (selector).
+- **Lista:** `ResponsiveTable` (tabla en escritorio, tarjetas en celular)
+  con "Inspección #N · fecha" como título, vacío "Sin registros" y error con
+  "Reintentar". `ResponsiveColumn` ganó `hideInTable` para columnas que solo
+  van en la tarjeta.
+
 ---
 
-## 5. Pendiente para otras fases
+## 7. Pendiente para otras fases
 
 - **Borrador local** en ICS y EPP, si se decide extenderlo.
 - Los borradores de iniciar o cerrar de un hallazgo que ya cambió de estado

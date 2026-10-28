@@ -231,3 +231,54 @@ si deben tenerla.
     con "Reintentar envío" o "Descartar"; el reintento nunca duplica el
     hallazgo. Si ya se había guardado, se avisa "Ya se había guardado
     (hallazgo #N)".
+
+### EPP
+
+- **Sin migraciones, variables ni cambios de nginx.**
+- **API:**
+  - Los mensajes en inglés de entregas y colaboradores ahora están en
+    español: "Colaborador #N no encontrado.", "Entrega de EPP #N no
+    encontrada." y "Puesto #N no encontrado".
+  - **General (todo el API):** un cuerpo de más de 100 KB responde **413**
+    "La información enviada es demasiado grande." y un JSON mal formado,
+    400; antes ambos llegaban como 500 genérico. El límite de 100 KB no
+    cambia.
+- **UI:**
+  - Firma: el lienzo ocupa el ancho de la pantalla y, con el teléfono en
+    horizontal, casi todo el alto. Trazo más grueso.
+  - En celular, la lista de entregas se ve en tarjetas con el historial
+    desplegable, y los equipos agregados en una lista (antes, tablas que se
+    desplazaban de lado).
+  - Vacío y error de la lista con los componentes compartidos ("Reintentar").
+- **Para el cliente:**
+  - Las firmas nuevas se guardan **recortadas al trazo, transparentes y de
+    600 × 200 px como máximo** (unos 20–25 KB; las del lienzo a pantalla
+    completa llegaban a ~100 KB, el límite del API). En pantalla se muestran
+    sobre fondo blanco, también en el tema oscuro. Las firmas anteriores no
+    cambian.
+  - **Formato de Excel:** las firmas nuevas se insertan con **su proporción,
+    centradas en la celda** y sin tapar los bordes. Las anteriores (300 × 200
+    y 500 × 200 px) se siguen estirando a 100 × 25 px como siempre, para que
+    no se vean más chicas que hasta ahora. Revisado exportando el formato a
+    PDF con Excel.
+  - En celular vertical el recuadro para firmar es alargado (2.5:1, como una
+    línea de firma) en lugar de casi cuadrado, y se sigue sugiriendo girar el
+    teléfono para tener más espacio. En horizontal no cambia.
+  - Si se gira el teléfono mientras se firma, el lienzo se limpia y hay que
+    firmar de nuevo (así la firma no se guarda cortada ni deformada).
+
+### Inspección de extintores
+
+- **Sin migraciones, variables ni cambios de nginx.**
+- **API:** solo textos. "Inspección de extintores #N no encontrada" y "Equipo
+  de emergencia #N no encontrado" (antes en inglés). Las etiquetas de los
+  errores de validación dicen "Pasador" y "Manómetro", como en la pantalla.
+- **UI:**
+  - Formulario en dos secciones: "Inspección" (planta y próxima recarga) y
+    "Evaluaciones", con **"Agregar evaluación" arriba** y **Guardar
+    (principal) y Cancelar al pie**, como el resto de los formularios (M1).
+  - "Guardar" ya no está deshabilitado: al tocarlo se marca lo que falta
+    junto al campo. Los errores del API de cada evaluación (por ejemplo, la
+    capacidad del extintor) se muestran en su tarjeta.
+  - Observaciones limitadas a 500 caracteres, con contador.
+  - En celular, la lista de inspecciones se ve en tarjetas.

@@ -20,6 +20,9 @@ import { TableContainer } from "@mui/material";
 import { TableHead } from "@mui/material";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { Box } from "@mui/material";
+import { useMediaQuery } from "@mui/material";
+import type { Theme } from "@mui/material/styles";
 
 import { Transition } from "@routes/hallazgos/_components/EvidencePreview";
 import { EmployeeOption, Equipment, PayloadCreateEpp } from "@interfaces";
@@ -33,6 +36,7 @@ import {
 import DialogSignatureEpp from "./DialogSignatureEpp";
 import { useUserSessionStore } from "@store";
 import { notify } from "@shared/utils";
+import StatusChip from "@shared/components/StatusChip";
 
 const formInitial = {
   employee: "",
@@ -68,6 +72,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [manufacturingPlantId, setManufacturingPlantId] = useState<string>("");
+  const isPhone = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
 
   const manufacturingPlants = useUserSessionStore(
     (state) => state.manufacturingPlants,
@@ -233,7 +238,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
             </Button>
           </Toolbar>
         </AppBar>
-        <Grid container spacing={2} sx={{ p: 5 }}>
+        <Grid container spacing={2} sx={{ p: { xs: 2, sm: 5 } }}>
           <Grid
             size={{
               xs: 12,
@@ -348,11 +353,20 @@ export default function DialogCreateEpp({ open, create }: Props) {
                     }}
                   >
                     {signature ? (
+                      // Al ancho disponible (antes 350 px fijos) y con fondo
+                      // blanco, como se guarda.
                       <Image
                         src={signature}
                         alt="Firma del colaborador"
                         width={350}
                         height={150}
+                        style={{
+                          width: "100%",
+                          maxWidth: 350,
+                          height: "auto",
+                          background: "#fff",
+                          border: "1px solid #ccc",
+                        }}
                       />
                     ) : (
                       <center>
@@ -369,58 +383,118 @@ export default function DialogCreateEpp({ open, create }: Props) {
                       lg: 12,
                     }}
                   >
-                    <TableContainer component={Paper}>
-                      <Table sx={{ minWidth: 650 }} aria-label="simple table">
-                        <TableHead>
-                          <StyledTableRow>
-                            <StyledTableCell>Equipo</StyledTableCell>
-                            <StyledTableCell>Observaciones</StyledTableCell>
-                            <StyledTableCell>
-                              ¿Se debería entregar?
-                            </StyledTableCell>
-                            <StyledTableCell>Eliminar</StyledTableCell>
-                          </StyledTableRow>
-                        </TableHead>
-                        <TableBody>
-                          {equipmentsNew.map((equipment) => (
-                            <StyledTableRow
-                              key={equipment.id}
-                              sx={{
-                                "&:last-child td, &:last-child th": {
-                                  border: 0,
-                                },
-                              }}
-                            >
-                              <StyledTableCell component="th" scope="row">
+                    {/* En celular, lista: la tabla de 650 px obligaba a
+                        desplazarse de lado para quitar un equipo. */}
+                    {isPhone ? (
+                      <Stack
+                        component="ul"
+                        spacing={1}
+                        aria-label="Equipos a entregar"
+                        sx={{ listStyle: "none", m: 0, p: 0 }}
+                      >
+                        {equipmentsNew.map((equipment) => (
+                          <Paper
+                            key={equipment.id}
+                            component="li"
+                            variant="outlined"
+                            sx={{
+                              p: 1.5,
+                              display: "flex",
+                              gap: 1,
+                              alignItems: "center",
+                            }}
+                          >
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography sx={{ fontWeight: 600 }}>
                                 {equipment.name}
-                              </StyledTableCell>
+                              </Typography>
+                              {equipment.observations && (
+                                <Typography variant="body2">
+                                  {equipment.observations}
+                                </Typography>
+                              )}
+                              {equipment.notCanDeliver && (
+                                <StatusChip
+                                  label="Fuera de la frecuencia de entrega"
+                                  tone="warning"
+                                  size="small"
+                                  sx={{ mt: 0.5 }}
+                                />
+                              )}
+                            </Box>
+                            <IconButton
+                              color="error"
+                              aria-label={`Quitar ${equipment.name}`}
+                              onClick={() =>
+                                setEquipmentsNew(
+                                  equipmentsNew.filter(
+                                    (eq) => eq.id !== equipment.id,
+                                  ),
+                                )
+                              }
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Paper>
+                        ))}
+                      </Stack>
+                    ) : (
+                      <TableContainer component={Paper}>
+                        <Table
+                          sx={{ minWidth: 650 }}
+                          aria-label="Equipos a entregar"
+                        >
+                          <TableHead>
+                            <StyledTableRow>
+                              <StyledTableCell>Equipo</StyledTableCell>
+                              <StyledTableCell>Observaciones</StyledTableCell>
                               <StyledTableCell>
-                                {equipment.observations}
+                                ¿Se debería entregar?
                               </StyledTableCell>
-                              <StyledTableCell>
-                                {!equipment.notCanDeliver ? "Sí" : "No"}
-                              </StyledTableCell>
-                              <StyledTableCell>
-                                <Button
-                                  color="error"
-                                  variant="contained"
-                                  aria-label={`Quitar ${equipment.name}`}
-                                  onClick={() =>
-                                    setEquipmentsNew(
-                                      equipmentsNew.filter(
-                                        (eq) => eq.id !== equipment.id,
-                                      ),
-                                    )
-                                  }
-                                >
-                                  <DeleteIcon />
-                                </Button>
-                              </StyledTableCell>
+                              <StyledTableCell>Eliminar</StyledTableCell>
                             </StyledTableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
+                          </TableHead>
+                          <TableBody>
+                            {equipmentsNew.map((equipment) => (
+                              <StyledTableRow
+                                key={equipment.id}
+                                sx={{
+                                  "&:last-child td, &:last-child th": {
+                                    border: 0,
+                                  },
+                                }}
+                              >
+                                <StyledTableCell component="th" scope="row">
+                                  {equipment.name}
+                                </StyledTableCell>
+                                <StyledTableCell>
+                                  {equipment.observations}
+                                </StyledTableCell>
+                                <StyledTableCell>
+                                  {!equipment.notCanDeliver ? "Sí" : "No"}
+                                </StyledTableCell>
+                                <StyledTableCell>
+                                  <Button
+                                    color="error"
+                                    variant="contained"
+                                    aria-label={`Quitar ${equipment.name}`}
+                                    onClick={() =>
+                                      setEquipmentsNew(
+                                        equipmentsNew.filter(
+                                          (eq) => eq.id !== equipment.id,
+                                        ),
+                                      )
+                                    }
+                                  >
+                                    <DeleteIcon />
+                                  </Button>
+                                </StyledTableCell>
+                              </StyledTableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    )}
                   </Grid>
                 </>
               )}

@@ -26,6 +26,8 @@ export interface ResponsiveColumn<T> {
   // "subtitle" (debajo del título), "field" (etiqueta: valor; por omisión) u
   // "hidden" (solo en la tabla).
   card?: "title" | "subtitle" | "field" | "hidden";
+  // Solo en la tarjeta (p. ej. un título que resume varias columnas).
+  hideInTable?: boolean;
   // Primera columna como encabezado de fila (`<th scope="row">`).
   rowHeader?: boolean;
   cellSx?: SxProps<Theme>;
@@ -60,11 +62,12 @@ export default function ResponsiveTable<T>({
   const isPhone = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
 
   if (!isPhone) {
+    const tableColumns = columns.filter((column) => !column.hideInTable);
     return (
       <TableDefaultServer
         rows={rows}
         columns={[
-          ...columns.map((column) => column.header),
+          ...tableColumns.map((column) => column.header),
           ...(actions ? [ACTIONS_HEADER] : []),
         ]}
         {...pagination}
@@ -73,7 +76,7 @@ export default function ResponsiveTable<T>({
         emptyDescription={emptyDescription}
         paintRows={(row: T) => (
           <StyledTableRow key={getRowKey(row)}>
-            {columns.map((column) => (
+            {tableColumns.map((column) => (
               <StyledTableCell
                 key={column.id}
                 {...(column.rowHeader && { component: "th", scope: "row" })}

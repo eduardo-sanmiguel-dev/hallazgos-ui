@@ -100,3 +100,52 @@ export const getDefaultEvaluationFromEmergencyTeam = (
   newNoveltyConcept: "",
   newNoveltyStatus: "",
 });
+
+// Límite del API para las observaciones de cada evaluación.
+export const OBSERVATIONS_MAX_LENGTH = 500;
+
+// Etiquetas de los campos de una evaluación, como se ven en la tarjeta.
+const evaluationFieldLabels: Record<string, string> = {
+  location: "Ubicación",
+  extinguisherNumber: "N. Extintor",
+  typeOfExtinguisher: "Tipo",
+  capacity: "Capacidad",
+  observations: "Observaciones generales",
+  ...groupedConceptLabelMap,
+};
+
+// La fecha de próxima recarga es una sola para toda la inspección: sus
+// errores van al campo de arriba, no a cada evaluación.
+const SHARED_DATE_FIELDS = ["nextRechargeDate", "maintenanceDate"];
+
+const EVALUATION_PATH = /^evaluations\.(\d+)\.(\w+)$/;
+
+/**
+ * Ruta de un error del API → campo del formulario (useFieldErrors). Los de
+ * cada evaluación (`evaluations.0.capacity`) se muestran en su tarjeta con
+ * evaluationApiErrors, así que aquí quedan fuera (null).
+ */
+export const inspectionApiField = (path: string) => {
+  const match = path.match(EVALUATION_PATH);
+  if (!match) return path === "evaluations" ? "evaluations" : path;
+  return SHARED_DATE_FIELDS.includes(match[2])
+    ? "sharedNextRechargeDate"
+    : null;
+};
+
+/**
+ * Errores del API por evaluación (índice en el formulario), con la etiqueta
+ * del campo: "Capacidad: debe ser 1 o mayor.". El orden de las evaluaciones
+ * del envío es el del formulario.
+ */
+export const evaluationApiErrors = (fieldErrors: Record<string, string>) => {
+  const byEvaluation: Record<number, string[]> = {};
+  for (const [path, message] of Object.entries(fieldErrors)) {
+    const match = path.match(EVALUATION_PATH);
+    if (!match || SHARED_DATE_FIELDS.includes(match[2])) continue;
+    const label = evaluationFieldLabels[match[2]] ?? match[2];
+    const text = message.charAt(0).toLowerCase() + message.slice(1);
+    (byEvaluation[Number(match[1])] ??= []).push(`${label}: ${text}`);
+  }
+  return byEvaluation;
+};
