@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useTheme } from "@mui/material/styles";
 import { Typography } from "@mui/material";
@@ -6,7 +6,6 @@ import { Grid } from "@mui/material";
 import { Divider } from "@mui/material";
 import { Stack } from "@mui/material";
 import { Paper } from "@mui/material";
-import { Chip } from "@mui/material";
 import { Box } from "@mui/material";
 
 import {
@@ -15,16 +14,13 @@ import {
   updatedDateLabel,
 } from "@shared/utils";
 import {
-  STATUS_CLOSED,
-  STATUS_IN_PROGRESS,
-  STATUS_OPEN,
-} from "@shared/constants";
-import {
-  formatDayLabel,
+  getDeadline,
   getPriorityLabel,
-  getRemainingDays,
-  getResolutionDays,
+  getPriorityRiskLevel,
 } from "@routes/hallazgos/_constants/priorityOptions";
+import StatusChip, { EvidenceStatusChip } from "@shared/components/StatusChip";
+import { riskLevelTone } from "@shared/constants/semanticTones";
+import EvidenceDeadline from "./EvidenceDeadline";
 import TabsImageAndLogs from "./TabsImageAndLogs";
 import { EvidenceGraphql } from "@hooks";
 import { requiresPhotoEvidence } from "@routes/hallazgos/_constants/mainTypes";
@@ -56,26 +52,10 @@ export default function DetailsTabs({
     setIsUnsafeBehavior(!requiresPhotoEvidence(evidenceCurrent.mainType));
   }, [evidenceCurrent]);
 
-  const statusColor = useMemo(() => {
-    if (evidenceCurrent.status === STATUS_OPEN) return "warning" as const;
-    if (evidenceCurrent.status === STATUS_CLOSED) return "success" as const;
-    if (evidenceCurrent.status === STATUS_IN_PROGRESS) return "info" as const;
-    return "error" as const;
-  }, [evidenceCurrent.status]);
-
   const priorityLabel = getPriorityLabel(evidenceCurrent.priorityDays);
-  const remainingDays = getRemainingDays(
-    evidenceCurrent.createdAt,
-    evidenceCurrent.priorityDays,
-  );
-  const resolution =
-    evidenceCurrent.status === STATUS_CLOSED
-      ? getResolutionDays(
-          evidenceCurrent.createdAt,
-          evidenceCurrent.solutionDate,
-          evidenceCurrent.priorityDays,
-        )
-      : null;
+  const riskLevel = getPriorityRiskLevel(evidenceCurrent.priorityDays);
+  // Mismo plazo y tonos que la tabla y las tarjetas.
+  const deadline = getDeadline(evidenceCurrent);
 
   const responsiblesLabel =
     evidenceCurrent.responsibles.length > 0
@@ -124,15 +104,14 @@ export default function DetailsTabs({
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 Detalle del hallazgo
               </Typography>
-              <Chip
-                label={evidenceCurrent.status}
-                color={statusColor}
+              <EvidenceStatusChip
+                status={evidenceCurrent.status}
                 size="small"
               />
               {!withImages && (
-                <Chip
+                <StatusChip
                   label="Sin evidencia fotográfica"
-                  color="warning"
+                  tone="warning"
                   size="small"
                   variant="outlined"
                 />
@@ -207,41 +186,21 @@ export default function DetailsTabs({
             {priorityLabel !== "Sin prioridad" && (
               <Box>
                 <Typography sx={rowLabelSx}>Prioridad</Typography>
-                <Typography variant="body2">{priorityLabel}</Typography>
+                {/* Con el tono de su nivel de riesgo, como en el dashboard. */}
+                <StatusChip
+                  label={priorityLabel}
+                  tone={riskLevel ? riskLevelTone(riskLevel) : "default"}
+                  size="small"
+                  variant="outlined"
+                />
               </Box>
             )}
-            {evidenceCurrent.status !== STATUS_CLOSED &&
-              remainingDays !== "N/A" && (
-                <Box>
-                  <Typography sx={rowLabelSx}>
-                    Tiempo restante (días)
-                  </Typography>
-                  <Typography variant="body2">{remainingDays}</Typography>
-                </Box>
-              )}
-            {resolution && (
+            {deadline && (
               <Box>
-                <Typography sx={rowLabelSx}>Resuelto en</Typography>
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  sx={{ alignItems: "center", flexWrap: "wrap" }}
-                >
-                  <Typography variant="body2">
-                    {formatDayLabel(resolution.days)}
-                  </Typography>
-                  {resolution.isOnTime !== null && (
-                    <Chip
-                      label={
-                        resolution.isOnTime
-                          ? "En tiempo"
-                          : `Fuera de tiempo (${formatDayLabel(resolution.daysLate)})`
-                      }
-                      color={resolution.isOnTime ? "success" : "error"}
-                      size="small"
-                    />
-                  )}
-                </Stack>
+                <Typography sx={rowLabelSx}>
+                  {deadline.state === "resolved" ? "Resolución" : "Plazo"}
+                </Typography>
+                <EvidenceDeadline deadline={deadline} />
               </Box>
             )}
             <Box>

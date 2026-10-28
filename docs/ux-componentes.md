@@ -79,8 +79,7 @@ Nombres de la paleta de MUI (`success`, `warning`, `info`, `error`,
 - El color nunca va solo: siempre hay texto, y en estatus de hallazgo también
   ícono.
 - Acepta las props de `Chip` (menos `color`, que se reemplaza por `tone`).
-- Ya se usa en la tabla de hallazgos. Pendiente: `DetailsEvidence` (tiene
-  cambios sin commit; no se tocó).
+- Se usa en la tabla, las tarjetas de celular y el detalle de hallazgos.
 
 ### `PhotoCapture`
 
@@ -121,9 +120,8 @@ Service.create(formData, { onUploadProgress: upload.onUploadProgress })
 
 `ImageORCamera` quedó como envoltorio de `PhotoCapture` con su interfaz de
 siempre, así que hallazgos (crear, iniciar, cerrar) e ICS ya usan la cámara
-nativa. El progreso de subida está conectado en ICS e "Iniciar proceso";
-falta en crear y cerrar hallazgo (archivos con cambios sin commit; se hará en
-la Fase 4).
+nativa. El progreso de subida está conectado en ICS y en crear, iniciar y
+cerrar hallazgo.
 
 Los servicios `EvidencesService.create`, `.solution`, `.processStart` e
 `IcsService.create` aceptan `{ onUploadProgress }` como último parámetro
@@ -334,8 +332,45 @@ el alcance. Cancelar, reasignar y comentar usan una clave por llamada (cubre
 
 ---
 
-## 4. Pendiente para otras fases
+## 4. Módulo Hallazgos (Fase 4)
 
-- **Hallazgos (Fase 4):** tarjetas en celular con `ResponsiveTable` o una
-  lista propia, diálogos a pantalla completa, `StatusChip` en el detalle y
-  progreso de subida al crear y cerrar.
+Archivos en `app/(routes)/hallazgos/`.
+
+- **Tarjetas en celular (C1):** `_components/EvidenceCards.tsx`. En celular
+  (< 600 px) la tabla se cambia por tarjetas con ID, estatus
+  (`EvidenceStatusChip`), tipo, lugar (con su zona), responsable y plazo.
+  La acción principal va a la vista: **Iniciar** si el hallazgo está abierto
+  y el usuario puede iniciarlo; si no, **Cerrar** si puede cerrarlo. El
+  resto (ver detalles, cerrar, reasignar, cancelar) está en "Más acciones".
+  Tocar la tarjeta abre el detalle.
+- **Reglas de acciones en un solo lugar:** `useEvidenceActions`
+  (`canStart`, `canClose`, `canReassign`, `canCancel`). Son las mismas que
+  tenía el menú de la tabla; la tabla y las tarjetas las usan. El API sigue
+  validando cada acción.
+- **Plazo:** `getDeadline` (en `_constants/priorityOptions.ts`) y
+  `EvidenceDeadline`: "Quedan N días" o "Vence hoy", "Vencido" (rojo) con
+  hace cuántos días, o "Resuelto en N días" con "En tiempo" / "Fuera de
+  tiempo". Misma regla y tonos que la tabla. `getPriorityRiskLevel` da el
+  nivel de riesgo para el tono del chip de prioridad en el detalle.
+- **Iniciar y cerrar (C4):** a pantalla completa en celular, título con el
+  número ("Iniciar hallazgo #N", "Cerrar hallazgo #N") y progreso de subida.
+  La confirmación de cierre se cierra al aceptar, para que se vea el progreso
+  (antes su spinner lo tapaba). La descripción de la solución ya no aparece en
+  rojo al abrir.
+- **Nuevo hallazgo (A5):**
+  - Sin rojo al abrir. "Crear hallazgo" siempre está activo: al tocarlo se
+    marca el primer campo que falta (`useFieldErrors`) y recibe el foco. Antes
+    el botón quedaba deshabilitado sin decir qué faltaba.
+  - Recuerda la última planta y el último lugar con los que el usuario creó un
+    hallazgo en ese dispositivo (`_constants/lastLocation.ts`, `localStorage`
+    por id de usuario). Solo se proponen si la planta sigue asignada al
+    usuario y el lugar es de esa planta.
+  - Descripción con contorno, como el resto de los campos (M8).
+  - Progreso de subida y errores del API marcados en su campo.
+
+---
+
+## 5. Pendiente para otras fases
+
+- **Hallazgos:** borrador local (C3, opción A), pendiente de aprobar el
+  diseño.

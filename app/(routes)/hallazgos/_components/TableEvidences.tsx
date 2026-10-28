@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 
 import { Menu } from "@mui/material";
 import { MenuItem } from "@mui/material";
@@ -13,6 +13,8 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutlineOutlined";
 import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
 import IconButton from "@mui/material/IconButton";
+import { useMediaQuery } from "@mui/material";
+import type { Theme } from "@mui/material/styles";
 
 import {
   durantionToTime,
@@ -24,19 +26,13 @@ import {
   StyledTableCell,
   StyledTableRow,
 } from "@shared/components/TableDefault";
-import {
-  ROLE_ADMINISTRADOR,
-  ROLE_SUPERVISOR,
-  STATUS_CLOSED,
-  STATUS_IN_PROGRESS,
-  STATUS_OPEN,
-} from "@shared/constants";
+import { STATUS_CLOSED } from "@shared/constants";
 import EvidencePreview from "./EvidencePreview";
 import CloseEvidence from "./CloseEvidence";
 import StartProcessEvidence from "./StartProcessEvidence";
 import ReassignResponsiblesEvidence from "./ReassignResponsiblesEvidence";
-import { useUserSessionStore } from "@store";
-import { useShallow } from "zustand/shallow";
+import EvidenceCards, { responsiblesLabel } from "./EvidenceCards";
+import { useEvidenceActions } from "./useEvidenceActions";
 import { EvidencesService } from "@services";
 import { EvidenceGraphql } from "@hooks";
 import TableDefaultServer from "@shared/components/TableDefaultServer";
@@ -92,35 +88,12 @@ export default function TableEvidences({
   const [idRowProcess, setIdRowProcess] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const { confirm, confirmDialog } = useConfirmDialog();
-  const [supervisorOverrideEmails, setSupervisorOverrideEmails] = useState<
-    string[]
-  >([]);
-  const [cancelEvidenceEmails, setCancelEvidenceEmails] = useState<string[]>(
-    [],
-  );
   const [evidenceReassignCurrent, setEvidenceReassignCurrent] =
     useState<EvidenceGraphql | null>(null);
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [menuRowId, setMenuRowId] = useState<number | null>(null);
-  const { userId, role, email } = useUserSessionStore(
-    useShallow((state) => ({
-      userId: state.id,
-      role: state.role,
-      email: state.email,
-    })),
-  );
-
-  useEffect(() => {
-    EvidencesService.getPermissionsConfig()
-      .then((config) => {
-        setSupervisorOverrideEmails(config.supervisorOverrideEmails || []);
-        setCancelEvidenceEmails(config.cancelEvidenceEmails || []);
-      })
-      .catch(() => {
-        setSupervisorOverrideEmails([]);
-        setCancelEvidenceEmails([]);
-      });
-  }, []);
+  const actions = useEvidenceActions();
+  const isPhone = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
 
   const removeEvidence = (id: number) => {
     setIsLoading(true);
@@ -144,27 +117,7 @@ export default function TableEvidences({
     });
   };
 
-  // Cerrado y Cancelado son finales: el API responde 409 a cerrar, cancelar o
-  // reasignar fuera de Abierto / En progreso.
-  const isActiveStatus = (row: EvidenceGraphql) =>
-    row.status === STATUS_OPEN || row.status === STATUS_IN_PROGRESS;
-
-  // !Atention: Force close evidence if the user is a supervisor
-  const validateSupervisor = (row: EvidenceGraphql) => {
-    if (supervisorOverrideEmails.includes(email)) {
-      return true;
-    }
-    return (
-      isActiveStatus(row) &&
-      role === ROLE_SUPERVISOR &&
-      (row.supervisors
-        .map((supervisor) => Number(supervisor.id))
-        .includes(userId) ||
-        row.responsibles
-          .map((responsible) => Number(responsible.id))
-          .includes(userId))
-    );
-  };
+  const isActiveStatus = actions.isActive;
 
   const openActionsMenu = (
     event: React.MouseEvent<HTMLButtonElement>,
@@ -177,26 +130,6 @@ export default function TableEvidences({
   const closeActionsMenu = () => {
     setMenuAnchorEl(null);
     setMenuRowId(null);
-  };
-
-  const canReassignEvidence = (row: EvidenceGraphql) => {
-    if (role === ROLE_ADMINISTRADOR) {
-      return true;
-    }
-
-    if (supervisorOverrideEmails.includes(email)) {
-      return true;
-    }
-
-    const isSupervisorAssigned = row.supervisors.some(
-      (supervisor) => Number(supervisor.id) === Number(userId),
-    );
-
-    const isResponsibleAssigned = row.responsibles.some(
-      (responsible) => Number(responsible.id) === Number(userId),
-    );
-
-    return isSupervisorAssigned || isResponsibleAssigned;
   };
 
   return (
@@ -227,6 +160,8 @@ export default function TableEvidences({
       )}
 
       <StartProcessEvidence
+        // Por hallazgo: sin key, la foto elegida para uno seguía al abrir otro.
+        key={idRowProcess}
         isOpen={!!idRowProcess}
         idRow={idRowProcess}
         handleClose={(refresh) => {
@@ -248,366 +183,372 @@ export default function TableEvidences({
         }}
       />
 
-      <TableDefaultServer
-        rows={rows}
-        columns={columns}
-        paintRows={(row: EvidenceGraphql) => (
-          <StyledTableRow
-            key={row.id}
-            hover
-            sx={{ cursor: "pointer" }}
-            // RUM mostraba clics "muertos" en las filas: se esperaba que
-            // abrieran el detalle. Se ignoran los clics en controles propios
-            // (chip, menú de acciones y sus portales) y al seleccionar texto.
-            onClick={(event) => {
-              const target = event.target as HTMLElement;
-              if (!event.currentTarget.contains(target)) return;
-              if (target.closest("button, a, input, [role='button']")) return;
-              if (window.getSelection()?.toString()) return;
-              setEvidenceCurrent(row);
-            }}
-          >
-            <StyledTableCell
-              component="th"
-              scope="row"
-              sx={{
-                width: 70,
-                minWidth: 70,
-                maxWidth: 70,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
+      {isPhone ? (
+        <EvidenceCards
+          rows={rows}
+          actions={actions}
+          onDetails={(row) => setEvidenceCurrent(row)}
+          onStart={(row) => setIdRowProcess(row.id)}
+          onClose={(row) => {
+            setIdRow(row.id);
+            setEvidenceCurrent(row);
+          }}
+          onReassign={(row) => setEvidenceReassignCurrent(row)}
+          onCancel={(row) => confirmRemoveEvidence(row)}
+          isBusy={isLoading}
+          page={page}
+          setPage={setPage}
+          rowsPerPage={rowsPerPage}
+          setRowsPerPage={setRowsPerPage}
+          count={countEvidence}
+        />
+      ) : (
+        <TableDefaultServer
+          rows={rows}
+          columns={columns}
+          paintRows={(row: EvidenceGraphql) => (
+            <StyledTableRow
+              key={row.id}
+              hover
+              sx={{ cursor: "pointer" }}
+              // RUM mostraba clics "muertos" en las filas: se esperaba que
+              // abrieran el detalle. Se ignoran los clics en controles propios
+              // (chip, menú de acciones y sus portales) y al seleccionar texto.
+              onClick={(event) => {
+                const target = event.target as HTMLElement;
+                if (!event.currentTarget.contains(target)) return;
+                if (target.closest("button, a, input, [role='button']")) return;
+                if (window.getSelection()?.toString()) return;
+                setEvidenceCurrent(row);
               }}
             >
-              {row.id}
-            </StyledTableCell>
-            <StyledTableCell
-              sx={{
-                width: 120,
-                minWidth: 120,
-                maxWidth: 120,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-              title={row.manufacturingPlant.name}
-            >
-              {row.manufacturingPlant.name}
-            </StyledTableCell>
-            <StyledTableCell
-              sx={{
-                width: 120,
-                minWidth: 120,
-                maxWidth: 120,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-              title={row.mainType.name}
-            >
-              {row.mainType.name}
-            </StyledTableCell>
-            <StyledTableCell
-              sx={{
-                width: 120,
-                minWidth: 120,
-                maxWidth: 120,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-              title={row.secondaryType.name}
-            >
-              {row.secondaryType.name}
-            </StyledTableCell>
-            <StyledTableCell
-              sx={{
-                width: 120,
-                minWidth: 120,
-                maxWidth: 120,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-              title={row.zone.area?.name || "Sin zona"}
-            >
-              {row.zone.area?.name || "Sin zona"}
-            </StyledTableCell>
-            <StyledTableCell
-              sx={{
-                width: 120,
-                minWidth: 120,
-                maxWidth: 120,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-              title={row.zone.name}
-            >
-              {row.zone.name}
-            </StyledTableCell>
-            <StyledTableCell
-              sx={{
-                width: 120,
-                minWidth: 120,
-                maxWidth: 120,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-              title={row.process?.name}
-            >
-              {row.process?.name}
-            </StyledTableCell>
-            <StyledTableCell>{row.user.name}</StyledTableCell>
-            <StyledTableCell
-              sx={{
-                width: 120,
-                minWidth: 120,
-                maxWidth: 120,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-              title={
-                row.responsibles.length > 0
-                  ? row.responsibles
-                      .map((responsible) => responsible.name)
-                      .join(", ")
-                  : row.supervisors
-                      .map((supervisor) => supervisor.name)
-                      .join(", ")
-              }
-            >
-              {row.responsibles.length > 0
-                ? row.responsibles
-                    .map((responsible) => responsible.name)
-                    .join(", ")
-                : row.supervisors
-                    .map((supervisor) => supervisor.name)
-                    .join(", ")}
-            </StyledTableCell>
-            <StyledTableCell>
-              <EvidenceStatusChip
-                status={row.status}
-                onClick={() => setEvidenceCurrent(row)}
-                clickable
-              />
-            </StyledTableCell>
-            <StyledTableCell
-              sx={{
-                minWidth: 180,
-                width: 180,
-                maxWidth: 220,
-              }}
-            >
-              <Stack
-                spacing={0.4}
+              <StyledTableCell
+                component="th"
+                scope="row"
                 sx={{
-                  alignItems: "flex-start",
-                  "& > span": {
-                    whiteSpace: "nowrap",
-                    lineHeight: 1.35,
-                  },
+                  width: 70,
+                  minWidth: 70,
+                  maxWidth: 70,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
                 }}
               >
-                {(() => {
-                  const priorityLabel = getPriorityLabel(row.priorityDays);
+                {row.id}
+              </StyledTableCell>
+              <StyledTableCell
+                sx={{
+                  width: 120,
+                  minWidth: 120,
+                  maxWidth: 120,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+                title={row.manufacturingPlant.name}
+              >
+                {row.manufacturingPlant.name}
+              </StyledTableCell>
+              <StyledTableCell
+                sx={{
+                  width: 120,
+                  minWidth: 120,
+                  maxWidth: 120,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+                title={row.mainType.name}
+              >
+                {row.mainType.name}
+              </StyledTableCell>
+              <StyledTableCell
+                sx={{
+                  width: 120,
+                  minWidth: 120,
+                  maxWidth: 120,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+                title={row.secondaryType.name}
+              >
+                {row.secondaryType.name}
+              </StyledTableCell>
+              <StyledTableCell
+                sx={{
+                  width: 120,
+                  minWidth: 120,
+                  maxWidth: 120,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+                title={row.zone.area?.name || "Sin zona"}
+              >
+                {row.zone.area?.name || "Sin zona"}
+              </StyledTableCell>
+              <StyledTableCell
+                sx={{
+                  width: 120,
+                  minWidth: 120,
+                  maxWidth: 120,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+                title={row.zone.name}
+              >
+                {row.zone.name}
+              </StyledTableCell>
+              <StyledTableCell
+                sx={{
+                  width: 120,
+                  minWidth: 120,
+                  maxWidth: 120,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+                title={row.process?.name}
+              >
+                {row.process?.name}
+              </StyledTableCell>
+              <StyledTableCell>{row.user.name}</StyledTableCell>
+              <StyledTableCell
+                sx={{
+                  width: 120,
+                  minWidth: 120,
+                  maxWidth: 120,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+                title={responsiblesLabel(row)}
+              >
+                {responsiblesLabel(row)}
+              </StyledTableCell>
+              <StyledTableCell>
+                <EvidenceStatusChip
+                  status={row.status}
+                  onClick={() => setEvidenceCurrent(row)}
+                  clickable
+                />
+              </StyledTableCell>
+              <StyledTableCell
+                sx={{
+                  minWidth: 180,
+                  width: 180,
+                  maxWidth: 220,
+                }}
+              >
+                <Stack
+                  spacing={0.4}
+                  sx={{
+                    alignItems: "flex-start",
+                    "& > span": {
+                      whiteSpace: "nowrap",
+                      lineHeight: 1.35,
+                    },
+                  }}
+                >
+                  {(() => {
+                    const priorityLabel = getPriorityLabel(row.priorityDays);
 
-                  if (priorityLabel === "Sin prioridad") {
-                    return null;
-                  }
+                    if (priorityLabel === "Sin prioridad") {
+                      return null;
+                    }
 
-                  return (
-                    <span>
-                      <b>Prioridad:</b> {priorityLabel}
-                    </span>
-                  );
-                })()}
-                {(() => {
-                  if (row.status === STATUS_CLOSED) {
-                    return null;
-                  }
-
-                  const remainingDays = getRemainingDays(
-                    row.createdAt,
-                    row.priorityDays,
-                  );
-                  const remainingDaysNumber = Number(remainingDays);
-
-                  if (remainingDays === "N/A") {
-                    return null;
-                  }
-
-                  if (!Number.isNaN(remainingDaysNumber)) {
                     return (
                       <span>
-                        <b>Tiempo restante:</b>{" "}
-                        {formatDayLabel(remainingDaysNumber)}
+                        <b>Prioridad:</b> {priorityLabel}
                       </span>
                     );
-                  }
+                  })()}
+                  {(() => {
+                    if (row.status === STATUS_CLOSED) {
+                      return null;
+                    }
 
-                  return (
-                    <span>
-                      <b>Tiempo restante:</b> {remainingDays}
-                    </span>
-                  );
-                })()}
-                {(() => {
-                  if (row.status === STATUS_CLOSED) {
-                    return null;
-                  }
-
-                  const remainingDays = getRemainingDays(
-                    row.createdAt,
-                    row.priorityDays,
-                  );
-                  const remainingDaysNumber = Number(remainingDays);
-
-                  if (
-                    remainingDays !== "N/A" &&
-                    !Number.isNaN(remainingDaysNumber) &&
-                    remainingDaysNumber < 0
-                  ) {
-                    return (
-                      <StatusChip
-                        label="Vencido"
-                        tone={DEADLINE_TONE.overdue}
-                        size="small"
-                        sx={{ mt: 0.25 }}
-                      />
+                    const remainingDays = getRemainingDays(
+                      row.createdAt,
+                      row.priorityDays,
                     );
-                  }
+                    const remainingDaysNumber = Number(remainingDays);
 
-                  return null;
-                })()}
-                {(() => {
-                  if (row.status !== STATUS_CLOSED) {
-                    return null;
-                  }
+                    if (remainingDays === "N/A") {
+                      return null;
+                    }
 
-                  const resolution = getResolutionDays(
-                    row.createdAt,
-                    row.solutionDate,
-                    row.priorityDays,
-                  );
-                  // Tiempo exacto (antes solo en el menú de acciones).
-                  const duration = durantionToTime(row);
-
-                  return (
-                    <>
-                      {resolution && (
+                    if (!Number.isNaN(remainingDaysNumber)) {
+                      return (
                         <span>
-                          <b>Resuelto en:</b> {formatDayLabel(resolution.days)}
+                          <b>Tiempo restante:</b>{" "}
+                          {formatDayLabel(remainingDaysNumber)}
                         </span>
-                      )}
-                      {duration && (
-                        <span>
-                          <b>Duración:</b> {duration}
-                        </span>
-                      )}
-                      {resolution && resolution.isOnTime !== null && (
+                      );
+                    }
+
+                    return (
+                      <span>
+                        <b>Tiempo restante:</b> {remainingDays}
+                      </span>
+                    );
+                  })()}
+                  {(() => {
+                    if (row.status === STATUS_CLOSED) {
+                      return null;
+                    }
+
+                    const remainingDays = getRemainingDays(
+                      row.createdAt,
+                      row.priorityDays,
+                    );
+                    const remainingDaysNumber = Number(remainingDays);
+
+                    if (
+                      remainingDays !== "N/A" &&
+                      !Number.isNaN(remainingDaysNumber) &&
+                      remainingDaysNumber < 0
+                    ) {
+                      return (
                         <StatusChip
-                          label={
-                            resolution.isOnTime
-                              ? "En tiempo"
-                              : `Fuera de tiempo (${formatDayLabel(resolution.daysLate)})`
-                          }
-                          tone={
-                            DEADLINE_TONE[
-                              resolution.isOnTime ? "onTime" : "late"
-                            ]
-                          }
+                          label="Vencido"
+                          tone={DEADLINE_TONE.overdue}
                           size="small"
                           sx={{ mt: 0.25 }}
                         />
-                      )}
-                    </>
-                  );
-                })()}
-              </Stack>
-            </StyledTableCell>
-            <StyledTableCell
-              sx={{
-                minWidth: 260,
-                width: 260,
-                maxWidth: 300,
-              }}
-            >
-              <Stack
-                spacing={0.25}
+                      );
+                    }
+
+                    return null;
+                  })()}
+                  {(() => {
+                    if (row.status !== STATUS_CLOSED) {
+                      return null;
+                    }
+
+                    const resolution = getResolutionDays(
+                      row.createdAt,
+                      row.solutionDate,
+                      row.priorityDays,
+                    );
+                    // Tiempo exacto (antes solo en el menú de acciones).
+                    const duration = durantionToTime(row);
+
+                    return (
+                      <>
+                        {resolution && (
+                          <span>
+                            <b>Resuelto en:</b>{" "}
+                            {formatDayLabel(resolution.days)}
+                          </span>
+                        )}
+                        {duration && (
+                          <span>
+                            <b>Duración:</b> {duration}
+                          </span>
+                        )}
+                        {resolution && resolution.isOnTime !== null && (
+                          <StatusChip
+                            label={
+                              resolution.isOnTime
+                                ? "En tiempo"
+                                : `Fuera de tiempo (${formatDayLabel(resolution.daysLate)})`
+                            }
+                            tone={
+                              DEADLINE_TONE[
+                                resolution.isOnTime ? "onTime" : "late"
+                              ]
+                            }
+                            size="small"
+                            sx={{ mt: 0.25 }}
+                          />
+                        )}
+                      </>
+                    );
+                  })()}
+                </Stack>
+              </StyledTableCell>
+              <StyledTableCell
                 sx={{
-                  alignItems: "flex-start",
-                  "& > span": {
-                    whiteSpace: "nowrap",
-                    lineHeight: 1.35,
-                  },
+                  minWidth: 260,
+                  width: 260,
+                  maxWidth: 300,
                 }}
               >
-                <span>
-                  <b>FR:</b> {stringToDateWithTime(row.createdAt)}
-                </span>
-                {/* Sin FA si no se ha editado (igual a FR). */}
-                {updatedDateLabel(row.createdAt, row.updatedAt) && (
-                  <span>
-                    <b>FA:</b> {updatedDateLabel(row.createdAt, row.updatedAt)}
-                  </span>
-                )}
-                <span>
-                  <b>FC:</b>{" "}
-                  {row.solutionDate
-                    ? stringToDateWithTime(row.solutionDate)
-                    : "-"}
-                </span>
-              </Stack>
-            </StyledTableCell>
-            <StyledTableCell>
-              {/* Cerrado y Cancelado ya no tienen acciones: el ojo deja claro
-                  que solo queda consultar el detalle. */}
-              {!isActiveStatus(row) ? (
-                <Tooltip title="Ver detalles">
-                  <IconButton
-                    size="small"
-                    aria-label={`Ver detalles del hallazgo ${row.id}`}
-                    onClick={() => setEvidenceCurrent(row)}
-                  >
-                    <VisibilityIcon />
-                  </IconButton>
-                </Tooltip>
-              ) : (
-                <IconButton
-                  size="small"
-                  aria-label={`Acciones del hallazgo ${row.id}`}
-                  aria-haspopup="menu"
-                  onClick={(event) => openActionsMenu(event, row.id)}
-                >
-                  <MoreVertIcon />
-                </IconButton>
-              )}
-
-              <Menu
-                anchorEl={menuAnchorEl}
-                open={menuRowId === row.id && Boolean(menuAnchorEl)}
-                onClose={closeActionsMenu}
-                anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-                transformOrigin={{ vertical: "top", horizontal: "left" }}
-              >
-                <MenuItem
-                  onClick={() => {
-                    closeActionsMenu();
-                    setEvidenceCurrent(row);
+                <Stack
+                  spacing={0.25}
+                  sx={{
+                    alignItems: "flex-start",
+                    "& > span": {
+                      whiteSpace: "nowrap",
+                      lineHeight: 1.35,
+                    },
                   }}
                 >
-                  <ListItemIcon sx={{ color: "text.brand" }}>
-                    <InfoIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Ver detalles</ListItemText>
-                </MenuItem>
+                  <span>
+                    <b>FR:</b> {stringToDateWithTime(row.createdAt)}
+                  </span>
+                  {/* Sin FA si no se ha editado (igual a FR). */}
+                  {updatedDateLabel(row.createdAt, row.updatedAt) && (
+                    <span>
+                      <b>FA:</b>{" "}
+                      {updatedDateLabel(row.createdAt, row.updatedAt)}
+                    </span>
+                  )}
+                  <span>
+                    <b>FC:</b>{" "}
+                    {row.solutionDate
+                      ? stringToDateWithTime(row.solutionDate)
+                      : "-"}
+                  </span>
+                </Stack>
+              </StyledTableCell>
+              <StyledTableCell>
+                {/* Cerrado y Cancelado ya no tienen acciones: el ojo deja claro
+                  que solo queda consultar el detalle. */}
+                {!isActiveStatus(row) ? (
+                  <Tooltip title="Ver detalles">
+                    <IconButton
+                      size="small"
+                      aria-label={`Ver detalles del hallazgo ${row.id}`}
+                      onClick={() => setEvidenceCurrent(row)}
+                    >
+                      <VisibilityIcon />
+                    </IconButton>
+                  </Tooltip>
+                ) : (
+                  <IconButton
+                    size="small"
+                    aria-label={`Acciones del hallazgo ${row.id}`}
+                    aria-haspopup="menu"
+                    onClick={(event) => openActionsMenu(event, row.id)}
+                  >
+                    <MoreVertIcon />
+                  </IconButton>
+                )}
 
-                {(role === ROLE_ADMINISTRADOR || validateSupervisor(row)) &&
-                  row.status === STATUS_OPEN &&
-                  !row.imgProcess && (
+                <Menu
+                  anchorEl={menuAnchorEl}
+                  open={menuRowId === row.id && Boolean(menuAnchorEl)}
+                  onClose={closeActionsMenu}
+                  anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+                  transformOrigin={{ vertical: "top", horizontal: "left" }}
+                >
+                  <MenuItem
+                    onClick={() => {
+                      closeActionsMenu();
+                      setEvidenceCurrent(row);
+                    }}
+                  >
+                    <ListItemIcon sx={{ color: "text.brand" }}>
+                      <InfoIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>Ver detalles</ListItemText>
+                  </MenuItem>
+
+                  {actions.canStart(row) && (
                     <MenuItem
                       onClick={() => {
                         closeActionsMenu();
@@ -621,38 +562,36 @@ export default function TableEvidences({
                     </MenuItem>
                   )}
 
-                {validateSupervisor(row) && isActiveStatus(row) && (
-                  <MenuItem
-                    onClick={() => {
-                      closeActionsMenu();
-                      setIdRow(row.id);
-                      setEvidenceCurrent(row);
-                    }}
-                  >
-                    <ListItemIcon sx={{ color: "warning.main" }}>
-                      <AddAPhotoIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>Cerrar hallazgo</ListItemText>
-                  </MenuItem>
-                )}
+                  {actions.canClose(row) && (
+                    <MenuItem
+                      onClick={() => {
+                        closeActionsMenu();
+                        setIdRow(row.id);
+                        setEvidenceCurrent(row);
+                      }}
+                    >
+                      <ListItemIcon sx={{ color: "warning.main" }}>
+                        <AddAPhotoIcon fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>Cerrar hallazgo</ListItemText>
+                    </MenuItem>
+                  )}
 
-                {canReassignEvidence(row) && isActiveStatus(row) && (
-                  <MenuItem
-                    onClick={() => {
-                      closeActionsMenu();
-                      setEvidenceReassignCurrent(row);
-                    }}
-                  >
-                    <ListItemIcon sx={{ color: "success.main" }}>
-                      <PersonAddAlt1Icon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>Reasignar</ListItemText>
-                  </MenuItem>
-                )}
+                  {actions.canReassign(row) && (
+                    <MenuItem
+                      onClick={() => {
+                        closeActionsMenu();
+                        setEvidenceReassignCurrent(row);
+                      }}
+                    >
+                      <ListItemIcon sx={{ color: "success.main" }}>
+                        <PersonAddAlt1Icon fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>Reasignar</ListItemText>
+                    </MenuItem>
+                  )}
 
-                {isActiveStatus(row) &&
-                  (role === ROLE_ADMINISTRADOR ||
-                    cancelEvidenceEmails.includes(email)) && (
+                  {actions.canCancel(row) && (
                     <MenuItem
                       onClick={() => {
                         closeActionsMenu();
@@ -666,16 +605,17 @@ export default function TableEvidences({
                       <ListItemText>Cancelar</ListItemText>
                     </MenuItem>
                   )}
-              </Menu>
-            </StyledTableCell>
-          </StyledTableRow>
-        )}
-        page={page}
-        setPage={setPage}
-        rowsPerPage={rowsPerPage}
-        setRowsPerPage={setRowsPerPage}
-        count={countEvidence}
-      />
+                </Menu>
+              </StyledTableCell>
+            </StyledTableRow>
+          )}
+          page={page}
+          setPage={setPage}
+          rowsPerPage={rowsPerPage}
+          setRowsPerPage={setRowsPerPage}
+          count={countEvidence}
+        />
+      )}
       {confirmDialog}
     </>
   );

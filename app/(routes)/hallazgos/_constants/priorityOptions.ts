@@ -1,3 +1,9 @@
+import {
+  STATUS_CLOSED,
+  STATUS_IN_PROGRESS,
+  STATUS_OPEN,
+} from "@shared/constants";
+
 // Único mapeo de prioridad de la UI (formulario, tabla, detalle y gráficas
 // del dashboard). Se guardan solo los días; el API usa el mismo mapeo en
 // hallazgos-api/src/shared/constants/priority.ts. Hasta el 26-jun-2026
@@ -43,6 +49,51 @@ export const getRemainingDays = (
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
   return `${diffDays}`;
+};
+
+/** Nivel de riesgo de la prioridad (nombres del API), o null sin prioridad. */
+export const getPriorityRiskLevel = (priorityDays?: number | null) =>
+  priorityOptions.find((item) => item.days === priorityDays)?.riskLevel ?? null;
+
+export type Deadline =
+  | { state: "remaining"; days: number }
+  | { state: "overdue"; days: number }
+  | {
+      state: "resolved";
+      days: number;
+      isOnTime: boolean | null;
+      daysLate: number;
+    };
+
+/**
+ * Plazo para mostrar en tarjeta y detalle, con la misma regla que la tabla:
+ * abierto o en progreso → días restantes o vencido; cerrado → en cuántos días
+ * se resolvió. Sin prioridad (o cancelado) no hay plazo.
+ */
+export const getDeadline = ({
+  status,
+  createdAt,
+  solutionDate,
+  priorityDays,
+}: {
+  status: string;
+  createdAt?: Date | string | null;
+  solutionDate?: Date | string | null;
+  priorityDays?: number | null;
+}): Deadline | null => {
+  if (status === STATUS_CLOSED) {
+    const resolution = getResolutionDays(createdAt, solutionDate, priorityDays);
+    return resolution && { state: "resolved", ...resolution };
+  }
+
+  if (status !== STATUS_OPEN && status !== STATUS_IN_PROGRESS) return null;
+
+  const remaining = Number(getRemainingDays(createdAt, priorityDays));
+  if (Number.isNaN(remaining)) return null;
+
+  return remaining < 0
+    ? { state: "overdue", days: Math.abs(remaining) }
+    : { state: "remaining", days: remaining };
 };
 
 // Days it took to close (partial days count as a full day) and whether it

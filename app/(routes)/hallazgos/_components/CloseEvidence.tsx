@@ -7,6 +7,8 @@ import { DialogTitle } from "@mui/material";
 import { DialogContent } from "@mui/material";
 import { DialogActions } from "@mui/material";
 import { IconButton } from "@mui/material";
+import { useMediaQuery } from "@mui/material";
+import type { Theme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import SaveIcon from "@mui/icons-material/Save";
 import { v4 as uuidv4 } from "uuid";
@@ -17,7 +19,7 @@ import { EvidencesService } from "@services";
 
 import "react-html5-camera-photo/build/css/index.css";
 import ImageORCamera from "@shared/components/ImageORCamera";
-import { EvidenceGraphql, useIdempotencyKey } from "@hooks";
+import { EvidenceGraphql, useIdempotencyKey, useUploadProgress } from "@hooks";
 import { Grid, Paper, TextField } from "@mui/material";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { requiresPhotoEvidence } from "@routes/hallazgos/_constants/mainTypes";
@@ -70,6 +72,9 @@ export default function CloseEvidence({
   const { confirm, confirmDialog } = useConfirmDialog();
   // Por hallazgo: el diálogo se reutiliza entre filas.
   const submission = useIdempotencyKey(idRow);
+  const upload = useUploadProgress();
+  // En celular a pantalla completa: con la cámara adentro quedaba apretado.
+  const isPhone = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
 
   const currentDescriptionSolution = useMemo(
     () => descriptionSolution.trim(),
@@ -95,6 +100,7 @@ export default function CloseEvidence({
 
     setIsLoading(true);
     return EvidencesService.solution(idRow, formData, {
+      onUploadProgress: upload.onUploadProgress,
       idempotencyKey: submission.key(),
     })
       .then(() => {
@@ -104,7 +110,10 @@ export default function CloseEvidence({
         handleClose(true);
       })
       .catch(submission.settle)
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        setIsLoading(false);
+        upload.reset();
+      });
   };
 
   const isDisabled = useMemo(() => {
@@ -131,9 +140,10 @@ export default function CloseEvidence({
       open={isOpen}
       fullWidth={true}
       maxWidth={false}
+      fullScreen={isPhone}
     >
       <DialogTitle sx={{ m: 0, p: 2 }} id="customized-dialog-title">
-        Imagen la solución{" "}
+        Cerrar hallazgo #{idRow}
       </DialogTitle>
       <IconButton
         aria-label="Cerrar"
@@ -180,17 +190,9 @@ export default function CloseEvidence({
                   fullWidth
                   value={descriptionSolution}
                   onChange={(e) => setDescriptionSolution(e.target.value)}
-                  label={
-                    currentDescriptionSolution
-                      ? "Describe cómo se resolvió"
-                      : ""
-                  }
-                  helperText={
-                    !currentDescriptionSolution
-                      ? "Describe cómo se resolvió para poder guardar."
-                      : ""
-                  }
-                  error={!currentDescriptionSolution}
+                  label="Describe cómo se resolvió"
+                  // Sin rojo de entrada: "Guardar" se habilita al escribirla.
+                  helperText="Obligatoria para cerrar este hallazgo."
                 />
               </Paper>
             </Grid>
@@ -208,22 +210,25 @@ export default function CloseEvidence({
             image={image}
             setAttachedFile={setAttachedFile}
             attachedFile={attachedFile}
+            uploadProgress={upload.progress}
           />
         </Grid>
       </DialogContent>
       <DialogActions sx={{ justifyContent: "center" }}>
         <Button
-          // Cerrar es irreversible: se confirma antes de enviar.
-          onClick={() =>
-            confirm({
+          // Cerrar es irreversible: se confirma antes de enviar. La
+          // confirmación se cierra al aceptar para que se vea el progreso de
+          // subida aquí (antes su spinner lo tapaba).
+          onClick={async () => {
+            const confirmed = await confirm({
               title: `¿Cerrar el hallazgo #${idRow}?`,
               description:
                 "Ya no se podrá modificar y se enviará un aviso por correo.",
               confirmLabel: "Cerrar hallazgo",
               cancelLabel: "Revisar",
-              action: saveSolution,
-            })
-          }
+            });
+            if (confirmed) saveSolution();
+          }}
           variant="contained"
           loading={isLoading}
           loadingPosition="start"

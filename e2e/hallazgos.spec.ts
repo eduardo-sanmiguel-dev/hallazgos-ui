@@ -11,6 +11,10 @@ import {
   trackPageErrors,
 } from "./support/ui";
 
+/** Descripción del hallazgo (campo con contorno, con su etiqueta). */
+const descriptionField = (page: Page) =>
+  page.getByRole("textbox", { name: "Describe lo que observaste" });
+
 // PNG de 1x1 para la evidencia.
 const PNG_1X1 = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
@@ -58,7 +62,8 @@ test.describe("Hallazgos", () => {
     await sessionPlants(page);
 
     const create = page.getByRole("button", { name: "Crear hallazgo" });
-    await expect(create).toBeDisabled();
+    // Sin errores en rojo al abrir (A5): aparecen al intentar guardar.
+    await expect(page.locator(".Mui-error")).toHaveCount(0);
 
     await pickOption(page, "Planta");
     // Clasificación conocida que exige foto y tiene tipos (la primera de la
@@ -68,19 +73,19 @@ test.describe("Hallazgos", () => {
     await pickOption(page, "Lugar");
     await pickOption(page, "Proceso");
     await pickOption(page, "Supervisor");
-    await page
-      .locator("#description-multiline")
-      .fill("Hallazgo de prueba e2e (no se guarda)");
+    await descriptionField(page).fill("Hallazgo de prueba e2e (no se guarda)");
 
-    // Sin evidencia el botón sigue deshabilitado.
-    await expect(create).toBeDisabled();
+    // Sin evidencia: al guardar se marca la foto y no se envía nada.
+    await create.click();
+    await expect(page.locator('[data-error-for="photo"]')).toBeVisible();
+    expect(sent).toEqual([]);
 
     await page.locator('input[type="file"]').first().setInputFiles({
       name: "evidencia.png",
       mimeType: "image/png",
       buffer: PNG_1X1,
     });
-    await expect(create).toBeEnabled();
+    await expect(page.locator('[data-error-for="photo"]')).toHaveCount(0);
     await create.click();
 
     await expect(page).toHaveURL(/\/hallazgos$/);
@@ -128,9 +133,9 @@ test.describe("Hallazgos", () => {
       /Corto plazo/,
     );
     expect(priority).toMatch(/Corto plazo/);
-    await page
-      .locator("#description-multiline")
-      .fill("Comportamiento inseguro e2e (no se guarda)");
+    await descriptionField(page).fill(
+      "Comportamiento inseguro e2e (no se guarda)",
+    );
 
     await expect(create).toBeEnabled();
     await create.click();
@@ -157,14 +162,15 @@ test.describe("Hallazgos", () => {
     await pickOption(page, "Lugar");
     await pickOption(page, "Proceso");
     await pickOption(page, "Supervisor");
-    await page
-      .locator("#description-multiline")
-      .fill("Clasificación cambiada e2e (no se guarda)");
+    await descriptionField(page).fill(
+      "Clasificación cambiada e2e (no se guarda)",
+    );
     await expect(create).toBeEnabled();
 
     await pickOption(page, "Hallazgo", /^Condición insegura$/);
     await pickOption(page, "Tipo");
-    await expect(create).toBeDisabled();
+    await create.click();
+    await expect(page.locator('[data-error-for="photo"]')).toBeVisible();
     expect(writes).toEqual([]);
   });
 
@@ -270,9 +276,74 @@ test.describe("Hallazgos", () => {
     await expect(
       page.getByText("Este lugar no tiene supervisores asignados"),
     ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Crear hallazgo" }),
-    ).toBeDisabled();
+    // El aviso del lugar sin supervisores no se acompaña de errores en rojo
+    // hasta intentar guardar.
+    await expect(page.getByText("Selecciona el supervisor.")).toHaveCount(0);
     expect(errors).toEqual([]);
+  });
+
+  test("al guardar incompleto marca el primer campo que falta y lo enfoca", async ({
+    page,
+  }) => {
+    const writes = await captureWrites(page);
+    await page.goto("/hallazgos/form");
+    const plants = await sessionPlants(page);
+    // Con una sola planta ya viene elegida: falta la clasificación.
+    const expected =
+      plants.length === 1 ? "Selecciona el hallazgo." : "Selecciona la planta.";
+    const field = plants.length === 1 ? "Hallazgo" : "Planta";
+
+    await page.getByRole("button", { name: "Crear hallazgo" }).click();
+
+    await expect(
+      page.locator("#contenido").getByText(expected, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("combobox", { name: field, exact: true }),
+    ).toBeFocused();
+    expect(writes).toEqual([]);
+
+    // Al corregir, el error se quita.
+    await pickOption(page, field);
+    await expect(
+      page.locator("#contenido").getByText(expected, { exact: true }),
+    ).toHaveCount(0);
+  });
+
+  test("recuerda la última planta y el último lugar del usuario en este dispositivo", async ({
+    page,
+  }) => {
+    const writes = await captureWrites(page);
+    await page.goto("/hallazgos/form");
+    await sessionPlants(page);
+
+    const plant = await pickOption(page, "Planta");
+    await pickOption(page, "Hallazgo", /[Cc]omportamiento inseguro/);
+    await pickOption(page, "Tipo");
+    const zone = await pickOption(page, "Lugar");
+    await pickOption(page, "Proceso");
+    await pickOption(page, "Supervisor");
+    await descriptionField(page).fill("Recordar lugar e2e (no se guarda)");
+    await page.getByRole("button", { name: "Crear hallazgo" }).click();
+    await expect(toast(page, "Hallazgo creado correctamente")).toBeVisible();
+    expect(writes).toHaveLength(1);
+
+    // Ligado al usuario con sesión (hay celulares compartidos).
+    const stored = await page.evaluate(() =>
+      Object.keys(localStorage).filter((key) =>
+        key.startsWith("hallazgos:ultimo-lugar:"),
+      ),
+    );
+    expect(stored).toHaveLength(1);
+
+    await page.goto("/hallazgos/form");
+    await sessionPlants(page);
+    // El valor elegido se dibuja fuera del <input> (renderValue).
+    const fieldText = (label: string) =>
+      page.locator(".MuiAutocomplete-root").filter({
+        has: page.getByRole("combobox", { name: label, exact: true }),
+      });
+    await expect(fieldText("Planta")).toContainText(plant);
+    await expect(fieldText("Lugar")).toContainText(zone);
   });
 });

@@ -255,7 +255,7 @@ test.describe("Hallazgos: acciones", () => {
       .getByRole("menuitem", { name: "En progreso" })
       .click();
     const dialog = page.getByRole("dialog", {
-      name: "Evidencia de inicio de proceso",
+      name: /^Iniciar hallazgo #\d+/,
     });
     const save = dialog.getByRole("button", { name: "Guardar imagen" });
     await expect(save).toBeDisabled();
@@ -290,10 +290,8 @@ test.describe("Hallazgos: acciones", () => {
     )
       .getByRole("menuitem", { name: "Cerrar hallazgo" })
       .click();
-    const dialog = page.getByRole("dialog", { name: /Imagen la solución/ });
-    await expect(
-      dialog.getByText("Lo que se observó:"),
-    ).toBeVisible();
+    const dialog = page.getByRole("dialog", { name: /^Cerrar hallazgo #\d+/ });
+    await expect(dialog.getByText("Lo que se observó:")).toBeVisible();
     const save = dialog.getByRole("button", { name: "Guardar imagen" });
     await expect(save).toBeDisabled();
     await dialog
@@ -321,7 +319,7 @@ test.describe("Hallazgos: acciones", () => {
     )
       .getByRole("menuitem", { name: "Cerrar hallazgo" })
       .click();
-    const dialog = page.getByRole("dialog", { name: /Imagen la solución/ });
+    const dialog = page.getByRole("dialog", { name: /^Cerrar hallazgo #\d+/ });
     // Clasificación con foto obligatoria: sin imagen no se puede guardar.
     await expect(
       dialog.getByRole("button", { name: "Guardar imagen" }),
@@ -369,7 +367,9 @@ test.describe("Hallazgos: acciones", () => {
       )
         .getByRole("menuitem", { name: "Cerrar hallazgo" })
         .click();
-      const dialog = page.getByRole("dialog", { name: /Imagen la solución/ });
+      const dialog = page.getByRole("dialog", {
+        name: /^Cerrar hallazgo #\d+/,
+      });
       await expect(
         dialog.locator("#description-multiline-solution"),
       ).toHaveCount(0);
@@ -390,7 +390,7 @@ test.describe("Hallazgos: acciones", () => {
     )
       .getByRole("menuitem", { name: "Cerrar hallazgo" })
       .click();
-    const dialog = page.getByRole("dialog", { name: /Imagen la solución/ });
+    const dialog = page.getByRole("dialog", { name: /^Cerrar hallazgo #\d+/ });
     await dialog
       .locator("#description-multiline-solution")
       .fill("E2E todavía no");
@@ -647,5 +647,133 @@ test.describe("Hallazgos: acciones", () => {
     await expect(
       page.getByRole("dialog").getByText("Última actualización"),
     ).toBeVisible();
+  });
+});
+
+// Celular (C1, C4): tarjetas en lugar de la tabla, con el estatus, el plazo y
+// la acción principal a la vista; diálogos de iniciar y cerrar a pantalla
+// completa.
+test.describe("Hallazgos en celular", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  const card = (page: Page, id: number) =>
+    page.getByRole("listitem", { name: `Hallazgo ${id}` });
+
+  test("muestra tarjetas con estatus, lugar, tipo, responsable y plazo", async ({
+    page,
+  }) => {
+    const errors = trackPageErrors(page);
+    await openList(page);
+
+    await expect(page.getByRole("table")).toHaveCount(0);
+
+    // Abierto y vencido: el administrador lo puede iniciar.
+    const open = card(page, 9001);
+    await expect(open.getByText("Hallazgo #9001")).toBeVisible();
+    await expect(open.getByText("Abierto")).toBeVisible();
+    await expect(open).toContainText("E2E Tipo");
+    await expect(open).toContainText("E2E Lugar (E2E Zona)");
+    await expect(open).toContainText("E2E Supervisor");
+    await expect(open.getByText("Vencido")).toBeVisible();
+    await expect(open).toContainText("hace 7 días");
+    await expect(open.getByRole("button", { name: "Iniciar" })).toBeVisible();
+
+    // En progreso, a tiempo, con responsable. El administrador no cierra.
+    const inProgress = card(page, 9002);
+    await expect(inProgress).toContainText("Quedan 28 días");
+    await expect(inProgress).toContainText("E2E Responsable");
+    await expect(
+      inProgress.getByRole("button", { name: /^(Iniciar|Cerrar)$/ }),
+    ).toHaveCount(0);
+
+    // Cerrado: en cuántos días se resolvió. Cancelado: sin plazo.
+    await expect(card(page, 9003)).toContainText("Resuelto en 3 días");
+    await expect(card(page, 9003).getByText("En tiempo")).toBeVisible();
+    await expect(card(page, 9004)).not.toContainText("Plazo");
+
+    // Tocar la tarjeta abre el detalle, con los mismos chips.
+    await open.getByText("E2E Tipo").click();
+    const dialog = page.getByRole("dialog");
+    await expect(
+      dialog.getByText("E2E descripción del hallazgo").first(),
+    ).toBeVisible();
+    await expect(dialog.getByText("Vencido")).toBeVisible();
+    await expect(dialog.getByText("Abierto").first()).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  test("la acción principal abre su diálogo a pantalla completa (Iniciar y Cerrar)", async ({
+    page,
+  }) => {
+    await openList(page, { asSupervisor: true });
+
+    // Abierto: la principal es Iniciar; Cerrar queda en "Más acciones".
+    await card(page, 9001).getByRole("button", { name: "Iniciar" }).click();
+    const start = page.getByRole("dialog", { name: "Iniciar hallazgo #9001" });
+    await expect(start).toBeVisible();
+    expect((await start.boundingBox())?.width).toBe(390);
+    await start.getByRole("button", { name: "Cerrar" }).click();
+    await expect(start).toHaveCount(0);
+
+    await card(page, 9001)
+      .getByRole("button", { name: "Más acciones del hallazgo 9001" })
+      .click();
+    const menu = page.getByRole("menu");
+    await expect(
+      menu.getByRole("menuitem", { name: "Cerrar hallazgo" }),
+    ).toBeVisible();
+    await expect(
+      menu.getByRole("menuitem", { name: "Reasignar" }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    // En progreso: la principal es Cerrar.
+    await card(page, 9002).getByRole("button", { name: "Cerrar" }).click();
+    const close = page.getByRole("dialog", { name: "Cerrar hallazgo #9002" });
+    await expect(close).toBeVisible();
+    expect((await close.boundingBox())?.width).toBe(390);
+  });
+
+  test("al cerrar con foto muestra el progreso de subida", async ({ page }) => {
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    // Con la red interceptada el navegador no emite progreso de subida: se
+    // simula un 40 % en cada envío con cuerpo (como lo reportaría la red).
+    await page.addInitScript(() => {
+      const send = XMLHttpRequest.prototype.send;
+      XMLHttpRequest.prototype.send = function (body) {
+        send.call(this, body);
+        if (body instanceof FormData) {
+          setTimeout(() =>
+            this.upload.dispatchEvent(
+              new ProgressEvent("progress", {
+                lengthComputable: true,
+                loaded: 40,
+                total: 100,
+              }),
+            ),
+          );
+        }
+      };
+    });
+    await page.route("**/api/v1/evidences/solution/9002", async (route) => {
+      await held;
+      await route.fulfill({ status: 201, json: { id: 9002 } });
+    });
+    await openList(page, { asSupervisor: true });
+
+    await card(page, 9002).getByRole("button", { name: "Cerrar" }).click();
+    const dialog = page.getByRole("dialog", { name: "Cerrar hallazgo #9002" });
+    await dialog.getByLabel("Tomar foto").setInputFiles({
+      name: "solucion.png",
+      mimeType: "image/png",
+      buffer: PNG_1X1,
+    });
+    await dialog.getByRole("button", { name: "Guardar imagen" }).click();
+    await confirmClose(page, 9002).click();
+
+    await expect(dialog.getByText(/Subiendo foto… 40%/)).toBeVisible();
+    release();
+    await expect(toast(page, "Hallazgo cerrado correctamente")).toBeVisible();
   });
 });

@@ -7,6 +7,8 @@ import { DialogTitle } from "@mui/material";
 import { DialogContent } from "@mui/material";
 import { DialogActions } from "@mui/material";
 import { IconButton } from "@mui/material";
+import { useMediaQuery } from "@mui/material";
+import type { Theme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import SaveIcon from "@mui/icons-material/Save";
 import { v4 as uuidv4 } from "uuid";
@@ -43,6 +45,8 @@ export default function StartProcessEvidence({
   const upload = useUploadProgress();
   // Por hallazgo: el diálogo se reutiliza entre filas.
   const submission = useIdempotencyKey(idRow);
+  // En celular a pantalla completa: con la cámara adentro quedaba apretado.
+  const isPhone = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
 
   const saveProcessStart = () => {
     const formData = new FormData();
@@ -88,9 +92,10 @@ export default function StartProcessEvidence({
       open={isOpen}
       fullWidth={true}
       maxWidth={false}
+      fullScreen={isPhone}
     >
       <DialogTitle sx={{ m: 0, p: 2 }} id="start-process-dialog-title">
-        Evidencia de inicio de proceso
+        Iniciar hallazgo #{idRow}
       </DialogTitle>
       <IconButton
         aria-label="Cerrar"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -8,7 +8,7 @@ import ClearIcon from "@mui/icons-material/Clear";
 import SaveIcon from "@mui/icons-material/Save";
 import { TextField } from "@mui/material";
 import { Button } from "@mui/material";
-import { Paper } from "@mui/material";
+import { FormHelperText } from "@mui/material";
 import PageHeader from "@shared/components/PageHeader";
 import { Box } from "@mui/material";
 import { Grid } from "@mui/material";
@@ -21,8 +21,10 @@ import {
   useIdempotencyKey,
   useMainTypes,
   useProcesses,
+  useUploadProgress,
   useZones,
 } from "@hooks";
+import { useFieldErrors } from "@hooks/useFieldErrors";
 import ImageORCamera from "@shared/components/ImageORCamera";
 import { dataURLtoFile, notify } from "@shared/utils";
 import SelectDefault from "@components/SelectDefault";
@@ -32,11 +34,37 @@ import {
   priorityOptions,
 } from "@routes/hallazgos/_constants/priorityOptions";
 import { requiresPhotoEvidence } from "@routes/hallazgos/_constants/mainTypes";
+import {
+  readLastLocation,
+  saveLastLocation,
+} from "@routes/hallazgos/_constants/lastLocation";
 
 import "./form.css";
 
 // Opción del selector de supervisor (GET /users/supervisors con zona).
 type ZoneSupervisor = Pick<User, "id" | "name" | "email">;
+
+type EvidenceField =
+  | "manufacturingPlantId"
+  | "typeHallazgo"
+  | "secondaryType"
+  | "zone"
+  | "process"
+  | "supervisor"
+  | "description"
+  | "priorityDays"
+  | "photo";
+
+// Campos del API con otro nombre en el formulario (type es el tipo).
+const EVIDENCE_API_FIELDS = { type: "secondaryType", file: "photo" };
+
+/** Mensaje de error bajo un select (lo encuentra useFieldErrors para el foco). */
+const FieldError = ({ field, message }: { field: string; message?: string }) =>
+  message ? (
+    <FormHelperText data-error-for={field} error>
+      {message}
+    </FormHelperText>
+  ) : null;
 
 export default function HallazgosFormPage() {
   const [typeHallazgo, setTypeHallazgo] = useState<string>("");
@@ -71,17 +99,63 @@ export default function HallazgosFormPage() {
     (state) => state.manufacturingPlantsCurrent,
   );
 
+  const userId = useUserSessionStore((state) => state.id);
+
   const router = useRouter();
   const submission = useIdempotencyKey();
+  const upload = useUploadProgress();
+  // Los errores aparecen al intentar guardar, no desde que se abre (A5).
+  const { fail, failFromApi, errorOf, fieldProps } =
+    useFieldErrors<EvidenceField>(
+      manufacturingPlantId,
+      typeHallazgo,
+      secondaryType,
+      zone,
+      process,
+      supervisor,
+      description,
+      priorityDays,
+      image,
+      attachedFile,
+    );
 
   // Por contenido y no por referencia: cada setSession trae un arreglo nuevo
   // (aunque sea igual) y no debe borrar la planta ya elegida.
   const plantsCurrentKey = manufacturingPlantsCurrent.join(",");
 
+  // Ids de las plantas del usuario, por contenido (mismo motivo).
+  const userPlantsKey = manufacturingPlants.map(({ id }) => id).join(",");
+
+  // Con una sola planta, esa; si no, la última que usó en este dispositivo
+  // (si todavía la tiene asignada).
   useEffect(() => {
     const plants = plantsCurrentKey ? plantsCurrentKey.split(",") : [];
-    setManufacturingPlantId(plants.length === 1 ? plants[0] : "");
-  }, [plantsCurrentKey]);
+    if (plants.length === 1) {
+      setManufacturingPlantId(plants[0]);
+      return;
+    }
+    const last = userId ? readLastLocation(userId) : null;
+    const isUserPlant =
+      !!last && userPlantsKey.split(",").includes(last.manufacturingPlantId);
+    setManufacturingPlantId(isUserPlant ? last.manufacturingPlantId : "");
+  }, [plantsCurrentKey, userPlantsKey, userId]);
+
+  // El último lugar, una sola vez y solo si es de la planta propuesta.
+  const lastZoneRestored = useRef(false);
+  useEffect(() => {
+    if (lastZoneRestored.current) return;
+    if (!userId || !manufacturingPlantId || !zones.length) return;
+    lastZoneRestored.current = true;
+
+    const last = readLastLocation(userId);
+    if (last?.manufacturingPlantId !== manufacturingPlantId) return;
+    const exists = zones.some(
+      (data) =>
+        String(data.id) === last.zoneId &&
+        data.manufacturingPlant.id === Number(manufacturingPlantId),
+    );
+    if (exists) setZone(last.zoneId);
+  }, [userId, manufacturingPlantId, zones]);
 
   useEffect(() => {
     if (typeHallazgo) {
@@ -127,47 +201,31 @@ export default function HallazgosFormPage() {
 
   const currentDescription = useMemo(() => description.trim(), [description]);
 
-  const isValidForm = useMemo(() => {
-    /* (manufacturingPlantId &&
-      typeHallazgo &&
-      secondaryType &&
-      zone &&
-      process &&
-      currentDescription &&
-      isUnsafeBehavior
-        ? currentDescription
-        : image || attachedFile) || isLoading */
-
-    let validate =
-      !manufacturingPlantId ||
-      !typeHallazgo ||
-      !secondaryType ||
-      !zone ||
-      !process ||
-      !currentDescription ||
-      !supervisor;
-
-    // Si la clasificación exige foto, se valida que haya imagen o archivo adjunto
-    if (!isUnsafeBehavior) {
-      validate = validate || (!image && !attachedFile);
-    }
-
-    return !validate || isLoading;
-  }, [
-    manufacturingPlantId,
-    typeHallazgo,
-    secondaryType,
-    zone,
-    image,
-    isLoading,
-    attachedFile,
-    process,
-    isUnsafeBehavior,
-    currentDescription,
-    supervisor,
-  ]);
+  // Primer campo que falta, en el orden del formulario; null si está
+  // completo. Mismas reglas que antes deshabilitaban el botón.
+  const firstMissing = (): [EvidenceField, string] | null => {
+    if (!manufacturingPlantId)
+      return ["manufacturingPlantId", "Selecciona la planta."];
+    if (!typeHallazgo) return ["typeHallazgo", "Selecciona el hallazgo."];
+    if (!secondaryType) return ["secondaryType", "Selecciona el tipo."];
+    if (!zone) return ["zone", "Selecciona el lugar."];
+    if (!process) return ["process", "Selecciona el proceso."];
+    if (!supervisor) return ["supervisor", "Selecciona el supervisor."];
+    if (!currentDescription)
+      return ["description", "Describe lo que observaste."];
+    // Si la clasificación exige foto, se valida que haya imagen o adjunto.
+    if (!isUnsafeBehavior && !image && !attachedFile)
+      return ["photo", "Agrega una foto de la evidencia."];
+    return null;
+  };
 
   const saveEvidence = async () => {
+    const missing = firstMissing();
+    if (missing) {
+      fail(...missing);
+      return;
+    }
+
     const formData = new FormData();
 
     formData.append("manufacturingPlantId", manufacturingPlantId);
@@ -200,14 +258,26 @@ export default function HallazgosFormPage() {
     setIsLoading(true);
     // Sin conexión o tiempo agotado: el aviso trae "Reintentar" y la foto y
     // los datos siguen aquí; la misma clave evita un hallazgo duplicado.
-    EvidencesService.create(formData, { idempotencyKey: submission.key() })
+    EvidencesService.create(formData, {
+      onUploadProgress: upload.onUploadProgress,
+      idempotencyKey: submission.key(),
+    })
       .then(() => {
         submission.settle();
+        if (userId) {
+          saveLastLocation(userId, { manufacturingPlantId, zoneId: zone });
+        }
         notify("Hallazgo creado correctamente", true);
         router.push("/hallazgos");
       })
-      .catch(submission.settle)
-      .finally(() => setIsLoading(false));
+      .catch((error) => {
+        submission.settle(error);
+        failFromApi(error, EVIDENCE_API_FIELDS);
+      })
+      .finally(() => {
+        setIsLoading(false);
+        upload.reset();
+      });
   };
 
   // Se recalcula con cada clasificación: antes solo se activaba y, al cambiar
@@ -236,7 +306,10 @@ export default function HallazgosFormPage() {
             label="Planta"
             value={manufacturingPlantId}
             onChange={(e) => setManufacturingPlantId(e.target.value)}
-            validationEmpty
+          />
+          <FieldError
+            field="manufacturingPlantId"
+            message={errorOf("manufacturingPlantId")}
           />
         </Grid>
         <Grid
@@ -255,8 +328,8 @@ export default function HallazgosFormPage() {
               setSecondaryType("");
               validateUnsafeBehavior(value);
             }}
-            validationEmpty
           />
+          <FieldError field="typeHallazgo" message={errorOf("typeHallazgo")} />
         </Grid>
         <Grid
           size={{
@@ -271,7 +344,10 @@ export default function HallazgosFormPage() {
             value={secondaryType}
             onChange={(e) => setSecondaryType(e.target.value)}
             helperText={!typeHallazgo ? "Seleccione un hallazgo" : ""}
-            validationEmpty
+          />
+          <FieldError
+            field="secondaryType"
+            message={errorOf("secondaryType")}
           />
         </Grid>
         <Grid
@@ -290,8 +366,8 @@ export default function HallazgosFormPage() {
             value={zone}
             onChange={(e) => setZone(e.target.value)}
             helperText={!manufacturingPlantId ? "Seleccione una planta" : ""}
-            validationEmpty
           />
+          <FieldError field="zone" message={errorOf("zone")} />
         </Grid>
         <Grid
           size={{
@@ -308,9 +384,9 @@ export default function HallazgosFormPage() {
             label="Proceso"
             value={process}
             onChange={(e) => setProcess(e.target.value)}
-            validationEmpty
             helperText={!manufacturingPlantId ? "Seleccione una planta" : ""}
           />
+          <FieldError field="process" message={errorOf("process")} />
         </Grid>
         <Grid
           size={{
@@ -337,8 +413,8 @@ export default function HallazgosFormPage() {
                   ? "Este lugar no tiene supervisores asignados"
                   : undefined
             }
-            validationEmpty
           />
+          <FieldError field="supervisor" message={errorOf("supervisor")} />
         </Grid>
         <Grid
           size={{
@@ -365,24 +441,20 @@ export default function HallazgosFormPage() {
             md: 4,
           }}
         >
-          <Paper sx={{ p: 2 }}>
-            <TextField
-              id="description-multiline"
-              multiline
-              rows={4}
-              variant="standard"
-              fullWidth
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              label={currentDescription ? "Describe lo que observaste" : ""}
-              helperText={
-                !currentDescription
-                  ? "Describe lo que observaste para poder guardar."
-                  : ""
-              }
-              error={!currentDescription}
-            />
-          </Paper>
+          {/* Con contorno, como el resto de los campos (M8). */}
+          <TextField
+            {...fieldProps("description")}
+            multiline
+            minRows={4}
+            fullWidth
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            label="Describe lo que observaste"
+            helperText={
+              errorOf("description") ??
+              "Qué viste, dónde y por qué es un riesgo."
+            }
+          />
         </Grid>
         <Grid
           size={{
@@ -396,7 +468,9 @@ export default function HallazgosFormPage() {
             image={image}
             setAttachedFile={setAttachedFile}
             attachedFile={attachedFile}
+            uploadProgress={upload.progress}
           />
+          <FieldError field="photo" message={errorOf("photo")} />
         </Grid>
         <Grid
           size={{
@@ -428,7 +502,7 @@ export default function HallazgosFormPage() {
               onClick={saveEvidence}
               loading={isLoading}
               loadingPosition="start"
-              disabled={!isValidForm || isLoading}
+              disabled={isLoading}
             >
               Crear hallazgo
             </Button>

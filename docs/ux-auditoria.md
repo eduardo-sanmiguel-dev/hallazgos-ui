@@ -89,6 +89,7 @@ responsables y el botón de acciones quedan a la derecha, fuera de la pantalla.
 desplazarse de lado en cada fila. → En celular, mostrar **tarjetas**: ID, estatus con
 color, lugar, tipo, responsable, días restantes, y la acción principal visible
 (Iniciar o Cerrar). La tabla se queda en tablet y escritorio. [L]
+*Resuelto en la Fase 4 (ver `docs/ux-componentes.md`, sección 4).*
 
 **C2 · Evidencia con cámara (Hallazgos: crear, iniciar, cerrar; ICS)** — La cámara
 del navegador (`react-html5-camera-photo`) guarda la foto al tamaño del visor:
@@ -110,6 +111,8 @@ confirmación. Además, los diálogos no se abren a pantalla completa en celular
 (`maxWidth={false}` sin `fullScreen`). → Riesgo de cerrar por error, y en celular el
 diálogo queda apretado con la cámara adentro. → Confirmación breve al cerrar, con un
 resumen de foto y descripción, y diálogos a pantalla completa en celular. [S]
+*Resuelto: confirmación al cerrar (Fase 2) y diálogos a pantalla completa en
+celular con progreso de subida (Fase 4).*
 
 ### Alto
 
@@ -151,6 +154,9 @@ constante y más toques de los necesarios. → Mostrar errores solo al intentar 
 (usando `useFieldErrors`, como en otros formularios), texto neutro ("Describe lo que
 observaste"), y recordar la última planta y el último lugar del usuario en ese
 dispositivo. [M]
+*Resuelto en la Fase 4: errores solo al intentar guardar, texto neutro y
+última planta y lugar recordados por usuario en el dispositivo. El proceso no
+se recuerda (no se pidió).*
 
 **A6 · CIAEL** — Son 25 campos en un solo diálogo, sin secciones. → Formulario largo
 y fácil de dejar a medias. → Agruparlos en secciones (Evento, Colaborador, Lesión,
