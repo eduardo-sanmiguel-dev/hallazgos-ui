@@ -492,9 +492,50 @@ Archivos en `app/(routes)/extinguisher-inspection/`.
   "Reintentar". `ResponsiveColumn` ganó `hideInTable` para columnas que solo
   van en la tarjeta.
 
+## 7. Módulo CIAEL (Fase 4)
+
+Archivos en `app/(routes)/ciael/`.
+
+- **Secciones (A6):** el diálogo a pantalla completa se divide con
+  `FormSection` en Evento, Colaborador, Lesión, Causas y Responsables, con
+  `FormActions` al pie (antes, "Guardar" estaba en la barra de arriba y con
+  `autoFocus`). Lo que depende de la planta (zona, colaborador, cargo,
+  máquina, tarea) y de la zona (líder de área) queda deshabilitado hasta
+  elegirla, con "Cargando…" mientras llega el catálogo.
+- **Errores:**
+  - "Guardar" nunca está deshabilitado. Al tocarlo se marcan **todos** los
+    obligatorios que faltan, junto a su campo, y el foco va al primero
+    (`REQUIRED_FIELDS` y `missingCiaelFields` en `components/ciaelForm.ts`, en
+    el orden de la pantalla). Aviso: "Completa los N campos marcados." o, si
+    falta uno, su mensaje.
+  - Cada marca se quita al llenar su campo; las demás siguen.
+  - Del API, `failFromApi` con `ciaelApiField` (sin cambios).
+- **`useFieldErrors` ganó:**
+  - `failAll(campos)`: marca varios campos a la vez y devuelve si marcó algo.
+  - `useFormFieldErrors(form)`: misma API, pero con el formulario en un objeto,
+    cada error se quita al cambiar **su** campo. `useFieldErrors` sigue igual
+    (cualquier cambio quita todos los errores) para los demás formularios.
+- **Descartar:** cerrar (X, Esc o "Cancelar") con algo capturado pide
+  confirmar ("¿Descartar el registro?", con "Seguir editando"). Vacío, se
+  cierra directo.
+- **Teclado:** días de incapacidad y horas laboradas abren el teclado numérico
+  (`inputMode="numeric"`, solo dígitos, como antes). Descripción con contorno
+  (M8). El resto son listas.
+- **Lista:** `ResponsiveTable` (tarjetas en celular con "Tipo · fecha" de
+  título, colaborador, diagnóstico, zona con área y quién reportó), vacío
+  "Sin registros CIAEL" y error con "Reintentar".
+- **Sin `Stepper`:** se evaluó para celular y no se implementó. Los errores
+  del API pueden caer en cualquier paso (habría que saltar entre pasos para
+  mostrarlos), el registro se revisa completo antes de guardar, y con las
+  secciones y "marcar todo lo que falta" ya se ve qué completar. Si se
+  quisiera, la opción de bajo costo es un índice de secciones con su
+  conteo de pendientes, no un asistente por pasos.
+- **Sin borrador local:** CIAEL lo captura un administrador en escritorio; la
+  confirmación al descartar cubre el cierre por error.
+
 ---
 
-## 7. Pendiente para otras fases
+## 8. Pendiente para otras fases
 
 - **Borrador local** en ICS y EPP, si se decide extenderlo.
 - Los borradores de iniciar o cerrar de un hallazgo que ya cambió de estado

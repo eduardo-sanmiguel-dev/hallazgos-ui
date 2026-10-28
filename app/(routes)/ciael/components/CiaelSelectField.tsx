@@ -16,6 +16,9 @@ interface CiaelSelectFieldProps {
   value: SelectDefaultProps["value"];
   onChange: SelectDefaultProps["onChange"];
   error?: string;
+  // Catálogos que dependen de otro campo (la planta o la zona).
+  disabled?: boolean;
+  loading?: boolean;
 }
 
 /** Select del formulario CIAEL con su mensaje de error debajo. */
@@ -26,12 +29,14 @@ export const CiaelSelectField = ({
   value,
   onChange,
   error,
+  disabled,
+  loading,
 }: CiaelSelectFieldProps) => (
   <Grid
     size={{
       xs: 12,
-      sm: 4,
-      md: 2,
+      sm: 6,
+      md: 4,
     }}
   >
     <SelectDefault
@@ -40,6 +45,8 @@ export const CiaelSelectField = ({
       value={value}
       onChange={onChange}
       name={name}
+      disabled={disabled}
+      loading={loading}
     />
     {error && (
       <FormHelperText data-error-for={name} error>

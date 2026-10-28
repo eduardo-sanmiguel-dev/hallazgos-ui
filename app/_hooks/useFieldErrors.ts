@@ -6,12 +6,11 @@ import { parseApiError } from "@services";
 
 const fieldId = (field: string) => `campo-${field}`;
 
-interface FailedState<F extends string> {
-  // Campo → mensaje. Las validaciones del formulario marcan uno; las del
-  // API, todos los que rechazó.
+interface FailedState<F extends string, S> {
+  // Campo → mensaje. `fail` marca uno; `failAll` y las del API, varios.
   fields: Partial<Record<F, string>>;
   // Valores del formulario cuando falló la validación.
-  snapshot: unknown[];
+  snapshot: S;
 }
 
 /**
@@ -81,17 +80,62 @@ const resolveField = <F extends string>(
 //   Service.create(payload).then(...).catch(failFromApi);
 //   <TextField {...fieldProps("name")} ... />
 export function useFieldErrors<F extends string>(...values: unknown[]) {
-  const [failed, setFailed] = useState<FailedState<F> | null>(null);
+  return useErrorState<F, unknown[]>(values, (snapshot) =>
+    sameValues(snapshot, values),
+  );
+}
 
-  const isActive = !!failed && sameValues(failed.snapshot, values);
+/**
+ * Igual que `useFieldErrors`, pero para un formulario en un solo objeto: cada
+ * error se quita al cambiar su propio campo y los demás siguen marcados. Para
+ * formularios largos donde `failAll` marca varios campos a la vez (CIAEL).
+ *
+ *   const { failAll, errorOf } = useFormFieldErrors(form);
+ */
+export function useFormFieldErrors<T extends object>(form: T) {
+  return useErrorState<Extract<keyof T, string>, T>(form, (snapshot, field) =>
+    Object.is(snapshot[field], form[field]),
+  );
+}
+
+function useErrorState<F extends string, S>(
+  current: S,
+  // ¿Sigue vigente el error de `field`? (los datos no cambiaron desde que falló)
+  isFieldActive: (snapshot: S, field: F) => boolean,
+) {
+  const [failed, setFailed] = useState<FailedState<F, S> | null>(null);
+
+  const mark = (fields: Partial<Record<F, string>>, first: F) => {
+    setFailed({ fields, snapshot: current });
+    focusAfterRender(first);
+  };
 
   const fail = (field: F, message: string) => {
     toast.error(message);
-    setFailed({
-      fields: { [field]: message } as Partial<Record<F, string>>,
-      snapshot: values,
-    });
-    focusAfterRender(field);
+    mark({ [field]: message } as Partial<Record<F, string>>, field);
+  };
+
+  /**
+   * Marca todos los campos que faltan de una vez y enfoca el primero (el
+   * orden de las llaves es el de la pantalla). Con uno solo, el aviso es su
+   * mensaje; con varios, cuántos hay que completar. Devuelve si marcó algo:
+   *   if (failAll(missing)) return;
+   */
+  const failAll = (fields: Partial<Record<F, string>>) => {
+    const entries = Object.entries(fields).filter(([, message]) => message) as [
+      F,
+      string,
+    ][];
+    if (!entries.length) return false;
+
+    const [[first, firstMessage]] = entries;
+    toast.error(
+      entries.length === 1
+        ? firstMessage
+        : `Completa los ${entries.length} campos marcados.`,
+    );
+    mark(Object.fromEntries(entries) as Partial<Record<F, string>>, first);
+    return true;
   };
 
   /**
@@ -113,11 +157,13 @@ export function useFieldErrors<F extends string>(...values: unknown[]) {
     const first = Object.keys(fields)[0] as F | undefined;
     if (!first) return;
 
-    setFailed({ fields, snapshot: values });
-    focusAfterRender(first);
+    mark(fields, first);
   };
 
-  const errorOf = (field: F) => (isActive ? failed.fields[field] : undefined);
+  const errorOf = (field: F) =>
+    failed && isFieldActive(failed.snapshot, field)
+      ? failed.fields[field]
+      : undefined;
 
   // Props para un TextField: id (para el foco), error y mensaje.
   const fieldProps = (field: F) => ({
@@ -126,5 +172,5 @@ export function useFieldErrors<F extends string>(...values: unknown[]) {
     helperText: errorOf(field),
   });
 
-  return { fail, failFromApi, errorOf, fieldProps };
+  return { fail, failAll, failFromApi, errorOf, fieldProps };
 }

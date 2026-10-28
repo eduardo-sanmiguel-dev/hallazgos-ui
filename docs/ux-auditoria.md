@@ -167,6 +167,11 @@ se recuerda (no se pidió).*
 **A6 · CIAEL** — Son 25 campos en un solo diálogo, sin secciones. → Formulario largo
 y fácil de dejar a medias. → Agruparlos en secciones (Evento, Colaborador, Lesión,
 Causas) con `FormSection` o un `Stepper` en celular. [M]
+*Resuelto en la Fase 4: cinco secciones con `FormSection` (Evento,
+Colaborador, Lesión, Causas y Responsables), "Guardar" marca a la vez todo lo
+que falta junto a cada campo y pide confirmar antes de descartar lo capturado
+(ver `docs/ux-componentes.md`, sección 7). Sin `Stepper`: se evaluó y no se
+implementó.*
 
 **A7 · Estados de carga** — 23 pantallas usan una barra lineal (`LoadingLinear`) y
 solo 5 usan skeletons. No hay `loading.tsx`. → Saltos de diseño y la sensación de

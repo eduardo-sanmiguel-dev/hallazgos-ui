@@ -282,3 +282,28 @@ si deben tenerla.
     capacidad del extintor) se muestran en su tarjeta.
   - Observaciones limitadas a 500 caracteres, con contador.
   - En celular, la lista de inspecciones se ve en tarjetas.
+
+### CIAEL
+
+- **Sin migraciones, variables ni cambios de nginx.**
+- **API:** solo textos (compatibles con la UI anterior).
+  - Los 404 de catálogos ahora están en español: "Zona #N no encontrada",
+    "Colaborador #N no encontrado", "Registro CIAEL #N no encontrado", etc.
+    (antes, por ejemplo, "AtAgent with id N not found").
+  - Sin máquina ni nombre de máquina: "Selecciona la máquina o equipo." (antes
+    "Machine id or name is required").
+  - En el resumen de los errores de validación, el cargo se llama "Nombre del
+    cargo", como en la pantalla (antes "Puesto").
+- **UI:**
+  - El formulario se divide en cinco secciones: Evento, Colaborador, Lesión,
+    Causas y Responsables. "Guardar" pasó de la barra de arriba al pie, junto
+    a "Cancelar".
+  - Lo que depende de la planta (zona, colaborador, cargo, máquina, tarea) y
+    el líder de área (depende de la zona) quedan deshabilitados hasta
+    elegirlas.
+  - En celular, la lista se ve en tarjetas.
+- **Para el cliente:**
+  - "Guardar" marca **de una vez todo lo que falta**, junto a cada campo, y
+    lleva al primero. Antes avisaba de un campo a la vez.
+  - Cerrar el formulario con algo capturado pide confirmar ("¿Descartar el
+    registro?"). Antes se perdía sin aviso, también con la tecla Esc.

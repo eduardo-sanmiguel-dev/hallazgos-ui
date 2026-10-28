@@ -56,6 +56,53 @@ export const initialForm: FormProps = {
   manager: "",
 };
 
+type RequiredField = Exclude<keyof FormProps, "daysOfDisability" | "manager">;
+
+/**
+ * Obligatorios en el orden de la pantalla (secciones Evento, Colaborador,
+ * Lesión, Causas y Responsables), con el mensaje que va junto al campo.
+ */
+export const REQUIRED_FIELDS: Array<[RequiredField, string]> = [
+  ["manufacturingPlant", "Selecciona la planta."],
+  ["eventDate", "Elige la fecha del evento."],
+  ["typeOfEvent", "Selecciona el tipo de evento."],
+  ["natureOfEvent", "Selecciona la naturaleza del evento."],
+  ["zone", "Selecciona la zona."],
+  ["isInside", "Indica si fue dentro de la empresa."],
+  ["description", "Describe el evento."],
+  ["employee", "Selecciona el colaborador."],
+  ["accidentPosition", "Selecciona el nombre del cargo."],
+  ["typeOfLink", "Selecciona el tipo de vinculación."],
+  ["workingDay", "Selecciona la jornada."],
+  ["timeWorked", "Escribe las horas laboradas antes del AT."],
+  ["usualWork", "Indica si era su labor habitual."],
+  ["cieDiagnosis", "Selecciona el diagnóstico CIE."],
+  ["bodyPart", "Selecciona la parte del cuerpo afectada."],
+  ["typeOfInjury", "Selecciona el tipo de lesión."],
+  ["isDeath", "Indica si causó la muerte."],
+  ["atAgent", "Selecciona el agente AT."],
+  ["atMechanism", "Selecciona el mecanismo o forma del AT."],
+  ["riskFactor", "Selecciona el factor de riesgo asociado."],
+  ["machine", "Selecciona la máquina o equipo."],
+  ["associatedTask", "Selecciona la tarea asociada."],
+  ["areaLeader", "Selecciona el líder de área."],
+];
+
+const isEmpty = (value: FormProps[keyof FormProps]) =>
+  value === null || (typeof value === "string" && !value.trim());
+
+/** Obligatorios vacíos → mensaje, en el orden de la pantalla. */
+export const missingCiaelFields = (form: FormProps) =>
+  Object.fromEntries(
+    REQUIRED_FIELDS.filter(([field]) => isEmpty(form[field])),
+  ) as Partial<Record<RequiredField, string>>;
+
+/** ¿Hay algo capturado? (para confirmar antes de descartarlo). */
+export const isFormDirty = (form: FormProps) =>
+  (Object.keys(initialForm) as Array<keyof FormProps>).some(
+    (field) => form[field] !== initialForm[field],
+  );
+
 export const trueFalseOptions = [
   {
     id: "1",

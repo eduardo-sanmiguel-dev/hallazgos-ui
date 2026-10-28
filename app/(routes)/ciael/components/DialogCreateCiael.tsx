@@ -10,10 +10,9 @@ import { Typography } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { SelectChangeEvent } from "@mui/material";
 import { Toolbar } from "@mui/material";
-import { Button } from "@mui/material";
 import { Dialog } from "@mui/material";
 import { AppBar } from "@mui/material";
-import { Paper } from "@mui/material";
+import { Box } from "@mui/material";
 import { Grid } from "@mui/material";
 import { toast } from "sonner";
 import dayjs, { Dayjs } from "dayjs";
@@ -22,9 +21,11 @@ import "dayjs/locale/es";
 import { AssociatedTasksService } from "_services/associated-tasks.service";
 import { Transition } from "@routes/hallazgos/_components/EvidencePreview";
 import { TypeOfLinksService } from "_services/type-of-links.service";
-import SelectDefault from "@components/SelectDefault";
+import FormSection from "@shared/components/FormSection";
+import FormActions from "@shared/components/FormActions";
+import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { CiaelSelectField } from "./CiaelSelectField";
-import { useFieldErrors } from "@hooks/useFieldErrors";
+import { useFormFieldErrors } from "@hooks/useFieldErrors";
 import { useUserSessionStore } from "@store";
 import { EMPTY_CATALOG, useCatalog, useTypesOfEvents, useZones } from "@hooks";
 import {
@@ -42,7 +43,13 @@ import {
   UsersService,
   WorkingDaysService,
 } from "@services";
-import { FormProps, initialForm, trueFalseOptions } from "./ciaelForm";
+import {
+  FormProps,
+  initialForm,
+  isFormDirty,
+  missingCiaelFields,
+  trueFalseOptions,
+} from "./ciaelForm";
 
 // Campos del API → campos del formulario: los catálogos van sin "Id"
 // (typeOfEventId → typeOfEvent).
@@ -52,6 +59,9 @@ const ciaelApiField = (path: string) => {
   if (field === "machineName") return "machine";
   return field;
 };
+
+// Solo dígitos, como el teclado numérico que abren.
+const NUMERIC_INPUT = { inputMode: "numeric", pattern: "[0-9]*" } as const;
 
 interface Props {
   open: boolean;
@@ -63,6 +73,7 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
   const [isLoading, setIsLoading] = useState(false);
 
   const [form, setForm] = useState<FormProps>(initialForm);
+  const { confirm, confirmDialog } = useConfirmDialog();
 
   // Catálogos compartidos por toda la app (caché de React Query).
   const typesOfEvents = useTypesOfEvents().data ?? EMPTY_CATALOG;
@@ -95,78 +106,54 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
     [users],
   );
 
-  // Dependen de la planta elegida.
+  // Dependen de la planta elegida: deshabilitados hasta elegirla.
   const manufacturingPlantId = form.manufacturingPlant;
+  const noPlant = !manufacturingPlantId;
   const byPlant = {
-    enabled: !!manufacturingPlantId,
+    enabled: !noPlant,
     params: { manufacturingPlantId },
   };
-  const employees =
-    useCatalog(
-      "employees",
-      () =>
-        EmployeesService.findAll({
-          manufacturingPlantId: Number(manufacturingPlantId),
-        }),
-      byPlant,
-    ).data ?? EMPTY_CATALOG;
-  const zones =
-    useZones(
-      { manufacturingPlantId, withArea: true },
-      { enabled: !!manufacturingPlantId },
-    ).data ?? EMPTY_CATALOG;
-  const accidentPositions =
-    useCatalog(
-      "accidentPositions",
-      () => AccidentPositionsService.findAll({ manufacturingPlantId }),
-      byPlant,
-    ).data ?? EMPTY_CATALOG;
-  const machines =
-    useCatalog(
-      "machines",
-      () => MachinesService.findAll({ manufacturingPlantId }),
-      byPlant,
-    ).data ?? EMPTY_CATALOG;
-  const associatedTasks =
-    useCatalog(
-      "associatedTasks",
-      () => AssociatedTasksService.findAll({ manufacturingPlantId }),
-      byPlant,
-    ).data ?? EMPTY_CATALOG;
+  const employeesQuery = useCatalog(
+    "employees",
+    () =>
+      EmployeesService.findAll({
+        manufacturingPlantId: Number(manufacturingPlantId),
+      }),
+    byPlant,
+  );
+  const zonesQuery = useZones(
+    { manufacturingPlantId, withArea: true },
+    { enabled: !noPlant },
+  );
+  const accidentPositionsQuery = useCatalog(
+    "accidentPositions",
+    () => AccidentPositionsService.findAll({ manufacturingPlantId }),
+    byPlant,
+  );
+  const machinesQuery = useCatalog(
+    "machines",
+    () => MachinesService.findAll({ manufacturingPlantId }),
+    byPlant,
+  );
+  const associatedTasksQuery = useCatalog(
+    "associatedTasks",
+    () => AssociatedTasksService.findAll({ manufacturingPlantId }),
+    byPlant,
+  );
 
   // Líderes de la zona elegida.
-  const areaLeaders =
-    useCatalog("users", () => UsersService.findAll({ zoneId: form.zone }), {
+  const areaLeadersQuery = useCatalog(
+    "users",
+    () => UsersService.findAll({ zoneId: form.zone }),
+    {
       enabled: !!form.zone,
       params: { zoneId: form.zone },
-    }).data ?? EMPTY_CATALOG;
-  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
-    | "manufacturingPlant"
-    | "typeOfEvent"
-    | "cieDiagnosis"
-    | "employee"
-    | "eventDate"
-    | "description"
-    | "zone"
-    | "accidentPosition"
-    | "bodyPart"
-    | "atAgent"
-    | "typeOfInjury"
-    | "atMechanism"
-    | "workingDay"
-    | "timeWorked"
-    | "usualWork"
-    | "typeOfLink"
-    | "isDeath"
-    | "machine"
-    | "isInside"
-    | "associatedTask"
-    | "areaLeader"
-    | "riskFactor"
-    | "natureOfEvent"
-  >(form);
+    },
+  );
 
-  const resetForm = () => setForm(initialForm);
+  // Cada error se quita al cambiar su campo; los demás siguen marcados.
+  const { failAll, failFromApi, errorOf, fieldProps } =
+    useFormFieldErrors(form);
 
   const manufacturingPlants = useUserSessionStore(
     (state) => state.manufacturingPlants,
@@ -174,7 +161,25 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
 
   const handleClose = () => {
     setOpen(false);
-    resetForm();
+    setForm(initialForm);
+  };
+
+  // Cerrar (X o Esc) con algo capturado pide confirmación: son 25 campos.
+  const requestClose = async () => {
+    if (isLoading) return;
+    if (
+      isFormDirty(form) &&
+      !(await confirm({
+        title: "¿Descartar el registro?",
+        description: "Se perderá lo que capturaste en el formulario.",
+        confirmLabel: "Descartar",
+        cancelLabel: "Seguir editando",
+        tone: "danger",
+      }))
+    ) {
+      return;
+    }
+    handleClose();
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -204,6 +209,10 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
   };
 
   const saveCiael = () => {
+    // Todo lo que falta, marcado junto a su campo (en el orden de la
+    // pantalla); el foco va al primero.
+    if (failAll(missingCiaelFields(form))) return;
+
     const {
       manufacturingPlant,
       typeOfEvent,
@@ -232,129 +241,12 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
       manager,
     } = form;
 
-    const descriptionClean = description.trim();
-
-    if (!manufacturingPlant) {
-      fail("manufacturingPlant", "Seleccione una planta");
-      return;
-    }
-
-    if (!typeOfEvent) {
-      fail("typeOfEvent", "Seleccione un tipo de evento");
-      return;
-    }
-
-    if (!cieDiagnosis) {
-      fail("cieDiagnosis", "Seleccione un diagnóstico CIE");
-      return;
-    }
-
-    if (!employee) {
-      fail("employee", "Seleccione un colaborador");
-      return;
-    }
-
-    if (!eventDate) {
-      fail("eventDate", "Seleccione la fecha del evento");
-      return;
-    }
-
-    if (!descriptionClean) {
-      fail("description", "Ingrese la descripción del evento");
-      return;
-    }
-
-    if (!zone) {
-      fail("zone", "Seleccione una zona");
-      return;
-    }
-
-    if (!accidentPosition) {
-      fail("accidentPosition", "Seleccione un nombre del cargo");
-      return;
-    }
-
-    if (!bodyPart) {
-      fail("bodyPart", "Seleccione una parte del cuerpo afectada");
-      return;
-    }
-
-    if (!atAgent) {
-      fail("atAgent", "Seleccione un agente AT");
-      return;
-    }
-
-    if (!typeOfInjury) {
-      fail("typeOfInjury", "Seleccione un tipo de lesión");
-      return;
-    }
-
-    if (!atMechanism) {
-      fail("atMechanism", "Seleccione un mecanismo o formas del AT");
-      return;
-    }
-
-    if (!workingDay) {
-      fail("workingDay", "Seleccione una jornada");
-      return;
-    }
-
-    if (!timeWorked) {
-      fail("timeWorked", "Ingrese el tiempo laborado previo al AT");
-      return;
-    }
-
-    if (!usualWork) {
-      fail("usualWork", "Seleccione si es labor habitual");
-      return;
-    }
-
-    if (!typeOfLink) {
-      fail("typeOfLink", "Seleccione un tipo de vinculación");
-      return;
-    }
-
-    if (!isDeath) {
-      fail("isDeath", "Seleccione si causó la muerte");
-      return;
-    }
-
-    if (!machine) {
-      fail("machine", "Seleccione una máquina o equipo");
-      return;
-    }
-
-    if (!isInside) {
-      fail("isInside", "Seleccione si fue dentro de la planta");
-      return;
-    }
-
-    if (!associatedTask) {
-      fail("associatedTask", "Seleccione una tarea asociada");
-      return;
-    }
-
-    if (!areaLeader) {
-      fail("areaLeader", "Seleccione un líder de área");
-      return;
-    }
-
-    if (!riskFactor) {
-      fail("riskFactor", "Seleccione un factor de riesgo asociado");
-      return;
-    }
-
-    if (!natureOfEvent) {
-      fail("natureOfEvent", "Seleccione una naturaleza del evento");
-      return;
-    }
-
     const payload = {
       manufacturingPlantId: manufacturingPlant,
       typeOfEventId: typeOfEvent,
-      description: descriptionClean,
+      description: description.trim(),
       employeeId: employee,
-      eventDate: eventDate.format("YYYY-MM-DD"),
+      eventDate: eventDate!.format("YYYY-MM-DD"),
       cieDiagnosisId: cieDiagnosis,
       ...(daysOfDisability && { daysOfDisability }),
       accidentPositionId: accidentPosition,
@@ -393,69 +285,52 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
     <Dialog
       fullScreen
       open={open}
-      onClose={() => {
-        if (!isLoading) handleClose();
-      }}
+      onClose={requestClose}
       slots={{ transition: Transition }}
+      aria-labelledby="ciael-dialog-title"
     >
       <AppBar sx={{ position: "relative" }}>
         <Toolbar>
           <IconButton
             edge="start"
             color="inherit"
-            onClick={handleClose}
+            onClick={requestClose}
             disabled={isLoading}
             aria-label="Cerrar"
           >
             <CloseIcon />
           </IconButton>
-          <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="h2">
+          <Typography
+            id="ciael-dialog-title"
+            sx={{ ml: 2, flex: 1 }}
+            variant="h6"
+            component="h2"
+          >
             Nuevo registro CIAEL
           </Typography>
-          <Button
-            autoFocus
-            color="inherit"
-            onClick={saveCiael}
-            loading={isLoading}
-            disabled={isLoading}
-          >
-            Guardar
-          </Button>
         </Toolbar>
       </AppBar>
-      <Grid container spacing={2} sx={{ p: { xs: 2, sm: 3, md: 5 } }}>
-        <CiaelSelectField
-          name="manufacturingPlant"
-          label="Planta *"
-          data={manufacturingPlants}
-          value={form.manufacturingPlant}
-          onChange={onChangeSelect}
-          error={errorOf("manufacturingPlant")}
-        />
-        <CiaelSelectField
-          name="employee"
-          label="Colaborador *"
-          data={employees}
-          value={form.employee}
-          onChange={onChangeSelect}
-          error={errorOf("employee")}
-        />
-        <CiaelSelectField
-          name="typeOfEvent"
-          label="Tipo de evento *"
-          data={typesOfEvents}
-          value={form.typeOfEvent}
-          onChange={onChangeSelect}
-          error={errorOf("typeOfEvent")}
-        />
-        <Grid
-          size={{
-            xs: 12,
-            sm: 4,
-            md: 2,
-          }}
+      <Box
+        sx={{
+          width: "100%",
+          maxWidth: 1200,
+          mx: "auto",
+          p: { xs: 2, sm: 3 },
+        }}
+      >
+        <FormSection
+          title="Evento"
+          description="Elige primero la planta: de ella dependen la zona, el colaborador, el cargo, la máquina y la tarea."
         >
-          <Paper>
+          <CiaelSelectField
+            name="manufacturingPlant"
+            label="Planta *"
+            data={manufacturingPlants}
+            value={form.manufacturingPlant}
+            onChange={onChangeSelect}
+            error={errorOf("manufacturingPlant")}
+          />
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <LocalizationProvider
               dateAdapter={AdapterDayjs}
               adapterLocale="es"
@@ -479,227 +354,46 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
                 }}
               />
             </LocalizationProvider>
-          </Paper>
-        </Grid>
-        <CiaelSelectField
-          name="cieDiagnosis"
-          label="Diagnóstico CIE *"
-          data={cieDiagnoses}
-          value={form.cieDiagnosis}
-          onChange={onChangeSelect}
-          error={errorOf("cieDiagnosis")}
-        />
-        <Grid
-          size={{
-            xs: 12,
-            sm: 4,
-            md: 2,
-          }}
-        >
-          <Paper>
-            <TextField
-              label="Días de incapacidad"
-              variant="outlined"
-              fullWidth
-              autoComplete="off"
-              type="text"
-              onKeyDown={handleKeyDown}
-              value={form.daysOfDisability}
-              name="daysOfDisability"
-              onChange={handleChange}
-              slotProps={{
-                htmlInput: {
-                  inputMode: "numeric",
-                  pattern: "[0-9]*",
-                },
-              }}
-            />
-          </Paper>
-        </Grid>
-        <CiaelSelectField
-          name="zone"
-          label="Zona *"
-          data={zones}
-          value={form.zone}
-          onChange={onChangeSelect}
-          error={errorOf("zone")}
-        />
-        <CiaelSelectField
-          name="accidentPosition"
-          label="Nombre del cargo *"
-          data={accidentPositions}
-          value={form.accidentPosition}
-          onChange={onChangeSelect}
-          error={errorOf("accidentPosition")}
-        />
-        <CiaelSelectField
-          name="bodyPart"
-          label="Parte del cuerpo afectada *"
-          data={bodyParts}
-          value={form.bodyPart}
-          onChange={onChangeSelect}
-          error={errorOf("bodyPart")}
-        />
-        <CiaelSelectField
-          name="atAgent"
-          label="Agente AT *"
-          data={atAgents}
-          value={form.atAgent}
-          onChange={onChangeSelect}
-          error={errorOf("atAgent")}
-        />
-        <CiaelSelectField
-          name="typeOfInjury"
-          label="Tipo de lesión *"
-          data={typeOfInjuries}
-          value={form.typeOfInjury}
-          onChange={onChangeSelect}
-          error={errorOf("typeOfInjury")}
-        />
-        <CiaelSelectField
-          name="atMechanism"
-          label="Mecanismo o formas del AT *"
-          data={atMechanisms}
-          value={form.atMechanism}
-          onChange={onChangeSelect}
-          error={errorOf("atMechanism")}
-        />
-        <CiaelSelectField
-          name="workingDay"
-          label="Jornada *"
-          data={workingDays}
-          value={form.workingDay}
-          onChange={onChangeSelect}
-          error={errorOf("workingDay")}
-        />
-        <Grid
-          size={{
-            xs: 12,
-            sm: 4,
-            md: 2,
-          }}
-        >
-          <Paper>
-            <TextField
-              label="Tiempo laborado previo al AT (H) *"
-              variant="outlined"
-              fullWidth
-              autoComplete="off"
-              type="text"
-              onKeyDown={handleKeyDown}
-              value={form.timeWorked}
-              {...fieldProps("timeWorked")}
-              name="timeWorked"
-              onChange={handleChange}
-              slotProps={{
-                htmlInput: {
-                  inputMode: "numeric",
-                  pattern: "[0-9]*",
-                },
-              }}
-            />
-          </Paper>
-        </Grid>
-        <CiaelSelectField
-          name="usualWork"
-          label="Labor habitual *"
-          data={trueFalseOptions}
-          value={form.usualWork}
-          onChange={onChangeSelect}
-          error={errorOf("usualWork")}
-        />
-        <CiaelSelectField
-          name="typeOfLink"
-          label="Tipo de vinculación *"
-          data={typesOfLinks}
-          value={form.typeOfLink}
-          onChange={onChangeSelect}
-          error={errorOf("typeOfLink")}
-        />
-        <CiaelSelectField
-          name="isDeath"
-          label="Muerte *"
-          data={trueFalseOptions}
-          value={form.isDeath}
-          onChange={onChangeSelect}
-          error={errorOf("isDeath")}
-        />
-        <CiaelSelectField
-          name="machine"
-          label="Máquina / Equipo *"
-          data={machines}
-          value={form.machine}
-          onChange={onChangeSelect}
-          error={errorOf("machine")}
-        />
-        <CiaelSelectField
-          name="isInside"
-          label="Dentro de la empresa *"
-          data={trueFalseOptions}
-          value={form.isInside}
-          onChange={onChangeSelect}
-          error={errorOf("isInside")}
-        />
-        <CiaelSelectField
-          name="associatedTask"
-          label="Tarea asociada *"
-          data={associatedTasks}
-          value={form.associatedTask}
-          onChange={onChangeSelect}
-          error={errorOf("associatedTask")}
-        />
-        <CiaelSelectField
-          name="areaLeader"
-          label="Líder de área *"
-          data={areaLeaders}
-          value={form.areaLeader}
-          onChange={onChangeSelect}
-          error={errorOf("areaLeader")}
-        />
-        <CiaelSelectField
-          name="riskFactor"
-          label="Factor de riesgo asociado *"
-          data={riskFactors}
-          value={form.riskFactor}
-          onChange={onChangeSelect}
-          error={errorOf("riskFactor")}
-        />
-        <CiaelSelectField
-          name="natureOfEvent"
-          label="Naturaleza del evento *"
-          data={natureOfEvents}
-          value={form.natureOfEvent}
-          onChange={onChangeSelect}
-          error={errorOf("natureOfEvent")}
-        />
-        <Grid
-          size={{
-            xs: 12,
-            sm: 4,
-            md: 2,
-          }}
-        >
-          <SelectDefault
-            data={managersOnDuty}
-            label="Gestor en turno"
-            value={form.manager}
+          </Grid>
+          <CiaelSelectField
+            name="typeOfEvent"
+            label="Tipo de evento *"
+            data={typesOfEvents}
+            value={form.typeOfEvent}
             onChange={onChangeSelect}
-            name="manager"
+            error={errorOf("typeOfEvent")}
           />
-        </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 12,
-            md: 12,
-          }}
-        >
-          <Paper sx={{ p: 2 }}>
+          <CiaelSelectField
+            name="natureOfEvent"
+            label="Naturaleza del evento *"
+            data={natureOfEvents}
+            value={form.natureOfEvent}
+            onChange={onChangeSelect}
+            error={errorOf("natureOfEvent")}
+          />
+          <CiaelSelectField
+            name="zone"
+            label="Zona *"
+            data={zonesQuery.data ?? EMPTY_CATALOG}
+            value={form.zone}
+            onChange={onChangeSelect}
+            error={errorOf("zone")}
+            disabled={noPlant}
+            loading={zonesQuery.isLoading}
+          />
+          <CiaelSelectField
+            name="isInside"
+            label="Dentro de la empresa *"
+            data={trueFalseOptions}
+            value={form.isInside}
+            onChange={onChangeSelect}
+            error={errorOf("isInside")}
+          />
+          <Grid size={12}>
             <TextField
               {...fieldProps("description")}
               multiline
-              rows={10}
-              variant="standard"
+              minRows={4}
               fullWidth
               value={form.description}
               onChange={(e) =>
@@ -710,9 +404,198 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
               }
               label="Descripción del evento *"
             />
-          </Paper>
-        </Grid>
-      </Grid>
+          </Grid>
+        </FormSection>
+
+        <FormSection title="Colaborador">
+          <CiaelSelectField
+            name="employee"
+            label="Colaborador *"
+            data={employeesQuery.data ?? EMPTY_CATALOG}
+            value={form.employee}
+            onChange={onChangeSelect}
+            error={errorOf("employee")}
+            disabled={noPlant}
+            loading={employeesQuery.isLoading}
+          />
+          <CiaelSelectField
+            name="accidentPosition"
+            label="Nombre del cargo *"
+            data={accidentPositionsQuery.data ?? EMPTY_CATALOG}
+            value={form.accidentPosition}
+            onChange={onChangeSelect}
+            error={errorOf("accidentPosition")}
+            disabled={noPlant}
+            loading={accidentPositionsQuery.isLoading}
+          />
+          <CiaelSelectField
+            name="typeOfLink"
+            label="Tipo de vinculación *"
+            data={typesOfLinks}
+            value={form.typeOfLink}
+            onChange={onChangeSelect}
+            error={errorOf("typeOfLink")}
+          />
+          <CiaelSelectField
+            name="workingDay"
+            label="Jornada *"
+            data={workingDays}
+            value={form.workingDay}
+            onChange={onChangeSelect}
+            error={errorOf("workingDay")}
+          />
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <TextField
+              label="Tiempo laborado previo al AT (H) *"
+              fullWidth
+              autoComplete="off"
+              type="text"
+              onKeyDown={handleKeyDown}
+              value={form.timeWorked}
+              {...fieldProps("timeWorked")}
+              name="timeWorked"
+              onChange={handleChange}
+              slotProps={{ htmlInput: NUMERIC_INPUT }}
+            />
+          </Grid>
+          <CiaelSelectField
+            name="usualWork"
+            label="Labor habitual *"
+            data={trueFalseOptions}
+            value={form.usualWork}
+            onChange={onChangeSelect}
+            error={errorOf("usualWork")}
+          />
+        </FormSection>
+
+        <FormSection title="Lesión">
+          <CiaelSelectField
+            name="cieDiagnosis"
+            label="Diagnóstico CIE *"
+            data={cieDiagnoses}
+            value={form.cieDiagnosis}
+            onChange={onChangeSelect}
+            error={errorOf("cieDiagnosis")}
+          />
+          <CiaelSelectField
+            name="bodyPart"
+            label="Parte del cuerpo afectada *"
+            data={bodyParts}
+            value={form.bodyPart}
+            onChange={onChangeSelect}
+            error={errorOf("bodyPart")}
+          />
+          <CiaelSelectField
+            name="typeOfInjury"
+            label="Tipo de lesión *"
+            data={typeOfInjuries}
+            value={form.typeOfInjury}
+            onChange={onChangeSelect}
+            error={errorOf("typeOfInjury")}
+          />
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <TextField
+              label="Días de incapacidad"
+              fullWidth
+              autoComplete="off"
+              type="text"
+              onKeyDown={handleKeyDown}
+              value={form.daysOfDisability}
+              {...fieldProps("daysOfDisability")}
+              helperText={errorOf("daysOfDisability") ?? "Opcional"}
+              name="daysOfDisability"
+              onChange={handleChange}
+              slotProps={{ htmlInput: NUMERIC_INPUT }}
+            />
+          </Grid>
+          <CiaelSelectField
+            name="isDeath"
+            label="Muerte *"
+            data={trueFalseOptions}
+            value={form.isDeath}
+            onChange={onChangeSelect}
+            error={errorOf("isDeath")}
+          />
+        </FormSection>
+
+        <FormSection title="Causas">
+          <CiaelSelectField
+            name="atAgent"
+            label="Agente AT *"
+            data={atAgents}
+            value={form.atAgent}
+            onChange={onChangeSelect}
+            error={errorOf("atAgent")}
+          />
+          <CiaelSelectField
+            name="atMechanism"
+            label="Mecanismo o formas del AT *"
+            data={atMechanisms}
+            value={form.atMechanism}
+            onChange={onChangeSelect}
+            error={errorOf("atMechanism")}
+          />
+          <CiaelSelectField
+            name="riskFactor"
+            label="Factor de riesgo asociado *"
+            data={riskFactors}
+            value={form.riskFactor}
+            onChange={onChangeSelect}
+            error={errorOf("riskFactor")}
+          />
+          <CiaelSelectField
+            name="machine"
+            label="Máquina / Equipo *"
+            data={machinesQuery.data ?? EMPTY_CATALOG}
+            value={form.machine}
+            onChange={onChangeSelect}
+            error={errorOf("machine")}
+            disabled={noPlant}
+            loading={machinesQuery.isLoading}
+          />
+          <CiaelSelectField
+            name="associatedTask"
+            label="Tarea asociada *"
+            data={associatedTasksQuery.data ?? EMPTY_CATALOG}
+            value={form.associatedTask}
+            onChange={onChangeSelect}
+            error={errorOf("associatedTask")}
+            disabled={noPlant}
+            loading={associatedTasksQuery.isLoading}
+          />
+        </FormSection>
+
+        <FormSection
+          title="Responsables"
+          description="El líder de área se elige entre los de la zona del evento."
+        >
+          <CiaelSelectField
+            name="areaLeader"
+            label="Líder de área *"
+            data={areaLeadersQuery.data ?? EMPTY_CATALOG}
+            value={form.areaLeader}
+            onChange={onChangeSelect}
+            error={errorOf("areaLeader")}
+            disabled={!form.zone}
+            loading={areaLeadersQuery.isLoading}
+          />
+          <CiaelSelectField
+            name="manager"
+            label="Gestor en turno"
+            data={managersOnDuty}
+            value={form.manager}
+            onChange={onChangeSelect}
+            error={errorOf("manager")}
+          />
+        </FormSection>
+
+        <FormActions
+          onCancel={requestClose}
+          onSave={saveCiael}
+          isSaving={isLoading}
+        />
+      </Box>
+      {confirmDialog}
     </Dialog>
   );
 }
