@@ -99,6 +99,10 @@ auditoría. → Usar la **cámara nativa del teléfono** con
 `<input type="file" accept="image/*" capture="environment">` (mejor enfoque, flash y
 resolución) y comprimir antes de subir con `browser-image-compression`, que ya está
 instalada. Mantener la cámara del navegador solo como alternativa. [M]
+*Resuelto en la Fase 2 (confirmado en la Fase 5): `PhotoCapture` con "Tomar
+foto" (`capture="environment"`) como opción principal, compresión a 1920 px
+y ~1 MB, y la cámara del navegador solo al pedirla. Lo usan crear, iniciar y
+cerrar hallazgo e ICS.*
 
 **C3 · Captura sin conexión o con señal mala (todos los formularios de campo)** — No
 hay borradores, reintentos, tiempo límite en las peticiones ni aviso de "sin
@@ -147,6 +151,10 @@ contorno, enlaces, chips de filtros) tiene 2.27:1; el naranja de advertencia de 
 7.66:1. → Al sol esos textos casi no se leen. → Usar un verde más oscuro solo para
 texto e íconos sobre fondo claro (ya existe `primaryTextColor` para encabezados de
 tabla) y revisar los colores de advertencia. [S]
+*Resuelto en la Fase 2 (confirmado en la Fase 5): `text.brand` (6.4:1) para
+texto e íconos verdes, advertencia `#B45309` (5.0:1) e información `#0277BD`
+(4.8:1). Los usos que quedan de `primary.main` son rellenos, bordes o
+leyendas de color, no texto.*
 
 **A4 · Firma en entregas de EPP** — El lienzo mide 300 × 200 px en celular aunque el
 diálogo ocupa toda la pantalla. Además **se puede guardar una firma vacía**:
@@ -182,11 +190,20 @@ implementó.*
 solo 5 usan skeletons. No hay `loading.tsx`. → Saltos de diseño y la sensación de
 "no carga". → Skeletons por tipo de pantalla (lista, formulario, dashboard) y
 `loading.tsx` en las rutas principales. [M]
+*Resuelto: skeletons y `loading.tsx` al navegar (Fase 2) y, en la Fase 5,
+`TableSkeleton` en la primera carga de las 20 listas que usaban la barra y
+en EPP (tabla en escritorio, tarjetas en celular). La barra queda solo fuera
+de las listas (detalle y registro de Gemba Walk, guardias de acceso y
+"Abriendo cámara…"). En Hallazgos la consulta no usa caché, así que el
+esqueleto aparece en cada búsqueda, igual que antes la barra.*
 
 **A8 · Navegación en celular** — Para crear un hallazgo desde otra pantalla hay que
 abrir el menú lateral, ir a Hallazgos y tocar "Crear". No hay acceso directo a las
 acciones de campo. → Más pasos en la tarea más frecuente. → Navegación inferior en
 celular con 3–4 accesos según el rol (Hallazgos, Nuevo hallazgo, Gemba Walk, EPP). [M]
+*Resuelto en la Fase 2 (confirmado en la Fase 5): `MobileBottomNav` con
+"Nuevo hallazgo" al centro y hasta 3 accesos según el menú del usuario (ver
+`docs/ux-componentes.md`, sección 2).*
 
 ### Medio
 
@@ -204,10 +221,17 @@ del adjunto usa una cuadrícula de `minmax(400px, …)`, más ancha que un celul
 390 px. Si la compresión falla, solo se registra en consola y el usuario no se
 entera. → Botones apilados a ancho completo, vista previa adaptable y mensaje claro si
 la imagen no se pudo procesar. [S]
+*Resuelto en la Fase 2 (confirmado en la Fase 5): en `PhotoCapture`, botones
+apilados a ancho completo en celular, vista previa adaptable (260 px de alto
+en celular) y mensajes si el archivo no es imagen, no se pudo procesar o
+pesa más de 2 MB.*
 
 **M3 · Sin progreso de subida** — Al guardar con foto solo se ve un spinner. Con mala
 señal puede tardar sin dar señales de avance. → `onUploadProgress` de axios para una
 barra de progreso y tiempo límite con opción de reintentar. [S]
+*Resuelto en las fases 2 y 3 (confirmado en la Fase 5): "Subiendo foto…
+N %" en crear, iniciar y cerrar hallazgo e ICS (`useUploadProgress`),
+tiempo límite de 90 s con foto y "Reintentar" que reenvía la misma petición.*
 
 **M4 · ICS: errores al guardar** — *Corregido.* La auditoría marcó que "Guardar" no
 tenía estado de carga, pero fue un falso positivo: sí lo tiene, por medio de
@@ -245,12 +269,22 @@ EPP), y EPP tiene su propio mensaje. Las demás tablas, de 25 en total, muestran
 los encabezados cuando no hay datos. "Sin permisos" solo existe en Gemba Walk. →
 Ambigüedad: ¿no hay datos o falló? → Usar `EmptyState` en todas las tablas y agregar
 `ErrorState` y `NoAccessState` con el mismo estilo. [M]
+*Resuelto en la Fase 2 y extendido en la Fase 4 (confirmado en la Fase 5):
+todas las listas muestran vacío o error con "Reintentar"
+(`TableDefaultServer`, `ResponsiveTable`, `TableBodyState`), y
+`NoAccessState` cubre la entrada por URL a cualquier página sin acceso.*
 
 **M8 · Consistencia de componentes** — En el formulario de hallazgo, la descripción
 usa un `TextField` estándar dentro de un `Paper` mientras el resto son campos con
 contorno. Los títulos de los avisos llevan espacios ("¡ Correcto !"). Hay estilos
 sueltos (`style={{…}}`) en componentes compartidos. → Aspecto poco pulido. → Unificar
 en el tema y en componentes base. [S]
+*Resuelto: descripciones con contorno (Fase 4); en la Fase 5, "¡Correcto!" y
+"¡Atención!" sin espacios y el último estilo suelto de un componente
+compartido (`SelectDefault`) pasó a `sx`. Queda `style` solo donde el
+componente no acepta `sx`: `next/image` (vista previa de `PhotoCapture`,
+logo, firmas de EPP), `<video>`/`<canvas>` del lector QR y una fila de
+relleno de la tabla de equipos de emergencia.*
 
 ### Bajo
 
@@ -370,11 +404,20 @@ Por regla del plan, no se modifican.
    - **Pendiente:** mover la lista a configuración (variable de entorno o
      catálogo editable por un administrador). Hoy cambiar quién recibe los avisos
      requiere un despliegue.
-5. **Prueba intermitente de extintores (pendiente).** En el API,
+5. **Prueba intermitente de extintores.** En el API,
    `registra una inspección y descarga su formato (Excel)`
    (`test/db/gemba-extinguishers.db-spec.ts`) falló una vez en la corrida completa
-   de `pnpm test:db` y pasó en la siguiente sin cambios. No tiene relación con los
-   cambios de hallazgos; falta investigar la causa.
+   de `pnpm test:db` y pasó en la siguiente sin cambios.
+   - *Fase 5:* no se reprodujo (12 corridas del archivo y 4 de la suite
+     completa). Causa probable, de la prueba y no del código: el archivo
+     creaba **dos apps en el mismo proceso** (una por `describe`), lo que
+     `test/db/README.md` ya documentaba como causa de caídas intermitentes
+     en Windows; la prueba que falló es la primera de la segunda app. Se
+     separó en `gemba-walk.db-spec.ts` y
+     `extinguisher-inspections.db-spec.ts` (una app por archivo). El
+     servicio no cambió.
+   - `auth-users.db-spec.ts` tiene el mismo patrón (dos apps); no ha
+     fallado, pero conviene separarlo igual.
 6. **Etiquetas de prioridad invertidas.** Se guarda solo el número de días
    (`priorityDays`); el vencimiento se calcula con la fecha de registro más esos
    días, así que ningún vencimiento está mal. Lo que cambió fue el nombre de cada
@@ -489,6 +532,11 @@ confirmarlos y marcarlos en la Fase 5.
 ### Fase 5 — Verificación
 
 Como está definida en el plan.
+
+**Parte 1 (cierre de pendientes):** confirmados y marcados C2, A3, A8, M2,
+M3 y M7; resueltos A7 y M8; atendidos los pendientes de
+`docs/ux-componentes.md`, sección 12, y la prueba intermitente de la
+sección 5, punto 5.
 
 ### Antes de la Fase 2 conviene decidir dos cosas
 

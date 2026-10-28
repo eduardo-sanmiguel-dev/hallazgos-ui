@@ -64,7 +64,10 @@ const FiltersEpp = ({
       return;
     }
 
-    EquipmentsService.findAll({ manufacturingPlantId }).then(setEquipments);
+    // Si falla, el interceptor ya mostró el aviso; sin equipos que filtrar.
+    EquipmentsService.findAll({ manufacturingPlantId })
+      .then(setEquipments)
+      .catch(() => setEquipments([]));
   }, [manufacturingPlantId]);
 
   const hasFiltersToClear = (

@@ -8,7 +8,7 @@ import { Button } from "@mui/material";
 import Add from "@mui/icons-material/Add";
 
 import { usePaginatedList } from "@hooks";
-import LoadingLinear from "@shared/components/LoadingLinear";
+import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { ProcessesService } from "@services";
@@ -61,7 +61,7 @@ const ProcessesPage = () => {
         count={count}
       />
       {isLoading ? (
-        <LoadingLinear />
+        <TableSkeleton />
       ) : (
         <TableProcesses rows={data} getData={getData} pagination={pagination} />
       )}

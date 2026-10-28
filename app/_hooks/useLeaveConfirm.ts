@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 
+import { useBeforeUnload } from "./useBeforeUnload";
+
 interface Options<T> {
   // En edición, la comparación es contra lo cargado (`markPristine`).
   isEditing?: boolean;
@@ -42,6 +44,8 @@ export function useLeaveConfirm<T extends object>(
 
   const [pristine, setPristine] = useState(() => snapshot(value));
   const isDirty = snapshot(value) !== pristine;
+  // Recargar o cerrar la pestaña con cambios: aviso nativo del navegador.
+  useBeforeUnload(isDirty);
 
   /** Lo cargado en edición pasa a ser el punto de comparación. */
   const markPristine = (loaded: T) => setPristine(snapshot(loaded));

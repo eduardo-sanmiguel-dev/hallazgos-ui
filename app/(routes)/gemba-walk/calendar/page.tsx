@@ -9,7 +9,7 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import dayjs, { toISOStringOrNull } from "@shared/libs/dayjs";
 
 import { usePaginatedList } from "@hooks";
-import LoadingLinear from "@shared/components/LoadingLinear";
+import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { GembaWalkCalendarService } from "@services";
@@ -90,7 +90,7 @@ const GembaWalkCalendarPage = () => {
         onClear={() => setFilters(defaultFilters())}
       />
       {isLoading ? (
-        <LoadingLinear />
+        <TableSkeleton />
       ) : (
         <TableGembaWalkCalendar
           rows={data}

@@ -42,13 +42,15 @@ function HeaderSkeleton() {
   );
 }
 
-// Lista: cabecera, barra de filtros y filas de tabla.
-export function ListSkeleton({ rows = 8 }: { rows?: number }) {
+// Filas de tabla (tablet y escritorio) o tarjetas (celular, como
+// ResponsiveTable).
+function TableRowsSkeleton({ rows }: { rows: number }) {
   return (
-    <SkeletonRoot>
-      <HeaderSkeleton />
-      <Skeleton variant="rounded" height={56} sx={{ mb: 2 }} />
-      <Paper variant="outlined" sx={{ p: 2 }}>
+    <>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2, display: { xs: "none", sm: "block" } }}
+      >
         <Skeleton variant="rounded" height={40} sx={{ mb: 1.5 }} />
         <Stack spacing={1.25}>
           {Array.from({ length: rows }, (_, index) => (
@@ -56,6 +58,32 @@ export function ListSkeleton({ rows = 8 }: { rows?: number }) {
           ))}
         </Stack>
       </Paper>
+      <Stack spacing={1.5} sx={{ display: { xs: "flex", sm: "none" } }}>
+        {Array.from({ length: Math.min(rows, 4) }, (_, index) => (
+          <Skeleton key={index} variant="rounded" height={128} />
+        ))}
+      </Stack>
+    </>
+  );
+}
+
+// Solo la tabla: para la primera carga de una lista, cuya cabecera y filtros
+// ya están en pantalla.
+export function TableSkeleton({ rows = 8 }: { rows?: number }) {
+  return (
+    <SkeletonRoot>
+      <TableRowsSkeleton rows={rows} />
+    </SkeletonRoot>
+  );
+}
+
+// Lista: cabecera, barra de filtros y filas de tabla.
+export function ListSkeleton({ rows = 8 }: { rows?: number }) {
+  return (
+    <SkeletonRoot>
+      <HeaderSkeleton />
+      <Skeleton variant="rounded" height={56} sx={{ mb: 2 }} />
+      <TableRowsSkeleton rows={rows} />
     </SkeletonRoot>
   );
 }

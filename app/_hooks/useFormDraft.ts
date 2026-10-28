@@ -19,6 +19,8 @@ import {
   putDraft,
 } from "@shared/drafts/draftStore";
 
+import { useBeforeUnload } from "./useBeforeUnload";
+
 export interface DraftContent<T> {
   fields: T;
   photo: File | null;
@@ -166,6 +168,11 @@ export function useFormDraft<T>({
     }, AUTOSAVE_MS);
     return () => clearTimeout(timer);
   }, [fieldsKey, content.photo, ready, lock, form, userId, save]);
+
+  // Recargar o cerrar la pestaña con algo capturado y editable: aviso nativo
+  // (cubre los ~0.8 s antes del guardado y los navegadores sin borradores).
+  // No mientras se ofrece un borrador ni en solo lectura: ya está guardado.
+  useBeforeUnload(!!form && ready && !lock && hasContent(content));
 
   /**
    * Guarda ya lo capturado, sin esperar al guardado automático (por ejemplo,

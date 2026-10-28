@@ -10,7 +10,7 @@ import PrintIcon from "@mui/icons-material/Print";
 import QRCode from "qrcode";
 
 import { usePaginatedList } from "@hooks";
-import LoadingLinear from "@shared/components/LoadingLinear";
+import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { notify } from "@shared/utils";
@@ -245,7 +245,7 @@ const EmergencyTeamsPage = () => {
         count={count}
       />
       {isLoading ? (
-        <LoadingLinear />
+        <TableSkeleton />
       ) : (
         <EmergencyTeamsTable
           rows={data}

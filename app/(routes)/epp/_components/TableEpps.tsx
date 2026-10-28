@@ -38,6 +38,7 @@ import { useMediaQuery } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 import ErrorState from "@shared/components/ErrorState";
 import { TableBodyState } from "@shared/components/TableDefaultServer";
+import { TableSkeleton } from "@shared/components/Skeletons";
 import { constants } from "@constants";
 
 const HISTORY_COLUMNS = 7;
@@ -57,6 +58,21 @@ function HistorySkeleton() {
       ))}
     </StyledTableRow>
   ));
+}
+
+/** Filas de esqueleto de la lista en su primera carga (6 columnas). */
+function ListRowsSkeleton() {
+  return (
+    <StyledTableRow>
+      <StyledTableCell colSpan={6} role="status" aria-label="Cargando…">
+        <Stack spacing={1.25} sx={{ py: 1 }}>
+          {Array.from({ length: 8 }, (_, row) => (
+            <Skeleton key={row} variant="rounded" height={36} />
+          ))}
+        </Stack>
+      </StyledTableCell>
+    </StyledTableRow>
+  );
 }
 
 interface HistoryProps {
@@ -579,14 +595,22 @@ export default function TableEpps({
     onSortChange(nextOrder, nextOrderBy);
   };
 
+  // Primera carga (sin filas todavía): esqueleto. Al cambiar de página o de
+  // filtro se conservan las filas con la barra arriba.
+  const isFirstLoad = isLoading && !rows.length;
+
   return (
     <Paper aria-busy={isLoading}>
       <Box sx={{ height: 4 }}>
-        {isLoading && <LinearProgress aria-label="Cargando entregas" />}
+        {isLoading && !isFirstLoad && (
+          <LinearProgress aria-label="Cargando entregas" />
+        )}
       </Box>
       {isPhone ? (
         <Box sx={{ p: 1.5 }}>
-          {!rows.length && !isLoading ? (
+          {isFirstLoad ? (
+            <TableSkeleton rows={4} />
+          ) : !rows.length ? (
             bodyState
           ) : (
             <Stack
@@ -633,6 +657,7 @@ export default function TableEpps({
               </StyledTableRow>
             </TableHead>
             <TableBody>
+              {isFirstLoad && <ListRowsSkeleton />}
               {!rows.length && !isLoading && (
                 <StyledTableRow>
                   <StyledTableCell colSpan={6}>{bodyState}</StyledTableCell>

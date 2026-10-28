@@ -14,7 +14,7 @@ import FiltersCiaels, {
 import { CiaelsService } from "@services";
 import SimCardDownloadIcon from "@mui/icons-material/SimCardDownload";
 import { usePaginatedList } from "@hooks";
-import LoadingLinear from "@shared/components/LoadingLinear";
+import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 
@@ -66,7 +66,7 @@ const CiaelPage = () => {
       </PageHeader>
       <FiltersCiaels filters={filters} setFilters={setFilters} count={count} />
       {isLoading ? (
-        <LoadingLinear />
+        <TableSkeleton />
       ) : (
         <TableCiaels data={ciaels} pagination={pagination} />
       )}

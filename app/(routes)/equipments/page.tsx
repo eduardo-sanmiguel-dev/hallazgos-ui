@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { BootstrapDialog } from "@routes/hallazgos/_components/CloseEvidence";
 import SelectManufacturingPlants from "@components/SelectManufacturingPlants";
 import { usePaginatedList } from "@hooks";
-import LoadingLinear from "@shared/components/LoadingLinear";
+import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import FilterBar, {
@@ -534,7 +534,7 @@ export default function EquipmentsPage() {
         </Grid>
       </FilterBar>
       {isLoading ? (
-        <LoadingLinear />
+        <TableSkeleton />
       ) : (
         <ResponsiveTable
           rows={rows}

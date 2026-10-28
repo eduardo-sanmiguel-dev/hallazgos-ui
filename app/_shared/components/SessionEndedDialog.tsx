@@ -11,6 +11,7 @@ import { DialogTitle } from "@mui/material";
 
 import { AuthService, SESSION_ENDED_EVENT } from "@services";
 import { useUserSessionStore } from "@store";
+import { allowUnload } from "@hooks/useBeforeUnload";
 import {
   isDraftStorageAvailable,
   listUserDrafts,
@@ -84,6 +85,9 @@ export default function SessionEndedDialog() {
           disabled={isLeaving}
           onClick={() => {
             setIsLeaving(true);
+            // Este diálogo ya dijo qué pasa con lo capturado: el aviso nativo
+            // de "salir de la página" sobraría.
+            allowUnload();
             // Primero se borra la cookie: con un usuario desactivado el token
             // sigue siendo válido y "/" lo mandaría de vuelta al dashboard.
             AuthService.logout()

@@ -17,6 +17,14 @@ const SelectManufacturingPlants = ({
   isFilter = false,
 }: Props) => {
   const { data: manufacturingPlants = [] } = useManufacturingPlants();
+  // Al editar, el valor del registro llega antes que el catálogo: sin su
+  // opción, MUI avisa "out-of-range value" en la consola. Se ve igual (vacío)
+  // y el valor del formulario no cambia.
+  const shownValue = manufacturingPlants.some(
+    (manufacturingPlant) => String(manufacturingPlant.id) === value,
+  )
+    ? value
+    : "";
 
   return (
     <FormControl fullWidth>
@@ -27,7 +35,7 @@ const SelectManufacturingPlants = ({
         labelId="manufacturing-plant-simple-select-label"
         id="manufacturing-plant-simple-select"
         label="Planta"
-        value={value}
+        value={shownValue}
         onChange={onChange}
       >
         {isFilter && <MenuItem value="">Ninguna</MenuItem>}

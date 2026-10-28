@@ -70,6 +70,10 @@ test.describe("Procesos: formulario", () => {
     const dialog = page.getByRole("dialog", {
       name: "¿Descartar el registro?",
     });
+    // El foco inicia en la opción segura: Enter no descarta por accidente.
+    await expect(
+      dialog.getByRole("button", { name: "Seguir editando" }),
+    ).toBeFocused();
     await dialog.getByRole("button", { name: "Seguir editando" }).click();
     await expect(page).toHaveURL(/\/processes\/form$/);
     await expect(nameInput(page)).toHaveValue("E2E a medias");
@@ -102,6 +106,50 @@ test.describe("Procesos: formulario", () => {
     await nameInput(page).fill("E2E Proceso");
     await cancelButton(page).click();
     await expect(page).toHaveURL(/\/processes$/);
+  });
+
+  test("recargar con algo capturado muestra el aviso del navegador; sin cambios, no", async ({
+    page,
+  }) => {
+    const prompts: string[] = [];
+    page.on("dialog", (dialog) => {
+      prompts.push(dialog.type());
+      void dialog.accept();
+    });
+
+    await page.goto("/processes/form");
+    await nameInput(page).click();
+    await page.reload();
+    expect(prompts).toEqual([]);
+
+    await nameInput(page).fill("E2E a medias");
+    await page.reload();
+    expect(prompts).toEqual(["beforeunload"]);
+    await expect(nameInput(page)).toHaveValue("");
+  });
+
+  test("al editar, la planta no avisa 'out-of-range' aunque el catálogo llegue después", async ({
+    page,
+  }) => {
+    const warnings: string[] = [];
+    page.on("console", (message) => {
+      if (/out-of-range/i.test(message.text())) warnings.push(message.text());
+    });
+    const plant = await mockProcess(page);
+    // El catálogo de plantas llega después que el registro.
+    await page.route(
+      (url) => url.pathname.endsWith("/api/v1/manufacturing-plants"),
+      async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await route.fallback();
+      },
+    );
+    await page.goto(`/processes/form?id=${ID}`);
+    await expect(nameInput(page)).toHaveValue("E2E Proceso");
+    await expect(page.getByRole("combobox", { name: "Planta" })).toHaveText(
+      plant.name,
+    );
+    expect(warnings).toEqual([]);
   });
 
   test("mientras carga el registro no se muestra el formulario vacío", async ({
@@ -247,6 +295,36 @@ test.describe("Procesos: breadcrumbs (B2)", () => {
         page.getByRole("navigation", { name: "Ruta de navegación" }),
       ).toBeHidden();
     });
+  });
+});
+
+test.describe("Procesos: lista", () => {
+  test("la primera carga muestra el esqueleto de la tabla, no la barra", async ({
+    page,
+  }) => {
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    await page.route(
+      (url) =>
+        url.pathname.endsWith("/api/v1/processes") &&
+        url.searchParams.has("page"),
+      async (route) => {
+        await held;
+        await route.fallback();
+      },
+    );
+    await page.goto("/processes");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Procesos" }),
+    ).toBeVisible();
+    await expect(page.getByRole("status", { name: "Cargando…" })).toBeVisible();
+    await expect(page.getByRole("progressbar")).toHaveCount(0);
+
+    release();
+    await expect(page.getByRole("table")).toBeVisible();
+    await expect(page.getByRole("status", { name: "Cargando…" })).toHaveCount(
+      0,
+    );
   });
 });
 

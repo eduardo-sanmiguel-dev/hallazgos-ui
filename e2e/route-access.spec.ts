@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 
 import { mockGet } from "./support/api";
 import { expect, test } from "./support/fixtures";
+import { trackPageErrors } from "./support/ui";
 
 // Entrar por URL directa a una página que el menú no le muestra al usuario:
 // se ve "sin acceso" en vez de una pantalla vacía o con errores. Solo es UI;
@@ -61,6 +62,7 @@ test.describe("Acceso por URL directa", () => {
   });
 
   test("el usuario de EPP entra a EPP pero no a HDS", async ({ page }) => {
+    const errors = trackPageErrors(page);
     await asUser(page, "malonso@hadainternational.com");
     await page.goto("/hds");
     await expect(noAccess(page)).toBeVisible();
@@ -68,6 +70,10 @@ test.describe("Acceso por URL directa", () => {
     await page.goto("/epp");
     await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
     await expect(noAccess(page)).toHaveCount(0);
+    // La planta simulada no existe en la base: sus catálogos responden 404 y
+    // la pantalla los maneja (antes, "unhandledRejection").
+    await page.waitForLoadState("networkidle");
+    expect(errors).toEqual([]);
   });
 
   test("el usuario de HDS vuelve a HDS desde una página sin acceso", async ({

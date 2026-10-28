@@ -7,12 +7,12 @@ export const nowDateWithTime = () => dayjs().format("DD/MM/YYYY h:mm a");
 
 export const notify = (message: string, success?: boolean) => {
   if (success) {
-    toast.success("¡ Correcto !", {
+    toast.success("¡Correcto!", {
       description: message,
       duration: 7000,
     });
   } else {
-    toast.error("¡ Atención !", {
+    toast.error("¡Atención!", {
       description: message,
       duration: 7000,
     });

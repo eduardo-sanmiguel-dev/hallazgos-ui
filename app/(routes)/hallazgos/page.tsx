@@ -11,7 +11,7 @@ import SimCardDownloadIcon from "@mui/icons-material/SimCardDownload";
 import { toast } from "sonner";
 
 import TableEvidences from "./_components/TableEvidences";
-import LoadingLinear from "@shared/components/LoadingLinear";
+import { TableSkeleton } from "@shared/components/Skeletons";
 import FiltersEvidence, {
   FiltersEvidences,
 } from "./_components/FiltersEvidence";
@@ -172,7 +172,7 @@ export default function HallazgosPage() {
           }}
         >
           {isLoading ? (
-            <LoadingLinear />
+            <TableSkeleton />
           ) : (
             <TableEvidences
               rows={evidences}

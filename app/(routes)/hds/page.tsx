@@ -7,7 +7,7 @@ import { TextField } from "@mui/material";
 
 import SelectDefault from "@components/SelectDefault";
 import { usePaginatedList } from "@hooks";
-import LoadingLinear from "@shared/components/LoadingLinear";
+import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import FilterBar, {
@@ -134,7 +134,7 @@ const HdsPage = () => {
         </Grid>
       </FilterBar>
       {isLoading ? (
-        <LoadingLinear />
+        <TableSkeleton />
       ) : (
         <ResponsiveTable
           rows={data}

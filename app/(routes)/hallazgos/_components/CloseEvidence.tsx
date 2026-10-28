@@ -17,7 +17,6 @@ import confetti from "canvas-confetti";
 import { dataURLtoFile, notify } from "@shared/utils";
 import { EvidencesService } from "@services";
 
-import "react-html5-camera-photo/build/css/index.css";
 import ImageORCamera from "@shared/components/ImageORCamera";
 import { EvidenceGraphql, useUploadProgress } from "@hooks";
 import { useFormDraft } from "@hooks/useFormDraft";

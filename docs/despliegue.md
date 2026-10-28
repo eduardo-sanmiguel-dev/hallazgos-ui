@@ -543,3 +543,21 @@ configuración de Gemba Walk) tienen tarjetas en celular, y sus formularios
 marcan lo que falta, piden confirmar al salir y muestran la ruta en tablet y
 escritorio. Nada de esto requiere cambios en el servidor.
 
+### Fase 5: cierre de pendientes
+
+- **Sin migraciones, variables, dependencias ni cambios de nginx.**
+- **API:** solo textos de EPP (compatibles con la UI anterior): "Equipo #N
+  no encontrado." (antes "Equipo con ID N no encontrado." y "El equipo con
+  id N no existe.") y "Registro de historial #N no encontrado.".
+- **UI:**
+  - Las listas muestran un esqueleto de la tabla (o de las tarjetas, en
+    celular) mientras cargan por primera vez, en lugar de la barra.
+  - Recargar o cerrar la pestaña con algo capturado en un formulario
+    muestra el aviso del navegador ("¿Salir del sitio?").
+  - En las confirmaciones (eliminar, descartar, salir…) el foco inicia en
+    "Cancelar" / "Seguir editando".
+  - Los avisos dicen "¡Correcto!" y "¡Atención!" (antes con espacios).
+- **Para el cliente:** si intenta recargar o cerrar la pestaña con un
+  formulario a medias, el navegador le pregunta antes de salir. En los
+  formularios con borrador (hallazgos, ICS, recorrido de Gemba Walk) lo
+  capturado se recupera igual al volver.

@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { Box } from "@mui/material";
 import { Paper } from "@mui/material";
 import { Autocomplete } from "@mui/material";
 import { Checkbox } from "@mui/material";
@@ -101,8 +102,9 @@ export default function SelectDefault({
               .join(", ");
 
             return (
-              <span
-                style={{
+              <Box
+                component="span"
+                sx={{
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -111,7 +113,7 @@ export default function SelectDefault({
                 }}
               >
                 {text}
-              </span>
+              </Box>
             );
           }
 

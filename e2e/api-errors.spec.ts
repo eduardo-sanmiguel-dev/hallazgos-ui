@@ -127,6 +127,8 @@ test.describe("Errores del API", () => {
       .click();
 
     await expect(toast(page, "ICS creado correctamente")).toBeVisible();
+    // Título de `notify` sin espacios dentro de los signos (M8).
+    await expect(toast(page, "¡Correcto!")).toBeVisible();
     expect(requests).toHaveLength(2);
     const [first, retry] = requests;
     const key = first.headers()["idempotency-key"];

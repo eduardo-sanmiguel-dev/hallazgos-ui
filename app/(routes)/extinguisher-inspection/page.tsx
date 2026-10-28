@@ -8,7 +8,7 @@ import Button from "@mui/material/Button";
 import Add from "@mui/icons-material/Add";
 
 import { usePaginatedList } from "@hooks";
-import LoadingLinear from "@shared/components/LoadingLinear";
+import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { ExtinguisherInspectionsService } from "@services";
@@ -60,7 +60,7 @@ const ExtinguisherInspectionPage = () => {
         count={count}
       />
       {isLoading ? (
-        <LoadingLinear />
+        <TableSkeleton />
       ) : (
         <ExtinguisherInspectionsTable rows={data} pagination={pagination} />
       )}

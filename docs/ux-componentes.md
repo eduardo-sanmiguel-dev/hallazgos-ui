@@ -241,6 +241,15 @@ Mismo diseño (ícono en círculo, título, descripción, acciones).
 `app/_shared/components/Skeletons.tsx`: `ListSkeleton`, `FormSkeleton`,
 `DashboardSkeleton`, con `role="status"` y "Cargando…".
 
+`TableSkeleton` (Fase 5, A7): solo la tabla (o tarjetas en celular), para la
+primera carga de una lista cuya cabecera y filtros ya están en pantalla. Lo
+usan las 20 listas que tenían `LoadingLinear` y EPP (`TableEpps`, que
+conserva la barra arriba al cambiar de página o filtro).
+
+```tsx
+{isLoading ? <TableSkeleton /> : <TableProcesses … />}
+```
+
 `loading.tsx` (se muestran al navegar mientras carga la ruta):
 
 - `app/(routes)/loading.tsx` → lista (cubre todas las listas).
@@ -268,9 +277,12 @@ Sin cambios de API. Ya lo usan todas las eliminaciones y el cierre de
 hallazgo; el aviso "Eventos sin guardar" del calendario de Gemba Walk pasó de
 un `Dialog` propio a `ConfirmDialog` (mismos textos).
 
-Pendiente: el componente promete que el foco inicia en "Cancelar"
-(`autoFocus`), pero en la prueba e2e el foco no queda ahí. Revisar en la
-Fase 5.
+**Foco inicial en "Cancelar"** (corregido en la Fase 5): con MUI 9,
+`autoFocus` no bastaba, porque la trampa de foco del diálogo enfoca su
+contenedor al abrir. Ahora se enfoca "Cancelar" al entrar la transición
+(`slotProps.transition.onEntering`), así Enter no confirma una acción
+destructiva por accidente. Aplica a todos los usos (eliminar, descartar,
+salir, cerrar sesión…).
 
 ---
 
@@ -790,6 +802,8 @@ General, (3) criterios, equipos y HDS, (4) configuración de Gemba Walk (G8).
     navega directo.
   - Como en los demás módulos, el menú lateral y el botón "atrás" del
     navegador no preguntan.
+  - **Recargar o cerrar la pestaña** con cambios muestra el aviso nativo
+    del navegador (Fase 5, `useBeforeUnload`; ver la sección 12).
 - **Registro en edición:** `useEditRecord(id, Service.findOne, onLoad)`
   (`app/_hooks/useEditRecord.ts`) y `EditRecordState`
   (`app/_shared/components/EditRecordState.tsx`). Mientras carga,
@@ -921,27 +935,37 @@ carga en edición, breadcrumbs y lista con `ResponsiveTable`.
 
 ---
 
-## 12. Pendiente para otras fases
+## 12. Pendientes de la Fase 4, atendidos en la Fase 5
 
-Para la Fase 5 (verificación):
-
-- **Aviso nativo al recargar o cerrar la pestaña** (`beforeunload`) con algo
-  capturado, en todos los formularios que usan `useLeaveConfirm` o borrador
-  local (`useFormDraft`). Hoy solo preguntan "Cancelar" y los breadcrumbs; el
-  menú lateral y el botón "atrás" del navegador no.
-- **Aviso de MUI "out-of-range value"** en el selector de planta
-  (`SelectManufacturingPlants`) al editar: aparece en la consola mientras
-  carga el catálogo de plantas, porque el valor del registro llega antes que
-  las opciones. No cambia el funcionamiento.
-- **Errores 404 sin manejar** (`unhandledRejection` en la consola del
-  navegador) en la prueba de acceso "el usuario de EPP entra a EPP pero no a
-  HDS" (`e2e/route-access.spec.ts`), al abrir `/epp` con el usuario simulado.
-  Ya aparecían antes del panel administrativo; falta ubicar qué consulta no
-  maneja su error.
-- **Ids en los textos del API de EPP:** "Equipo con ID N no encontrado." y
-  "Registro de historial con ID N no encontrado." siguen con el formato
-  anterior (EPP quedó fuera del panel administrativo). El resto del API usa
-  "#N".
+- **Aviso nativo al recargar o cerrar la pestaña** (`beforeunload`): hook
+  `useBeforeUnload` (`app/_hooks/useBeforeUnload.ts`), conectado dentro de
+  `useLeaveConfirm` (con `isDirty`) y de `useFormDraft` (con algo capturado y
+  editable). Así lo tienen todos los formularios del panel, Equipos de
+  protección (con el diálogo abierto), Nuevo hallazgo, Iniciar y Cerrar,
+  ICS y el recorrido de Gemba Walk.
+  - El texto lo pone el navegador; no se puede cambiar.
+  - Con borrador: no pregunta mientras se ofrece "Recuperar" ni en solo
+    lectura (ya está guardado). Sí pregunta mientras se captura: cubre los
+    ~0.8 s antes del guardado y el modo privado, donde no hay borrador.
+  - Navegar dentro de la app (menú, "atrás" del navegador, guardar) no lo
+    dispara; eso sigue igual que antes.
+  - "Tu sesión terminó" → "Iniciar sesión" recarga la página sin preguntar
+    (`allowUnload()`): el diálogo ya dijo qué pasa con lo capturado.
+  - No se agregó a CIAEL, el calendario de Gemba Walk, extintores ni la
+    entrega de EPP: tienen su propia confirmación y no usan estos hooks.
+- **Aviso de MUI "out-of-range value"** en `SelectManufacturingPlants`:
+  mientras el catálogo no trae la planta del registro, el `Select` recibe
+  `""` (se ve igual: vacío). El valor del formulario no cambia.
+- **Errores 404 sin manejar en `/epp`** (prueba de acceso del usuario de
+  EPP): la planta simulada no existe en la base de desarrollo y
+  `GET /equipments` respondía 404 sin `.catch` en `FiltersEpp` y en
+  `DialogCreateEpp` (también la consulta de colaboradores del diálogo). El
+  aviso ya lo mostraba el interceptor; ahora la promesa se maneja y la lista
+  queda vacía. La prueba falla si vuelve a haber errores de página.
+- **Ids en los textos del API de EPP:** "Equipo #N no encontrado." (antes
+  "Equipo con ID N no encontrado." y "El equipo con id N no existe.") y
+  "Registro de historial #N no encontrado.".
+- **Foco inicial de `ConfirmDialog`:** ver la sección 2.
 
 Otros:
 

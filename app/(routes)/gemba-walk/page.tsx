@@ -12,7 +12,7 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import dayjs, { toISOStringOrNull } from "@shared/libs/dayjs";
 
 import { EMPTY_CATALOG, useGembaWalkZones, usePaginatedList } from "@hooks";
-import LoadingLinear from "@shared/components/LoadingLinear";
+import { TableSkeleton } from "@shared/components/Skeletons";
 import SelectDefault from "@components/SelectDefault";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import { GembaWalksService } from "@services";
@@ -288,7 +288,7 @@ const GembaWalksList = () => {
         </Grid>
       </FilterBar>
       {isLoading ? (
-        <LoadingLinear />
+        <TableSkeleton />
       ) : (
         <TableGembaWalks rows={data} pagination={pagination} />
       )}

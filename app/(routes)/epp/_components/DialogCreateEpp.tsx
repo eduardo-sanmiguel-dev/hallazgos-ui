@@ -93,18 +93,23 @@ export default function DialogCreateEpp({ open, create }: Props) {
     setEquipmentsNew([]);
     setSignature("");
 
-    EquipmentsService.findAll({ manufacturingPlantId }).then(setEquipments);
+    // Si falla, el interceptor ya mostró el aviso; la lista queda vacía.
+    EquipmentsService.findAll({ manufacturingPlantId })
+      .then(setEquipments)
+      .catch(() => undefined);
 
     EmployeesService.findAll({
       manufacturingPlantId: Number(manufacturingPlantId),
-    }).then((data) => {
-      setEmployees(
-        data.map((employee) => ({
-          ...employee,
-          name: `${employee.code} - ${employee.name}`,
-        })),
-      );
-    });
+    })
+      .then((data) => {
+        setEmployees(
+          data.map((employee) => ({
+            ...employee,
+            name: `${employee.code} - ${employee.name}`,
+          })),
+        );
+      })
+      .catch(() => undefined);
   }, [manufacturingPlantId]);
 
   const isDisabledSave = useMemo(() => {

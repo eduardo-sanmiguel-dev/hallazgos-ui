@@ -197,6 +197,29 @@ test.describe("Borrador de nuevo hallazgo", () => {
     await expect(notice(page)).toHaveCount(0);
   });
 
+  test("recargar con algo capturado muestra el aviso del navegador; con el borrador ofrecido, no", async ({
+    page,
+  }) => {
+    const prompts: string[] = [];
+    page.on("dialog", (dialog) => {
+      prompts.push(dialog.type());
+      void dialog.accept();
+    });
+    await openForm(page);
+    await description(page).fill(DESCRIPTION);
+    await expect.poll(async () => (await storedDrafts(page)).length).toBe(1);
+
+    await page.reload();
+    expect(prompts).toEqual(["beforeunload"]);
+
+    // Lo capturado ya está en el borrador: mientras se ofrece, no pregunta.
+    await expect(notice(page)).toContainText("Tienes un borrador");
+    await description(page).click();
+    await page.reload();
+    expect(prompts).toEqual(["beforeunload"]);
+    await expect(notice(page)).toContainText("Tienes un borrador");
+  });
+
   test("Descartar borra el borrador", async ({ page }) => {
     await openForm(page);
     await description(page).fill(DESCRIPTION);

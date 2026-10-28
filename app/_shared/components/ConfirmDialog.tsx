@@ -27,7 +27,9 @@ interface ConfirmDialogProps extends Omit<ConfirmOptions, "action"> {
 }
 
 // Diálogo de confirmación. El foco inicia en "Cancelar" para que Enter no
-// confirme una acción destructiva por accidente.
+// confirme una acción destructiva por accidente. En MUI 9 `autoFocus` no
+// basta: la trampa de foco del diálogo enfoca su contenedor al abrir, así que
+// se enfoca "Cancelar" al entrar la transición.
 export default function ConfirmDialog({
   open,
   title,
@@ -41,10 +43,14 @@ export default function ConfirmDialog({
 }: ConfirmDialogProps) {
   const titleId = useId();
   const descriptionId = useId();
+  const cancelRef = useRef<HTMLButtonElement>(null);
 
   return (
     <Dialog
       open={open}
+      slotProps={{
+        transition: { onEntering: () => cancelRef.current?.focus() },
+      }}
       onClose={() => {
         if (!isBusy) onClose();
       }}
@@ -62,7 +68,7 @@ export default function ConfirmDialog({
         </DialogContent>
       )}
       <DialogActions sx={{ px: 3, pb: 2.5 }}>
-        <Button onClick={onClose} autoFocus disabled={isBusy}>
+        <Button ref={cancelRef} onClick={onClose} autoFocus disabled={isBusy}>
           {cancelLabel}
         </Button>
         <Button
