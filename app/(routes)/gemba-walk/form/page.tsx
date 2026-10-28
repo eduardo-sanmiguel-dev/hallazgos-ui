@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -12,14 +12,17 @@ import { Box } from "@mui/material";
 import { Stack } from "@mui/material";
 import { Chip } from "@mui/material";
 import { Alert } from "@mui/material";
-import { Switch } from "@mui/material";
+import { AlertTitle } from "@mui/material";
 import { TextField } from "@mui/material";
+import { ToggleButton } from "@mui/material";
+import { ToggleButtonGroup } from "@mui/material";
 import { Typography } from "@mui/material";
 import { Button } from "@mui/material";
-import SaveIcon from "@mui/icons-material/Save";
-import CloseIcon from "@mui/icons-material/Close";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import type { Theme } from "@mui/material/styles";
 import { toast } from "sonner";
 import dayjs from "@shared/libs/dayjs";
@@ -29,16 +32,24 @@ import { GembaWalkCalendar, GembaWalkEvaluation } from "@interfaces";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
 import LoadingLinear from "@shared/components/LoadingLinear";
+import ErrorState from "@shared/components/ErrorState";
+import DraftNotice from "@shared/components/DraftNotice";
+import FormActions from "@shared/components/FormActions";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
+import { useFormDraft } from "@hooks/useFormDraft";
+import { isDraftStorageAvailable } from "@shared/drafts/draftStore";
 import GembaWalkAccessGuard from "../_components/GembaWalkAccessGuard";
 import PageHeader from "@shared/components/PageHeader";
 import { groupByCategory } from "../_components/groupByCategory";
 import { formatDuration } from "../_components/formatDuration";
-
-interface Answer {
-  isCompliant: boolean;
-  comments: string;
-}
+import {
+  type Answer,
+  type StartedWalk,
+  type WalkDraftFields,
+  blockedReason,
+  eventSummary,
+  initialAnswers,
+} from "./_lib/walkDraft";
 
 // Igual que la API (GEMBA_WALK_TOLERANCE_MINUTES): se puede INICIAR desde el
 // inicio del día hasta 15 minutos después de la hora programada; puede
@@ -52,17 +63,12 @@ const isOutOfTime = (event: GembaWalkCalendar, now: Date) =>
   dayjs(now).isAfter(deadlineOf(event));
 
 const eventLabel = (event: GembaWalkCalendar, now: Date) =>
-  `${dayjs(event.scheduledAt).format("HH:mm")} · ${event.gembaWalkZone.nameZone} - ${event.gembaWalkZone.nameLocation}${event.isAdditional ? " (Adicional)" : ""}${isOutOfTime(event, now) ? " — Fuera de tiempo" : ""}`;
+  `${eventSummary(event)}${isOutOfTime(event, now) ? " — Fuera de tiempo" : ""}`;
 
 const textColor = { color: (theme: Theme) => theme.palette.text.primary };
 const secondaryTextColor = {
   color: (theme: Theme) => theme.palette.text.secondary,
 };
-
-interface StartedWalk {
-  startToken: string;
-  startedAt: string;
-}
 
 // Cronómetro propio para no re-renderizar todo el formulario cada segundo.
 const ElapsedTimer = ({ startedAt }: { startedAt: string }) => {
@@ -92,9 +98,19 @@ const GembaWalkForm = () => {
   const [evaluations, setEvaluations] = useState<GembaWalkEvaluation[]>([]);
   const [answers, setAnswers] = useState<Record<number, Answer>>({});
   const [isLoadingPlant, setIsLoadingPlant] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [started, setStarted] = useState<StartedWalk | null>(null);
   const [isStarting, setIsStarting] = useState(false);
+  // Eventos de hoy sin recorrido (null: aún no se sabe o no se pudo saber).
+  const [availableIds, setAvailableIds] = useState<number[] | null>(null);
+  // Evento del borrador recuperado, por si ya no está entre los disponibles.
+  const [restoredEvent, setRestoredEvent] =
+    useState<WalkDraftFields["event"]>(null);
+  // Recarga de la planta (recuperar o descartar un borrador, "Reintentar").
+  const [loadCount, setLoadCount] = useState(0);
+  // Borrador por aplicar cuando carguen los datos de su planta.
+  const restoreRef = useRef<WalkDraftFields | null>(null);
 
   // Fecha y hora del registro (la definitiva la fija el servidor al guardar).
   useEffect(() => {
@@ -103,11 +119,18 @@ const GembaWalkForm = () => {
   }, []);
 
   useEffect(() => {
+    const restoring = restoreRef.current;
+    let ignore = false;
+
     setEvents([]);
     setEvaluations([]);
-    setAnswers({});
-    setGembaWalkCalendarId("");
-    setStarted(null);
+    setAvailableIds(null);
+    setLoadError(false);
+    // Lo recuperado se pone desde ya: el borrador se sigue guardando
+    // mientras carga y no debe quedar vacío.
+    setAnswers(restoring?.answers ?? {});
+    setGembaWalkCalendarId(restoring?.gembaWalkCalendarId ?? "");
+    setStarted(restoring?.started ?? null);
 
     if (!manufacturingPlantId) return;
 
@@ -118,20 +141,25 @@ const GembaWalkForm = () => {
       GembaWalkEvaluationsService.findAll({ manufacturingPlantId }),
     ])
       .then(([eventsData, evaluationsData]) => {
+        if (ignore) return;
+        restoreRef.current = null;
         setEvents(eventsData);
+        setAvailableIds(eventsData.map(({ id }) => id));
         setEvaluations(evaluationsData);
         // Por defecto todo "Cumple"; el observador marca lo que no cumple.
-        setAnswers(
-          Object.fromEntries(
-            evaluationsData.map(({ id }) => [
-              id,
-              { isCompliant: true, comments: "" },
-            ]),
-          ),
-        );
+        setAnswers(initialAnswers(evaluationsData, restoring?.answers));
       })
-      .finally(() => setIsLoadingPlant(false));
-  }, [manufacturingPlantId]);
+      .catch(() => {
+        if (!ignore) setLoadError(true);
+      })
+      .finally(() => {
+        if (!ignore) setIsLoadingPlant(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [manufacturingPlantId, loadCount]);
 
   const eventOptions = useMemo(
     () =>
@@ -142,6 +170,41 @@ const GembaWalkForm = () => {
   const selectedEvent = events.find(
     (event) => String(event.id) === gembaWalkCalendarId,
   );
+  const draftEvent = selectedEvent
+    ? {
+        scheduledAt: String(selectedEvent.scheduledAt),
+        label: eventSummary(selectedEvent),
+      }
+    : restoredEvent;
+
+  // Borrador local (G1): solo de un recorrido iniciado, con su comprobante y
+  // su hora de inicio. Se conserva aunque pase la tolerancia: el API la
+  // revisa con la hora de inicio, no con la de registro.
+  const draftFields: WalkDraftFields = {
+    manufacturingPlantId,
+    gembaWalkCalendarId,
+    started,
+    answers,
+    event: draftEvent,
+  };
+  const draft = useFormDraft<WalkDraftFields>({
+    form: "gemba-walk",
+    content: { fields: draftFields, photo: null },
+    hasContent: ({ fields }) => !!fields.started,
+    onRestore: ({ fields }) => {
+      restoreRef.current = fields;
+      setRestoredEvent(fields.event);
+      setManufacturingPlantId(fields.manufacturingPlantId);
+      setLoadCount((count) => count + 1);
+    },
+  });
+
+  // Ya no se puede registrar (otro día, comprobante vencido o ya registrado).
+  const blocked = isLoadingPlant
+    ? null
+    : blockedReason(draftFields, availableIds, now);
+  const isReadOnly = !!draft.lock || !!blocked;
+
   // La tolerancia aplica al inicio; una vez iniciado ya no vence.
   const selectedOutOfTime =
     !!selectedEvent && !started && isOutOfTime(selectedEvent, now);
@@ -152,15 +215,15 @@ const GembaWalkForm = () => {
     [evaluations],
   );
 
-  const nonCompliantCount = Object.values(answers).filter(
-    ({ isCompliant }) => !isCompliant,
+  const nonCompliantCount = evaluations.filter(
+    ({ id }) => answers[id] && !answers[id].isCompliant,
   ).length;
   const compliantCount = evaluations.length - nonCompliantCount;
 
   const setAnswer = (id: number, change: Partial<Answer>) =>
     setAnswers((prev) => ({ ...prev, [id]: { ...prev[id], ...change } }));
 
-  const canSave = !!started && evaluations.length > 0 && !isSaving;
+  const canSave = !!started && evaluations.length > 0 && !isReadOnly;
 
   const startWalk = () => {
     setIsStarting(true);
@@ -170,25 +233,47 @@ const GembaWalkForm = () => {
       .finally(() => setIsStarting(false));
   };
 
-  const save = () => {
+  // Vuelve a consultar los eventos disponibles sin tocar lo capturado.
+  const refreshAvailability = () =>
+    GembaWalksService.findAvailableEvents(manufacturingPlantId)
+      .then((eventsData) => setAvailableIds(eventsData.map(({ id }) => id)))
+      .catch(() => undefined);
+
+  const send = async () => {
     if (!started) return;
 
     setIsSaving(true);
+    // Queda como envío pendiente, con su clave: si se pierde la señal,
+    // reenviarlo no registra dos veces.
+    await draft.markSending();
 
-    GembaWalksService.create({
-      gembaWalkCalendarId: Number(gembaWalkCalendarId),
-      startToken: started.startToken,
-      results: evaluations.map(({ id }) => ({
-        gembaWalkEvaluationId: id,
-        isCompliant: answers[id].isCompliant,
-        ...(answers[id].comments.trim() && {
-          comments: answers[id].comments.trim(),
-        }),
-      })),
-    })
-      .then(() => {
-        toast.success("Recorrido registrado correctamente");
+    GembaWalksService.create(
+      {
+        gembaWalkCalendarId: Number(gembaWalkCalendarId),
+        startToken: started.startToken,
+        results: evaluations.map(({ id }) => ({
+          gembaWalkEvaluationId: id,
+          isCompliant: answers[id].isCompliant,
+          ...(answers[id].comments.trim() && {
+            comments: answers[id].comments.trim(),
+          }),
+        })),
+      },
+      { idempotencyKey: draft.key() },
+    )
+      .then(async ({ data, replayed }) => {
+        await draft.settle();
+        toast.success(
+          replayed
+            ? `Ya se había registrado (recorrido #${data.id})`
+            : "Recorrido registrado correctamente",
+        );
         router.push("/gemba-walk");
+      })
+      .catch(async (error) => {
+        await draft.settle(error);
+        // Quizá otro observador lo registró: si es así, se muestra el motivo.
+        refreshAvailability();
       })
       .finally(() => setIsSaving(false));
   };
@@ -200,11 +285,69 @@ const GembaWalkForm = () => {
       confirmLabel: "Registrar",
     });
 
-    if (confirmed) save();
+    if (confirmed) send();
+  };
+
+  // Con un recorrido iniciado, salir pide confirmación (G3). Lo capturado
+  // queda en el borrador del dispositivo.
+  // Sin almacén de borradores (modo privado) no se promete que se guardó.
+  const cancel = async () => {
+    if (started && !isReadOnly) {
+      const saved = await isDraftStorageAvailable();
+      const confirmed = await confirm({
+        title: "¿Salir del recorrido?",
+        description: saved
+          ? "Lo que capturaste queda guardado en este dispositivo: al volver a esta pantalla puedes recuperarlo y terminarlo hoy."
+          : "Este navegador no permite guardar borradores (por ejemplo, en modo privado): si sales, lo que capturaste se perderá.",
+        confirmLabel: "Salir",
+        cancelLabel: "Seguir en el recorrido",
+        tone: saved ? "default" : "danger",
+      });
+      if (!confirmed) return;
+    }
+    router.push("/gemba-walk");
+  };
+
+  // Descarta el borrador y deja el formulario como nuevo (misma planta).
+  const discardDraft = async () => {
+    await draft.discard();
+    restoreRef.current = null;
+    setRestoredEvent(null);
+    setLoadCount((count) => count + 1);
   };
 
   return (
     <Grid container spacing={2}>
+      {(draft.offer || draft.lock) && (
+        <Grid size={12}>
+          <DraftNotice
+            offer={draft.offer}
+            lock={draft.lock}
+            onRestore={draft.restore}
+            onDiscard={discardDraft}
+            onRetry={send}
+            isSending={isSaving}
+          />
+        </Grid>
+      )}
+      {blocked && !draft.lock && (
+        <Grid size={12}>
+          <Alert severity="warning" role="status">
+            <AlertTitle>Este recorrido ya no se puede registrar</AlertTitle>
+            {draftEvent && <strong>{draftEvent.label}. </strong>}
+            {blocked} Lo capturado queda solo para consulta.
+            <Box sx={{ mt: 1.5 }}>
+              <Button
+                color="error"
+                startIcon={<DeleteOutlineIcon />}
+                onClick={discardDraft}
+              >
+                Descartar recorrido
+              </Button>
+            </Box>
+          </Alert>
+        </Grid>
+      )}
       <Grid size={{ xs: 12 }}>
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           <AccessTimeIcon sx={secondaryTextColor} />
@@ -217,6 +360,7 @@ const GembaWalkForm = () => {
       <SelectManufacturingPlantsOwn
         value={manufacturingPlantId}
         onChange={(e) => setManufacturingPlantId(e.target.value)}
+        disabled={!!started}
       />
       <Grid size={{ xs: 12, sm: 6, md: 6 }}>
         <SelectDefault
@@ -238,25 +382,39 @@ const GembaWalkForm = () => {
         </Grid>
       )}
 
-      {manufacturingPlantId && !isLoadingPlant && !events.length && (
+      {loadError && (
         <Grid size={{ xs: 12 }}>
-          <Alert severity="info">
-            No hay recorridos programados para hoy en esta planta, o ya fueron
-            registrados.
-          </Alert>
+          <ErrorState
+            offline={typeof navigator !== "undefined" && !navigator.onLine}
+            onRetry={() => setLoadCount((count) => count + 1)}
+          />
         </Grid>
       )}
 
-      {selectedEvent && (
+      {manufacturingPlantId &&
+        !isLoadingPlant &&
+        !loadError &&
+        !events.length &&
+        !started && (
+          <Grid size={{ xs: 12 }}>
+            <Alert severity="info">
+              No hay recorridos programados para hoy en esta planta, o ya fueron
+              registrados.
+            </Alert>
+          </Grid>
+        )}
+
+      {(selectedEvent || started) && !blocked && (
         <Grid size={{ xs: 12 }}>
           {started ? (
             <Alert severity="success">
+              {draftEvent && <strong>{draftEvent.label} · </strong>}
               Recorrido iniciado a las{" "}
               <strong>{dayjs(started.startedAt).format("HH:mm:ss")}</strong> ·
               Tiempo transcurrido:{" "}
               <ElapsedTimer startedAt={started.startedAt} />
             </Alert>
-          ) : selectedOutOfTime ? (
+          ) : selectedOutOfTime && selectedEvent ? (
             <Alert severity="error">
               <strong>Fuera de tiempo.</strong> El recorrido estaba programado a
               las {dayjs(selectedEvent.scheduledAt).format("HH:mm")} y la
@@ -265,62 +423,51 @@ const GembaWalkForm = () => {
               realizar.
             </Alert>
           ) : (
-            <Alert
-              severity="info"
-              action={
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<PlayArrowIcon />}
-                  loading={isStarting}
-                  loadingPosition="start"
-                  disabled={isStarting || !evaluations.length}
-                  onClick={startWalk}
-                >
-                  Iniciar recorrido
-                </Button>
-              }
-            >
-              Puedes iniciar este recorrido hasta las{" "}
-              <strong>{deadlineOf(selectedEvent).format("HH:mm")}</strong>. El
-              tiempo empieza a contar al iniciar.
-            </Alert>
+            selectedEvent && (
+              <Alert
+                severity="info"
+                action={
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<PlayArrowIcon />}
+                    loading={isStarting}
+                    loadingPosition="start"
+                    disabled={isStarting || !evaluations.length}
+                    onClick={startWalk}
+                  >
+                    Iniciar recorrido
+                  </Button>
+                }
+              >
+                Puedes iniciar este recorrido hasta las{" "}
+                <strong>{deadlineOf(selectedEvent).format("HH:mm")}</strong>. El
+                tiempo empieza a contar al iniciar.
+              </Alert>
+            )
           )}
         </Grid>
       )}
 
-      {manufacturingPlantId && !isLoadingPlant && !evaluations.length && (
-        <Grid size={{ xs: 12 }}>
-          <Alert severity="warning">
-            La planta no tiene conceptos de evaluación registrados.
-          </Alert>
-        </Grid>
-      )}
+      {manufacturingPlantId &&
+        !isLoadingPlant &&
+        !loadError &&
+        !evaluations.length && (
+          <Grid size={{ xs: 12 }}>
+            <Alert severity="warning">
+              La planta no tiene conceptos de evaluación registrados.
+            </Alert>
+          </Grid>
+        )}
 
       {started && evaluations.length > 0 && (
         <>
           <Grid size={{ xs: 12 }}>
-            <Stack
-              direction="row"
-              spacing={1}
-              useFlexGap
-              sx={{ flexWrap: "wrap", alignItems: "center" }}
-            >
-              <Typography variant="body2" sx={secondaryTextColor}>
-                Marca el switch en <strong>No cumple</strong> en los conceptos
-                que no se cumplan y agrega un comentario.
-              </Typography>
-              <Chip
-                size="small"
-                color="success"
-                label={`C: ${compliantCount}`}
-              />
-              <Chip
-                size="small"
-                color={nonCompliantCount ? "error" : "default"}
-                label={`NC: ${nonCompliantCount}`}
-              />
-            </Stack>
+            <Typography variant="body2" sx={secondaryTextColor}>
+              Todo inicia en <strong>Cumple</strong>: marca{" "}
+              <strong>No cumple</strong> en los conceptos que no se cumplan y
+              agrega un comentario.
+            </Typography>
           </Grid>
 
           {groups.map(({ category, items }) => (
@@ -328,10 +475,8 @@ const GembaWalkForm = () => {
               <Paper sx={{ p: 2 }}>
                 <Typography
                   variant="h6"
-                  sx={{
-                    mb: 2,
-                    color: (theme) => theme.palette.primary.main,
-                  }}
+                  component="h2"
+                  sx={{ mb: 2, color: "text.brand" }}
                 >
                   {category}
                 </Typography>
@@ -369,58 +514,39 @@ const GembaWalkForm = () => {
                           >
                             {evaluation.area}
                           </Typography>
-                          <Stack
-                            direction="row"
-                            spacing={1}
-                            sx={{ alignItems: "center" }}
-                          >
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                fontWeight: answer.isCompliant ? 400 : 700,
-                                color: (theme) =>
-                                  answer.isCompliant
-                                    ? theme.palette.text.secondary
-                                    : theme.palette.error.main,
-                              }}
-                            >
-                              NC
-                            </Typography>
-                            <Switch
-                              color="success"
-                              checked={answer.isCompliant}
-                              onChange={(e) =>
+                          {/* Dos botones grandes en lugar de un switch (G4). */}
+                          <ToggleButtonGroup
+                            exclusive
+                            size="small"
+                            value={answer.isCompliant ? "C" : "NC"}
+                            onChange={(_, value: "C" | "NC" | null) => {
+                              if (value) {
                                 setAnswer(evaluation.id, {
-                                  isCompliant: e.target.checked,
-                                })
+                                  isCompliant: value === "C",
+                                });
                               }
-                              slotProps={{
-                                input: {
-                                  "aria-label": `${evaluation.area}: cumple`,
-                                },
-                              }}
-                            />
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                fontWeight: answer.isCompliant ? 700 : 400,
-                                color: (theme) =>
-                                  answer.isCompliant
-                                    ? theme.palette.success.main
-                                    : theme.palette.text.secondary,
-                              }}
+                            }}
+                            disabled={isReadOnly}
+                            aria-label={evaluation.area}
+                            sx={{ width: { xs: "100%", sm: "auto" } }}
+                          >
+                            <ToggleButton
+                              value="C"
+                              color="success"
+                              sx={{ flex: 1, minWidth: 120, gap: 0.5 }}
                             >
-                              C
-                            </Typography>
-                            <Chip
-                              size="small"
-                              color={answer.isCompliant ? "success" : "error"}
-                              label={
-                                answer.isCompliant ? "Cumple" : "No cumple"
-                              }
-                              sx={{ minWidth: 92 }}
-                            />
-                          </Stack>
+                              <CheckIcon fontSize="small" />
+                              Cumple
+                            </ToggleButton>
+                            <ToggleButton
+                              value="NC"
+                              color="error"
+                              sx={{ flex: 1, minWidth: 120, gap: 0.5 }}
+                            >
+                              <CloseIcon fontSize="small" />
+                              No cumple
+                            </ToggleButton>
+                          </ToggleButtonGroup>
                         </Box>
                         <Typography
                           variant="body2"
@@ -440,7 +566,10 @@ const GembaWalkForm = () => {
                               : "Describe qué no se cumple"
                           }
                           value={answer.comments}
-                          slotProps={{ htmlInput: { maxLength: 1000 } }}
+                          slotProps={{
+                            htmlInput: { maxLength: 1000 },
+                            input: { readOnly: isReadOnly },
+                          }}
                           onChange={(e) =>
                             setAnswer(evaluation.id, {
                               comments: e.target.value,
@@ -457,29 +586,46 @@ const GembaWalkForm = () => {
         </>
       )}
 
-      <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
-        <Button
-          variant="outlined"
-          fullWidth
-          startIcon={<CloseIcon />}
-          onClick={() => router.push("/gemba-walk")}
+      {/* Al pie y siempre a la vista: conteo y acciones (G4, G9). */}
+      {/* Sticky en el Grid (no en el Paper): su contenedor es todo el
+          formulario, así la barra se queda abajo mientras se desplaza. */}
+      <Grid size={{ xs: 12 }} sx={{ position: "sticky", bottom: 0, zIndex: 2 }}>
+        <Paper
+          elevation={3}
+          sx={{
+            p: 1.5,
+            pb: "calc(12px + env(safe-area-inset-bottom))",
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: { sm: "center" },
+            gap: 1.5,
+          }}
         >
-          Cancelar
-        </Button>
-      </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
-        <Button
-          loading={isSaving}
-          loadingPosition="start"
-          startIcon={<SaveIcon />}
-          variant="contained"
-          color="primary"
-          fullWidth
-          onClick={confirmSave}
-          disabled={!canSave}
-        >
-          Terminar recorrido
-        </Button>
+          {started && evaluations.length > 0 && (
+            <Stack
+              direction="row"
+              spacing={1}
+              aria-live="polite"
+              sx={{ alignItems: "center", flex: 1 }}
+            >
+              <Chip color="success" label={`C: ${compliantCount}`} />
+              <Chip
+                color={nonCompliantCount ? "error" : "default"}
+                label={`NC: ${nonCompliantCount}`}
+              />
+            </Stack>
+          )}
+          <Box sx={{ flex: { sm: started ? "none" : 1 } }}>
+            <FormActions
+              onCancel={cancel}
+              onSave={confirmSave}
+              isSaving={isSaving}
+              isSaveDisabled={!canSave}
+              saveLabel="Terminar recorrido"
+              inline
+            />
+          </Box>
+        </Paper>
       </Grid>
       {confirmDialog}
     </Grid>

@@ -1,4 +1,8 @@
-import axiosWrapper from "./axiosWrapper";
+import axiosWrapper, {
+  idempotencyHeaders,
+  submitResult,
+  type SubmitResult,
+} from "./axiosWrapper";
 import { GembaWalk, GembaWalkCalendar } from "@interfaces";
 
 interface PayloadCreate {
@@ -68,10 +72,17 @@ const findCalendar = async (filters: {
   return data;
 };
 
-const create = async (payload: PayloadCreate) => {
-  const { data } = await api.post<GembaWalk>("", payload);
-  return data;
-};
+// Con la clave del borrador: reenviarlo nunca registra dos veces (si ya se
+// había registrado, `replayed` y el mismo recorrido).
+const create = async (
+  payload: PayloadCreate,
+  { idempotencyKey }: { idempotencyKey?: string } = {},
+): Promise<SubmitResult<GembaWalk>> =>
+  submitResult(
+    await api.post<GembaWalk>("", payload, {
+      headers: idempotencyHeaders(idempotencyKey),
+    }),
+  );
 
 // startDate / endDate en ISO 8601 con zona (toISOString).
 const findAll = async (filters: {

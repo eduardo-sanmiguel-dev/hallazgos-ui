@@ -17,10 +17,12 @@ import { Button } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import type { Theme } from "@mui/material/styles";
 
-import { GembaWalksService } from "@services";
+import { GembaWalksService, parseApiError } from "@services";
 import { GembaWalk } from "@interfaces";
 import { stringToDateWithTime } from "@shared/utils";
 import LoadingLinear from "@shared/components/LoadingLinear";
+import EmptyState from "@shared/components/EmptyState";
+import ErrorState from "@shared/components/ErrorState";
 import GembaWalkAccessGuard from "../_components/GembaWalkAccessGuard";
 import PageHeader from "@shared/components/PageHeader";
 import { groupByCategory } from "../_components/groupByCategory";
@@ -43,24 +45,81 @@ const InfoItem = ({ label, value }: { label: string; value: string }) => (
   </Grid>
 );
 
-const GembaWalkDetail = () => {
+const BackButton = () => {
   const router = useRouter();
+
+  return (
+    <Button
+      variant="outlined"
+      startIcon={<ArrowBackIcon />}
+      onClick={() => router.push("/gemba-walk")}
+    >
+      Regresar
+    </Button>
+  );
+};
+
+const GembaWalkDetail = () => {
   const searchParams = useSearchParams();
+  const id = Number(searchParams.get("id") || 0);
   const [gembaWalk, setGembaWalk] = useState<GembaWalk | null>(null);
+  // Antes, si fallaba o no existía, la barra de carga quedaba para siempre (G5).
+  const [status, setStatus] = useState<
+    "loading" | "ready" | "notFound" | "error"
+  >(id ? "loading" : "notFound");
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    const id = Number(searchParams.get("id") || 0);
-    if (!id) return;
+    if (!id) {
+      setStatus("notFound");
+      return;
+    }
 
-    GembaWalksService.findOne(id).then(setGembaWalk);
-  }, [searchParams]);
+    let ignore = false;
+    setStatus("loading");
+    GembaWalksService.findOne(id)
+      .then((data) => {
+        if (ignore) return;
+        setGembaWalk(data);
+        setStatus("ready");
+      })
+      .catch((error) => {
+        if (ignore) return;
+        setStatus(
+          parseApiError(error).kind === "notFound" ? "notFound" : "error",
+        );
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [id, retryCount]);
 
   const groups = useMemo(
     () => groupByCategory(gembaWalk?.results || []),
     [gembaWalk],
   );
 
-  if (!gembaWalk) return <LoadingLinear />;
+  if (status === "notFound") {
+    return (
+      <EmptyState
+        title="Recorrido no encontrado"
+        description="El enlace no corresponde a un recorrido registrado."
+      >
+        <BackButton />
+      </EmptyState>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <ErrorState
+        offline={typeof navigator !== "undefined" && !navigator.onLine}
+        onRetry={() => setRetryCount((count) => count + 1)}
+      />
+    );
+  }
+
+  if (status === "loading" || !gembaWalk) return <LoadingLinear />;
 
   const zone = gembaWalk.gembaWalkCalendar.gembaWalkZone;
   const { compliant, nonCompliant, percent } = complianceOf(gembaWalk);
@@ -122,7 +181,8 @@ const GembaWalkDetail = () => {
           <Paper sx={{ p: 2 }}>
             <Typography
               variant="h6"
-              sx={{ mb: 2, color: (theme) => theme.palette.primary.main }}
+              component="h2"
+              sx={{ mb: 2, color: "text.brand" }}
             >
               {category}
             </Typography>
@@ -182,15 +242,8 @@ const GembaWalkDetail = () => {
         </Grid>
       ))}
 
-      <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
-        <Button
-          variant="contained"
-          fullWidth
-          startIcon={<ArrowBackIcon />}
-          onClick={() => router.push("/gemba-walk")}
-        >
-          Regresar
-        </Button>
+      <Grid size={{ xs: 12, sm: 6, md: 2.5 }} sx={{ display: "grid" }}>
+        <BackButton />
       </Grid>
     </Grid>
   );

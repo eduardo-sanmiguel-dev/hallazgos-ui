@@ -12,6 +12,7 @@ import { Box } from "@mui/material";
 import { Paper } from "@mui/material";
 import { Typography } from "@mui/material";
 import { Button } from "@mui/material";
+import { useMediaQuery } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import SaveIcon from "@mui/icons-material/Save";
@@ -51,6 +52,11 @@ interface DraftEvent {
 }
 
 const DEFAULT_TIME = "08:00";
+
+// Mantener presionado para seleccionar días o mover eventos en pantalla
+// táctil. Más corto que el de FullCalendar (1 s) sin confundirse con
+// desplazar la página.
+const TOUCH_LONG_PRESS_MS = 350;
 
 const toScheduledAt = (date: string, time: string) =>
   toISOStringOrNull(dayjs(`${date} ${time}`, "YYYY-MM-DD HH:mm"));
@@ -94,6 +100,7 @@ const LegendItem = ({
 
 const GembaWalkCalendarFormPage = () => {
   const router = useRouter();
+  const isTouch = useMediaQuery("(pointer: coarse)");
   const searchParams = useSearchParams();
 
   const initialDate = useMemo(() => {
@@ -573,9 +580,11 @@ const GembaWalkCalendarFormPage = () => {
           variant="body2"
           sx={{ color: (theme) => theme.palette.text.secondary }}
         >
-          {manufacturingPlantId
-            ? "Selecciona uno o varios días (de hoy en adelante) para agregar eventos. Arrastra o haz clic en un evento futuro para editarlo."
-            : "Selecciona una planta para ver y programar eventos."}
+          {!manufacturingPlantId
+            ? "Selecciona una planta para ver y programar eventos."
+            : isTouch
+              ? "Mantén presionado un día (de hoy en adelante) y desliza para elegir varios; al soltar, agrega los eventos. Toca un evento futuro para editarlo, o mantenlo presionado para moverlo."
+              : "Selecciona uno o varios días (de hoy en adelante) para agregar eventos. Arrastra o haz clic en un evento futuro para editarlo."}
         </Typography>
       </Grid>
       <Grid size={{ xs: 12 }}>
@@ -644,6 +653,10 @@ const GembaWalkCalendarFormPage = () => {
               height="auto"
               selectable={!!manufacturingPlantId}
               editable={!!manufacturingPlantId}
+              // En pantalla táctil se selecciona o arrastra manteniendo
+              // presionado: 1 s por omisión, que parecía no responder (G7).
+              selectLongPressDelay={TOUCH_LONG_PRESS_MS}
+              eventLongPressDelay={TOUCH_LONG_PRESS_MS}
               eventDurationEditable={false}
               dayMaxEvents={4}
               eventDisplay="block"

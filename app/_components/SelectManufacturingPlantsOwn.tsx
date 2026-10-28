@@ -12,6 +12,7 @@ interface Props {
   isFilter?: boolean;
   // Error junto al campo (useFieldErrors lo encuentra para el foco).
   error?: string;
+  disabled?: boolean;
 }
 
 const SelectManufacturingPlantsOwn = ({
@@ -19,6 +20,7 @@ const SelectManufacturingPlantsOwn = ({
   onChange,
   isFilter = false,
   error,
+  disabled,
 }: Props) => {
   const manufacturingPlants = useUserSessionStore(
     (state) => state.manufacturingPlants || [],
@@ -48,6 +50,7 @@ const SelectManufacturingPlantsOwn = ({
         value={value}
         onChange={onChange}
         isFilter={isFilter}
+        disabled={disabled}
       />
       {error && (
         <FormHelperText data-error-for="manufacturingPlantId" error>

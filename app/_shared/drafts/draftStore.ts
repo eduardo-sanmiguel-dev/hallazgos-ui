@@ -69,6 +69,13 @@ const openDb = () => {
   return dbPromise;
 };
 
+/**
+ * ¿Se pueden guardar borradores en este navegador? No, sin IndexedDB (modo
+ * privado de algunos navegadores, datos del sitio bloqueados). Los avisos no
+ * deben prometer que lo capturado quedó guardado si no es así.
+ */
+export const isDraftStorageAvailable = async () => !!(await openDb());
+
 const run = async <R>(
   mode: IDBTransactionMode,
   operation: (store: IDBObjectStore) => IDBRequest<R> | void,

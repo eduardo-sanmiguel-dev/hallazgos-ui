@@ -11,17 +11,26 @@ import { DialogTitle } from "@mui/material";
 
 import { AuthService, SESSION_ENDED_EVENT } from "@services";
 import { useUserSessionStore } from "@store";
-import { listUserDrafts } from "@shared/drafts/draftStore";
+import {
+  isDraftStorageAvailable,
+  listUserDrafts,
+} from "@shared/drafts/draftStore";
+
+const DRAFTS_UNAVAILABLE_SESSION =
+  "Este navegador no permite guardar borradores (por ejemplo, en modo privado): lo que capturaste en esta pantalla se perderá.";
 
 // Sesión terminada (token vencido, cookie borrada o usuario desactivado):
 // antes se mandaba al login sin decir nada y se perdía lo capturado. Ahora se
 // avisa primero y, en los formularios con borrador local (hallazgos: crear,
-// iniciar y cerrar), se indica que lo capturado quedó guardado. No se cierra
+// iniciar y cerrar; recorrido de Gemba Walk), se indica que lo capturado
+// quedó guardado, o que se perderá si el navegador no guarda borradores. No se cierra
 // con Escape ni tocando fuera: la única salida es iniciar sesión.
 export default function SessionEndedDialog() {
   const [open, setOpen] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
-  const [hasDrafts, setHasDrafts] = useState(false);
+  const [drafts, setDrafts] = useState<"saved" | "none" | "unavailable">(
+    "none",
+  );
   const userId = useUserSessionStore((state) => state.id);
   const titleId = useId();
   const descriptionId = useId();
@@ -30,12 +39,14 @@ export default function SessionEndedDialog() {
     const show = () => {
       setOpen(true);
       // Los borradores se conservan al vencer la sesión (no al cerrarla a
-      // propósito): se avisa que lo capturado no se perdió.
-      if (userId) {
-        listUserDrafts(userId).then((drafts) =>
-          setHasDrafts(drafts.length > 0),
-        );
-      }
+      // propósito): se avisa que lo capturado no se perdió. Sin almacén de
+      // borradores (modo privado), que se perderá.
+      isDraftStorageAvailable().then(async (available) => {
+        if (!available) return setDrafts("unavailable");
+        if (!userId) return;
+        const saved = await listUserDrafts(userId);
+        setDrafts(saved.length > 0 ? "saved" : "none");
+      });
     };
     window.addEventListener(SESSION_ENDED_EVENT, show);
     return () => window.removeEventListener(SESSION_ENDED_EVENT, show);
@@ -56,9 +67,14 @@ export default function SessionEndedDialog() {
           Tu sesión terminó. Inicia sesión de nuevo.
         </DialogContentText>
         <DialogContentText sx={{ mt: 1.5 }}>
-          {hasDrafts
-            ? "Lo que capturaste quedó guardado como borrador en este dispositivo: podrás recuperarlo al volver a iniciar sesión."
-            : "Lo que capturaste en esta pantalla no se guardó."}
+          {
+            {
+              saved:
+                "Lo que capturaste quedó guardado como borrador en este dispositivo: podrás recuperarlo al volver a iniciar sesión.",
+              none: "Lo que capturaste en esta pantalla no se guardó.",
+              unavailable: DRAFTS_UNAVAILABLE_SESSION,
+            }[drafts]
+          }
         </DialogContentText>
       </DialogContent>
       <DialogActions>

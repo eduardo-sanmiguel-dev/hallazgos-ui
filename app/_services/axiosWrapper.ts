@@ -1,6 +1,7 @@
 import axios, {
   AxiosError,
   AxiosInstance,
+  AxiosResponse,
   InternalAxiosRequestConfig,
 } from "axios";
 import { toast } from "sonner";
@@ -25,6 +26,24 @@ export const IDEMPOTENCY_HEADER = "Idempotency-Key";
 /** Header de idempotencia; sin clave, una nueva para esta llamada. */
 export const idempotencyHeaders = (key?: string) => ({
   [IDEMPOTENCY_HEADER]: key ?? uuidv4(),
+});
+
+/**
+ * Respuesta de un envío con clave de idempotencia. `replayed`: el API ya lo
+ * había procesado con esa clave (borrador reenviado, reintento tras un corte)
+ * y devolvió aquel resultado sin guardar otra vez.
+ */
+export interface SubmitResult<T> {
+  data: T;
+  replayed: boolean;
+}
+
+export const submitResult = <T>({
+  data,
+  headers,
+}: AxiosResponse<T>): SubmitResult<T> => ({
+  data,
+  replayed: headers["idempotent-replayed"] === "true",
 });
 
 interface IAxiosWrapperProps {

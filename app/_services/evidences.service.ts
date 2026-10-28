@@ -1,6 +1,10 @@
-import type { AxiosProgressEvent, AxiosResponse } from "axios";
+import type { AxiosProgressEvent } from "axios";
 
-import axiosWrapper, { idempotencyHeaders } from "./axiosWrapper";
+import axiosWrapper, {
+  idempotencyHeaders,
+  submitResult,
+  type SubmitResult,
+} from "./axiosWrapper";
 import {
   buildLocalFileNameTimestamp,
   getBrowserTimeZone,
@@ -70,20 +74,7 @@ const uploadConfig = (options: UploadOptions) => ({
   onUploadProgress: options.onUploadProgress,
 });
 
-/**
- * Respuesta de un envío con clave de idempotencia. `replayed`: el API ya lo
- * había procesado con esa clave (borrador reenviado, reintento tras un corte)
- * y devolvió aquel resultado sin guardar otra vez.
- */
-export interface SubmitResult<T> {
-  data: T;
-  replayed: boolean;
-}
-
-const submitResult = <T>({ data, headers }: AxiosResponse<T>) => ({
-  data,
-  replayed: headers["idempotent-replayed"] === "true",
-});
+export type { SubmitResult };
 
 interface PermissionsConfigResponse {
   supervisorOverrideEmails: string[];

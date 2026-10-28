@@ -12,8 +12,10 @@ repositorios (`306a372` API, `3313cf7` UI).
 | API | `api-comp` (fork, puerto 4000) | `/home/eduardo/hallazgos-api` | `api.comportarte.com` (`/etc/nginx/sites-available/api.conf`) |
 | UI | `ui-comp` (puerto 3000) | `/home/eduardo/hallazgos-ui` | `comportarte.com` (`ui.conf`) |
 
-No hay variables de entorno ni dependencias nuevas: los `.env.production` del
-servidor ya tienen todas las que pide el API (`joi.validarion.ts`).
+No hay variables de entorno nuevas: los `.env.production` del servidor ya
+tienen todas las que pide el API (`joi.validarion.ts`). La UI tiene **una
+dependencia nueva** desde Gemba Walk (`@fullcalendar/list`, ver la sección 5):
+instalar dependencias antes de `next build`.
 
 ---
 
@@ -309,3 +311,50 @@ si deben tenerla.
     lleva al primero. Antes avisaba de un campo a la vez.
   - Cerrar el formulario con algo capturado pide confirmar ("¿Descartar el
     registro?"). Antes se perdía sin aviso, también con la tecla Esc.
+
+### Gemba Walk
+
+- **Sin migraciones, variables ni cambios de nginx.** La clave de
+  idempotencia usa la tabla `idempotency_key` que ya existe.
+- **API:** `POST /gemba-walk/walks` (registrar recorrido) acepta
+  `Idempotency-Key`. Un reintento con la misma clave devuelve el recorrido ya
+  registrado con `Idempotent-Replayed: true`, en lugar de "El evento
+  seleccionado ya tiene un recorrido registrado". Sin el header funciona como
+  antes (compatible con la UI anterior).
+- **UI: dependencia nueva** `@fullcalendar/list` **6.1.21**, la misma
+  versión exacta que los demás paquetes de FullCalendar. En el servidor:
+  `pnpm install --frozen-lockfile` antes de `next build`.
+- **UI:**
+  - Registrar recorrido: borrador local del recorrido iniciado, botones
+    "Cumple / No cumple", barra fija al pie con el conteo y "Terminar
+    recorrido", y confirmación al salir.
+  - En celular, la lista de recorridos se ve en tarjetas y la agenda como
+    lista de la semana.
+  - El detalle avisa si el recorrido no existe o no cargó ("Reintentar").
+  - Calendario: en pantalla táctil basta mantener presionado un momento para
+    elegir días.
+- **Para el cliente:**
+  - **Un recorrido iniciado ya no se pierde** si se recarga la página, se
+    cierra la app o se pierde la señal. Al volver se ofrece "Recuperar" y
+    sigue con su hora de inicio original, **aunque haya pasado la tolerancia
+    de 15 minutos** (la tolerancia aplica al iniciar; no cambió).
+  - **La duración de un recorrido recuperado incluye el tiempo que estuvo
+    interrumpido** (se mide de la hora de inicio a la de registro). Solo se
+    ve en la lista y en el detalle del recorrido; ningún Excel, dashboard ni
+    indicador la usa.
+  - Si al recuperarlo ya no se puede registrar (es de otro día o ya lo
+    registró otro observador u otro dispositivo), queda solo para consulta,
+    con el motivo y la opción "Descartar recorrido".
+  - El borrador vive solo en ese dispositivo y navegador; al cerrar sesión
+    se borra (con aviso), como en Hallazgos.
+  - **En modo privado** (navegadores que no permiten guardar borradores) no
+    hay borrador. Los avisos lo dicen: salir del recorrido y "Tu sesión
+    terminó" avisan que lo capturado **se perderá** (antes decían que quedaba
+    guardado). Igual en Hallazgos (crear, iniciar y cerrar).
+  - En celular, "Terminar recorrido" y "Cancelar" van lado a lado en la
+    barra fija al pie, que ocupa menos alto.
+  - **Toda la app:** en pantalla táctil, los botones "Guardar" y "Cancelar"
+    al pie de los formularios miden 48 px de alto, como el resto de los
+    botones (antes 44 px).
+  - Reintentar un registro que se quedó sin respuesta nunca lo duplica: si
+    ya había llegado, avisa "Ya se había registrado (recorrido #N)".

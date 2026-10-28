@@ -107,8 +107,8 @@ incluida. → Retrabajo y hallazgos que no se registran. → Ver la sección
 "Conectividad" (propuesta: borrador local por formulario). [M–L]
 *Resuelto en Hallazgos (crear, iniciar y cerrar) en la Fase 4: borrador
 local con la foto y envío sin confirmar en solo lectura (ver
-`docs/ux-componentes.md`, sección 4). Falta decidir si se extiende a ICS y
-EPP.*
+`docs/ux-componentes.md`, sección 4). También en el registro de recorridos de
+Gemba Walk (G1, sección 8). Falta decidir si se extiende a ICS y EPP.*
 
 **C4 · Cerrar e iniciar un hallazgo (diálogos)** — Cerrar es irreversible y no pide
 confirmación. Además, los diálogos no se abren a pantalla completa en celular
@@ -135,6 +135,10 @@ idempotencia para no duplicar registros ni correos.*
 unos 36 px y los botones de ícono pequeños (acciones de tabla) unos 34 px. →
 Difícil acertar con guantes o de pie. → En el tema: botones de al menos 44–48 px en
 celular y botones de ícono de 48 px en las acciones de tablas y tarjetas. [S]
+*Resuelto en la Fase 2. En la Fase 4 (Gemba Walk) se encontró que los botones
+de `FormActions` (Guardar y Cancelar al pie de los formularios) seguían en
+44 px en pantalla táctil, porque su propio estilo le ganaba al tema; ya miden
+48 px.*
 
 **A3 · Contraste** — El verde de marca `#71BF44` como texto sobre blanco (botones con
 contorno, enlaces, chips de filtros) tiene 2.27:1; el naranja de advertencia de MUI
@@ -245,6 +249,24 @@ escritorio ayudaría una ruta corta ("Configuración › Lugares › Editar"). [
 **B3 · Indicador de Next.js** — La burbuja redonda de abajo a la izquierda que se ve
 en desarrollo es el indicador de Next.js. No existe en producción, así que no
 requiere cambios.
+
+### Gemba Walk (revisión de la Fase 4)
+
+La auditoría original no tenía hallazgos de este módulo. Se revisaron sus
+pantallas en celular (390 px) y escritorio (1440 px) con los mismos
+criterios. Detalle de lo implementado en `docs/ux-componentes.md`, sección 8.
+
+| ID | Prioridad | Pantalla | Problema | Estado |
+| --- | --- | --- | --- | --- |
+| G1 | Crítico | `/form` | El inicio del recorrido vivía solo en memoria: al recargar o cerrar la app se perdían las respuestas y, pasada la tolerancia, el recorrido ya no se podía registrar. | *Resuelto: borrador local con la hora de inicio y el comprobante originales.* |
+| G2 | Alto | `/gemba-walk` | Tabla de 12 columnas: en celular, resultado y "Ver" fuera de la pantalla. | *Resuelto: tarjetas en celular.* |
+| G3 | Alto | `/form` | "Cancelar" salía sin preguntar; un reintento de un registro que sí llegó respondía "ya tiene un recorrido registrado". | *Resuelto: confirmación al salir y clave de idempotencia.* |
+| G4 | Medio | `/form` | "NC · switch · C · chip" redundante y poco claro con guantes; el conteo C/NC solo arriba. | *Resuelto: botones "Cumple / No cumple" y barra fija con conteo.* |
+| G5 | Medio | `/view` | Sin el recorrido o con error, la barra de carga quedaba para siempre. | *Resuelto: "Recorrido no encontrado" y "Reintentar".* |
+| G6 | Medio | `/schedule` | En celular, el mes era una cuadrícula ilegible. | *Resuelto: lista de la semana en celular.* |
+| G7 | Medio | `/calendar/form` | En pantalla táctil, elegir días pedía mantener presionado 1 s, sin indicación. | *Resuelto: 350 ms y texto de ayuda.* |
+| G8 | Bajo | Zonas, observadores, conceptos, calendario | Tablas que se desplazan de lado en celular (como M6). | Pendiente: con el panel administrativo. |
+| G9 | Bajo | `/form`, `/view`, `/schedule` | Títulos en verde claro (A3), botones sueltos, "Regresar" como acción principal. | *Resuelto: `text.brand`, `FormActions` y "Regresar" secundario.* |
 
 ---
 

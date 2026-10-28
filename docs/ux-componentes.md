@@ -253,6 +253,15 @@ Ganó `description` opcional, y con `title` la sección queda nombrada para
 lectores de pantalla (`aria-labelledby`). Base para dividir CIAEL en
 secciones (A6, Fase 4).
 
+### `FormActions`
+
+- `inline`: Cancelar y Guardar lado a lado también en celular (para barras
+  fijas al pie). Cancelar a su medida y sin ícono en celular; Guardar ocupa
+  el resto. Se usa en el registro de Gemba Walk.
+- **Alto en pantalla táctil:** 48 px, como pide el tema (A2). Antes su
+  `minHeight: 44` le ganaba al tema y los botones de todos los formularios
+  medían 44 px también en táctil. Con mouse siguen en 44 px.
+
 ### `ConfirmDialog` / `useConfirmDialog`
 
 Sin cambios de API. Ya lo usan todas las eliminaciones y el cierre de
@@ -417,6 +426,13 @@ Service.create(formData, { idempotencyKey: draft.key() })
 - **Sesión:** por usuario. Cerrar sesión a propósito avisa y borra los
   borradores del usuario; si la sesión vence, se conservan y el diálogo "Tu
   sesión terminó" dice que lo capturado quedó guardado.
+- **Sin almacén de borradores** (sin IndexedDB: modo privado de algunos
+  navegadores o datos del sitio bloqueados): `isDraftStorageAvailable()` en
+  `draftStore.ts`. Ningún aviso promete que lo capturado quedó guardado: "Tu
+  sesión terminó" dice "Este navegador no permite guardar borradores (por
+  ejemplo, en modo privado): lo que capturaste en esta pantalla se perderá."
+  Aplica a toda la app (Hallazgos: crear, iniciar y cerrar; recorrido de
+  Gemba Walk).
 - **Vencimiento:** 7 días desde que se crea el borrador. La clave del API
   también dura 7 días y se crea después (al enviar), así que el borrador
   nunca dura más que su clave. Los vencidos se borran al abrir la app.
@@ -539,9 +555,81 @@ Archivos en `app/(routes)/ciael/`.
 - **Sin borrador local:** CIAEL lo captura un administrador en escritorio; la
   confirmación al descartar cubre el cierre por error.
 
+## 8. Módulo Gemba Walk (Fase 4)
+
+Archivos en `app/(routes)/gemba-walk/`. Revisión y prioridades en
+`docs/ux-auditoria.md` (sección 2, "Gemba Walk").
+
+### Registrar recorrido (`/form`)
+
+- **Borrador local (G1):** `useFormDraft` con el formulario `gemba-walk` (uno
+  por usuario y dispositivo). Se guarda solo un recorrido **iniciado**: planta,
+  evento (hora, zona y ubicación), comprobante de inicio con su hora y las
+  respuestas. Reglas en `form/_lib/walkDraft.ts`.
+  - Al recuperarlo, el recorrido sigue iniciado con su **hora de inicio
+    original y su comprobante**, aunque haya pasado la tolerancia de 15
+    minutos. La tolerancia no cambió: el API la valida al iniciar y la revisa
+    otra vez al registrar con la hora de inicio del comprobante, no con la de
+    registro.
+  - **Ya no se puede registrar** (`blockedReason`): otro día ("Era un
+    recorrido del DD/MM/AAAA…"), comprobante con más de 24 horas, o el evento
+    ya no está entre los disponibles ("ya se registró, desde otro dispositivo
+    o por otro observador"). Queda en solo lectura con el motivo y
+    "Descartar recorrido". Si no se pudieron consultar los disponibles (sin
+    señal), no se bloquea: decide el API al registrar.
+  - Si un registro falla con un error de datos, se vuelven a consultar los
+    disponibles: si otro observador lo registró, aparece el motivo.
+  - **La duración de un recorrido recuperado incluye el tiempo que estuvo
+    interrumpido:** el API la calcula de la hora de inicio del comprobante a
+    la hora de registro. La duración solo se muestra en la lista y en el
+    detalle del recorrido; ningún Excel, dashboard ni indicador la usa.
+  - La planta y el evento no se pueden cambiar con un recorrido iniciado
+    (`SelectManufacturingPlantsOwn` ganó `disabled`).
+- **Idempotencia (G3):** `POST /gemba-walk/walks` tiene `@Idempotent()`.
+  Como en Hallazgos: `draft.markSending()`, la clave del borrador
+  (`draft.key()`) y `draft.settle()`. Un envío sin respuesta deja el borrador
+  en solo lectura con "Reintentar envío"; si ya se había registrado, "Ya se
+  había registrado (recorrido #N)". `GembaWalksService.create` devuelve
+  `{ data, replayed }`; `submitResult` y `SubmitResult` pasaron a
+  `axiosWrapper` (los usan Hallazgos y Gemba Walk).
+- **Salir (G3):** "Cancelar" con un recorrido iniciado pregunta "¿Salir del
+  recorrido?": lo capturado queda en el borrador para retomarlo hoy. Sin
+  almacén de borradores (modo privado), el aviso dice que lo capturado se
+  perderá y "Salir" va en rojo.
+- **Cumple / No cumple (G4):** dos botones (`ToggleButtonGroup`, nombrado
+  con el concepto) en lugar de "NC · switch · C · chip". A ancho completo en
+  celular.
+- **Barra fija al pie (G4, G9):** conteo C/NC y `FormActions` ("Terminar
+  recorrido" y "Cancelar") siempre a la vista. El `sticky` va en el `Grid`,
+  no en el `Paper`: dentro de su propio `Grid` no tiene espacio para quedarse
+  fijo. Los botones van lado a lado también en celular (`FormActions`
+  `inline`): unos 115 px de alto en lugar de ~170 px. Revisado a 360 px: el
+  texto cabe completo y miden 48 px en pantalla táctil.
+- **Error de carga:** si no cargan los eventos o los conceptos, `ErrorState`
+  con "Reintentar" (sin perder un borrador recuperado).
+- Títulos de categoría con `text.brand` (G9).
+
+### Lista, detalle y agenda
+
+- **Lista (G2):** `ResponsiveTable`. En celular, tarjetas con "Zona -
+  Ubicación", planta, fechas, duración, C/NC, porcentaje, observador y "Ver".
+- **Detalle (G5):** "Recorrido no encontrado" (sin id o 404) y `ErrorState`
+  con "Reintentar" si falla (antes, barra de carga para siempre). "Regresar"
+  secundario y categorías con `text.brand` (G9).
+- **Agenda (G6):** en celular, vista de lista por semana
+  (`@fullcalendar/list` 6.1.21, misma versión que los demás paquetes de
+  FullCalendar) con "Sin recorridos programados esta semana." si no hay. En
+  tablet y escritorio, mes y semana como antes. "Regresar" secundario (G9).
+- **Calendario (G7):** en pantalla táctil, mantener presionado 350 ms (antes
+  1 s, el valor de FullCalendar) para elegir días o mover eventos; el texto
+  de ayuda lo explica.
+- **Pendiente (G8):** las tablas de zonas, observadores, conceptos y
+  calendario siguen desplazándose de lado en celular. Se harán con el panel
+  administrativo.
+
 ---
 
-## 8. Pendiente para otras fases
+## 9. Pendiente para otras fases
 
 - **Borrador local** en ICS y EPP, si se decide extenderlo.
 - Los borradores de iniciar o cerrar de un hallazgo que ya cambió de estado

@@ -9,12 +9,14 @@ import { Box } from "@mui/material";
 import { Paper } from "@mui/material";
 import { Button } from "@mui/material";
 import { Typography } from "@mui/material";
+import { useMediaQuery } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
+import listPlugin from "@fullcalendar/list";
 import esLocale from "@fullcalendar/core/locales/es";
 import type {
   DatesSetArg,
@@ -62,6 +64,9 @@ const STATUS_MARK: Record<GembaWalkScheduleEvent["status"], string> = {
 // Calendario informativo: no permite crear, editar ni eliminar eventos.
 const GembaWalkSchedule = () => {
   const router = useRouter();
+  // En celular, lista por semana: en la cuadrícula del mes los eventos no se
+  // leían (G6).
+  const isPhone = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
 
   // El administrador ve el estado de los recorridos de cualquier observador.
   const isAdmin =
@@ -149,7 +154,7 @@ const GembaWalkSchedule = () => {
       />
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         <Button
-          variant="contained"
+          variant="outlined"
           fullWidth
           startIcon={<ArrowBackIcon />}
           onClick={() => router.push("/gemba-walk")}
@@ -225,17 +230,40 @@ const GembaWalkSchedule = () => {
             },
             "& .fc-event.gw-additional .fc-event-main, & .fc-event.gw-additional .fc-event-title, & .fc-event.gw-additional .fc-event-time":
               { color: theme.palette.info.contrastText },
+            // Vista de lista (celular): el punto lleva el color del tipo y
+            // el texto se lee sobre el fondo de la página.
+            "& .fc-list-event.gw-additional .fc-list-event-dot": {
+              borderColor: theme.palette.info.main,
+            },
+            "& .fc-list-event:hover td": {
+              backgroundColor: theme.palette.action.hover,
+            },
+            "& .fc .fc-list-sticky .fc-list-day > *": {
+              backgroundColor: theme.palette.background.paper,
+            },
+            [theme.breakpoints.down("sm")]: {
+              p: 1,
+              "& .fc .fc-toolbar": { flexWrap: "wrap", gap: 1 },
+              "& .fc .fc-toolbar-title": { fontSize: "1rem" },
+            },
           })}
         >
           <FullCalendar
-            plugins={[dayGridPlugin, timeGridPlugin]}
-            initialView="dayGridMonth"
+            // Cambiar de vista inicial requiere volver a montarlo.
+            key={isPhone ? "phone" : "desktop"}
+            plugins={[dayGridPlugin, timeGridPlugin, listPlugin]}
+            initialView={isPhone ? "listWeek" : "dayGridMonth"}
             locale={esLocale}
-            headerToolbar={{
-              left: "prev,next today",
-              center: "title",
-              right: "dayGridMonth,timeGridWeek",
-            }}
+            headerToolbar={
+              isPhone
+                ? { left: "prev,next", center: "title", right: "today" }
+                : {
+                    left: "prev,next today",
+                    center: "title",
+                    right: "dayGridMonth,timeGridWeek",
+                  }
+            }
+            noEventsContent="Sin recorridos programados esta semana."
             height="auto"
             selectable={false}
             editable={false}

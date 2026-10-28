@@ -436,4 +436,35 @@ test.describe("Borrador de nuevo hallazgo", () => {
       .poll(async () => (await storedDrafts(page))[0]?.sendState)
       .toBe("none");
   });
+
+  test("sin almacén de borradores (modo privado), si la sesión vence avisa que lo capturado se perderá", async ({
+    page,
+  }) => {
+    await page.addInitScript(() =>
+      Object.defineProperty(window, "indexedDB", {
+        value: undefined,
+        configurable: true,
+      }),
+    );
+    await routeCreate(page, [
+      (route) =>
+        route.fulfill({
+          status: 401,
+          json: {
+            statusCode: 401,
+            code: "SESSION_EXPIRED",
+            message: "Tu sesión terminó. Inicia sesión de nuevo.",
+            error: "Unauthorized",
+          },
+        }),
+    ]);
+    await fillForm(page);
+    await createButton(page).click();
+
+    const dialog = page.getByRole("alertdialog", { name: "Tu sesión terminó" });
+    await expect(dialog).toContainText(
+      "Este navegador no permite guardar borradores (por ejemplo, en modo privado): lo que capturaste en esta pantalla se perderá.",
+    );
+    await expect(dialog).not.toContainText("quedó guardado");
+  });
 });
