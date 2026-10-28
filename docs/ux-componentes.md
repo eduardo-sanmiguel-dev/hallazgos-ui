@@ -634,9 +634,9 @@ Archivos en `app/(routes)/gemba-walk/`. Revisión y prioridades en
 - **Calendario (G7):** en pantalla táctil, mantener presionado 350 ms (antes
   1 s, el valor de FullCalendar) para elegir días o mover eventos; el texto
   de ayuda lo explica.
-- **Pendiente (G8):** las tablas de zonas, observadores, conceptos y
-  calendario siguen desplazándose de lado en celular. Se harán con el panel
-  administrativo.
+- **G8 (resuelto con el panel administrativo, grupo 4):** las tablas de
+  zonas, observadores, conceptos y calendario se ven en tarjetas en
+  celular (ver la sección 11).
 
 ## 9. Módulo ICS (Fase 4)
 
@@ -891,6 +891,34 @@ carga en edición, breadcrumbs y lista con `ResponsiveTable`.
 - Encabezados corregidos: "Última actualización", "Frecuencia de entrega
   (días)".
 
+### Configuración de Gemba Walk (grupo 4, G8)
+
+- **Zonas, observadores y conceptos:** la base común (marcar todo lo que
+  falta, confirmar al salir, carga en edición y breadcrumbs "Configuración ›
+  Gemba Walk › …"). La planta que se elige sola no cuenta como captura.
+- **Observadores y conceptos:** las listas (zona, usuarios, categoría) ya no
+  aparecen en rojo desde que se abre el formulario (`validationEmpty` de
+  `SelectDefault`, el mismo problema de A5); el error sale al guardar.
+- **Calendario (editor):** ya tenía su confirmación "Eventos sin guardar";
+  ganó breadcrumbs, y su enlace a la lista pasa por esa misma confirmación
+  (`onNavigate={cancel}`). Su título pasó de "Gemba Walk - Calendario" a
+  "Programar recorridos" (se repetía con la ruta).
+- **Listas (G8):** `ResponsiveTable`. Tarjetas con "Zona - Ubicación" y
+  planta (zonas y calendario), usuario y correo (observadores) o área y
+  categoría (conceptos). En el calendario, un evento pasado dice "Evento
+  pasado" en lugar de acciones (antes, "-"); la regla no cambió.
+- **API:** ids con "#N" y acentos ("Zona #N no encontrada", "El observador
+  #N está inactivo", "No se pueden editar eventos pasados (#1, #2)"…),
+  también en el registro de recorridos: "Planta #N no encontrada", "Evento
+  #N no encontrado o inactivo" y "Recorrido #N no encontrado".
+
+### Cierre del panel administrativo
+
+- Las 15 pantallas del alcance usan `ResponsiveTable` (M6, G8) y sus
+  formularios, la base común. Ninguno usa ya `isSaveDisabled` para campos
+  obligatorios ni `type="number"` (B1).
+- Breadcrumbs (B2) en los 13 formularios de Configuración.
+
 ---
 
 ## 12. Pendiente para otras fases
@@ -910,6 +938,10 @@ Para la Fase 5 (verificación):
   HDS" (`e2e/route-access.spec.ts`), al abrir `/epp` con el usuario simulado.
   Ya aparecían antes del panel administrativo; falta ubicar qué consulta no
   maneja su error.
+- **Ids en los textos del API de EPP:** "Equipo con ID N no encontrado." y
+  "Registro de historial con ID N no encontrado." siguen con el formato
+  anterior (EPP quedó fuera del panel administrativo). El resto del API usa
+  "#N".
 
 Otros:
 

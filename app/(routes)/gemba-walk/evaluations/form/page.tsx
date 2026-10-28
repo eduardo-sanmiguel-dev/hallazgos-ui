@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -16,10 +16,15 @@ import { GembaWalkEvaluationsService } from "@services";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
 import { categoryOptions } from "../_components/FiltersGembaWalkEvaluations";
-import { useFieldErrors } from "@hooks/useFieldErrors";
+import { useFormFieldErrors } from "@hooks/useFieldErrors";
+import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
+import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
+import EditRecordState from "@shared/components/EditRecordState";
+
+const LIST_HREF = "/gemba-walk/evaluations";
 
 const GembaWalkEvaluationsFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -29,43 +34,52 @@ const GembaWalkEvaluationsFormPage = () => {
     area: "",
     description: "",
   });
-  const [idCurrent, setIdCurrent] = useState<number>(0);
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
-    | "manufacturingPlantId"
-    | "category"
-    | "area"
-    | "description"
-  >(form);
+  const idCurrent = Number(searchParams.get("id") || 0);
 
-  const cancel = () => {
-    router.push("/gemba-walk/evaluations");
-  };
+  // Cada error se quita al cambiar su campo; los demás siguen marcados.
+  const { failAll, failFromApi, errorOf, fieldProps } =
+    useFormFieldErrors(form);
+  // Con una sola planta se elige sola: al crear no cuenta como captura.
+  const leave = useLeaveConfirm(form, {
+    isEditing: !!idCurrent,
+    ignoreOnCreate: ["manufacturingPlantId"],
+  });
+
+  const record = useEditRecord(
+    idCurrent,
+    GembaWalkEvaluationsService.findOne,
+    (data) => {
+      const loaded = {
+        manufacturingPlantId: `${data.manufacturingPlant?.id || ""}`,
+        category: data.category,
+        area: data.area,
+        description: data.description,
+      };
+      setForm(loaded);
+      leave.markPristine(loaded);
+    },
+  );
 
   const save = () => {
     const manufacturingPlantId = Number(form.manufacturingPlantId);
     const area = form.area.trim();
     const description = form.description.trim();
 
-    if (!manufacturingPlantId) {
-      fail("manufacturingPlantId", "La planta es requerida");
-      return;
-    }
-
-    if (!form.category) {
-      fail("category", "La categoría es requerida");
-      return;
-    }
-
-    if (!area) {
-      fail("area", "El área es requerida");
-      return;
-    }
-
-    if (!description) {
-      fail("description", "La descripción es requerida");
+    // Todo lo que falta, en el orden de la pantalla (antes "Guardar" se
+    // deshabilitaba y la categoría aparecía en rojo desde que se abría).
+    if (
+      failAll({
+        manufacturingPlantId: !manufacturingPlantId
+          ? "Selecciona la planta."
+          : undefined,
+        category: !form.category ? "Selecciona la categoría." : undefined,
+        area: !area ? "Escribe el área." : undefined,
+        description: !description ? "Escribe la descripción." : undefined,
+      })
+    ) {
       return;
     }
 
@@ -89,41 +103,31 @@ const GembaWalkEvaluationsFormPage = () => {
             ? "Concepto actualizado correctamente"
             : "Concepto creado correctamente",
         );
-        cancel();
+        router.push(LIST_HREF);
       })
       .catch(failFromApi)
       .finally(() => setIsLoading(false));
   };
 
-  const isValidateForm = useMemo(
-    () =>
-      !form.manufacturingPlantId ||
-      !form.category ||
-      !form.area.trim() ||
-      !form.description.trim(),
-    [form],
-  );
+  const title = idCurrent
+    ? "Editar concepto de evaluación"
+    : "Nuevo concepto de evaluación";
 
-  useEffect(() => {
-    const id = Number(searchParams.get("id") || 0);
-    if (!id) return;
-
-    setIdCurrent(id);
-    GembaWalkEvaluationsService.findOne(id).then((data) => {
-      setForm({
-        manufacturingPlantId: `${data.manufacturingPlant?.id || ""}`,
-        category: data.category,
-        area: data.area,
-        description: data.description,
-      });
-    });
-  }, [searchParams]);
+  if (isEditRecordPending(record.status)) {
+    return (
+      <EditRecordState
+        status={record.status}
+        onRetry={record.retry}
+        title={title}
+        notFoundTitle="Concepto no encontrado"
+        listHref={LIST_HREF}
+      />
+    );
+  }
 
   return (
     <>
-      <PageHeader
-        title={idCurrent ? "Editar concepto de evaluación" : "Nuevo concepto de evaluación"}
-      />
+      <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
       <FormSection>
         <SelectManufacturingPlantsOwn
           value={form.manufacturingPlantId}
@@ -133,14 +137,8 @@ const GembaWalkEvaluationsFormPage = () => {
               manufacturingPlantId: e.target.value,
             }))
           }
+          error={errorOf("manufacturingPlantId")}
         />
-        {errorOf("manufacturingPlantId") && (
-          <Grid size={{ xs: 12 }}>
-            <FormHelperText data-error-for="manufacturingPlantId" error>
-              {errorOf("manufacturingPlantId")}
-            </FormHelperText>
-          </Grid>
-        )}
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <SelectDefault
             data={categoryOptions}
@@ -152,10 +150,11 @@ const GembaWalkEvaluationsFormPage = () => {
                 category: e.target.value,
               }))
             }
-            validationEmpty
           />
           {errorOf("category") && (
-            <FormHelperText data-error-for="category" error>{errorOf("category")}</FormHelperText>
+            <FormHelperText data-error-for="category" error>
+              {errorOf("category")}
+            </FormHelperText>
           )}
         </Grid>
         <Grid size={{ xs: 12, sm: 12, md: 6 }}>
@@ -197,11 +196,11 @@ const GembaWalkEvaluationsFormPage = () => {
         </Grid>
       </FormSection>
       <FormActions
-        onCancel={cancel}
+        onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={isLoading}
-        isSaveDisabled={isValidateForm}
       />
+      {leave.confirmDialog}
     </>
   );
 };

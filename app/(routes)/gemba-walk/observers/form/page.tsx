@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -15,10 +15,15 @@ import { GembaWalkObserversService, UsersService } from "@services";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
 import { useCatalog, useGembaWalkZones } from "@hooks";
-import { useFieldErrors } from "@hooks/useFieldErrors";
+import { useFormFieldErrors } from "@hooks/useFieldErrors";
+import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
+import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
+import EditRecordState from "@shared/components/EditRecordState";
+
+const LIST_HREF = "/gemba-walk/observers";
 
 interface Option {
   id: number;
@@ -36,33 +41,53 @@ const GembaWalkObserversFormPage = () => {
     gembaWalkZoneId: "",
     userIds: [],
   });
-  const [idCurrent, setIdCurrent] = useState<number>(0);
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, failFromApi, errorOf } = useFieldErrors<
-    | "manufacturingPlantId"
-    | "gembaWalkZoneId"
-    | "userIds"
-  >(form);
+  const idCurrent = Number(searchParams.get("id") || 0);
+
+  // Cada error se quita al cambiar su campo; los demás siguen marcados.
+  const { failAll, failFromApi, errorOf } = useFormFieldErrors(form);
+  // Con una sola planta se elige sola: al crear no cuenta como captura.
+  const leave = useLeaveConfirm(form, {
+    isEditing: !!idCurrent,
+    ignoreOnCreate: ["manufacturingPlantId"],
+  });
+
+  const record = useEditRecord(
+    idCurrent,
+    GembaWalkObserversService.findOne,
+    (data) => {
+      const loaded = {
+        manufacturingPlantId: `${data.manufacturingPlant?.id || ""}`,
+        gembaWalkZoneId: `${data.gembaWalkZone?.id || ""}`,
+        userIds: data.user ? [`${data.user.id}`] : [],
+      };
+      setForm(loaded);
+      leave.markPristine(loaded);
+    },
+  );
 
   const save = () => {
     const manufacturingPlantId = Number(form.manufacturingPlantId);
     const gembaWalkZoneId = Number(form.gembaWalkZoneId);
     const userIds = form.userIds.map(Number);
 
-    if (!manufacturingPlantId) {
-      fail("manufacturingPlantId", "La planta es requerida");
-      return;
-    }
-
-    if (!gembaWalkZoneId) {
-      fail("gembaWalkZoneId", "La zona es requerida");
-      return;
-    }
-
-    if (!userIds.length) {
-      fail("userIds", "El usuario es requerido");
+    // Todo lo que falta, en el orden de la pantalla (antes "Guardar" se
+    // deshabilitaba y las listas aparecían en rojo desde que se abría).
+    if (
+      failAll({
+        manufacturingPlantId: !manufacturingPlantId
+          ? "Selecciona la planta."
+          : undefined,
+        gembaWalkZoneId: !gembaWalkZoneId ? "Selecciona la zona." : undefined,
+        userIds: !userIds.length
+          ? idCurrent
+            ? "Selecciona el usuario."
+            : "Selecciona al menos un usuario."
+          : undefined,
+      })
+    ) {
       return;
     }
 
@@ -80,7 +105,7 @@ const GembaWalkObserversFormPage = () => {
               ? "Observador creado correctamente"
               : `${data.length} observadores creados correctamente`,
           );
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch(failFromApi)
         .finally(() => setIsLoading(false));
@@ -92,38 +117,12 @@ const GembaWalkObserversFormPage = () => {
       })
         .then(() => {
           toast.success("Observador actualizado correctamente");
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch(failFromApi)
         .finally(() => setIsLoading(false));
     }
   };
-
-  const cancel = () => {
-    router.push("/gemba-walk/observers");
-  };
-
-  const isValidateForm = useMemo(
-    () =>
-      !form.manufacturingPlantId ||
-      !form.gembaWalkZoneId ||
-      !form.userIds.length,
-    [form],
-  );
-
-  useEffect(() => {
-    const id = Number(searchParams.get("id") || 0);
-    if (!id) return;
-
-    setIdCurrent(id);
-    GembaWalkObserversService.findOne(id).then((data) => {
-      setForm({
-        manufacturingPlantId: `${data.manufacturingPlant?.id || ""}`,
-        gembaWalkZoneId: `${data.gembaWalkZone?.id || ""}`,
-        userIds: data.user ? [`${data.user.id}`] : [],
-      });
-    });
-  }, [searchParams]);
 
   // Zonas y usuarios de la planta elegida (caché compartida).
   const { manufacturingPlantId } = form;
@@ -158,11 +157,23 @@ const GembaWalkObserversFormPage = () => {
     [manufacturingPlantId, plantUsers],
   );
 
+  const title = idCurrent ? "Editar observador" : "Nuevo observador";
+
+  if (isEditRecordPending(record.status)) {
+    return (
+      <EditRecordState
+        status={record.status}
+        onRetry={record.retry}
+        title={title}
+        notFoundTitle="Observador no encontrado"
+        listHref={LIST_HREF}
+      />
+    );
+  }
+
   return (
     <>
-      <PageHeader
-        title={idCurrent ? "Editar observador" : "Nuevo observador"}
-      />
+      <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
       <FormSection>
         <SelectManufacturingPlantsOwn
           value={form.manufacturingPlantId}
@@ -177,14 +188,8 @@ const GembaWalkObserversFormPage = () => {
                   },
             )
           }
+          error={errorOf("manufacturingPlantId")}
         />
-        {errorOf("manufacturingPlantId") && (
-          <Grid size={{ xs: 12 }}>
-            <FormHelperText data-error-for="manufacturingPlantId" error>
-              {errorOf("manufacturingPlantId")}
-            </FormHelperText>
-          </Grid>
-        )}
         <Grid
           size={{
             xs: 12,
@@ -203,10 +208,11 @@ const GembaWalkObserversFormPage = () => {
               }))
             }
             disabled={!form.manufacturingPlantId}
-            validationEmpty
           />
           {errorOf("gembaWalkZoneId") && (
-            <FormHelperText data-error-for="gembaWalkZoneId" error>{errorOf("gembaWalkZoneId")}</FormHelperText>
+            <FormHelperText data-error-for="gembaWalkZoneId" error>
+              {errorOf("gembaWalkZoneId")}
+            </FormHelperText>
           )}
         </Grid>
         <Grid
@@ -228,7 +234,6 @@ const GembaWalkObserversFormPage = () => {
                 }))
               }
               disabled={!form.manufacturingPlantId}
-              validationEmpty
             />
           ) : (
             <SelectDefault
@@ -243,20 +248,21 @@ const GembaWalkObserversFormPage = () => {
                 }))
               }
               disabled={!form.manufacturingPlantId}
-              validationEmpty
             />
           )}
           {errorOf("userIds") && (
-            <FormHelperText data-error-for="userIds" error>{errorOf("userIds")}</FormHelperText>
+            <FormHelperText data-error-for="userIds" error>
+              {errorOf("userIds")}
+            </FormHelperText>
           )}
         </Grid>
       </FormSection>
       <FormActions
-        onCancel={cancel}
+        onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={isLoading}
-        isSaveDisabled={isValidateForm}
       />
+      {leave.confirmDialog}
     </>
   );
 };

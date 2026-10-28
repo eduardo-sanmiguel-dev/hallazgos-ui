@@ -508,3 +508,38 @@ si deben tenerla.
   - En HDS, la columna del botón "Ver archivo" se llama "Acciones" (antes
     "Visualizar archivo").
 
+#### Grupo 4: configuración de Gemba Walk (zonas, observadores, conceptos y calendario)
+
+- **Sin migraciones, variables, dependencias ni cambios de nginx.**
+- **API:** solo textos (compatibles con la UI anterior).
+  - Ids con "#N" y acentos: "Zona #N no encontrada", "La zona #N está
+    inactiva", "Observador #N no encontrado", "Concepto #N no encontrado",
+    "Evento #N no encontrado", "Usuario(s) #1, #2 no encontrado(s)", "No se
+    pueden editar eventos pasados (#1, #2)" (antes "con ID N", "esta
+    inactiva", "(ID 1, 2)").
+  - Registro de recorridos: "Planta #N no encontrada", "Evento #N no
+    encontrado o inactivo" y "Recorrido #N no encontrado" (antes "con ID
+    N").
+- **UI:**
+  - Zonas, observadores y conceptos: la base común (marcar lo que falta,
+    confirmar al salir, carga en edición y la ruta "Configuración › Gemba
+    Walk › …").
+  - En celular, las listas de zonas, observadores, conceptos y calendario se
+    ven en tarjetas.
+- **Para el cliente:**
+  - Los formularios de observadores y conceptos ya no aparecen en rojo al
+    abrirse; lo que falta se marca al tocar "Guardar".
+  - El editor del calendario se titula "Programar recorridos" (antes
+    "Gemba Walk - Calendario").
+  - En la lista del calendario, los eventos pasados dicen "Evento pasado"
+    donde antes había un "-".
+
+#### Panel administrativo completo
+
+Con los cuatro grupos, todas las pantallas del panel (Usuarios,
+Colaboradores, Plantas, Lugares, Zonas, Procesos, Criterios, Tipos de
+criterios, Equipos de protección, Equipos de emergencia, HDS y la
+configuración de Gemba Walk) tienen tarjetas en celular, y sus formularios
+marcan lo que falta, piden confirmar al salir y muestran la ruta en tablet y
+escritorio. Nada de esto requiere cambios en el servidor.
+

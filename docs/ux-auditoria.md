@@ -231,10 +231,13 @@ donas no cortan sus etiquetas.*
 nombres y correos se parten en 2–3 líneas (por ejemplo, en Usuarios). → Uso incómodo
 en celular, aunque es menos frecuente. → Componente `ResponsiveTable`: tabla en
 escritorio y tarjetas en celular, empezando por Usuarios y Colaboradores. [M]
-*En curso (Fase 4): tarjetas en Usuarios, Colaboradores, Plantas, Lugares,
-Zonas, Procesos, Criterios, Tipos de criterios, Equipos de protección,
-Equipos de emergencia y HDS (grupos 1 a 3; ver `docs/ux-componentes.md`,
-sección 11). Falta el grupo 4 (configuración de Gemba Walk, G8).*
+*Resuelto en la Fase 4 (panel administrativo, grupos 1 a 4; ver
+`docs/ux-componentes.md`, sección 11): todas las listas del panel usan
+`ResponsiveTable` (tarjetas en celular, sin desplazamiento lateral):
+Usuarios, Colaboradores, Plantas, Lugares, Zonas, Procesos, Criterios,
+Tipos de criterios, Equipos de protección, Equipos de emergencia (con su
+casilla para imprimir en cada tarjeta), HDS y la configuración de Gemba
+Walk.*
 
 **M7 · Estados vacío, sin permisos y error** — Ya existe un componente `EmptyState`,
 pero solo lo usan 4 pantallas (CIAEL, equipos de emergencia y dos de Análisis de datos
@@ -254,23 +257,24 @@ en el tema y en componentes base. [S]
 **B1 · Teclados por tipo de campo** — Solo 4 campos usan `inputMode` y 6 usan
 `type="number|tel|email"`. Por ejemplo, "Personas totales" (ICS) y los códigos de
 colaborador deberían abrir el teclado numérico. [S]
-*Resuelto en los formularios de campo (Fase 4): "Personas totales" de ICS
-abre el teclado numérico (`inputMode="numeric"`, solo enteros desde 1; antes
-`type="number"`), igual que los días de incapacidad y las horas laboradas de
-CIAEL; el código de colaborador ya lo hacía. Quedan con `type="number"` solo
-campos del panel administrativo (capacidad en equipos de emergencia, campos de
-equipos y coordenadas de plantas): se revisan con el panel administrativo.
-Coordenadas de plantas ya resueltas (grupo 2): teclado de texto con
-validación de formato, por el signo menos de la longitud. Frecuencia de
-entrega (numérico), precio y capacidad (decimal) resueltos en el grupo 3: ya
-no queda ningún `type="number"` en el panel administrativo.*
+*Resuelto en la Fase 4: ya no queda ningún `type="number"` en la app.
+- Formularios de campo: "Personas totales" (ICS), días de incapacidad y
+  horas laboradas (CIAEL) con teclado numérico; el código de colaborador ya
+  lo tenía.
+- Panel administrativo: frecuencia de entrega con teclado numérico; precio y
+  capacidad con teclado decimal; correo de usuarios con teclado de correo;
+  link de plantas con teclado de direcciones web. Las coordenadas de plantas
+  usan el teclado de texto con validación de formato (decisión aprobada: la
+  longitud es negativa y el teclado decimal del iPhone no tiene signo
+  menos).*
 
 **B2 · Breadcrumbs** — Los formularios y los detalles no indican de dónde vienen. En
 escritorio ayudaría una ruta corta ("Configuración › Lugares › Editar"). [S]
-*En curso (Fase 4, panel administrativo): el componente y la ruta desde el
-menú ya existen y se usan en Procesos, Usuarios, Colaboradores, Plantas,
-Lugares, Zonas, Criterios, Tipos de criterios y Equipos de emergencia (ver
-`docs/ux-componentes.md`, sección 11). Falta el grupo 4.*
+*Resuelto en la Fase 4 (ver `docs/ux-componentes.md`, sección 11): en
+los 13 formularios de Configuración, solo en tablet y escritorio. La ruta
+sale del menú ("Configuración › Gemba Walk › Zonas › Nueva zona de Gemba
+Walk") y el enlace a la lista pasa por la confirmación de salida. Equipos
+de protección no lleva: su formulario es un diálogo.*
 
 **B3 · Indicador de Next.js** — La burbuja redonda de abajo a la izquierda que se ve
 en desarrollo es el indicador de Next.js. No existe en producción, así que no
@@ -291,7 +295,7 @@ criterios. Detalle de lo implementado en `docs/ux-componentes.md`, sección 8.
 | G5 | Medio | `/view` | Sin el recorrido o con error, la barra de carga quedaba para siempre. | *Resuelto: "Recorrido no encontrado" y "Reintentar".* |
 | G6 | Medio | `/schedule` | En celular, el mes era una cuadrícula ilegible. | *Resuelto: lista de la semana en celular.* |
 | G7 | Medio | `/calendar/form` | En pantalla táctil, elegir días pedía mantener presionado 1 s, sin indicación. | *Resuelto: 350 ms y texto de ayuda.* |
-| G8 | Bajo | Zonas, observadores, conceptos, calendario | Tablas que se desplazan de lado en celular (como M6). | Pendiente: con el panel administrativo. |
+| G8 | Bajo | Zonas, observadores, conceptos, calendario | Tablas que se desplazan de lado en celular (como M6). | *Resuelto: tarjetas en celular (panel administrativo, grupo 4).* |
 | G9 | Bajo | `/form`, `/view`, `/schedule` | Títulos en verde claro (A3), botones sueltos, "Regresar" como acción principal. | *Resuelto: `text.brand`, `FormActions` y "Regresar" secundario.* |
 
 ---
@@ -453,6 +457,34 @@ Por regla del plan, no se modifican.
 6. **ICS:** B1.
 7. **Panel administrativo.**
 8. **Dashboards:** M5.
+
+### Estado al cierre de la Fase 4
+
+**Resueltos** (con su marca arriba): C1, C3, C4, A1, A2, A4, A5, A6, M1,
+M4, M5, M6, B1, B2 y G1 a G9.
+
+**Implementados en las fases 2 y 3, sin marca en esta auditoría** (están
+en `docs/ux-componentes.md`, secciones 1 a 3): C2 (cámara nativa y
+compresión, `PhotoCapture`), A3 (contraste), A8 (navegación inferior), M2
+(botones de evidencia y mensajes de la imagen), M3 (progreso de subida,
+tiempo límite y "Reintentar") y M7 (vacío, error y sin acceso). Conviene
+confirmarlos y marcarlos en la Fase 5.
+
+**Parciales:**
+- A7: hay skeletons y `loading.tsx` al navegar, pero las listas siguen con
+  la barra lineal (`LoadingLinear`) en su primera carga.
+- M8: descripciones con contorno en hallazgos e ICS; los títulos de los
+  avisos de `notify` siguen con espacios ("¡ Correcto !").
+
+**Abiertos o documentados** (no se cambian sin decisión):
+- Sección 5: lectura del API por rol (punto 2), destinatarios fijos de la
+  planta 3 (punto 4), prueba intermitente de extintores (punto 5) y
+  endpoints de CIAEL e ICS que no hacen nada (puntos 7 y 8).
+- Nomenclatura lugar/zona/área entre pantallas: se decidió dejarla como
+  está (`docs/ux-componentes.md`, sección 11).
+- ICS: si "Estándar de comportamiento" y "Área" deben ser obligatorios lo
+  decide el cliente; hoy no lo son, ni en la UI ni en el API.
+- Pendientes para la Fase 5 en `docs/ux-componentes.md`, sección 12.
 
 ### Fase 5 — Verificación
 

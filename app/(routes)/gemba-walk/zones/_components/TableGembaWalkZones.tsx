@@ -9,13 +9,10 @@ import {
   EditAction,
   RowActions,
 } from "@shared/components/RowActions";
-import {
-  StyledTableCell,
-  StyledTableRow,
-} from "@shared/components/TableDefault";
-import TableDefaultServer, {
-  type ServerPagination,
-} from "@shared/components/TableDefaultServer";
+import type { ServerPagination } from "@shared/components/TableDefaultServer";
+import ResponsiveTable, {
+  type ResponsiveColumn,
+} from "@shared/components/ResponsiveTable";
 import { GembaWalkZone } from "@interfaces";
 import { GembaWalkZonesService } from "@services";
 
@@ -25,16 +22,63 @@ interface Props {
   pagination: ServerPagination;
 }
 
-const columns = [
-  "ID",
-  "Planta",
-  "Zona",
-  "Ubicación",
-  "Creado por",
-  "Actualizado por",
-  "Creación",
-  "Ultima actualización",
-  "Acciones",
+// Tabla en tablet y escritorio; tarjetas en celular (ResponsiveTable, G8).
+const columns: ResponsiveColumn<GembaWalkZone>[] = [
+  {
+    id: "id",
+    header: "ID",
+    cell: (row) => row.id,
+    rowHeader: true,
+    card: "hidden",
+  },
+  {
+    id: "title",
+    header: "Zona y ubicación",
+    cell: (row) => `${row.nameZone} - ${row.nameLocation}`,
+    card: "title",
+    hideInTable: true,
+  },
+  {
+    id: "manufacturingPlant",
+    header: "Planta",
+    cell: (row) => row.manufacturingPlant?.name || "-",
+    card: "subtitle",
+  },
+  {
+    id: "nameZone",
+    header: "Zona",
+    cell: (row) => row.nameZone,
+    card: "hidden",
+  },
+  {
+    id: "nameLocation",
+    header: "Ubicación",
+    cell: (row) => row.nameLocation,
+    card: "hidden",
+  },
+  {
+    id: "createdBy",
+    header: "Creado por",
+    cell: (row) => row.createdBy?.name || "-",
+    card: "hidden",
+  },
+  {
+    id: "updatedBy",
+    header: "Actualizado por",
+    cell: (row) => row.updatedBy?.name || "-",
+    card: "hidden",
+  },
+  {
+    id: "createdAt",
+    header: "Creación",
+    cell: (row) => stringToDateWithTime(row.createdAt),
+    card: "hidden",
+  },
+  {
+    id: "updatedAt",
+    header: "Última actualización",
+    cell: (row) => updatedDateLabel(row.createdAt, row.updatedAt) ?? "-",
+  },
 ];
 
 export default function TableGembaWalkZones({
@@ -69,42 +113,24 @@ export default function TableGembaWalkZones({
 
   return (
     <>
-      <TableDefaultServer
+      <ResponsiveTable
         rows={rows}
         columns={columns}
-        {...pagination}
-        paintRows={(row: GembaWalkZone) => (
-          <StyledTableRow key={row.id}>
-            <StyledTableCell component="th" scope="row">
-              {row.id}
-            </StyledTableCell>
-            <StyledTableCell>
-              {row.manufacturingPlant?.name || "-"}
-            </StyledTableCell>
-            <StyledTableCell>{row.nameZone}</StyledTableCell>
-            <StyledTableCell>{row.nameLocation}</StyledTableCell>
-            <StyledTableCell>{row.createdBy?.name || "-"}</StyledTableCell>
-            <StyledTableCell>{row.updatedBy?.name || "-"}</StyledTableCell>
-            <StyledTableCell>
-              {stringToDateWithTime(row.createdAt)}
-            </StyledTableCell>
-            <StyledTableCell>
-              {updatedDateLabel(row.createdAt, row.updatedAt) ?? "-"}
-            </StyledTableCell>
-            <StyledTableCell>
-              <RowActions>
-                <EditAction
-                  onClick={() =>
-                    router.push("/gemba-walk/zones/form?id=" + row.id)
-                  }
-                />
-                <DeleteAction
-                  onClick={() => confirmRemove(row)}
-                  disabled={isLoading}
-                />
-              </RowActions>
-            </StyledTableCell>
-          </StyledTableRow>
+        getRowKey={(row) => row.id}
+        pagination={pagination}
+        ariaLabel="Zonas de Gemba Walk"
+        emptyTitle="Sin registros de zonas"
+        emptyDescription="No hay registros con los filtros actuales."
+        actions={(row) => (
+          <RowActions>
+            <EditAction
+              onClick={() => router.push("/gemba-walk/zones/form?id=" + row.id)}
+            />
+            <DeleteAction
+              onClick={() => confirmRemove(row)}
+              disabled={isLoading}
+            />
+          </RowActions>
         )}
       />
       {confirmDialog}

@@ -543,7 +543,13 @@ const GembaWalkCalendarFormPage = () => {
   return (
     <Grid container spacing={2}>
       <Grid size={{ xs: 12 }}>
-        <PageHeader title="Gemba Walk - Calendario" />
+        {/* El enlace de los breadcrumbs pasa por la misma confirmación de
+            "Eventos sin guardar" que "Cancelar". */}
+        <PageHeader
+          title="Programar recorridos"
+          breadcrumbs
+          onNavigate={cancel}
+        />
       </Grid>
       <SelectManufacturingPlantsOwn
         value={manufacturingPlantId}

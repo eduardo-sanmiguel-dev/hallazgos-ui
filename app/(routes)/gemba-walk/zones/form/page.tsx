@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -10,14 +10,18 @@ import { useSearchParams } from "next/navigation";
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 import { toast } from "sonner";
-import { FormHelperText } from "@mui/material";
 
 import { GembaWalkZonesService } from "@services";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
-import { useFieldErrors } from "@hooks/useFieldErrors";
+import { useFormFieldErrors } from "@hooks/useFieldErrors";
+import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
+import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
+import EditRecordState from "@shared/components/EditRecordState";
+
+const LIST_HREF = "/gemba-walk/zones";
 
 const GembaWalkZonesFormPage = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -26,33 +30,50 @@ const GembaWalkZonesFormPage = () => {
     nameZone: "",
     nameLocation: "",
   });
-  const [idCurrent, setIdCurrent] = useState<number>(0);
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<
-    | "manufacturingPlantId"
-    | "nameZone"
-    | "nameLocation"
-  >(form);
+  const idCurrent = Number(searchParams.get("id") || 0);
+
+  // Cada error se quita al cambiar su campo; los demás siguen marcados.
+  const { failAll, failFromApi, errorOf, fieldProps } =
+    useFormFieldErrors(form);
+  // Con una sola planta se elige sola: al crear no cuenta como captura.
+  const leave = useLeaveConfirm(form, {
+    isEditing: !!idCurrent,
+    ignoreOnCreate: ["manufacturingPlantId"],
+  });
+
+  const record = useEditRecord(
+    idCurrent,
+    GembaWalkZonesService.findOne,
+    (data) => {
+      const loaded = {
+        manufacturingPlantId: `${data.manufacturingPlant?.id || ""}`,
+        nameZone: data.nameZone,
+        nameLocation: data.nameLocation,
+      };
+      setForm(loaded);
+      leave.markPristine(loaded);
+    },
+  );
 
   const save = () => {
     const manufacturingPlantId = Number(form.manufacturingPlantId);
     const nameZone = form.nameZone.trim();
     const nameLocation = form.nameLocation.trim();
 
-    if (!manufacturingPlantId) {
-      fail("manufacturingPlantId", "La planta es requerida");
-      return;
-    }
-
-    if (!nameZone) {
-      fail("nameZone", "La zona es requerida");
-      return;
-    }
-
-    if (!nameLocation) {
-      fail("nameLocation", "La ubicación es requerida");
+    // Todo lo que falta, en el orden de la pantalla (antes "Guardar" se
+    // deshabilitaba sin decir qué faltaba).
+    if (
+      failAll({
+        manufacturingPlantId: !manufacturingPlantId
+          ? "Selecciona la planta."
+          : undefined,
+        nameZone: !nameZone ? "Escribe la zona." : undefined,
+        nameLocation: !nameLocation ? "Escribe la ubicación." : undefined,
+      })
+    ) {
       return;
     }
 
@@ -64,7 +85,7 @@ const GembaWalkZonesFormPage = () => {
       GembaWalkZonesService.create(payload)
         .then(() => {
           toast.success("Zona creada correctamente");
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch(failFromApi)
         .finally(() => setIsLoading(false));
@@ -72,44 +93,32 @@ const GembaWalkZonesFormPage = () => {
       GembaWalkZonesService.update(idCurrent, payload)
         .then(() => {
           toast.success("Zona actualizada correctamente");
-          cancel();
+          router.push(LIST_HREF);
         })
         .catch(failFromApi)
         .finally(() => setIsLoading(false));
     }
   };
 
-  const cancel = () => {
-    router.push("/gemba-walk/zones");
-  };
+  const title = idCurrent
+    ? "Editar zona de Gemba Walk"
+    : "Nueva zona de Gemba Walk";
 
-  const isValidateForm = useMemo(
-    () =>
-      !form.manufacturingPlantId ||
-      !form.nameZone?.trim() ||
-      !form.nameLocation?.trim(),
-    [form],
-  );
-
-  useEffect(() => {
-    const id = Number(searchParams.get("id") || 0);
-    if (!id) return;
-
-    setIdCurrent(id);
-    GembaWalkZonesService.findOne(id).then((data) => {
-      setForm({
-        manufacturingPlantId: `${data.manufacturingPlant?.id || ""}`,
-        nameZone: data.nameZone,
-        nameLocation: data.nameLocation,
-      });
-    });
-  }, [searchParams]);
+  if (isEditRecordPending(record.status)) {
+    return (
+      <EditRecordState
+        status={record.status}
+        onRetry={record.retry}
+        title={title}
+        notFoundTitle="Zona no encontrada"
+        listHref={LIST_HREF}
+      />
+    );
+  }
 
   return (
     <>
-      <PageHeader
-        title={idCurrent ? "Editar zona de Gemba Walk" : "Nueva zona de Gemba Walk"}
-      />
+      <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
       <FormSection>
         <SelectManufacturingPlantsOwn
           value={form.manufacturingPlantId}
@@ -119,14 +128,8 @@ const GembaWalkZonesFormPage = () => {
               manufacturingPlantId: e.target.value,
             })
           }
+          error={errorOf("manufacturingPlantId")}
         />
-        {errorOf("manufacturingPlantId") && (
-          <Grid size={{ xs: 12 }}>
-            <FormHelperText data-error-for="manufacturingPlantId" error>
-              {errorOf("manufacturingPlantId")}
-            </FormHelperText>
-          </Grid>
-        )}
         <Grid
           size={{
             xs: 12,
@@ -175,11 +178,11 @@ const GembaWalkZonesFormPage = () => {
         </Grid>
       </FormSection>
       <FormActions
-        onCancel={cancel}
+        onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={isLoading}
-        isSaveDisabled={isValidateForm}
       />
+      {leave.confirmDialog}
     </>
   );
 };

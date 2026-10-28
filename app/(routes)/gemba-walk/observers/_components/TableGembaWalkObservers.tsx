@@ -9,13 +9,10 @@ import {
   EditAction,
   RowActions,
 } from "@shared/components/RowActions";
-import {
-  StyledTableCell,
-  StyledTableRow,
-} from "@shared/components/TableDefault";
-import TableDefaultServer, {
-  type ServerPagination,
-} from "@shared/components/TableDefaultServer";
+import type { ServerPagination } from "@shared/components/TableDefaultServer";
+import ResponsiveTable, {
+  type ResponsiveColumn,
+} from "@shared/components/ResponsiveTable";
 import { GembaWalkObserver } from "@interfaces";
 import { GembaWalkObserversService } from "@services";
 
@@ -25,17 +22,73 @@ interface Props {
   pagination: ServerPagination;
 }
 
-const columns = [
-  "ID",
-  "Planta",
-  "Zona",
-  "Ubicación",
-  "Usuario",
-  "Creado por",
-  "Actualizado por",
-  "Creación",
-  "Ultima actualización",
-  "Acciones",
+// Tabla en tablet y escritorio; tarjetas en celular (ResponsiveTable, G8).
+const columns: ResponsiveColumn<GembaWalkObserver>[] = [
+  {
+    id: "id",
+    header: "ID",
+    cell: (row) => row.id,
+    rowHeader: true,
+    card: "hidden",
+  },
+  {
+    id: "userCard",
+    header: "Usuario",
+    cell: (row) => row.user?.name || "-",
+    card: "title",
+    hideInTable: true,
+  },
+  {
+    id: "emailCard",
+    header: "Correo",
+    cell: (row) => row.user?.email || "",
+    card: "subtitle",
+    hideInTable: true,
+  },
+  {
+    id: "manufacturingPlant",
+    header: "Planta",
+    cell: (row) => row.manufacturingPlant?.name || "-",
+  },
+  {
+    id: "nameZone",
+    header: "Zona",
+    cell: (row) => row.gembaWalkZone?.nameZone || "-",
+  },
+  {
+    id: "nameLocation",
+    header: "Ubicación",
+    cell: (row) => row.gembaWalkZone?.nameLocation || "-",
+  },
+  {
+    id: "user",
+    header: "Usuario",
+    cell: (row) => (row.user ? `${row.user.name} - ${row.user.email}` : "-"),
+    card: "hidden",
+  },
+  {
+    id: "createdBy",
+    header: "Creado por",
+    cell: (row) => row.createdBy?.name || "-",
+    card: "hidden",
+  },
+  {
+    id: "updatedBy",
+    header: "Actualizado por",
+    cell: (row) => row.updatedBy?.name || "-",
+    card: "hidden",
+  },
+  {
+    id: "createdAt",
+    header: "Creación",
+    cell: (row) => stringToDateWithTime(row.createdAt),
+    card: "hidden",
+  },
+  {
+    id: "updatedAt",
+    header: "Última actualización",
+    cell: (row) => updatedDateLabel(row.createdAt, row.updatedAt) ?? "-",
+  },
 ];
 
 export default function TableGembaWalkObservers({
@@ -70,49 +123,26 @@ export default function TableGembaWalkObservers({
 
   return (
     <>
-      <TableDefaultServer
+      <ResponsiveTable
         rows={rows}
         columns={columns}
-        {...pagination}
-        paintRows={(row: GembaWalkObserver) => (
-          <StyledTableRow key={row.id}>
-            <StyledTableCell component="th" scope="row">
-              {row.id}
-            </StyledTableCell>
-            <StyledTableCell>
-              {row.manufacturingPlant?.name || "-"}
-            </StyledTableCell>
-            <StyledTableCell>
-              {row.gembaWalkZone?.nameZone || "-"}
-            </StyledTableCell>
-            <StyledTableCell>
-              {row.gembaWalkZone?.nameLocation || "-"}
-            </StyledTableCell>
-            <StyledTableCell>
-              {row.user ? `${row.user.name} - ${row.user.email}` : "-"}
-            </StyledTableCell>
-            <StyledTableCell>{row.createdBy?.name || "-"}</StyledTableCell>
-            <StyledTableCell>{row.updatedBy?.name || "-"}</StyledTableCell>
-            <StyledTableCell>
-              {stringToDateWithTime(row.createdAt)}
-            </StyledTableCell>
-            <StyledTableCell>
-              {updatedDateLabel(row.createdAt, row.updatedAt) ?? "-"}
-            </StyledTableCell>
-            <StyledTableCell>
-              <RowActions>
-                <EditAction
-                  onClick={() =>
-                    router.push("/gemba-walk/observers/form?id=" + row.id)
-                  }
-                />
-                <DeleteAction
-                  onClick={() => confirmRemove(row)}
-                  disabled={isLoading}
-                />
-              </RowActions>
-            </StyledTableCell>
-          </StyledTableRow>
+        getRowKey={(row) => row.id}
+        pagination={pagination}
+        ariaLabel="Observadores de Gemba Walk"
+        emptyTitle="Sin registros de observadores"
+        emptyDescription="No hay registros con los filtros actuales."
+        actions={(row) => (
+          <RowActions>
+            <EditAction
+              onClick={() =>
+                router.push("/gemba-walk/observers/form?id=" + row.id)
+              }
+            />
+            <DeleteAction
+              onClick={() => confirmRemove(row)}
+              disabled={isLoading}
+            />
+          </RowActions>
         )}
       />
       {confirmDialog}

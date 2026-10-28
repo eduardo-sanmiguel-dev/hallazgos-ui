@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Chip } from "@mui/material";
+import { Chip, Typography } from "@mui/material";
 import { toast } from "sonner";
 import dayjs from "@shared/libs/dayjs";
 
@@ -13,13 +13,10 @@ import {
   EditAction,
   RowActions,
 } from "@shared/components/RowActions";
-import {
-  StyledTableCell,
-  StyledTableRow,
-} from "@shared/components/TableDefault";
-import TableDefaultServer, {
-  type ServerPagination,
-} from "@shared/components/TableDefaultServer";
+import type { ServerPagination } from "@shared/components/TableDefaultServer";
+import ResponsiveTable, {
+  type ResponsiveColumn,
+} from "@shared/components/ResponsiveTable";
 import { GembaWalkCalendar } from "@interfaces";
 import { GembaWalkCalendarService } from "@services";
 
@@ -33,18 +30,80 @@ interface Props {
 const isPast = (scheduledAt: string | Date) =>
   new Date(scheduledAt).getTime() <= Date.now();
 
-const columns = [
-  "ID",
-  "Planta",
-  "Zona",
-  "Ubicación",
-  "Fecha y hora",
-  "Adicional",
-  "Creado por",
-  "Actualizado por",
-  "Creación",
-  "Ultima actualización",
-  "Acciones",
+// Tabla en tablet y escritorio; tarjetas en celular (ResponsiveTable, G8).
+const columns: ResponsiveColumn<GembaWalkCalendar>[] = [
+  {
+    id: "id",
+    header: "ID",
+    cell: (row) => row.id,
+    rowHeader: true,
+    card: "hidden",
+  },
+  {
+    id: "title",
+    header: "Zona y ubicación",
+    cell: (row) =>
+      `${row.gembaWalkZone?.nameZone || "-"} - ${row.gembaWalkZone?.nameLocation || "-"}`,
+    card: "title",
+    hideInTable: true,
+  },
+  {
+    id: "manufacturingPlant",
+    header: "Planta",
+    cell: (row) => row.gembaWalkZone?.manufacturingPlant?.name || "-",
+    card: "subtitle",
+  },
+  {
+    id: "nameZone",
+    header: "Zona",
+    cell: (row) => row.gembaWalkZone?.nameZone || "-",
+    card: "hidden",
+  },
+  {
+    id: "nameLocation",
+    header: "Ubicación",
+    cell: (row) => row.gembaWalkZone?.nameLocation || "-",
+    card: "hidden",
+  },
+  {
+    id: "scheduledAt",
+    header: "Fecha y hora",
+    cell: (row) => stringToDateWithTime(row.scheduledAt),
+  },
+  {
+    id: "isAdditional",
+    header: "Adicional",
+    cell: (row) => (
+      <Chip
+        size="small"
+        label={row.isAdditional ? "Sí" : "No"}
+        color={row.isAdditional ? "info" : "default"}
+      />
+    ),
+  },
+  {
+    id: "createdBy",
+    header: "Creado por",
+    cell: (row) => row.createdBy?.name || "-",
+    card: "hidden",
+  },
+  {
+    id: "updatedBy",
+    header: "Actualizado por",
+    cell: (row) => row.updatedBy?.name || "-",
+    card: "hidden",
+  },
+  {
+    id: "createdAt",
+    header: "Creación",
+    cell: (row) => stringToDateWithTime(row.createdAt),
+    card: "hidden",
+  },
+  {
+    id: "updatedAt",
+    header: "Última actualización",
+    cell: (row) => updatedDateLabel(row.createdAt, row.updatedAt) ?? "-",
+  },
 ];
 
 export default function TableGembaWalkCalendar({
@@ -85,63 +144,37 @@ export default function TableGembaWalkCalendar({
 
   return (
     <>
-      <TableDefaultServer
+      <ResponsiveTable
         rows={rows}
         columns={columns}
-        {...pagination}
-        paintRows={(row: GembaWalkCalendar) => (
-          <StyledTableRow key={row.id}>
-            <StyledTableCell component="th" scope="row">
-              {row.id}
-            </StyledTableCell>
-            <StyledTableCell>
-              {row.gembaWalkZone?.manufacturingPlant?.name || "-"}
-            </StyledTableCell>
-            <StyledTableCell>
-              {row.gembaWalkZone?.nameZone || "-"}
-            </StyledTableCell>
-            <StyledTableCell>
-              {row.gembaWalkZone?.nameLocation || "-"}
-            </StyledTableCell>
-            <StyledTableCell>
-              {stringToDateWithTime(row.scheduledAt)}
-            </StyledTableCell>
-            <StyledTableCell>
-              <Chip
-                size="small"
-                label={row.isAdditional ? "Sí" : "No"}
-                color={row.isAdditional ? "info" : "default"}
+        getRowKey={(row) => row.id}
+        pagination={pagination}
+        ariaLabel="Calendario de Gemba Walk"
+        emptyTitle="Sin registros de eventos"
+        emptyDescription="No hay registros con los filtros actuales."
+        // Los eventos pasados no se editan ni se eliminan (el API también lo
+        // valida); antes, la celda mostraba "-".
+        actions={(row) =>
+          isPast(row.scheduledAt) ? (
+            <Typography variant="body2" color="text.secondary">
+              Evento pasado
+            </Typography>
+          ) : (
+            <RowActions>
+              <EditAction
+                onClick={() =>
+                  router.push(
+                    `/gemba-walk/calendar/form?manufacturingPlantId=${row.gembaWalkZone?.manufacturingPlant?.id}&date=${dayjs(row.scheduledAt).format("YYYY-MM-DD")}`,
+                  )
+                }
               />
-            </StyledTableCell>
-            <StyledTableCell>{row.createdBy?.name || "-"}</StyledTableCell>
-            <StyledTableCell>{row.updatedBy?.name || "-"}</StyledTableCell>
-            <StyledTableCell>
-              {stringToDateWithTime(row.createdAt)}
-            </StyledTableCell>
-            <StyledTableCell>
-              {updatedDateLabel(row.createdAt, row.updatedAt) ?? "-"}
-            </StyledTableCell>
-            <StyledTableCell>
-              {isPast(row.scheduledAt) ? (
-                "-"
-              ) : (
-                <RowActions>
-                  <EditAction
-                    onClick={() =>
-                      router.push(
-                        `/gemba-walk/calendar/form?manufacturingPlantId=${row.gembaWalkZone?.manufacturingPlant?.id}&date=${dayjs(row.scheduledAt).format("YYYY-MM-DD")}`,
-                      )
-                    }
-                  />
-                  <DeleteAction
-                    onClick={() => confirmRemove(row)}
-                    disabled={isLoading}
-                  />
-                </RowActions>
-              )}
-            </StyledTableCell>
-          </StyledTableRow>
-        )}
+              <DeleteAction
+                onClick={() => confirmRemove(row)}
+                disabled={isLoading}
+              />
+            </RowActions>
+          )
+        }
       />
       {confirmDialog}
     </>
