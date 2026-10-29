@@ -32,6 +32,9 @@ uso en planta. Los cinco quedaron resueltos.
   `TableSkeleton`, `FormSkeleton`, `DashboardSkeleton`), `FormSection`,
   `FormActions`, `ConfirmDialog` (foco inicial en "Cancelar") y
   `PageBreadcrumbs`.
+- **Encabezados:** cabeceras de tabla y barra del detalle de hallazgo en un
+  verde tenue con línea de acento de 2 px en el verde de marca (AA en los
+  tres temas).
 - **Navegación:** barra inferior en celular con "Nuevo hallazgo" al centro y
   hasta tres accesos según el rol; breadcrumbs en los formularios de
   Configuración (tablet y escritorio).
@@ -76,11 +79,20 @@ uso en planta. Los cinco quedaron resueltos.
 
 - Lista en tarjetas en celular, con estatus, plazo y la acción principal
   (Iniciar o Cerrar) a la vista.
-- **Cámara del teléfono** ("Tomar foto") con compresión a 1920 px y ~1 MB;
-  la del navegador queda como alternativa. Progreso de subida.
+- **Cámara del teléfono** ("Tomar foto") con compresión a 1920 px y ~1 MB.
+  En celular, "Tomar foto" y "Elegir de galería"; en escritorio, un solo
+  "Subir foto", la cámara web y arrastrar la foto. Progreso de subida.
 - Iniciar y cerrar a pantalla completa en celular; cerrar pide confirmación.
-- Nuevo hallazgo: sin rojo al abrir, texto neutro en la descripción, recuerda
-  la última planta y lugar, y "Cargando…" mientras llegan los catálogos.
+- Nuevo hallazgo en cuatro secciones (Ubicación, Lo que se observó,
+  Evidencia y Seguimiento) con ancho máximo en escritorio; sin rojo al abrir,
+  texto neutro en la descripción, recuerda la última planta y lugar, y
+  "Cargando…" mientras llegan los catálogos.
+- **Detalle rediseñado:** sin pestañas; resumen arriba, lo observado,
+  seguimiento por etapas con fecha, foto y quién lo hizo, datos al lado y
+  comentarios a la vista. Visor de fotos con paso entre ellas.
+- **Quién inició y quién cerró** cada hallazgo se registra desde esta
+  versión (detalle y correo de cierre); los anteriores no lo tienen.
+- PDF de hallazgos: se nombra como el Excel y vuelve a mostrar las fotos.
 - Foto obligatoria según la bandera "Requiere evidencia fotográfica" de cada
   clasificación (validada también en el API).
 - Prioridad con un solo mapeo en todo el sistema (Inmediato = 2 días).
@@ -94,11 +106,19 @@ uso en planta. Los cinco quedaron resueltos.
   proporción.
 - Lista en tarjetas en celular con el historial desplegable.
 - "Elige una planta" cuando aún no hay planta elegida.
+- **Registro de entrega rediseñado:** secciones Colaborador, Equipos a
+  entregar y Firma; los equipos en lista con el aviso de frecuencia; barra
+  fija con el resumen, lo que falta para guardar, "Cancelar" y "Guardar".
 
 ### Inspección de extintores
 
 - Formulario en secciones, "Agregar evaluación" arriba y "Guardar" /
   "Cancelar" al pie; errores del API en la tarjeta de cada evaluación.
+- **Formulario rediseñado** (como el registro de Gemba Walk): cada extintor
+  en una tarjeta con sus datos y un resumen; los 10 conceptos como lista de
+  verificación "Cumple / No cumple / No aplica" (un toque por novedad, antes
+  dos listas y "Agregar"); barra fija con el número de extintores y cuántos
+  no cumplen.
 - Lista en tarjetas en celular.
 
 ### CIAEL
@@ -112,6 +132,12 @@ uso en planta. Los cinco quedaron resueltos.
 - Recorrido iniciado con borrador: se recupera con su hora de inicio
   original. "Cumple / No cumple" con botones grandes y barra fija con el
   conteo.
+- **Registro rediseñado:** recorrido de hoy con su estado (iniciar,
+  fuera de tiempo o cronómetro grande), evaluación por categoría con lo que
+  no cumple resaltado y barra fija con el cumplimiento en vivo.
+- **Detalle rediseñado**, como el de un hallazgo: resumen, indicadores
+  (cumplimiento y duración), resultados con filtro "No cumple" y datos al
+  lado.
 - Lista en tarjetas, agenda como lista de la semana en celular, detalle con
   "no encontrado" y "Reintentar".
 - Calendario: mantener presionado 350 ms en pantalla táctil.
@@ -127,6 +153,18 @@ uso en planta. Los cinco quedaron resueltos.
 - Planta propuesta (la única o la última elegida), periodo por omisión de
   los últimos 30 días, un solo aviso para la pantalla y donas legibles en
   celular.
+- **Análisis de datos EPP rediseñado:** indicadores con ícono, la
+  variación en pastilla de color y "vs periodo anterior" (sin repetir el
+  rango); acento verde en indicadores y gráficas; los grupos (Gasto,
+  Entregas, Fuera de rango) como tarjetas con ícono y qué contienen; el
+  aviso de precios o frecuencias lleva a Equipos; barras de ancho máximo.
+  Las tablas de fuera de rango (ranking y entregas de cada persona) con el
+  estilo de las demás tablas y, en celular, en tarjetas.
+- **Dashboard de hallazgos rediseñado:** título visible con la leyenda del
+  periodo y su comparación; el mismo control de periodo que el análisis EPP
+  (atajos y Personalizado) en lugar de dos fechas; indicadores (hallazgos,
+  abiertos, en progreso, cerrados y % de cierre) con su variación contra el
+  periodo anterior (dato nuevo de la API); gráficas con el acento verde.
 
 ### Panel administrativo
 

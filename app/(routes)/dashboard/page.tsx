@@ -1,10 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import dayjs, { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import AutorenewIcon from "@mui/icons-material/Autorenew";
+import DonutLargeIcon from "@mui/icons-material/DonutLarge";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlineOutlined";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import {
   Box,
   Button,
@@ -13,7 +18,6 @@ import {
   Paper,
   SelectChangeEvent,
   Skeleton,
-  Typography,
   Zoom,
 } from "@mui/material";
 import "dayjs/locale/es";
@@ -27,6 +31,15 @@ import { EMPTY_CATALOG, useAreas, useMainTypes } from "@hooks";
 import { useHighchartsTheme } from "@hooks/useHighchartsTheme";
 import EmptyState from "@shared/components/EmptyState";
 import ErrorState from "@shared/components/ErrorState";
+import KpiTile from "@shared/components/KpiTile";
+import PageHeader from "@shared/components/PageHeader";
+import { accentCard } from "@shared/utils/accentCard";
+import {
+  DEFAULT_PERIOD,
+  PERIOD_PRESETS,
+  periodLabel,
+  presetRange,
+} from "@shared/utils/period";
 import { proposedPlantId, saveLastPlant } from "@shared/utils/lastPlant";
 import AreaImageCoordinateSelector from "../areas/_components/AreaImageCoordinateSelector";
 import AreasChart from "./charts/AreasChart";
@@ -49,32 +62,23 @@ import {
   useDashboardSummary,
 } from "./_components/useDashboardSummary";
 
-// Título solo para lectores de pantalla: la barra de filtros es lo primero
-// que se ve en la página.
-const visuallyHidden = {
-  position: "absolute",
-  width: "1px",
-  height: "1px",
-  overflow: "hidden",
-  clip: "rect(0 0 0 0)",
-  whiteSpace: "nowrap",
-} as const;
-
 const restrictedDashboardEmail = "glora@hadainternational.com";
 
-// Periodo por omisión (M5): los últimos 30 días, hoy incluido. Con "el mes en
-// curso" (lo de antes), los primeros días del mes casi no había datos.
-const DEFAULT_PERIOD_DAYS = 30;
+// "Ampliar el periodo" del aviso sin hallazgos: un atajo del control de
+// periodo (antes, 90 días sueltos).
+const WIDER_PRESET = "last3";
+const WIDER_LABEL = PERIOD_PRESETS.find(
+  ({ value }) => value === WIDER_PRESET,
+)!.label.toLowerCase();
 
-// "Ampliar el periodo" del aviso sin hallazgos.
-const WIDER_PERIOD_DAYS = 90;
+/** 'DD/MM/YYYY' (filtros) → 'YYYY-MM-DD' (como los rangos de la API). */
+const toIso = (value: string) => value.split("/").reverse().join("-");
 
-const DATE_FORMAT = "DD/MM/YYYY";
-
-const daysAgo = (days: number) =>
-  dayjs()
-    .subtract(days - 1, "day")
-    .format(DATE_FORMAT);
+const formatCount = (value: number, decimals = 0) =>
+  value.toLocaleString("es-MX", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
 
 const DashboardPage = () => {
   const router = useRouter();
@@ -88,17 +92,22 @@ const DashboardPage = () => {
   const email = useUserSessionStore((state) => state.email);
   const userId = useUserSessionStore((state) => state.id);
 
-  const [filters, setFilters] = useState<DashboardFilters>({
-    manufacturingPlantId: "",
-    manufacturingPlantName: "",
-    startDate: daysAgo(DEFAULT_PERIOD_DAYS),
-    endDate: dayjs().format(DATE_FORMAT),
-    areaIds: [],
-    areaNames: [],
-    responsibleIds: [],
-    responsibleNames: [],
-    mainTypeIds: [],
-    mainTypeNames: [],
+  // Periodo por omisión (M5): los últimos 30 días, hoy incluido.
+  const [filters, setFilters] = useState<DashboardFilters>(() => {
+    const { preset, startDate, endDate } = DEFAULT_PERIOD();
+    return {
+      manufacturingPlantId: "",
+      manufacturingPlantName: "",
+      periodPreset: preset,
+      startDate,
+      endDate,
+      areaIds: [],
+      areaNames: [],
+      responsibleIds: [],
+      responsibleNames: [],
+      mainTypeIds: [],
+      mainTypeNames: [],
+    };
   });
   const [responsibles, setResponsibles] = useState<UserOption[]>([]);
   const [isHistoricalView, setIsHistoricalView] = useState(false);
@@ -127,17 +136,6 @@ const DashboardPage = () => {
       ? !excludedMainTypeNames.includes(item.name)
       : true,
   );
-
-  const parseDate = (value: string): Dayjs | null => {
-    if (!value) return null;
-
-    const [day, month, year] = value.split("/");
-
-    if (!day || !month || !year) return null;
-
-    const parsedDate = dayjs(`${year}-${month}-${day}`);
-    return parsedDate.isValid() ? parsedDate : null;
-  };
 
   const handlePlantChange = (event: SelectChangeEvent<string>) => {
     const selectedPlant = manufacturingPlants.find(
@@ -218,12 +216,88 @@ const DashboardPage = () => {
       mainTypeNames: [],
     }));
 
-  const widenPeriod = () =>
+  const widenPeriod = () => {
+    const { preset, startDate, endDate } = presetRange(WIDER_PRESET);
     setFilters((prev) => ({
       ...prev,
-      startDate: daysAgo(WIDER_PERIOD_DAYS),
-      endDate: dayjs().format(DATE_FORMAT),
+      periodPreset: preset,
+      startDate,
+      endDate,
     }));
+  };
+
+  // Leyenda del periodo, como el análisis EPP: "30 sep – 29 oct 2026
+  // comparado con 31 ago – 29 sep 2026". La comparación la calcula la API;
+  // solo se usa si corresponde al periodo en pantalla (al cambiarlo se ve la
+  // respuesta anterior mientras llega la nueva).
+  const currentRange =
+    filters.startDate && filters.endDate
+      ? { desde: toIso(filters.startDate), hasta: toIso(filters.endDate) }
+      : null;
+  const comparison =
+    summary.data?.periodo &&
+    currentRange &&
+    summary.data.periodo.actual.desde === currentRange.desde &&
+    summary.data.periodo.actual.hasta === currentRange.hasta
+      ? summary.data.periodo
+      : null;
+  const previousName = comparison ? periodLabel(comparison.anterior) : "";
+  const periodDescription = currentRange
+    ? `${periodLabel(currentRange)}${previousName ? ` comparado con ${previousName}` : ""}`
+    : undefined;
+
+  // Indicadores del periodo con su variación (antes solo había gráficas).
+  const countOf = (
+    data: { seriesData: { name: string; y: number }[] } | null | undefined,
+    status: string,
+  ) => data?.seriesData.find(({ name }) => name === status)?.y ?? 0;
+  const closedRate = (
+    data: { total: number; seriesData: { name: string; y: number }[] } | null,
+  ) => (data?.total ? (countOf(data, "Cerrado") / data.total) * 100 : 0);
+  const current = summary.data ?? null;
+  const previous = comparison ? (summary.data?.anterior ?? null) : null;
+  const kpiTiles = current
+    ? [
+        {
+          label: "Hallazgos",
+          icon: <AssignmentOutlinedIcon />,
+          current: current.total,
+          previous: previous?.total,
+          polarity: "neutral" as const,
+          caption: "Reportados en el periodo",
+        },
+        {
+          label: "Abiertos",
+          icon: <ErrorOutlineIcon />,
+          current: countOf(current, "Abierto"),
+          previous: previous && countOf(previous, "Abierto"),
+          polarity: "bad" as const,
+        },
+        {
+          label: "En progreso",
+          icon: <AutorenewIcon />,
+          current: countOf(current, "En progreso"),
+          previous: previous && countOf(previous, "En progreso"),
+          polarity: "neutral" as const,
+        },
+        {
+          label: "Cerrados",
+          icon: <TaskAltIcon />,
+          current: countOf(current, "Cerrado"),
+          previous: previous && countOf(previous, "Cerrado"),
+          polarity: "good" as const,
+        },
+        {
+          label: "% de cierre",
+          icon: <DonutLargeIcon />,
+          current: closedRate(current),
+          previous: previous ? closedRate(previous) : undefined,
+          polarity: "good" as const,
+          points: true,
+          caption: `${formatCount(countOf(current, "Cerrado"))} de ${formatCount(current.total)} cerrados`,
+        },
+      ]
+    : [];
 
   // Zonas de la planta elegida (caché compartida).
   const areas =
@@ -543,26 +617,27 @@ const DashboardPage = () => {
   }
 
   return (
-    <Grid key={chartsMode} container spacing={2}>
-      <Typography component="h1" sx={visuallyHidden}>
-        Dashboard de hallazgos
-      </Typography>
+    <Grid
+      key={chartsMode}
+      container
+      spacing={2}
+      // Tarjetas de las gráficas con el acento de las demás pantallas.
+      sx={(theme) => ({
+        '& [data-dashboard-export="chart"] > .MuiPaper-root': accentCard(theme),
+      })}
+    >
       {isHistoricalView ? (
         <>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 12,
-              md: 12,
-            }}
-          >
-            <Button
-              variant="contained"
-              startIcon={<ArrowBackOutlinedIcon />}
-              onClick={() => setIsHistoricalView(false)}
-            >
-              Regresar
-            </Button>
+          <Grid size={{ xs: 12 }}>
+            <PageHeader title="Histórico de hallazgos">
+              <Button
+                variant="outlined"
+                startIcon={<ArrowBackOutlinedIcon />}
+                onClick={() => setIsHistoricalView(false)}
+              >
+                Regresar
+              </Button>
+            </PageHeader>
           </Grid>
 
           <Grid
@@ -579,6 +654,15 @@ const DashboardPage = () => {
         </>
       ) : (
         <>
+          {/* El encabezado ya deja su margen: sin sumar el de la rejilla. */}
+          <Grid size={{ xs: 12 }} sx={{ mb: -1.5 }}>
+            {/* Visible, con la leyenda del periodo (antes, el título solo
+                para lectores de pantalla). */}
+            <PageHeader
+              title="Dashboard de hallazgos"
+              description={periodDescription}
+            />
+          </Grid>
           <Grid
             size={{
               xs: 12,
@@ -604,7 +688,6 @@ const DashboardPage = () => {
               setIsHistoricalView={setIsHistoricalView}
               isDownloadingPdfReport={isDownloadingPdfReport}
               canDownloadPdf={showCharts}
-              parseDate={parseDate}
               handlePlantChange={handlePlantChange}
               handleToggleHeatmapView={handleToggleHeatmapView}
               handleBackToInitialCharts={handleBackToInitialCharts}
@@ -648,7 +731,7 @@ const DashboardPage = () => {
                       description="En Filtros, elige la fecha de inicio y la de fin."
                     >
                       <Button variant="outlined" onClick={widenPeriod}>
-                        Ver los últimos {WIDER_PERIOD_DAYS} días
+                        Ver {WIDER_LABEL}
                       </Button>
                     </EmptyState>
                   ) : (
@@ -661,13 +744,62 @@ const DashboardPage = () => {
                           Quitar zonas, responsables y clasificación
                         </Button>
                       )}
-                      <Button variant="outlined" onClick={widenPeriod}>
-                        Ver los últimos {WIDER_PERIOD_DAYS} días
-                      </Button>
+                      {filters.periodPreset !== WIDER_PRESET && (
+                        <Button variant="outlined" onClick={widenPeriod}>
+                          Ver {WIDER_LABEL}
+                        </Button>
+                      )}
                     </EmptyState>
                   )}
                 </Paper>
               )}
+            </Grid>
+          )}
+
+          {showCharts && !isHeatmapView && (
+            <Grid size={{ xs: 12 }}>
+              <Box
+                component="section"
+                aria-label="Indicadores del periodo"
+                sx={{
+                  display: "grid",
+                  gap: 2,
+                  gridTemplateColumns: {
+                    xs: "repeat(2, minmax(0, 1fr))",
+                    md: "repeat(3, minmax(0, 1fr))",
+                    lg: "repeat(5, minmax(0, 1fr))",
+                  },
+                  // Dos por fila en celular: el último, solo, a lo ancho.
+                  "& > :last-child:nth-of-type(odd)": {
+                    gridColumn: { xs: "1 / -1", md: "auto" },
+                  },
+                }}
+              >
+                {kpiTiles.map((tile) => (
+                  <KpiTile
+                    key={tile.label}
+                    label={tile.label}
+                    icon={tile.icon}
+                    value={
+                      tile.points
+                        ? `${formatCount(tile.current, 1)}%`
+                        : formatCount(tile.current)
+                    }
+                    caption={tile.caption}
+                    delta={
+                      typeof tile.previous === "number"
+                        ? {
+                            current: tile.current,
+                            previous: tile.previous,
+                            mode: tile.points ? "points" : "relative",
+                            polarity: tile.polarity,
+                            comparedTo: previousName,
+                          }
+                        : undefined
+                    }
+                  />
+                ))}
+              </Box>
             </Grid>
           )}
 

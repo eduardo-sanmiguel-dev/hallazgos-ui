@@ -1,10 +1,18 @@
 import { expect, test } from "@playwright/test";
-import { getContrastRatio, lighten } from "@mui/material/styles";
+import {
+  decomposeColor,
+  getContrastRatio,
+  lighten,
+  recomposeColor,
+} from "@mui/material/styles";
 
 import {
   BRAND_PRIMARY,
   createAppTheme,
   ERROR_TEXT_ON_DARK,
+  primaryAccentBorder,
+  primarySoftBackground,
+  primaryTextColor,
 } from "../../app/theme";
 
 // Contraste AA (4.5:1) del tema claro, que es el que se usa al sol en planta
@@ -80,6 +88,40 @@ test.describe("Contraste de los temas oscuros", () => {
       expect(getContrastRatio(contrastText, light)).toBeGreaterThanOrEqual(AA);
       expect(getContrastRatio(contrastText, light)).toBeGreaterThanOrEqual(
         getContrastRatio(contrastText, main),
+      );
+    });
+  }
+});
+
+/** Color semitransparente `top` compuesto sobre el fondo opaco `base`. */
+const blend = (base: string, top: string) => {
+  const b = decomposeColor(base).values;
+  const { values: t } = decomposeColor(top);
+  const a = t[3] ?? 1;
+  return recomposeColor({
+    type: "rgb",
+    values: [0, 1, 2].map((i) => Math.round(t[i] * a + b[i] * (1 - a))) as [
+      number,
+      number,
+      number,
+    ],
+  });
+};
+
+test.describe("Encabezados (tablas y barra del detalle de hallazgo)", () => {
+  for (const name of ["light", "dark", "halloween"] as const) {
+    test(`${name}: el texto verde se lee sobre el verde tenue`, () => {
+      const theme = createAppTheme(name);
+      // El tono es semitransparente: se compone sobre el papel.
+      const background = blend(
+        theme.palette.background.paper,
+        primarySoftBackground(theme),
+      );
+      expect(
+        getContrastRatio(primaryTextColor(theme), background),
+      ).toBeGreaterThanOrEqual(AA);
+      expect(primaryAccentBorder(theme)).toBe(
+        `2px solid ${theme.palette.primary.main}`,
       );
     });
   }

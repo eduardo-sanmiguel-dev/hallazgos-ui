@@ -190,7 +190,7 @@ test.describe("Sin datos", () => {
     expect(errors).toEqual([]);
   });
 
-  test("el dashboard sin fechas lo dice una sola vez (no en cada gráfica)", async ({
+  test("el dashboard siempre tiene periodo: Personalizado parte del rango que se veía", async ({
     page,
   }) => {
     const errors = trackPageErrors(page);
@@ -199,21 +199,18 @@ test.describe("Sin datos", () => {
     await pickOption(page, "Planta", plant.name);
     await page.waitForLoadState("networkidle");
 
-    // Limpia ambas fechas con su botón de borrar.
-    for (const label of ["Fecha inicio", "Fecha fin"]) {
-      const group = page.getByRole("group", { name: label });
-      await group.hover();
-      await group
-        .locator("..")
-        .getByRole("button", { name: /Borrar|Limpiar|Clear/i })
-        .click();
-    }
-    await expect(page.getByText("Elige el periodo")).toHaveCount(1);
-    await expect(page.locator("[data-dashboard-export=chart]")).toHaveCount(0);
+    // Antes se podían borrar las dos fechas y cada gráfica quedaba vacía;
+    // ahora es un control de periodo con atajos y nunca queda sin rango.
+    await pickOption(page, "Periodo", "Personalizado");
+    const filters = page.getByRole("region", { name: "Filtros" });
+    await expect(filters.getByRole("group", { name: "Desde" })).toBeVisible();
+    await expect(filters.getByRole("group", { name: "Hasta" })).toBeVisible();
+    await expect(page.getByText("Elige el periodo")).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Mapa de calor" }).click();
     await page.getByRole("button", { name: "Ir a Hallazgos" }).click();
-    await expect(page).toHaveURL(/\/hallazgos\?manufacturingPlantId=\d+$/);
+    await expect(page).toHaveURL(
+      /\/hallazgos\?manufacturingPlantId=\d+&startDate=.+&endDate=.+/,
+    );
     expect(errors).toEqual([]);
   });
 });

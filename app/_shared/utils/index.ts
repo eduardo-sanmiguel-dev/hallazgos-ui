@@ -44,8 +44,6 @@ export const baseUrlImage = (image: string, path?: string) => {
     path = "/static/images/evidences/";
   }
 
-  console.log({ image });
-
   const apiBaseUrl = process.env.NEXT_PUBLIC_URL_API_RAW;
   const url = `${apiBaseUrl}${path}${image}`;
 

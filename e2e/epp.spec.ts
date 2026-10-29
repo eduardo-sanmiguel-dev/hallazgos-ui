@@ -283,6 +283,93 @@ test.describe("EPP: entregas", () => {
     expect(errors).toEqual([]);
   });
 
+  test("registro en secciones: indica el paso que falta y qué falta para guardar", async ({
+    page,
+  }) => {
+    const writes = await captureWrites(page);
+    await mockGet(page, "/equipments", EQUIPMENTS);
+    await mockGet(page, "/employees", [
+      { id: 9801, code: 501, name: "E2E Colaborador" },
+    ]);
+    await mockGet(page, "/epps/validate-delivery-frequency", {
+      canDeliver: false,
+      message: "E2E fuera de frecuencia",
+    });
+
+    await page.goto("/epp");
+    await page.getByRole("button", { name: "Crear registro" }).click();
+    const dialog = page.getByRole("dialog");
+    const equipmentsSection = dialog.getByRole("region", {
+      name: "Equipos a entregar",
+    });
+    const signatureSection = dialog.getByRole("region", { name: "Firma" });
+    const save = dialog.getByRole("button", { name: "Guardar", exact: true });
+
+    // Las tres secciones a la vista; las que dependen del colaborador lo dicen.
+    await expect(
+      dialog.getByRole("region", { name: "Colaborador" }),
+    ).toBeVisible();
+    await expect(
+      equipmentsSection.getByText("Elige primero al colaborador."),
+    ).toBeVisible();
+    await expect(
+      signatureSection.getByText("Elige primero al colaborador."),
+    ).toBeVisible();
+    await expect(save).toBeDisabled();
+
+    const [plant] = await sessionPlants(page);
+    await pickOption(page, "Planta", plant.name);
+    await expect(
+      dialog.getByText("Falta: colaborador, equipos y firma"),
+    ).toBeVisible();
+    await pickOption(page, "Colaborador", "501 - E2E Colaborador");
+    await expect(dialog.getByText("Falta: equipos y firma")).toBeVisible();
+    // Vacío: ya no se marca en rojo (volvía a rojo tras cada "Agregar").
+    await expect(
+      dialog.getByRole("combobox", { name: "Equipo" }),
+    ).not.toHaveAttribute("aria-invalid", "true");
+
+    await pickOption(page, "Equipo", "E2E Casco");
+    await dialog.getByRole("button", { name: "Agregar" }).click();
+    // También en escritorio, lista (antes, tabla) con el aviso en el equipo.
+    const items = dialog.getByRole("list", { name: "Equipos a entregar" });
+    await expect(
+      items.getByRole("listitem").filter({ hasText: "E2E Casco" }),
+    ).toContainText("Fuera de la frecuencia de entrega");
+    await expect(dialog.getByRole("table")).toHaveCount(0);
+    await expect(equipmentsSection.getByText("1 equipo")).toBeVisible();
+    await expect(dialog.getByText("Falta: firma")).toBeVisible();
+
+    await signatureSection.getByRole("button", { name: "Firmar" }).click();
+    const signature = page
+      .getByRole("dialog")
+      .filter({ hasText: "Firma del colaborador" });
+    await sign(page, signature.locator("canvas"));
+    await signature.getByRole("button", { name: "Guardar" }).click();
+    await expect(signatureSection.getByText("Firmado")).toBeVisible();
+    // Como en papel: la firma sobre el nombre de quien recibe.
+    await expect(
+      signatureSection.getByText("501 - E2E Colaborador"),
+    ).toBeVisible();
+    await expect(
+      signatureSection.getByText("Firma de recibido", { exact: true }),
+    ).toBeVisible();
+    await expect(dialog.getByText(/^Falta:/)).toHaveCount(0);
+    await expect(save).toBeEnabled();
+
+    // Se puede repetir la firma.
+    await signatureSection
+      .getByRole("button", { name: "Volver a firmar" })
+      .click();
+    await expect(signature.locator("canvas")).toBeVisible();
+    await signature.getByRole("button", { name: "Cerrar sin firmar" }).click();
+
+    // "Cancelar" al pie descarta sin registrar.
+    await dialog.getByRole("button", { name: "Cancelar" }).click();
+    await expect(page.getByText("Registro de EPP")).toHaveCount(0);
+    expect(writes).toEqual([]);
+  });
+
   test("cerrar sin firmar no registra nada", async ({ page }) => {
     const writes = await captureWrites(page);
     await page.goto("/epp");
@@ -827,5 +914,37 @@ test.describe("EPP: firma en celular", () => {
       items.getByRole("button", { name: "Quitar E2E Guantes" }),
     ).toBeVisible();
     await expect(dialog.getByRole("table")).toHaveCount(0);
+  });
+
+  test("el aviso de frecuencia se lee completo y la barra deja ver qué falta", async ({
+    page,
+  }) => {
+    await mockGet(page, "/epps/validate-delivery-frequency", {
+      canDeliver: false,
+      message: "E2E fuera de frecuencia",
+    });
+    const { dialog } = await openSignature(page);
+    await page
+      .getByRole("dialog")
+      .filter({ hasText: "Firma del colaborador" })
+      .getByRole("button", { name: "Cerrar sin firmar" })
+      .click();
+
+    // Se agrega uno con frecuencia (E2E Casco) para ver el aviso.
+    await pickOption(page, "Equipo", "E2E Casco");
+    await dialog.getByRole("button", { name: "Agregar" }).click();
+    const chip = dialog
+      .getByRole("listitem")
+      .filter({ hasText: "E2E Casco" })
+      .locator(".MuiChip-label");
+    await expect(chip).toHaveText("Fuera de la frecuencia de entrega");
+    // Sin recortar con "…".
+    expect(await chip.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
+      true,
+    );
+    await expect(dialog.getByText("Falta: firma")).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Guardar", exact: true }),
+    ).toBeInViewport();
   });
 });

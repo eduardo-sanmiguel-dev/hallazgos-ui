@@ -152,16 +152,6 @@ const GembaWalkSchedule = () => {
         value={manufacturingPlantId}
         onChange={(e) => setManufacturingPlantId(e.target.value)}
       />
-      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <Button
-          variant="outlined"
-          fullWidth
-          startIcon={<ArrowBackIcon />}
-          onClick={() => router.push("/gemba-walk")}
-        >
-          Regresar
-        </Button>
-      </Grid>
       <Grid size={{ xs: 12 }}>
         <Typography
           variant="body2"
@@ -301,13 +291,27 @@ const GembaWalkSchedule = () => {
   );
 };
 
-const GembaWalkSchedulePage = () => (
-  <>
-    <PageHeader title="Gemba Walk - Calendario de recorridos" />
-    <GembaWalkAccessGuard>
-      <GembaWalkSchedule />
-    </GembaWalkAccessGuard>
-  </>
-);
+// "Regresar" en la cabecera, junto al título (navegación de la página): antes
+// era un botón ancho en la fila de filtros.
+const GembaWalkSchedulePage = () => {
+  const router = useRouter();
+
+  return (
+    <>
+      <PageHeader title="Gemba Walk - Calendario de recorridos">
+        <Button
+          variant="outlined"
+          startIcon={<ArrowBackIcon />}
+          onClick={() => router.push("/gemba-walk")}
+        >
+          Regresar
+        </Button>
+      </PageHeader>
+      <GembaWalkAccessGuard>
+        <GembaWalkSchedule />
+      </GembaWalkAccessGuard>
+    </>
+  );
+};
 
 export default GembaWalkSchedulePage;

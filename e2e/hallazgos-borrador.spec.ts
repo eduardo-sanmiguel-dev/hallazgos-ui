@@ -105,7 +105,7 @@ const fillForm = async (page: Page) => {
   await pickOption(page, "Proceso");
   await pickOption(page, "Supervisor");
   await description(page).fill(DESCRIPTION);
-  await page.getByLabel("Elegir de galería").setInputFiles({
+  await page.getByLabel("Subir foto").setInputFiles({
     name: "evidencia.png",
     mimeType: "image/png",
     buffer: PNG_1X1,
@@ -168,7 +168,7 @@ test.describe("Borrador de nuevo hallazgo", () => {
     await openForm(page);
     await pickOption(page, "Hallazgo", /[Cc]omportamiento inseguro/);
     await description(page).fill(DESCRIPTION);
-    await page.getByLabel("Elegir de galería").setInputFiles({
+    await page.getByLabel("Subir foto").setInputFiles({
       name: "evidencia.png",
       mimeType: "image/png",
       buffer: PNG_1X1,

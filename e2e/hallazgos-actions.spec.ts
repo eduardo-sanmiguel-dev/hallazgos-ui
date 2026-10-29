@@ -50,6 +50,10 @@ const evidence = (id: number, overrides: Record<string, unknown>) => ({
     area: { __typename: "Area", name: "E2E Zona" },
   },
   process: { __typename: "Process", name: "E2E Proceso" },
+  // Quién lo inició y quién lo cerró: nulos, como en los hallazgos anteriores
+  // a que se registrara.
+  startedBy: null,
+  closedBy: null,
   comments: [
     {
       __typename: "Comment",
@@ -91,6 +95,8 @@ const EVIDENCES = [
     imgProcess: "e2e-process.png",
     imgSolution: "e2e-solution.png",
     zone: { __typename: "Zone", name: "E2E Lugar", area: null },
+    startedBy: { __typename: "User", name: "E2E Quien inició" },
+    closedBy: { __typename: "User", name: "E2E Quien cerró" },
   }),
   // Cancelado, sin prioridad ni imágenes.
   evidence(9004, {
@@ -189,19 +195,34 @@ test.describe("Hallazgos: acciones", () => {
     )
       .getByRole("menuitem", { name: "Ver detalles" })
       .click();
-    const dialog = page.getByRole("dialog");
+    const dialog = page.getByRole("dialog", { name: "Hallazgo #9001" });
+    // Todo a la vista, sin pestañas: lo observado, el seguimiento por etapas,
+    // los datos y los comentarios.
+    for (const name of [
+      "Lo que se observó",
+      "Seguimiento",
+      "Datos",
+      "Comentarios (1)",
+    ]) {
+      await expect(dialog.getByRole("region", { name })).toBeVisible();
+    }
     await expect(
-      dialog.getByText("E2E descripción del hallazgo").first(),
+      dialog
+        .getByRole("region", { name: "Lo que se observó" })
+        .getByText("E2E descripción del hallazgo"),
     ).toBeVisible();
-    await dialog.getByRole("img").first().click();
+    await dialog
+      .getByRole("button", { name: "Ver foto del hallazgo en grande" })
+      .click();
+    await expect(
+      page.getByRole("dialog", { name: "Foto del hallazgo" }),
+    ).toBeVisible();
     await page.getByRole("button", { name: "Cerrar imagen" }).click();
 
-    await dialog.getByRole("tab", { name: /Comentarios/ }).click();
     await expect(dialog.getByText("E2E comentario previo")).toBeVisible();
+    // Ctrl + Enter también envía.
     await dialog.getByLabel("Agregar comentario").fill("E2E comentario nuevo");
-    await dialog
-      .getByRole("button", { name: /Agregar|Comentar|Enviar/ })
-      .click();
+    await dialog.getByLabel("Agregar comentario").press("Control+Enter");
     await expect(
       toast(page, "Comentario agregado correctamente"),
     ).toBeVisible();
@@ -227,6 +248,48 @@ test.describe("Hallazgos: acciones", () => {
       .getByRole("button", { name: "Cerrar" })
       .click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
+    // Cerrado con las tres fotos: el seguimiento dice quién inició y quién
+    // cerró, y el visor pasa de una foto a otra.
+    await viewDetails(page, 9003);
+    const followUp = page
+      .getByRole("dialog", { name: "Hallazgo #9003" })
+      .getByRole("region", { name: "Seguimiento" });
+    await expect(followUp).toContainText("E2E Quien inició");
+    await expect(followUp).toContainText("E2E Quien cerró");
+    await page
+      .getByRole("dialog", { name: "Hallazgo #9003" })
+      .getByRole("button", { name: "Ver foto de la solución en grande" })
+      .click();
+    const viewer = page.getByRole("dialog", { name: "Foto de la solución" });
+    await expect(viewer).toContainText("3 de 3");
+    await viewer.getByRole("button", { name: "Foto siguiente" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "Foto del hallazgo" }),
+    ).toContainText("1 de 3");
+    await page.keyboard.press("ArrowLeft");
+    await expect(
+      page.getByRole("dialog", { name: "Foto de la solución" }),
+    ).toContainText("3 de 3");
+    await page.getByRole("button", { name: "Cerrar imagen" }).click();
+    await page
+      .getByRole("dialog", { name: "Hallazgo #9003" })
+      .getByRole("button", { name: "Cerrar" })
+      .click();
+
+    // Cancelado, sin fotos ni comentarios.
+    await viewDetails(page, 9004);
+    const cancelled = page.getByRole("dialog", { name: "Hallazgo #9004" });
+    await expect(
+      cancelled.getByText("Sin evidencia fotográfica"),
+    ).toBeVisible();
+    await expect(
+      cancelled.getByRole("heading", { name: "Cancelado", level: 4 }),
+    ).toBeVisible();
+    await expect(
+      cancelled.getByText("Todavía no hay comentarios."),
+    ).toBeVisible();
+    await cancelled.getByRole("button", { name: "Cerrar" }).click();
+
     for (const id of [9003, 9004]) {
       await viewDetails(page, id);
       await expect(page.getByRole("dialog")).toBeVisible();
@@ -259,7 +322,7 @@ test.describe("Hallazgos: acciones", () => {
     });
     const save = dialog.getByRole("button", { name: "Guardar imagen" });
     await expect(save).toBeDisabled();
-    await dialog.getByLabel("Tomar foto").setInputFiles({
+    await dialog.getByLabel("Subir foto").setInputFiles({
       name: "proceso.png",
       mimeType: "image/png",
       buffer: PNG_1X1,
@@ -324,7 +387,7 @@ test.describe("Hallazgos: acciones", () => {
     await expect(
       dialog.getByRole("button", { name: "Guardar imagen" }),
     ).toBeDisabled();
-    await dialog.getByLabel("Tomar foto").setInputFiles({
+    await dialog.getByLabel("Subir foto").setInputFiles({
       name: "solucion.png",
       mimeType: "image/png",
       buffer: PNG_1X1,
@@ -528,9 +591,9 @@ test.describe("Hallazgos: acciones", () => {
     await viewDetails(page, 9003);
     const dialog = page.getByRole("dialog");
     for (const alt of [
-      "Hallazgo imagen",
-      "Imagen en progreso",
-      "Imagen Solución",
+      "Foto del hallazgo",
+      "Foto del progreso",
+      "Foto de la solución",
     ]) {
       await dialog.getByAltText(alt).click();
       await page.getByRole("button", { name: "Cerrar imagen" }).click();
@@ -635,7 +698,7 @@ test.describe("Hallazgos: acciones", () => {
       .getByRole("menuitem", { name: "Ver detalles" })
       .click();
     const dialog = page.getByRole("dialog");
-    await expect(dialog.getByText("Fecha de registro")).toBeVisible();
+    await expect(dialog.getByText("Registro", { exact: true })).toBeVisible();
     await expect(dialog.getByText("Última actualización")).toHaveCount(0);
     await dialog.getByRole("button", { name: "Cerrar" }).click();
 
@@ -764,7 +827,7 @@ test.describe("Hallazgos en celular", () => {
 
     await card(page, 9002).getByRole("button", { name: "Cerrar" }).click();
     const dialog = page.getByRole("dialog", { name: "Cerrar hallazgo #9002" });
-    await dialog.getByLabel("Tomar foto").setInputFiles({
+    await dialog.getByLabel("Subir foto").setInputFiles({
       name: "solucion.png",
       mimeType: "image/png",
       buffer: PNG_1X1,
@@ -799,7 +862,7 @@ test.describe("Hallazgos: borrador del cierre", () => {
     await dialog
       .locator("#description-multiline-solution")
       .fill("E2E borrador del cierre");
-    await dialog.getByLabel("Elegir de galería").setInputFiles({
+    await dialog.getByLabel("Subir foto").setInputFiles({
       name: "solucion.png",
       mimeType: "image/png",
       buffer: PNG_1X1,

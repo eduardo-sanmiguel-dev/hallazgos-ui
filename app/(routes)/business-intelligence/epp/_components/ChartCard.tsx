@@ -22,6 +22,7 @@ import BarChartIcon from "@mui/icons-material/BarChart";
 import TableRowsOutlinedIcon from "@mui/icons-material/TableRowsOutlined";
 
 import EmptyState from "@shared/components/EmptyState";
+import { accentCard } from "@shared/utils/accentCard";
 
 export interface ChartTable {
   columns: { label: string; numeric?: boolean }[];
@@ -46,7 +47,13 @@ const baseOptions = (height: number): Highcharts.Options => ({
   title: { text: undefined },
   subtitle: { text: undefined },
   credits: { enabled: false },
-  chart: { height, spacing: [8, 20, 8, 4], style: { fontFamily: "inherit" } },
+  chart: {
+    height,
+    spacing: [8, 20, 8, 4],
+    style: { fontFamily: "inherit" },
+    // Del color de la tarjeta (en oscuro se veía una caja dentro de otra).
+    backgroundColor: "transparent",
+  },
   legend: {
     align: "left",
     verticalAlign: "top",
@@ -64,17 +71,21 @@ const baseOptions = (height: number): Highcharts.Options => ({
   exporting: { enabled: false },
   plotOptions: {
     series: { animation: { duration: 300 } },
+    // Con ancho máximo: un solo mes o un solo equipo ya no se dibuja como
+    // un bloque que llena la gráfica.
     column: {
       borderWidth: 0,
       borderRadius: 4,
       pointPadding: 0.06,
       groupPadding: 0.14,
+      maxPointWidth: 72,
     },
     bar: {
       borderWidth: 0,
       borderRadius: 4,
       pointPadding: 0.06,
       groupPadding: 0.14,
+      maxPointWidth: 40,
     },
   },
 });
@@ -98,7 +109,12 @@ export default function ChartCard({
       component="section"
       variant="outlined"
       aria-labelledby={titleId}
-      sx={{ p: { xs: 1.5, sm: 2 }, height: "100%", minWidth: 0 }}
+      sx={(theme) => ({
+        p: { xs: 1.5, sm: 2 },
+        height: "100%",
+        minWidth: 0,
+        ...accentCard(theme),
+      })}
     >
       <Box
         sx={{

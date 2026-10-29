@@ -25,7 +25,7 @@ minutos).
 
 | Qué | Dónde | Detalle |
 | --- | --- | --- |
-| 2 migraciones | API (corren solas al arrancar) | `requires_evidence` en `main_type` y tabla `idempotency_key` (sección 2, paso 3) |
+| 3 migraciones | API (corren solas al arrancar) | `requires_evidence` en `main_type`, tabla `idempotency_key` y quién inició y cerró cada hallazgo en `evidence` (sección 2, paso 3). Solo agregan: no modifican ni borran datos |
 | `client_max_body_size 3m` | nginx (`api.conf`) | Hoy nginx corta a 1 MB y el API acepta fotos de 2 MB (sección 2, paso 2) |
 | Dependencias | API y UI | API: Nest 12.3, multer 2.5, body-parser 2.4, nodemailer 10.2… (commit `85ed714`). UI: `@fullcalendar/list` 6.1.21 nueva |
 | pnpm 12.16.1 | Ambos (`packageManager`) | Antes 12.15.0 |
@@ -74,8 +74,9 @@ espera los códigos de error (`SESSION_EXPIRED`, `VALIDATION_FAILED`…). No usa
 `bash ~/scripts/hallazgos-ui.sh && bash ~/scripts/hallazgos-api.sh` (corre
 primero la UI).
 
-1. **Respaldo de la base de producción.** Las migraciones son pequeñas y
-   tienen `down`, pero tocan una tabla de negocio (`main_type`).
+1. **Respaldo de la base de producción.** Las migraciones son pequeñas,
+   solo agregan y tienen `down`, pero tocan tablas de negocio (`main_type` y
+   `evidence`).
 2. **nginx: límite de las fotos.** Hoy `client_max_body_size` no está
    definido en ningún archivo (revisado el 27-oct-2026), así que nginx usa 1
    MB; ninguna de las 8452 fotos del servidor pasa de 1 MB porque nginx
@@ -103,6 +104,10 @@ primero la UI).
      2. `CreateIdempotencyKeys1792900000000`: tabla `idempotency_key`
         (envíos ya procesados; se borran solos a los 7 días con un cron
         diario a las 3 a. m.).
+     3. `AddStartedAndClosedByToEvidence1793000000000`: columnas
+        `evidence.startedById` y `evidence.closedById` (quién inició y quién
+        cerró), en nulo para todos los hallazgos existentes; no cambia
+        ninguna fila.
    - En el log del arranque (`pm2 logs api-comp`): sin errores de migración
      y `Running on port: [4000]`.
 4. **UI:** solo con el API arriba, push (o merge) a `main` de
@@ -122,28 +127,38 @@ En producción, con un usuario de pruebas o el administrador:
    la rechazaba).
 3. **Idempotencia:** `SELECT count(*) FROM idempotency_key;` crece con cada
    hallazgo creado, iniciado o cerrado.
-4. **Validación:** en Equipos de emergencia, una ubicación de 3 letras sale
+4. **Quién inició y quién cerró:** iniciar y cerrar un hallazgo de prueba; en
+   su detalle, el seguimiento dice el nombre en "En progreso" y "Cerrado", y
+   el correo de cierre trae "Iniciado por" y "Cerrado por". En la base,
+   `SELECT count(*) FROM evidence;` da lo mismo que antes del despliegue.
+5. **Validación:** en Equipos de emergencia, una ubicación de 3 letras sale
    en español y marca el campo.
-5. **Dashboard:** abre con los últimos 30 días y cargan las gráficas de
+6. **Dashboard:** abre con "Últimos 30 días", la leyenda "… comparado con
+   …" y los cinco indicadores con su variación; cargan las gráficas de
    prioridad y de riesgo (6.1).
-6. **Celular:** la lista de hallazgos se ve en tarjetas, con la barra inferior
+7. **Celular:** la lista de hallazgos se ve en tarjetas, con la barra inferior
    y "Nuevo hallazgo" al centro.
-7. **Borrador:** empezar un hallazgo, recargar la página y comprobar que
+8. **Borrador:** empezar un hallazgo, recargar la página y comprobar que
    ofrece "Recuperar".
-8. **EPP:** registrar una entrega con firma y descargar su Excel; la firma
+9. **EPP:** registrar una entrega con firma y descargar su Excel; la firma
    sale centrada en la celda.
-9. **Logs:** `pm2 logs api-comp --lines 200` sin errores nuevos;
+10. **Logs:** `pm2 logs api-comp --lines 200` sin errores nuevos;
    en OpenObserve, sin aumento de errores 500.
 
 ## 4. Si hay que revertir
 
 - **Solo UI:** volver al commit anterior (`d7e1236`) y reconstruir. El API
   nuevo funciona con la UI anterior.
-- **API:** primero revertir la UI. Luego, si hace falta deshacer las
-  migraciones, `pnpm migration:revert:prod` dos veces (deshace la última cada
-  vez: primero `idempotency_key`, luego `requires_evidence`) y volver al
-  commit anterior del API (`ae4b151`), con `pnpm install` para regresar
-  también las dependencias.
+- **API:** primero revertir la UI. Luego volver al commit anterior del API
+  (`ae4b151`), con `pnpm install` para regresar también las dependencias.
+  **No hace falta deshacer las migraciones:** las tres solo agregan
+  (columnas que aceptan nulo o tienen valor por omisión y una tabla aparte)
+  y el API anterior funciona con ellas.
+- **Deshacer migraciones, solo si es indispensable:** `pnpm
+  migration:revert:prod` deshace la última cada vez (primero
+  `startedById`/`closedById`, luego `idempotency_key`, luego
+  `requires_evidence`). Ojo: deshacer la primera **borra quién inició y quién
+  cerró** los hallazgos atendidos desde el despliegue; respaldar antes.
 - **nginx:** el cambio de `client_max_body_size` se puede dejar; solo permite
   fotos de hasta 3 MB.
 
@@ -157,6 +172,28 @@ En producción, con un usuario de pruebas o el administrador:
 > - **En el celular**, los hallazgos se ven en tarjetas, con su estado y la
 >   acción principal a la mano, y hay una barra abajo con "Nuevo hallazgo" al
 >   centro.
+> - **Detalle de un hallazgo:** todo en una sola vista, sin pestañas: lo que
+>   se observó, cómo avanzó (reportado, en progreso y cerrado, cada uno con
+>   su fecha, quién lo hizo y su foto), los datos y los comentarios. Las
+>   fotos se amplían y se pasa de una a otra.
+> - **Nuevo hallazgo:** el formulario está ordenado en secciones (dónde, qué,
+>   la foto y el seguimiento).
+> - **Gemba Walk:** al registrar un recorrido se ve el cronómetro y el
+>   porcentaje de cumplimiento mientras se evalúa; el detalle de un recorrido
+>   muestra el cumplimiento, la duración y permite ver solo lo que no
+>   cumple.
+> - **Inspección de extintores:** cada extintor muestra sus 10 conceptos
+>   en una lista; se toca "No cumple" o "No aplica" solo donde haga falta
+>   (todo inicia en "Cumple").
+> - **Entrega de EPP:** el registro va en pasos (colaborador, equipos y
+>   firma) y abajo indica qué falta para poder guardar.
+> - **Dashboard de hallazgos:** el periodo se elige con atajos (últimos 30
+>   días, este mes, mes anterior…) y arriba hay un resumen (hallazgos,
+>   abiertos, cerrados y % de cierre) comparado con el periodo anterior.
+> - **Análisis de datos EPP:** indicadores más claros (con ícono y la
+>   variación en color), las secciones Gasto, Entregas y Fuera de rango
+>   como tarjetas fáciles de ver y, si faltan precios o frecuencias, un
+>   enlace a Equipos para capturarlos.
 > - **Fotos:** "Tomar foto" abre la cámara del teléfono, con mejor calidad. Se
 >   ve el avance de la subida.
 > - **No se pierde lo capturado:** si se va la señal o se cierra la app al
@@ -170,6 +207,9 @@ En producción, con un usuario de pruebas o el administrador:
 >   las pantallas, gráficas y correos. Ningún vencimiento cambia, pero unos 300
 >   hallazgos registrados antes del 27 de junio de 2026 pueden mostrar la otra
 >   etiqueta de la que se eligió al capturarlos.
+> - **Quién atendió cada hallazgo:** el detalle y el correo de cierre dicen
+>   quién lo inició y quién lo cerró. Se registra a partir de esta
+>   actualización; en los hallazgos anteriores no aparece.
 > - **Avisos de la planta 3:** ahora llegan a 4 personas de la lista (antes,
 >   por un error, solo a 1).
 >
@@ -670,3 +710,148 @@ escritorio. Nada de esto requiere cambios en el servidor.
   - Pantalla táctil: botón de la cuenta y barra de FullCalendar del editor
     del calendario a 44 px.
 - **Para el cliente:** sin cambios de uso.
+
+### Ajuste antes del despliegue: nombre del PDF de hallazgos
+
+- **Sin migraciones, variables, dependencias ni cambios de nginx.**
+- **API:** el PDF de `/hallazgos` se nombra con la misma lógica que el Excel:
+  `Hallazgos_<Planta o Todas>[_+Nfiltros]_AAAA-MM-DD_HHmm_UTC±HH.pdf`, con la
+  hora en la zona del usuario (antes, siempre `Hallazgos.pdf`). El contenido
+  del PDF no cambia.
+- **UI:** la descarga del PDF manda la zona horaria y usa el nombre del API;
+  si no llega, arma `Hallazgos_<fecha>_<hora>_UTC±HH.pdf` con la hora local,
+  como el Excel.
+
+### Ajuste antes del despliegue: fotos en el PDF de hallazgos
+
+- **API:** el PDF de `/hallazgos` volvía a mostrar todas las fotos como
+  "imagen no encontrada". Las pedía como `/evidences/<archivo>` y la
+  validación de rutas que entró el 20-oct-2026 (`safeFilePath`, commit
+  `ebdc615`) rechaza las rutas que empiezan con `/`. Esa validación ya está
+  en producción (`ae4b151`): **los PDF descargados desde que se desplegó
+  salen sin fotos**. Se corrigió la ruta (`evidences/<archivo>`); las fotos
+  nunca se perdieron.
+- **Para el cliente:** los PDF de hallazgos descargados recientemente pueden
+  volver a descargarse después del despliegue para ver las fotos.
+
+### Ajuste antes del despliegue: quién inició y quién cerró cada hallazgo
+
+- **Migración nueva** `AddStartedAndClosedByToEvidence1793000000000`: columnas
+  `evidence.startedById` y `evidence.closedById` (hacia `user`, `ON DELETE
+  SET NULL`), con su índice. **Solo agrega**: todos los hallazgos existentes
+  quedan en nulo y no se modifica ni borra ninguna fila (antes no se
+  registraba quién; no se adivina). Aplicada en la base de desarrollo: los
+  4108 hallazgos conservan sus fechas de inicio y de cierre, con las dos
+  columnas nuevas en nulo.
+- **API:** al iniciar ("En progreso") y al cerrar se guarda el usuario de la
+  sesión. GraphQL expone `startedBy` y `closedBy` (opcionales). El correo de
+  cierre agrega "Iniciado por", "Fecha de inicio de proceso" y "Cerrado por"
+  (se omiten si no hay dato); en el de "en progreso", "Actualizado por" pasa a
+  "Iniciado por".
+- **UI:** en el seguimiento del detalle, "En progreso" y "Cerrado" muestran
+  la fecha y quién lo hizo, como "Reportado".
+- **Para el cliente:** desde esta actualización se ve quién inició y quién
+  cerró cada hallazgo; los anteriores no lo tienen.
+
+### Ajuste antes del despliegue: rediseño de hallazgos (detalle, formulario y foto)
+
+- **Sin migraciones, variables, dependencias ni cambios de nginx** (la
+  migración de quién inició y cerró está en la sección anterior).
+- **UI:**
+  - **Detalle del hallazgo** sin pestañas: resumen, lo que se observó,
+    seguimiento por etapas (fecha, quién y foto), datos y comentarios a la
+    vista; visor de fotos con paso entre ellas. "Cómo se resolvió" se ve en
+    cualquier clasificación (antes solo en comportamiento inseguro).
+  - **Nuevo hallazgo** en cuatro secciones con ancho máximo en escritorio.
+  - **Foto** (crear, iniciar y cerrar hallazgo, e ICS): área con borde
+    punteado. En celular, "Tomar foto" y "Elegir de galería" (sin la cámara
+    del navegador); en escritorio, un solo "Subir foto", la cámara web y
+    arrastrar la foto.
+  - **Encabezados** de todas las tablas y de la barra del detalle: verde un
+    poco más presente y línea de acento de 2 px en el verde de marca.
+- **Para el cliente:** cambia cómo se ve el detalle y el formulario de
+  hallazgos; los pasos para capturar son los mismos. En escritorio, la foto
+  se sube con "Subir foto" (antes había dos botones que hacían lo mismo).
+
+### Ajuste antes del despliegue: botones de contorno y "Regresar" de la agenda
+
+- **Solo UI.** Los botones de contorno (por ejemplo "Excel", "PDF",
+  "Regresar", "Cancelar") llevan fondo blanco: sobre el fondo gris de la
+  página se perdían. En la agenda de Gemba Walk, "Regresar" pasó de la fila
+  de filtros (botón ancho) a la cabecera, junto al título.
+- **Para el cliente:** sin cambios de uso.
+
+### Ajuste antes del despliegue: rediseño del registro y del detalle de Gemba Walk
+
+- **Solo UI.** Sin migraciones, variables, dependencias ni cambios de
+  nginx; la lógica del registro (borrador, tolerancia, idempotencia) no
+  cambia.
+- **Registrar recorrido:** secciones "Recorrido de hoy" (con el estado del
+  recorrido: iniciar, fuera de tiempo o cronómetro grande) y "Evaluación"
+  por categoría (lo que no cumple, resaltado); barra fija con el
+  cumplimiento en vivo.
+- **Detalle del recorrido:** resumen, indicadores (cumplimiento y
+  duración), resultados con filtro "No cumple" y datos al lado; "Regresar"
+  en la cabecera.
+- **Para el cliente:** los pasos son los mismos; cambia cómo se ven.
+
+### Ajuste antes del despliegue: rediseño del formulario de inspección de extintores
+
+- **Solo UI.** Sin migraciones, variables, dependencias ni cambios de
+  nginx. Se envían los mismos datos que antes (C, NC o NA por concepto).
+- **Extintores evaluados:** cada extintor en una tarjeta (número,
+  ubicación, tipo, capacidad y resumen) con los 10 conceptos como lista
+  "Cumple / No cumple / No aplica", todos en "Cumple" al escanear. Antes,
+  cada novedad se agregaba eligiendo concepto y estado en dos listas.
+- **Barra fija al pie** con cuántos extintores van y cuántos no cumplen,
+  junto a "Guardar" y "Cancelar".
+- **Para el cliente:** al escanear un extintor solo se toca lo que no cumple
+  o no aplica; ya no hay que elegir de dos listas ni tocar "Agregar".
+
+### Ajuste antes del despliegue: rediseño del registro de entrega de EPP
+
+- **Solo UI.** Sin migraciones, variables, dependencias ni cambios de
+  nginx. Se envían los mismos datos; la validación de frecuencia y la
+  idempotencia no cambian.
+- **Secciones** Colaborador, Equipos a entregar y Firma, siempre a la vista
+  (antes aparecían de golpe); los equipos agregados en lista con el aviso
+  "Fuera de la frecuencia de entrega"; la firma, como en papel (sobre una
+  línea con el nombre de quien recibe) y con "Volver a firmar".
+- **Barra fija al pie** con los equipos, si ya firmó, lo que falta para
+  guardar, "Cancelar" y "Guardar" (antes, "Guardar" iba arriba).
+- **Para el cliente:** los pasos son los mismos; "Guardar" está abajo y
+  dice qué falta.
+
+### Ajuste antes del despliegue: rediseño visual de Análisis de datos EPP
+
+- **Solo UI.** Sin migraciones, variables, dependencias ni cambios de
+  nginx; los datos y cálculos no cambian.
+- Indicadores con ícono, variación en pastilla de color y "vs periodo
+  anterior" (el rango completo, en el tooltip); acento verde en
+  indicadores y gráficas; los grupos Gasto, Entregas y Fuera de rango como
+  tarjetas visibles con ícono y qué contienen (antes, pestañas que se
+  perdían en el fondo); el aviso de equipos sin
+  precio o sin frecuencia lleva a Equipos; barras con ancho máximo y
+  gráficas sin caja de fondo en oscuro. Las tablas de fuera de rango
+  (colaboradores y entregas de cada uno) con el mismo estilo que las demás
+  tablas del sistema y, en celular, en tarjetas.
+- **Para el cliente:** la misma información, más fácil de leer.
+
+### Ajuste antes del despliegue: rediseño del dashboard de hallazgos
+
+- **API y UI, sin migraciones** ni variables, dependencias o cambios de
+  nginx. `GET /dashboard/status-by-filters` agrega `periodo` y `anterior`
+  (conteos del periodo de comparación); lo que ya devolvía no cambia. Una
+  consulta de conteo más por carga del dashboard.
+- **Título visible** con la leyenda del periodo ("30 sep – 29 oct 2026
+  comparado con 31 ago – 29 sep 2026").
+- **Control de periodo** como el de Análisis de datos EPP (Últimos 30 días,
+  Este mes, Mes anterior, Últimos 3 meses, Este año, Personalizado) en
+  lugar de "Fecha inicio" y "Fecha fin".
+- **Indicadores** arriba de las gráficas: hallazgos, abiertos, en progreso,
+  cerrados y % de cierre, cada uno con su variación contra el periodo
+  anterior.
+- **Gráficas** con el acento verde; el histórico con "Regresar" en la
+  cabecera.
+- **Para el cliente:** el periodo se elige con atajos y arriba se ve un
+  resumen con la comparación contra el periodo anterior.

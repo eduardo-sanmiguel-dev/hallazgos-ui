@@ -177,8 +177,30 @@ test.describe("Nombres de descarga", () => {
       }
     }
 
+    // El PDF se nombra como el Excel. Sin header, el respaldo con la hora
+    // local (antes, siempre "Hallazgos.pdf").
+    const pdfRequest = page.waitForRequest((r) =>
+      r.url().includes("/download/pdf"),
+    );
     const pdf = page.waitForEvent("download");
     await page.getByRole("button", { name: "PDF" }).click();
-    expect((await pdf).suggestedFilename()).toBe("Hallazgos.pdf");
+    expect(
+      new URL((await pdfRequest).url()).searchParams.get("timeZone"),
+    ).toBeTruthy();
+    expect((await pdf).suggestedFilename()).toMatch(
+      /^Hallazgos_\d{4}-\d{2}-\d{2}_\d{4}_UTC[+-]\d{2}.*\.pdf$/,
+    );
+
+    // Con el nombre del back (misma lógica que el Excel), se usa ese.
+    await serveDownload(
+      page,
+      /\/api\/v1\/evidences\/download\/pdf/,
+      "attachment; filename*=UTF-8''Hallazgos_Tepotzotl%C3%A1n_%2B2filtros_2026-10-29_0930_UTC-06.pdf",
+    );
+    const named = page.waitForEvent("download");
+    await page.getByRole("button", { name: "PDF" }).click();
+    expect((await named).suggestedFilename()).toBe(
+      "Hallazgos_Tepotzotlán_+2filtros_2026-10-29_0930_UTC-06.pdf",
+    );
   });
 });

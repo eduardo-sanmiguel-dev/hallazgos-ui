@@ -10,7 +10,6 @@ import { Grid } from "@mui/material";
 import { Paper } from "@mui/material";
 import { Box } from "@mui/material";
 import { Stack } from "@mui/material";
-import { Chip } from "@mui/material";
 import { Alert } from "@mui/material";
 import { AlertTitle } from "@mui/material";
 import { TextField } from "@mui/material";
@@ -23,7 +22,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
-import type { Theme } from "@mui/material/styles";
+import { alpha } from "@mui/material/styles";
 import { toast } from "sonner";
 import dayjs from "@shared/libs/dayjs";
 
@@ -40,6 +39,8 @@ import { useFormDraft } from "@hooks/useFormDraft";
 import { isDraftStorageAvailable } from "@shared/drafts/draftStore";
 import GembaWalkAccessGuard from "../_components/GembaWalkAccessGuard";
 import PageHeader from "@shared/components/PageHeader";
+import DetailSection from "@shared/components/DetailSection";
+import ComplianceMeter from "../_components/ComplianceMeter";
 import { groupByCategory } from "../_components/groupByCategory";
 import { formatDuration } from "../_components/formatDuration";
 import {
@@ -64,11 +65,6 @@ const isOutOfTime = (event: GembaWalkCalendar, now: Date) =>
 
 const eventLabel = (event: GembaWalkCalendar, now: Date) =>
   `${eventSummary(event)}${isOutOfTime(event, now) ? " — Fuera de tiempo" : ""}`;
-
-const textColor = { color: (theme: Theme) => theme.palette.text.primary };
-const secondaryTextColor = {
-  color: (theme: Theme) => theme.palette.text.secondary,
-};
 
 // Cronómetro propio para no re-renderizar todo el formulario cada segundo.
 const ElapsedTimer = ({ startedAt }: { startedAt: string }) => {
@@ -318,10 +314,13 @@ const GembaWalkForm = () => {
     setLoadCount((count) => count + 1);
   };
 
+  // Pasos en orden: elegir el recorrido (y su estado: iniciar, fuera de
+  // tiempo o el cronómetro), evaluar por categoría y, en la barra fija,
+  // el cumplimiento en vivo con las acciones.
   return (
-    <Grid container spacing={2}>
-      {(draft.offer || draft.lock) && (
-        <Grid size={12}>
+    <Box>
+      <Stack spacing={3}>
+        {(draft.offer || draft.lock) && (
           <DraftNotice
             offer={draft.offer}
             lock={draft.lock}
@@ -330,10 +329,8 @@ const GembaWalkForm = () => {
             onRetry={send}
             isSending={isSaving}
           />
-        </Grid>
-      )}
-      {blocked && !draft.lock && (
-        <Grid size={12}>
+        )}
+        {blocked && !draft.lock && (
           <Alert severity="warning" role="status">
             <AlertTitle>Este recorrido ya no se puede registrar</AlertTitle>
             {draftEvent && <strong>{draftEvent.label}. </strong>}
@@ -348,274 +345,386 @@ const GembaWalkForm = () => {
               </Button>
             </Box>
           </Alert>
-        </Grid>
-      )}
-      <Grid size={{ xs: 12 }}>
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-          <AccessTimeIcon sx={secondaryTextColor} />
-          <Typography variant="body1" sx={textColor}>
-            Fecha y hora actual:{" "}
-            <strong>{dayjs(now).format("DD/MM/YYYY HH:mm")}</strong>
-          </Typography>
-        </Stack>
-      </Grid>
-      <SelectManufacturingPlantsOwn
-        value={manufacturingPlantId}
-        onChange={(e) => setManufacturingPlantId(e.target.value)}
-        disabled={!!started}
-      />
-      <Grid size={{ xs: 12, sm: 6, md: 6 }}>
-        <SelectDefault
-          data={eventOptions}
-          label="Recorrido programado (hoy)"
-          value={gembaWalkCalendarId}
-          onChange={(e) => {
-            setGembaWalkCalendarId(e.target.value);
-            setStarted(null);
-          }}
-          disabled={!manufacturingPlantId || !events.length || !!started}
-          validationEmpty={!!manufacturingPlantId && events.length > 0}
-        />
-      </Grid>
-
-      {isLoadingPlant && (
-        <Grid size={{ xs: 12 }}>
-          <LoadingLinear />
-        </Grid>
-      )}
-
-      {loadError && (
-        <Grid size={{ xs: 12 }}>
-          <ErrorState
-            offline={typeof navigator !== "undefined" && !navigator.onLine}
-            onRetry={() => setLoadCount((count) => count + 1)}
-          />
-        </Grid>
-      )}
-
-      {manufacturingPlantId &&
-        !isLoadingPlant &&
-        !loadError &&
-        !events.length &&
-        !started && (
-          <Grid size={{ xs: 12 }}>
-            <Alert severity="info">
-              No hay recorridos programados para hoy en esta planta, o ya fueron
-              registrados.
-            </Alert>
-          </Grid>
         )}
 
-      {(selectedEvent || started) && !blocked && (
-        <Grid size={{ xs: 12 }}>
-          {started ? (
-            <Alert severity="success">
-              {draftEvent && <strong>{draftEvent.label} · </strong>}
-              Recorrido iniciado a las{" "}
-              <strong>{dayjs(started.startedAt).format("HH:mm:ss")}</strong> ·
-              Tiempo transcurrido:{" "}
-              <ElapsedTimer startedAt={started.startedAt} />
-            </Alert>
-          ) : selectedOutOfTime && selectedEvent ? (
-            <Alert severity="error">
-              <strong>Fuera de tiempo.</strong> El recorrido estaba programado a
-              las {dayjs(selectedEvent.scheduledAt).format("HH:mm")} y la
-              tolerancia de {TOLERANCE_MINUTES} minutos para iniciarlo terminó a
-              las {deadlineOf(selectedEvent).format("HH:mm")}. Ya no se puede
-              realizar.
-            </Alert>
-          ) : (
-            selectedEvent && (
-              <Alert
-                severity="info"
-                action={
-                  <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={<PlayArrowIcon />}
-                    loading={isStarting}
-                    loadingPosition="start"
-                    disabled={isStarting || !evaluations.length}
-                    onClick={startWalk}
-                  >
-                    Iniciar recorrido
-                  </Button>
-                }
-              >
-                Puedes iniciar este recorrido hasta las{" "}
-                <strong>{deadlineOf(selectedEvent).format("HH:mm")}</strong>. El
-                tiempo empieza a contar al iniciar.
-              </Alert>
-            )
-          )}
-        </Grid>
-      )}
-
-      {manufacturingPlantId &&
-        !isLoadingPlant &&
-        !loadError &&
-        !evaluations.length && (
-          <Grid size={{ xs: 12 }}>
-            <Alert severity="warning">
-              La planta no tiene conceptos de evaluación registrados.
-            </Alert>
-          </Grid>
-        )}
-
-      {started && evaluations.length > 0 && (
-        <>
-          <Grid size={{ xs: 12 }}>
-            <Typography variant="body2" sx={secondaryTextColor}>
-              Todo inicia en <strong>Cumple</strong>: marca{" "}
-              <strong>No cumple</strong> en los conceptos que no se cumplan y
-              agrega un comentario.
-            </Typography>
-          </Grid>
-
-          {groups.map(({ category, items }) => (
-            <Grid size={{ xs: 12 }} key={category}>
-              <Paper sx={{ p: 2 }}>
-                <Typography
-                  variant="h6"
-                  component="h2"
-                  sx={{ mb: 2, color: "text.brand" }}
-                >
-                  {category}
-                </Typography>
-                <Stack spacing={2}>
-                  {items.map((evaluation) => {
-                    const answer = answers[evaluation.id];
-                    if (!answer) return null;
-
-                    return (
-                      <Box
-                        key={evaluation.id}
-                        sx={(theme) => ({
-                          p: 2,
-                          borderRadius: 1,
-                          border: `1px solid ${theme.palette.divider}`,
-                          borderLeft: `6px solid ${
-                            answer.isCompliant
-                              ? theme.palette.success.main
-                              : theme.palette.error.main
-                          }`,
-                        })}
-                      >
-                        <Box
-                          sx={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: 1,
-                          }}
-                        >
-                          <Typography
-                            variant="subtitle1"
-                            sx={{ fontWeight: 600, ...textColor }}
-                          >
-                            {evaluation.area}
-                          </Typography>
-                          {/* Dos botones grandes en lugar de un switch (G4). */}
-                          <ToggleButtonGroup
-                            exclusive
-                            size="small"
-                            value={answer.isCompliant ? "C" : "NC"}
-                            onChange={(_, value: "C" | "NC" | null) => {
-                              if (value) {
-                                setAnswer(evaluation.id, {
-                                  isCompliant: value === "C",
-                                });
-                              }
-                            }}
-                            disabled={isReadOnly}
-                            aria-label={evaluation.area}
-                            sx={{ width: { xs: "100%", sm: "auto" } }}
-                          >
-                            <ToggleButton
-                              value="C"
-                              color="success"
-                              sx={{ flex: 1, minWidth: 120, gap: 0.5 }}
-                            >
-                              <CheckIcon fontSize="small" />
-                              Cumple
-                            </ToggleButton>
-                            <ToggleButton
-                              value="NC"
-                              color="error"
-                              sx={{ flex: 1, minWidth: 120, gap: 0.5 }}
-                            >
-                              <CloseIcon fontSize="small" />
-                              No cumple
-                            </ToggleButton>
-                          </ToggleButtonGroup>
-                        </Box>
-                        <Typography
-                          variant="body2"
-                          sx={{ mt: 1, mb: 2, ...secondaryTextColor }}
-                        >
-                          {evaluation.description}
-                        </Typography>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          multiline
-                          minRows={1}
-                          label="Comentarios"
-                          placeholder={
-                            answer.isCompliant
-                              ? "Opcional"
-                              : "Describe qué no se cumple"
-                          }
-                          value={answer.comments}
-                          slotProps={{
-                            htmlInput: { maxLength: 1000 },
-                            input: { readOnly: isReadOnly },
-                          }}
-                          onChange={(e) =>
-                            setAnswer(evaluation.id, {
-                              comments: e.target.value,
-                            })
-                          }
-                        />
-                      </Box>
-                    );
-                  })}
-                </Stack>
-              </Paper>
+        <DetailSection
+          title="Recorrido de hoy"
+          description="Elige la planta y el recorrido programado."
+          action={
+            <Stack
+              direction="row"
+              spacing={0.75}
+              sx={{ alignItems: "center", color: "text.secondary" }}
+            >
+              <AccessTimeIcon fontSize="small" aria-hidden />
+              <Typography variant="body2">
+                Fecha y hora actual:{" "}
+                <Box component="strong" sx={{ color: "text.primary" }}>
+                  {dayjs(now).format("DD/MM/YYYY HH:mm")}
+                </Box>
+              </Typography>
+            </Stack>
+          }
+        >
+          <Grid container spacing={2}>
+            <SelectManufacturingPlantsOwn
+              value={manufacturingPlantId}
+              onChange={(e) => setManufacturingPlantId(e.target.value)}
+              disabled={!!started}
+            />
+            <Grid size={{ xs: 12, sm: 6, md: 9 }}>
+              <SelectDefault
+                data={eventOptions}
+                label="Recorrido programado (hoy)"
+                value={gembaWalkCalendarId}
+                onChange={(e) => {
+                  setGembaWalkCalendarId(e.target.value);
+                  setStarted(null);
+                }}
+                disabled={!manufacturingPlantId || !events.length || !!started}
+                validationEmpty={!!manufacturingPlantId && events.length > 0}
+              />
             </Grid>
-          ))}
-        </>
-      )}
+          </Grid>
 
-      {/* Al pie y siempre a la vista: conteo y acciones (G4, G9). */}
-      {/* Sticky en el Grid (no en el Paper): su contenedor es todo el
-          formulario, así la barra se queda abajo mientras se desplaza. */}
-      <Grid size={{ xs: 12 }} sx={{ position: "sticky", bottom: 0, zIndex: 2 }}>
+          {isLoadingPlant && (
+            <Box sx={{ mt: 2 }}>
+              <LoadingLinear />
+            </Box>
+          )}
+
+          {loadError && (
+            <Box sx={{ mt: 2 }}>
+              <ErrorState
+                size="small"
+                offline={typeof navigator !== "undefined" && !navigator.onLine}
+                onRetry={() => setLoadCount((count) => count + 1)}
+              />
+            </Box>
+          )}
+
+          {manufacturingPlantId &&
+            !isLoadingPlant &&
+            !loadError &&
+            !events.length &&
+            !started && (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                No hay recorridos programados para hoy en esta planta, o ya
+                fueron registrados.
+              </Alert>
+            )}
+
+          {manufacturingPlantId &&
+            !isLoadingPlant &&
+            !loadError &&
+            !evaluations.length && (
+              <Alert severity="warning" sx={{ mt: 2 }}>
+                La planta no tiene conceptos de evaluación registrados.
+              </Alert>
+            )}
+
+          {/* Estado del recorrido elegido. */}
+          {(selectedEvent || started) && !blocked && (
+            <Box sx={{ mt: 2 }}>
+              {started ? (
+                <Box
+                  role="status"
+                  sx={(theme) => ({
+                    p: { xs: 2, sm: 2.5 },
+                    borderRadius: 2,
+                    border: `1px solid ${theme.palette.success.main}`,
+                    backgroundColor: alpha(theme.palette.success.main, 0.08),
+                    display: "flex",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 2,
+                  })}
+                >
+                  <Box sx={{ minWidth: 0 }}>
+                    {draftEvent && (
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                        {draftEvent.label}
+                      </Typography>
+                    )}
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "text.secondary" }}
+                    >
+                      Recorrido iniciado a las{" "}
+                      <strong>
+                        {dayjs(started.startedAt).format("HH:mm:ss")}
+                      </strong>
+                    </Typography>
+                  </Box>
+                  <Stack
+                    sx={{ alignItems: { xs: "flex-start", sm: "flex-end" } }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{ color: "text.secondary" }}
+                    >
+                      Tiempo transcurrido
+                    </Typography>
+                    <Typography
+                      component="p"
+                      variant="h4"
+                      sx={{
+                        fontWeight: 700,
+                        lineHeight: 1.1,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      <ElapsedTimer startedAt={started.startedAt} />
+                    </Typography>
+                  </Stack>
+                </Box>
+              ) : selectedOutOfTime && selectedEvent ? (
+                <Alert severity="error">
+                  <strong>Fuera de tiempo.</strong> El recorrido estaba
+                  programado a las{" "}
+                  {dayjs(selectedEvent.scheduledAt).format("HH:mm")} y la
+                  tolerancia de {TOLERANCE_MINUTES} minutos para iniciarlo
+                  terminó a las {deadlineOf(selectedEvent).format("HH:mm")}. Ya
+                  no se puede realizar.
+                </Alert>
+              ) : (
+                selectedEvent && (
+                  <Box
+                    sx={(theme) => ({
+                      p: { xs: 2, sm: 2.5 },
+                      borderRadius: 2,
+                      border: `1px solid ${theme.palette.info.main}`,
+                      backgroundColor: alpha(theme.palette.info.main, 0.06),
+                      display: "flex",
+                      flexDirection: { xs: "column", sm: "row" },
+                      alignItems: { sm: "center" },
+                      justifyContent: "space-between",
+                      gap: 2,
+                    })}
+                  >
+                    <Typography variant="body2">
+                      Puedes iniciar este recorrido hasta las{" "}
+                      <strong>
+                        {deadlineOf(selectedEvent).format("HH:mm")}
+                      </strong>
+                      . El tiempo empieza a contar al iniciar.
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      size="large"
+                      startIcon={<PlayArrowIcon />}
+                      loading={isStarting}
+                      loadingPosition="start"
+                      disabled={isStarting || !evaluations.length}
+                      onClick={startWalk}
+                      sx={{ flexShrink: 0, minWidth: { sm: 220 } }}
+                    >
+                      Iniciar recorrido
+                    </Button>
+                  </Box>
+                )
+              )}
+            </Box>
+          )}
+        </DetailSection>
+
+        {started && evaluations.length > 0 && (
+          <DetailSection
+            title="Evaluación"
+            description={
+              <>
+                Todo inicia en <strong>Cumple</strong>: marca{" "}
+                <strong>No cumple</strong> en los conceptos que no se cumplan y
+                agrega un comentario.
+              </>
+            }
+          >
+            <Stack spacing={3}>
+              {groups.map(({ category, items }) => {
+                const groupNonCompliant = items.filter(
+                  ({ id }) => answers[id] && !answers[id].isCompliant,
+                ).length;
+
+                return (
+                  <Box component="section" key={category}>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      sx={{
+                        alignItems: "baseline",
+                        justifyContent: "space-between",
+                        mb: 1.5,
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle1"
+                        component="h2"
+                        sx={{ fontWeight: 700, color: "text.brand" }}
+                      >
+                        {category}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: groupNonCompliant
+                            ? "error.main"
+                            : "text.secondary",
+                          fontWeight: groupNonCompliant ? 700 : 400,
+                        }}
+                      >
+                        {items.length - groupNonCompliant} de {items.length}{" "}
+                        cumplen
+                      </Typography>
+                    </Stack>
+                    <Stack spacing={1.5}>
+                      {items.map((evaluation) => {
+                        const answer = answers[evaluation.id];
+                        if (!answer) return null;
+
+                        return (
+                          <Box
+                            key={evaluation.id}
+                            sx={(theme) => ({
+                              p: { xs: 1.5, sm: 2 },
+                              borderRadius: 2,
+                              border: `1px solid ${theme.palette.divider}`,
+                              borderLeft: `6px solid ${
+                                answer.isCompliant
+                                  ? theme.palette.success.main
+                                  : theme.palette.error.main
+                              }`,
+                              // Lo que no cumple resalta al recorrer la lista.
+                              backgroundColor: answer.isCompliant
+                                ? "transparent"
+                                : alpha(theme.palette.error.main, 0.06),
+                              transition: "background-color 150ms",
+                            })}
+                          >
+                            <Box
+                              sx={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: 1,
+                              }}
+                            >
+                              <Box sx={{ minWidth: 0, flex: "1 1 220px" }}>
+                                <Typography
+                                  variant="subtitle1"
+                                  sx={{ fontWeight: 700 }}
+                                >
+                                  {evaluation.area}
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  sx={{ color: "text.secondary" }}
+                                >
+                                  {evaluation.description}
+                                </Typography>
+                              </Box>
+                              {/* Dos botones grandes en lugar de un switch (G4). */}
+                              <ToggleButtonGroup
+                                exclusive
+                                size="small"
+                                value={answer.isCompliant ? "C" : "NC"}
+                                onChange={(_, value: "C" | "NC" | null) => {
+                                  if (value) {
+                                    setAnswer(evaluation.id, {
+                                      isCompliant: value === "C",
+                                    });
+                                  }
+                                }}
+                                disabled={isReadOnly}
+                                aria-label={evaluation.area}
+                                sx={{
+                                  width: { xs: "100%", sm: "auto" },
+                                  backgroundColor: "background.paper",
+                                }}
+                              >
+                                <ToggleButton
+                                  value="C"
+                                  color="success"
+                                  sx={{ flex: 1, minWidth: 120, gap: 0.5 }}
+                                >
+                                  <CheckIcon fontSize="small" />
+                                  Cumple
+                                </ToggleButton>
+                                <ToggleButton
+                                  value="NC"
+                                  color="error"
+                                  sx={{ flex: 1, minWidth: 120, gap: 0.5 }}
+                                >
+                                  <CloseIcon fontSize="small" />
+                                  No cumple
+                                </ToggleButton>
+                              </ToggleButtonGroup>
+                            </Box>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              multiline
+                              minRows={1}
+                              label="Comentarios"
+                              placeholder={
+                                answer.isCompliant
+                                  ? "Opcional"
+                                  : "Describe qué no se cumple"
+                              }
+                              value={answer.comments}
+                              slotProps={{
+                                htmlInput: { maxLength: 1000 },
+                                input: { readOnly: isReadOnly },
+                              }}
+                              onChange={(e) =>
+                                setAnswer(evaluation.id, {
+                                  comments: e.target.value,
+                                })
+                              }
+                              sx={{
+                                mt: 1.5,
+                                "& .MuiInputBase-root": {
+                                  backgroundColor: "background.paper",
+                                },
+                              }}
+                            />
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+                  </Box>
+                );
+              })}
+            </Stack>
+          </DetailSection>
+        )}
+      </Stack>
+
+      {/* Al pie y siempre a la vista: cumplimiento en vivo y acciones (G4,
+          G9). Sticky en este contenedor (todo el formulario), así la barra
+          se queda abajo mientras se desplaza. */}
+      <Box sx={{ position: "sticky", bottom: 0, zIndex: 2, mt: 3 }}>
         <Paper
           elevation={3}
-          sx={{
+          sx={(theme) => ({
             p: 1.5,
             pb: "calc(12px + env(safe-area-inset-bottom))",
+            borderTop: `2px solid ${theme.palette.primary.main}`,
             display: "flex",
             flexDirection: { xs: "column", sm: "row" },
             alignItems: { sm: "center" },
             gap: 1.5,
-          }}
+          })}
         >
           {started && evaluations.length > 0 && (
-            <Stack
-              direction="row"
-              spacing={1}
-              aria-live="polite"
-              sx={{ alignItems: "center", flex: 1 }}
-            >
-              <Chip color="success" label={`C: ${compliantCount}`} />
-              <Chip
-                color={nonCompliantCount ? "error" : "default"}
-                label={`NC: ${nonCompliantCount}`}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <ComplianceMeter
+                variant="compact"
+                compliant={compliantCount}
+                nonCompliant={nonCompliantCount}
               />
-            </Stack>
+            </Box>
           )}
           <Box sx={{ flex: { sm: started ? "none" : 1 } }}>
             <FormActions
@@ -628,19 +737,21 @@ const GembaWalkForm = () => {
             />
           </Box>
         </Paper>
-      </Grid>
+      </Box>
       {confirmDialog}
-    </Grid>
+    </Box>
   );
 };
 
+// Ancho máximo en escritorio, con el título alineado al contenido (como
+// "Nuevo hallazgo").
 const GembaWalkFormPage = () => (
-  <>
+  <Box sx={{ maxWidth: 960, mx: "auto" }}>
     <PageHeader title="Registrar recorrido" />
     <GembaWalkAccessGuard>
       <GembaWalkForm />
     </GembaWalkAccessGuard>
-  </>
+  </Box>
 );
 
 export default GembaWalkFormPage;

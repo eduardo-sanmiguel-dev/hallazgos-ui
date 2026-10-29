@@ -18,6 +18,9 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import { alpha } from "@mui/material/styles";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -29,7 +32,8 @@ import "dayjs/locale/es";
 
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import PageHeader from "@shared/components/PageHeader";
-import FormSection from "@shared/components/FormSection";
+import DetailSection from "@shared/components/DetailSection";
+import StatusChip from "@shared/components/StatusChip";
 import FormActions from "@shared/components/FormActions";
 import { useFieldErrors } from "@hooks/useFieldErrors";
 import {
@@ -130,8 +134,6 @@ const ExtinguisherInspectionFormPage = () => {
       signaling: evaluation.signaling,
       noveltyRecords,
       observations: evaluation.observations || "",
-      newNoveltyConcept: "",
-      newNoveltyStatus: "",
     };
   };
 
@@ -435,97 +437,39 @@ const ExtinguisherInspectionFormPage = () => {
     }));
   };
 
-  const updateNoveltyDraft = (
+  const updateObservations = (index: number, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      evaluations: prev.evaluations.map((evaluation, idx) =>
+        idx === index ? { ...evaluation, observations: value } : evaluation,
+      ),
+    }));
+  };
+
+  // Estado de un concepto: C quita la novedad (se envía como C); NC o NA la
+  // agrega o la cambia. Mismos datos que antes con "Agregar" y "Quitar".
+  const setConceptStatus = (
     index: number,
-    key: "newNoveltyConcept" | "newNoveltyStatus" | "observations",
-    value: string,
+    conceptKey: GroupedConceptKey,
+    status: EvaluationValues,
   ) => {
     setForm((prev) => ({
       ...prev,
       evaluations: prev.evaluations.map((evaluation, idx) => {
-        if (idx !== index) {
-          return evaluation;
-        }
+        if (idx !== index) return evaluation;
 
-        return {
-          ...evaluation,
-          [key]: value,
-        };
-      }),
-    }));
-  };
-
-  const addNoveltyRecord = (index: number) => {
-    const evaluation = form.evaluations[index];
-    if (!evaluation) {
-      return;
-    }
-
-    if (!evaluation.newNoveltyConcept || !evaluation.newNoveltyStatus) {
-      toast.error("Seleccione novedad y estado para agregar");
-      return;
-    }
-
-    const noveltyRecord: EvaluationNoveltyRecord = {
-      conceptKey: evaluation.newNoveltyConcept,
-      status: evaluation.newNoveltyStatus,
-    };
-
-    setForm((prev) => ({
-      ...prev,
-      evaluations: prev.evaluations.map((item, idx) => {
-        if (idx !== index) {
-          return item;
-        }
-
-        const existingIndex = item.noveltyRecords.findIndex(
-          (record) => record.conceptKey === noveltyRecord.conceptKey,
+        const others = evaluation.noveltyRecords.filter(
+          (record) => record.conceptKey !== conceptKey,
         );
+        const noveltyRecords: EvaluationNoveltyRecord[] =
+          status === EvaluationValues.C
+            ? others
+            : [
+                ...others,
+                { conceptKey, status: status as GroupedConceptStatus },
+              ];
 
-        const nextRecords = [...item.noveltyRecords];
-        if (existingIndex >= 0) {
-          nextRecords[existingIndex] = noveltyRecord;
-        } else {
-          nextRecords.push(noveltyRecord);
-        }
-
-        return {
-          ...item,
-          noveltyRecords: nextRecords,
-          newNoveltyConcept: "",
-          newNoveltyStatus: "",
-        };
-      }),
-    }));
-
-    if (
-      evaluation.noveltyRecords.some(
-        (record) => record.conceptKey === noveltyRecord.conceptKey,
-      )
-    ) {
-      toast.success("Novedad actualizada");
-    } else {
-      toast.success("Novedad agregada");
-    }
-  };
-
-  const removeNoveltyRecord = (
-    evaluationIndex: number,
-    recordIndex: number,
-  ) => {
-    setForm((prev) => ({
-      ...prev,
-      evaluations: prev.evaluations.map((evaluation, idx) => {
-        if (idx !== evaluationIndex) {
-          return evaluation;
-        }
-
-        return {
-          ...evaluation,
-          noveltyRecords: evaluation.noveltyRecords.filter(
-            (_record, currentIndex) => currentIndex !== recordIndex,
-          ),
-        };
+        return { ...evaluation, noveltyRecords };
       }),
     }));
   };
@@ -654,8 +598,21 @@ const ExtinguisherInspectionFormPage = () => {
       .finally(() => setIsLoading(false));
   };
 
+  const evaluationsCount = form.evaluations.length;
+  const nonCompliantCount = form.evaluations.reduce(
+    (total, evaluation) =>
+      total +
+      evaluation.noveltyRecords.filter(
+        ({ status }) => status === EvaluationValues.NC,
+      ).length,
+    0,
+  );
+
+  // Como el registro de Gemba Walk: datos de la inspección, extintores
+  // escaneados (cada uno con su lista de verificación) y una barra fija con
+  // el resumen y las acciones. Ancho máximo con el título alineado.
   return (
-    <>
+    <Box sx={{ maxWidth: 960, mx: "auto" }}>
       <PageHeader
         title={
           idCurrent
@@ -663,125 +620,194 @@ const ExtinguisherInspectionFormPage = () => {
             : "Nueva inspección de extintores"
         }
       />
-      <FormSection title="Inspección">
-        <SelectManufacturingPlantsOwn
-          value={form.manufacturingPlantId}
-          onChange={(e) =>
-            setForm((prev) => ({
-              ...prev,
-              manufacturingPlantId: e.target.value,
-              evaluations: [],
-            }))
-          }
-          error={errorOf("manufacturingPlantId")}
-        />
-
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
+      <Stack spacing={3}>
+        <DetailSection
+          title="Inspección"
+          description="Planta y fecha de próxima recarga de todos los extintores."
         >
-          <LocalizationProvider
-            dateAdapter={AdapterDayjs}
-            adapterLocale="es"
-            localeText={
-              esES.components.MuiLocalizationProvider.defaultProps.localeText
-            }
-          >
-            <DatePicker
-              label="Próxima recarga"
-              format="DD/MM/YYYY"
-              disablePast
-              minDate={today}
-              value={
-                form.sharedNextRechargeDate
-                  ? dayjs(form.sharedNextRechargeDate)
-                  : null
-              }
-              onChange={(newValue: Dayjs | null) =>
+          <Grid container spacing={2}>
+            <SelectManufacturingPlantsOwn
+              value={form.manufacturingPlantId}
+              onChange={(e) =>
                 setForm((prev) => ({
                   ...prev,
-                  sharedNextRechargeDate: newValue
-                    ? newValue.format("YYYY-MM-DD")
-                    : "",
+                  manufacturingPlantId: e.target.value,
+                  evaluations: [],
                 }))
               }
-              slotProps={{
-                field: {
-                  clearable: true,
-                  onClear: () =>
+              error={errorOf("manufacturingPlantId")}
+            />
+
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <LocalizationProvider
+                dateAdapter={AdapterDayjs}
+                adapterLocale="es"
+                localeText={
+                  esES.components.MuiLocalizationProvider.defaultProps
+                    .localeText
+                }
+              >
+                <DatePicker
+                  label="Próxima recarga"
+                  format="DD/MM/YYYY"
+                  disablePast
+                  minDate={today}
+                  value={
+                    form.sharedNextRechargeDate
+                      ? dayjs(form.sharedNextRechargeDate)
+                      : null
+                  }
+                  onChange={(newValue: Dayjs | null) =>
                     setForm((prev) => ({
                       ...prev,
-                      sharedNextRechargeDate: "",
-                    })),
-                },
-                textField: {
-                  fullWidth: true,
-                  id: "campo-sharedNextRechargeDate",
-                  error: !!errorOf("sharedNextRechargeDate"),
-                  helperText:
-                    errorOf("sharedNextRechargeDate") ??
-                    "Aplica a todas las evaluaciones.",
-                },
-              }}
-            />
-          </LocalizationProvider>
-        </Grid>
-      </FormSection>
-
-      <FormSection
-        title="Evaluaciones"
-        description="Escanea el QR de cada extintor. Los conceptos sin novedad se envían como C: CUMPLE."
-      >
-        {/* M1: agregar va arriba de las evaluaciones; Guardar y Cancelar,
-            al pie, como en el resto de los formularios. */}
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <Button
-            variant="outlined"
-            fullWidth
-            startIcon={<QrCodeScannerIcon />}
-            onClick={openScanner}
-            sx={{ minHeight: 44 }}
-          >
-            Agregar evaluación
-          </Button>
-          {errorOf("evaluations") && (
-            <FormHelperText data-error-for="evaluations" error>
-              {errorOf("evaluations")}
-            </FormHelperText>
-          )}
-        </Grid>
-
-        {!form.evaluations.length && (
-          <Grid size={12}>
-            <Typography variant="body2" color="text.secondary">
-              Aún no hay evaluaciones.
-            </Typography>
+                      sharedNextRechargeDate: newValue
+                        ? newValue.format("YYYY-MM-DD")
+                        : "",
+                    }))
+                  }
+                  slotProps={{
+                    field: {
+                      clearable: true,
+                      onClear: () =>
+                        setForm((prev) => ({
+                          ...prev,
+                          sharedNextRechargeDate: "",
+                        })),
+                    },
+                    textField: {
+                      fullWidth: true,
+                      id: "campo-sharedNextRechargeDate",
+                      error: !!errorOf("sharedNextRechargeDate"),
+                      helperText:
+                        errorOf("sharedNextRechargeDate") ??
+                        "Aplica a todas las evaluaciones.",
+                    },
+                  }}
+                />
+              </LocalizationProvider>
+            </Grid>
           </Grid>
-        )}
+        </DetailSection>
 
-        {form.evaluations.map((evaluation, index) => (
-          <EvaluationCard
-            key={`evaluation-${evaluation.emergencyTeamId}-${index}`}
-            evaluation={evaluation}
-            index={index}
-            errors={evaluationErrorsOf(index)}
-            removeEvaluation={removeEvaluation}
-            updateNoveltyDraft={updateNoveltyDraft}
-            addNoveltyRecord={addNoveltyRecord}
-            removeNoveltyRecord={removeNoveltyRecord}
+        <DetailSection
+          title="Extintores evaluados"
+          description="Escanea el QR de cada extintor y marca lo que no cumple."
+          action={
+            evaluationsCount > 0 && (
+              <StatusChip
+                size="small"
+                tone="success"
+                variant="outlined"
+                label={`${evaluationsCount} ${evaluationsCount === 1 ? "extintor" : "extintores"}`}
+              />
+            )
+          }
+        >
+          {/* M1: agregar va arriba de las evaluaciones; Guardar y Cancelar,
+              al pie, como en el resto de los formularios. */}
+          {evaluationsCount === 0 ? (
+            <Stack
+              spacing={1.5}
+              sx={(theme) => ({
+                alignItems: "center",
+                textAlign: "center",
+                p: { xs: 2, sm: 3 },
+                borderRadius: 2,
+                border: "2px dashed",
+                borderColor: errorOf("evaluations") ? "error.main" : "divider",
+                backgroundColor: alpha(theme.palette.text.primary, 0.03),
+              })}
+            >
+              <QrCodeScannerIcon
+                aria-hidden
+                sx={{ fontSize: 40, color: "text.secondary" }}
+              />
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                Aún no hay evaluaciones. Escanea el QR impreso en el extintor
+                para agregarlo.
+              </Typography>
+              <Button
+                variant="contained"
+                size="large"
+                startIcon={<QrCodeScannerIcon />}
+                onClick={openScanner}
+                sx={{ width: { xs: "100%", sm: "auto" } }}
+              >
+                Agregar evaluación
+              </Button>
+              {errorOf("evaluations") && (
+                <FormHelperText data-error-for="evaluations" error>
+                  {errorOf("evaluations")}
+                </FormHelperText>
+              )}
+            </Stack>
+          ) : (
+            <Stack spacing={2}>
+              <Button
+                variant="contained"
+                startIcon={<QrCodeScannerIcon />}
+                onClick={openScanner}
+                sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
+              >
+                Agregar evaluación
+              </Button>
+              {form.evaluations.map((evaluation, index) => (
+                <EvaluationCard
+                  key={`evaluation-${evaluation.emergencyTeamId}-${index}`}
+                  evaluation={evaluation}
+                  index={index}
+                  errors={evaluationErrorsOf(index)}
+                  removeEvaluation={removeEvaluation}
+                  setConceptStatus={setConceptStatus}
+                  updateObservations={updateObservations}
+                />
+              ))}
+            </Stack>
+          )}
+        </DetailSection>
+      </Stack>
+
+      {/* Al pie y siempre a la vista: resumen y acciones. */}
+      <Box sx={{ position: "sticky", bottom: 0, zIndex: 2, mt: 3 }}>
+        <Paper
+          elevation={3}
+          sx={(theme) => ({
+            p: 1.5,
+            pb: "calc(12px + env(safe-area-inset-bottom))",
+            borderTop: `2px solid ${theme.palette.primary.main}`,
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: { sm: "center" },
+            gap: 1.5,
+          })}
+        >
+          <Stack
+            direction="row"
+            spacing={1}
+            useFlexGap
+            aria-live="polite"
+            sx={{ flex: 1, alignItems: "center", flexWrap: "wrap" }}
+          >
+            <StatusChip
+              size="small"
+              tone={evaluationsCount ? "success" : "default"}
+              label={`${evaluationsCount} ${evaluationsCount === 1 ? "extintor" : "extintores"}`}
+            />
+            <StatusChip
+              size="small"
+              tone={nonCompliantCount ? "error" : "default"}
+              label={`${nonCompliantCount} ${nonCompliantCount === 1 ? "no cumple" : "no cumplen"}`}
+            />
+          </Stack>
+          <FormActions
+            onCancel={cancel}
+            onSave={save}
+            isSaving={isLoading}
+            saveLabel={idCurrent ? "Guardar evaluaciones" : "Guardar"}
+            inline
           />
-        ))}
-      </FormSection>
-
-      <FormActions
-        onCancel={cancel}
-        onSave={save}
-        isSaving={isLoading}
-        saveLabel={idCurrent ? "Guardar evaluaciones" : "Guardar"}
-      />
+        </Paper>
+      </Box>
 
       <Dialog
         open={isScannerOpen}
@@ -815,7 +841,7 @@ const ExtinguisherInspectionFormPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </>
+    </Box>
   );
 };
 

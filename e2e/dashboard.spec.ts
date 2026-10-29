@@ -4,7 +4,6 @@ import type { Page } from "@playwright/test";
 
 import { expect, test } from "./support/fixtures";
 import {
-  fillDate,
   pickMany,
   pickOption,
   sessionPlants,
@@ -32,15 +31,20 @@ test.describe("Dashboard", () => {
     const errors = trackPageErrors(page);
     await choosePlantAndWait(page);
 
-    // Desde el inicio del año, para que haya datos.
+    // Desde el inicio del año, para que haya datos: el atajo "Este año" del
+    // control de periodo (antes, dos fechas sueltas).
     const year = new Date().getFullYear();
     const filterRequest = page.waitForRequest(
       (request) =>
         request.url().includes("/dashboard/") &&
         request.url().includes(`startDate=01%2F01%2F${year}`),
     );
-    await fillDate(page, "Fecha inicio", `01/01/${year}`);
+    await pickOption(page, "Periodo", "Este año");
     await filterRequest;
+    // Un solo filtro "Periodo" (antes, "Desde" y "Hasta").
+    await expect(
+      page.getByRole("region", { name: "Filtros" }).getByText("Este año"),
+    ).toBeVisible();
     await page.waitForLoadState("networkidle");
 
     // Varias zonas ocultan las gráficas de proyección.
@@ -185,7 +189,7 @@ test.describe("Dashboard: al entrar y estado de la pantalla", () => {
     await expect(page.getByText("Elige una planta")).toHaveCount(0);
   });
 
-  test("sin hallazgos en el periodo: un solo aviso y se puede ampliar a 90 días", async ({
+  test("sin hallazgos en el periodo: un solo aviso y se puede ampliar a 3 meses", async ({
     page,
   }) => {
     const requests = statusRequests(page);
@@ -212,10 +216,79 @@ test.describe("Dashboard: al entrar y estado de la pantalla", () => {
       page.getByText("Seleccione planta, fecha inicio y fecha fin"),
     ).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Ver los últimos 90 días" }).click();
+    // El atajo "Últimos 3 meses" del control de periodo (antes, 90 días).
+    await page.getByRole("button", { name: "Ver últimos 3 meses" }).click();
+    const today = new Date();
     await expect
       .poll(() => requests.at(-1)?.searchParams.get("startDate"))
-      .toBe(daysAgo(90));
+      .toBe(ddmmyyyy(new Date(today.getFullYear(), today.getMonth() - 2, 1)));
+    await expect(page.getByRole("combobox", { name: "Periodo" })).toHaveText(
+      "Últimos 3 meses",
+    );
+  });
+
+  test("encabezado con el periodo y su comparación, e indicadores con su variación", async ({
+    page,
+  }) => {
+    // Últimos 30 días (por omisión) contra los 30 previos, como el análisis
+    // EPP; la API calcula la comparación.
+    const iso = (date: Date) =>
+      [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, "0"),
+        String(date.getDate()).padStart(2, "0"),
+      ].join("-");
+    const shift = (days: number) => {
+      const date = new Date();
+      date.setDate(date.getDate() - days);
+      return date;
+    };
+    const series = (open: number, inProgress: number, closed: number) => [
+      { name: "Abierto", y: open },
+      { name: "En progreso", y: inProgress },
+      { name: "Cerrado", y: closed },
+      { name: "Cancelado", y: 0 },
+    ];
+    await page.route(
+      (url) => url.pathname.endsWith("/api/v1/dashboard/status-by-filters"),
+      (route) =>
+        route.fulfill({
+          json: {
+            total: 10,
+            seriesData: series(4, 1, 5),
+            periodo: {
+              actual: { desde: iso(shift(29)), hasta: iso(shift(0)) },
+              anterior: { desde: "2020-01-01", hasta: "2020-01-30" },
+            },
+            anterior: { total: 8, seriesData: series(6, 0, 2) },
+          },
+        }),
+    );
+    await choosePlantAndWait(page);
+
+    // Título visible (antes solo para lectores de pantalla) y la leyenda.
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Dashboard de hallazgos" }),
+    ).toBeVisible();
+    await expect(page.getByText(/ comparado con 1–30 ene 2020$/)).toBeVisible();
+
+    const indicators = page.getByRole("region", {
+      name: "Indicadores del periodo",
+    });
+    const tile = (label: string) =>
+      indicators
+        .locator(".MuiPaper-root")
+        .filter({ has: page.getByText(label, { exact: true }) });
+    await expect(tile("Hallazgos")).toContainText("10");
+    await expect(tile("Hallazgos")).toContainText("25.0%");
+    // Abiertos bajan (6 → 4): bueno, en verde.
+    await expect(
+      tile("Abiertos").getByLabel("Bajó 33.3% contra 1–30 ene 2020"),
+    ).toBeVisible();
+    // % de cierre: 50 % contra 25 %, en puntos.
+    await expect(tile("% de cierre")).toContainText("50.0%");
+    await expect(tile("% de cierre")).toContainText("25.0 pts");
+    await expect(tile("% de cierre")).toContainText("5 de 10 cerrados");
   });
 
   test("si falla la consulta: un solo error con Reintentar", async ({

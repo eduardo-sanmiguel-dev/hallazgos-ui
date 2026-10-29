@@ -4,19 +4,17 @@ import { useEffect, useId, useMemo, useState } from "react";
 
 import {
   Box,
-  Chip,
   Dialog,
   DialogContent,
   DialogTitle,
   IconButton,
+  Paper,
   Skeleton,
   Stack,
   Table,
   TableBody,
-  TableCell,
   TableContainer,
   TableHead,
-  TableRow,
   Typography,
   useMediaQuery,
 } from "@mui/material";
@@ -25,6 +23,11 @@ import CloseIcon from "@mui/icons-material/Close";
 
 import type { BiEppEmployeeDetail } from "@interfaces";
 import { DashboardService } from "@services";
+import StatusChip from "@shared/components/StatusChip";
+import {
+  StyledTableCell,
+  StyledTableRow,
+} from "@shared/components/TableDefault";
 
 import ChartCard from "./ChartCard";
 import {
@@ -172,87 +175,173 @@ export default function EmployeeOutOfRangeDialog({
               }}
             />
 
-            <Box>
-              <Typography
-                variant="subtitle2"
-                component="h3"
-                sx={{ fontWeight: 600, mb: 1 }}
+            <Box component="section" aria-labelledby={`${titleId}-entregas`}>
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{ alignItems: "center", mb: 1 }}
               >
-                Entregas del periodo
-              </Typography>
-              <TableContainer>
-                <Table size="small" aria-label="Entregas del periodo">
-                  <TableHead>
-                    <TableRow>
-                      {[
-                        "Fecha",
-                        "Equipo",
-                        "Cant.",
-                        "Entrega anterior",
-                        "Frecuencia",
-                        "Estado",
-                        "Registró",
-                      ].map((label) => (
-                        <TableCell
-                          key={label}
-                          sx={{ fontWeight: 600, whiteSpace: "nowrap" }}
-                        >
-                          {label}
-                        </TableCell>
+                <Typography
+                  id={`${titleId}-entregas`}
+                  variant="subtitle1"
+                  component="h3"
+                  sx={{ fontWeight: 600 }}
+                >
+                  Entregas del periodo
+                </Typography>
+                <StatusChip
+                  size="small"
+                  variant="outlined"
+                  label={formatNumber(detail.deliveries.length)}
+                />
+              </Stack>
+              {/* Como las tablas del sistema; en celular (diálogo a pantalla
+                  completa), tarjetas en lugar de 7 columnas de lado. */}
+              {fullScreen ? (
+                <Stack
+                  component="ul"
+                  aria-label="Entregas del periodo"
+                  spacing={1}
+                  sx={{ listStyle: "none", m: 0, p: 0 }}
+                >
+                  {detail.deliveries.map((delivery) => (
+                    <Paper
+                      key={delivery.id}
+                      component="li"
+                      variant="outlined"
+                      sx={(theme) => ({
+                        p: 1.5,
+                        borderLeft: `4px solid ${
+                          delivery.outOfRange
+                            ? theme.palette.warning.main
+                            : theme.palette.success.main
+                        }`,
+                      })}
+                    >
+                      <Typography sx={{ fontWeight: 600 }}>
+                        {delivery.equipmentName}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {formatIsoDate(delivery.date)} · Cant.{" "}
+                        {formatNumber(delivery.quantity)}
+                      </Typography>
+                      <Box sx={{ mt: 1 }}>
+                        <DeliveryStatus delivery={delivery} />
+                      </Box>
+                      <Typography
+                        variant="caption"
+                        component="p"
+                        color="text.secondary"
+                        sx={{ mt: 0.75 }}
+                      >
+                        {[
+                          `Anterior: ${delivery.previousDelivery ? formatIsoDate(delivery.previousDelivery) : "—"}`,
+                          delivery.frequencyDays &&
+                            `cada ${delivery.frequencyDays} días`,
+                          delivery.registeredBy &&
+                            `registró ${delivery.registeredBy}`,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </Typography>
+                    </Paper>
+                  ))}
+                </Stack>
+              ) : (
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small" aria-label="Entregas del periodo">
+                    <TableHead>
+                      <StyledTableRow>
+                        {[
+                          "Fecha",
+                          "Equipo",
+                          "Cant.",
+                          "Entrega anterior",
+                          "Frecuencia",
+                          "Estado",
+                          "Registró",
+                        ].map((label) => (
+                          <StyledTableCell
+                            key={label}
+                            align={label === "Cant." ? "right" : "left"}
+                            sx={{ whiteSpace: "nowrap" }}
+                          >
+                            {label}
+                          </StyledTableCell>
+                        ))}
+                      </StyledTableRow>
+                    </TableHead>
+                    <TableBody>
+                      {detail.deliveries.map((delivery) => (
+                        <StyledTableRow key={delivery.id}>
+                          <StyledTableCell sx={{ whiteSpace: "nowrap" }}>
+                            {formatIsoDate(delivery.date)}
+                          </StyledTableCell>
+                          <StyledTableCell
+                            component="th"
+                            scope="row"
+                            sx={{ minWidth: 200, fontWeight: 600 }}
+                          >
+                            {delivery.equipmentName}
+                          </StyledTableCell>
+                          <StyledTableCell
+                            align="right"
+                            sx={{ fontVariantNumeric: "tabular-nums" }}
+                          >
+                            {formatNumber(delivery.quantity)}
+                          </StyledTableCell>
+                          <StyledTableCell sx={{ whiteSpace: "nowrap" }}>
+                            {delivery.previousDelivery
+                              ? formatIsoDate(delivery.previousDelivery)
+                              : "—"}
+                          </StyledTableCell>
+                          <StyledTableCell sx={{ whiteSpace: "nowrap" }}>
+                            {delivery.frequencyDays
+                              ? `Cada ${delivery.frequencyDays} días`
+                              : "—"}
+                          </StyledTableCell>
+                          <StyledTableCell>
+                            <DeliveryStatus delivery={delivery} />
+                          </StyledTableCell>
+                          <StyledTableCell sx={{ whiteSpace: "nowrap" }}>
+                            {delivery.registeredBy ?? "—"}
+                          </StyledTableCell>
+                        </StyledTableRow>
                       ))}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {detail.deliveries.map((delivery) => (
-                      <TableRow key={delivery.id}>
-                        <TableCell sx={{ whiteSpace: "nowrap" }}>
-                          {formatIsoDate(delivery.date)}
-                        </TableCell>
-                        <TableCell sx={{ minWidth: 220 }}>
-                          {delivery.equipmentName}
-                        </TableCell>
-                        <TableCell>{formatNumber(delivery.quantity)}</TableCell>
-                        <TableCell sx={{ whiteSpace: "nowrap" }}>
-                          {delivery.previousDelivery
-                            ? formatIsoDate(delivery.previousDelivery)
-                            : "—"}
-                        </TableCell>
-                        <TableCell sx={{ whiteSpace: "nowrap" }}>
-                          {delivery.frequencyDays
-                            ? `Cada ${delivery.frequencyDays} días`
-                            : "—"}
-                        </TableCell>
-                        <TableCell>
-                          {delivery.outOfRange ? (
-                            <Chip
-                              size="small"
-                              color="warning"
-                              label={
-                                delivery.daysEarly === null
-                                  ? "Fuera de rango"
-                                  : `Fuera de rango · ${delivery.daysEarly} días antes`
-                              }
-                            />
-                          ) : (
-                            <Chip
-                              size="small"
-                              variant="outlined"
-                              label="En rango"
-                            />
-                          )}
-                        </TableCell>
-                        <TableCell sx={{ whiteSpace: "nowrap" }}>
-                          {delivery.registeredBy ?? "—"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
             </Box>
           </Stack>
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Estado de una entrega, con los tonos del sistema (`StatusChip`). */
+function DeliveryStatus({
+  delivery,
+}: {
+  delivery: BiEppEmployeeDetail["deliveries"][number];
+}) {
+  return delivery.outOfRange ? (
+    <StatusChip
+      size="small"
+      tone="warning"
+      label={
+        delivery.daysEarly === null
+          ? "Fuera de rango"
+          : `Fuera de rango · ${delivery.daysEarly} días antes`
+      }
+    />
+  ) : (
+    <StatusChip
+      size="small"
+      tone="success"
+      variant="outlined"
+      label="En rango"
+    />
   );
 }

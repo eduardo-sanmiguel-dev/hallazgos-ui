@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, DragEvent, useEffect, useState } from "react";
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -13,12 +13,15 @@ import { LinearProgress } from "@mui/material";
 import { Paper } from "@mui/material";
 import { Stack } from "@mui/material";
 import { Typography } from "@mui/material";
+import { useMediaQuery } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import CloseIcon from "@mui/icons-material/Close";
+import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
+import AddAPhotoOutlinedIcon from "@mui/icons-material/AddAPhotoOutlined";
 
 import {
   compressEvidenceImage,
@@ -26,6 +29,7 @@ import {
   formatFileSize,
 } from "@shared/utils/evidenceImage";
 import LoadingLinear from "./LoadingLinear";
+import { TOUCH_MEDIA } from "../../theme";
 
 const BrowserCamera = dynamic(() => import("./PhotoCaptureBrowserCamera"), {
   ssr: false,
@@ -55,9 +59,14 @@ export interface PhotoCaptureProps {
   readOnly?: boolean;
 }
 
-// Foto de evidencia: cámara del teléfono (principal), galería o, como
-// alternativa, cámara del navegador. Siempre entrega una imagen comprimida
-// (máx. 1920 px y ~1 MB) lista para subir.
+// Foto de evidencia, en un área con borde punteado. Siempre entrega una
+// imagen comprimida (máx. 1920 px y ~1 MB) lista para subir.
+// - Pantalla táctil (celular, tablet): "Tomar foto" abre la cámara del
+//   teléfono (principal) y "Elegir de galería", las fotos guardadas. Sin la
+//   cámara del navegador: la del teléfono hace lo mismo y mejor.
+// - Con mouse (escritorio): el navegador no abre la cámara con `capture` y los
+//   dos botones abrían el mismo selector de archivos; ahí hay un solo "Subir
+//   foto", la cámara web ("Usar cámara del navegador") y arrastrar la foto.
 export default function PhotoCapture({
   file,
   onChange,
@@ -69,6 +78,8 @@ export default function PhotoCapture({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
+  const isTouch = useMediaQuery(TOUCH_MEDIA, { noSsr: true });
 
   useEffect(() => {
     if (!file) {
@@ -112,6 +123,23 @@ export default function PhotoCapture({
   const isUploading = uploadProgress !== null && uploadProgress !== undefined;
   const isBusy = disabled || isProcessing || isUploading;
 
+  // Escritorio: soltar una foto en el área equivale a "Subir foto".
+  const dropProps = isTouch
+    ? {}
+    : {
+        onDragOver: (event: DragEvent) => {
+          event.preventDefault();
+          if (!isBusy) setIsDragging(true);
+        },
+        onDragLeave: () => setIsDragging(false),
+        onDrop: (event: DragEvent) => {
+          event.preventDefault();
+          setIsDragging(false);
+          const dropped = event.dataTransfer.files?.[0];
+          if (dropped && !isBusy) process(dropped);
+        },
+      };
+
   return (
     <Stack spacing={2} sx={{ width: "100%" }}>
       {mode === "browserCamera" ? (
@@ -121,7 +149,7 @@ export default function PhotoCapture({
             onError={() => {
               setMode("pick");
               setError(
-                "No se pudo abrir la cámara del navegador. Usa «Tomar foto» o «Elegir de galería».",
+                "No se pudo abrir la cámara del navegador. Usa «Subir foto».",
               );
             }}
           />
@@ -136,53 +164,105 @@ export default function PhotoCapture({
       ) : (
         !file &&
         !readOnly && (
-          <Stack spacing={1.5}>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-              <Button
-                component="label"
-                variant="contained"
-                startIcon={<PhotoCameraIcon />}
-                disabled={isBusy}
-                sx={{ flex: 1 }}
+          <Stack
+            spacing={1.5}
+            {...dropProps}
+            sx={{
+              alignItems: "center",
+              textAlign: "center",
+              p: { xs: 2, sm: 3 },
+              borderRadius: 2,
+              border: "2px dashed",
+              borderColor: isDragging ? "primary.main" : "divider",
+              backgroundColor: isDragging ? "action.selected" : "action.hover",
+              transition: "border-color 150ms, background-color 150ms",
+            }}
+          >
+            <AddAPhotoOutlinedIcon
+              aria-hidden
+              sx={{ fontSize: 36, color: "text.secondary" }}
+            />
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              {isTouch
+                ? "Toma una foto de lo que observaste."
+                : "Sube una foto de lo que observaste o arrástrala aquí."}
+            </Typography>
+            {isTouch ? (
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1.5}
+                sx={{ width: "100%" }}
               >
-                Tomar foto
-                {/* En celular abre la cámara del teléfono (mejor enfoque,
-                    flash y resolución); en escritorio, el selector. */}
-                <VisuallyHiddenInput
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={handleInput}
+                <Button
+                  component="label"
+                  variant="contained"
+                  startIcon={<PhotoCameraIcon />}
                   disabled={isBusy}
-                />
-              </Button>
-              <Button
-                component="label"
-                variant="outlined"
-                startIcon={<PhotoLibraryIcon />}
-                disabled={isBusy}
-                sx={{ flex: 1 }}
+                  sx={{ flex: 1 }}
+                >
+                  Tomar foto
+                  {/* Abre la cámara trasera del teléfono (mejor enfoque,
+                      flash y resolución). */}
+                  <VisuallyHiddenInput
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleInput}
+                    disabled={isBusy}
+                  />
+                </Button>
+                <Button
+                  component="label"
+                  variant="outlined"
+                  startIcon={<PhotoLibraryIcon />}
+                  disabled={isBusy}
+                  sx={{ flex: 1, backgroundColor: "background.paper" }}
+                >
+                  Elegir de galería
+                  <VisuallyHiddenInput
+                    type="file"
+                    accept="image/*"
+                    onChange={handleInput}
+                    disabled={isBusy}
+                  />
+                </Button>
+              </Stack>
+            ) : (
+              <Stack
+                direction="row"
+                spacing={1.5}
+                useFlexGap
+                sx={{ flexWrap: "wrap", justifyContent: "center" }}
               >
-                Elegir de galería
-                <VisuallyHiddenInput
-                  type="file"
-                  accept="image/*"
-                  onChange={handleInput}
+                <Button
+                  component="label"
+                  variant="contained"
+                  startIcon={<FileUploadOutlinedIcon />}
                   disabled={isBusy}
-                />
-              </Button>
-            </Stack>
-            <Button
-              startIcon={<VideocamOutlinedIcon />}
-              onClick={() => {
-                setError("");
-                setMode("browserCamera");
-              }}
-              disabled={isBusy}
-              sx={{ alignSelf: { xs: "stretch", sm: "flex-start" } }}
-            >
-              Usar cámara del navegador
-            </Button>
+                >
+                  Subir foto
+                  <VisuallyHiddenInput
+                    type="file"
+                    accept="image/*"
+                    onChange={handleInput}
+                    disabled={isBusy}
+                  />
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<VideocamOutlinedIcon />}
+                  onClick={() => {
+                    setError("");
+                    setMode("browserCamera");
+                  }}
+                  disabled={isBusy}
+                  // Fondo del papel: sobre el área gris se distingue.
+                  sx={{ backgroundColor: "background.paper" }}
+                >
+                  Usar cámara del navegador
+                </Button>
+              </Stack>
+            )}
           </Stack>
         )
       )}

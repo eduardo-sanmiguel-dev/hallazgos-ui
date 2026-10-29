@@ -1,19 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ComponentType } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentType,
+  type ReactElement,
+} from "react";
 
+import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 
-import {
-  Alert,
-  Box,
-  Button,
-  Grid,
-  Paper,
-  Skeleton,
-  Tab,
-  Tabs,
-} from "@mui/material";
+import { Alert, Box, Button, Grid, Link, Paper, Skeleton } from "@mui/material";
+import EventBusyIcon from "@mui/icons-material/EventBusyOutlined";
+import GroupsIcon from "@mui/icons-material/GroupsOutlined";
+import Inventory2Icon from "@mui/icons-material/Inventory2Outlined";
+import LocalShippingIcon from "@mui/icons-material/LocalShippingOutlined";
+import PaymentsIcon from "@mui/icons-material/PaymentsOutlined";
+import PersonAddAltIcon from "@mui/icons-material/PersonAddAltOutlined";
 
 import { DashboardService } from "@services";
 import SelectDefault from "@components/SelectDefault";
@@ -25,10 +29,15 @@ import ErrorState from "@shared/components/ErrorState";
 import { ROLE_ADMINISTRADOR } from "@shared/constants";
 import { proposedPlantId, saveLastPlant } from "@shared/utils/lastPlant";
 
-import KpiTile from "./_components/KpiTile";
+import GroupTabs from "./_components/GroupTabs";
+import KpiTile from "@shared/components/KpiTile";
 import OutOfRangePanel from "./_components/OutOfRangePanel";
-import PeriodFilter from "./_components/PeriodFilter";
-import { DEFAULT_PERIOD, presetRange, type PeriodValue } from "./_lib/period";
+import PeriodFilter from "@shared/components/PeriodFilter";
+import {
+  DEFAULT_PERIOD,
+  presetRange,
+  type PeriodValue,
+} from "@shared/utils/period";
 import {
   BiData,
   computeKpis,
@@ -60,12 +69,16 @@ type ChartItem = {
 // `panel`: la pestaña tiene su propio contenido y datos (no gráficas sueltas).
 const chartGroups: {
   title: string;
+  icon: ReactElement;
+  description: string;
   charts: ChartItem[];
   requires?: Requirement;
   panel?: "outOfRange";
 }[] = [
   {
     title: "Gasto",
+    icon: <PaymentsIcon />,
+    description: "Cuánto se gastó y en qué equipos",
     requires: "prices",
     charts: [
       { Component: MonthlySpendChart },
@@ -76,6 +89,8 @@ const chartGroups: {
   },
   {
     title: "Entregas",
+    icon: <LocalShippingIcon />,
+    description: "Qué se entregó y a cuántos colaboradores",
     charts: [
       { Component: DeliveriesRangeChart, requires: "frequency" },
       { Component: EmployeesWithDeliveryChart },
@@ -85,6 +100,8 @@ const chartGroups: {
   // Qué equipos se entregan antes de tiempo y a quién.
   {
     title: "Fuera de rango",
+    icon: <EventBusyIcon />,
+    description: "Equipos entregados antes de tiempo",
     charts: [],
     requires: "frequency",
     panel: "outOfRange",
@@ -259,7 +276,17 @@ const EPPCharts = () => {
           <>
             {hiddenNotice && (
               <Alert severity="info" sx={{ mb: 2 }}>
-                {hiddenNotice} Puedes capturarlos en Equipos.
+                {hiddenNotice} Puedes capturarlos en{" "}
+                {/* Antes solo lo decía; ahora lleva a la pantalla. */}
+                <Link
+                  component={NextLink}
+                  href="/equipments"
+                  color="inherit"
+                  sx={{ fontWeight: 600 }}
+                >
+                  Equipos
+                </Link>
+                .
               </Alert>
             )}
 
@@ -267,6 +294,7 @@ const EPPCharts = () => {
               {[
                 {
                   label: "Gasto",
+                  icon: <PaymentsIcon />,
                   requires: "prices" as Requirement,
                   value: kpis ? formatMoney(kpis.spend.current) : "",
                   delta: kpis && {
@@ -277,6 +305,7 @@ const EPPCharts = () => {
                 },
                 {
                   label: "Unidades entregadas",
+                  icon: <Inventory2Icon />,
                   value: kpis ? formatNumber(kpis.units.current) : "",
                   delta: kpis && {
                     ...kpis.units,
@@ -286,6 +315,7 @@ const EPPCharts = () => {
                 },
                 {
                   label: "Entregas fuera de rango",
+                  icon: <EventBusyIcon />,
                   requires: "frequency" as Requirement,
                   value: kpis ? formatPercent(kpis.outOfRange.current) : "",
                   caption: kpis
@@ -299,6 +329,7 @@ const EPPCharts = () => {
                 },
                 {
                   label: "Gasto promedio por colaborador",
+                  icon: <GroupsIcon />,
                   requires: "prices" as Requirement,
                   value: kpis
                     ? formatMoney(kpis.averagePerEmployee.current)
@@ -314,6 +345,7 @@ const EPPCharts = () => {
                 },
                 {
                   label: "Primera entrega de EPP",
+                  icon: <PersonAddAltIcon />,
                   value: kpis ? formatNumber(kpis.newEmployees.current) : "",
                   caption: "Colaboradores nuevos en EPP",
                   delta: kpis && {
@@ -324,7 +356,7 @@ const EPPCharts = () => {
                 },
               ]
                 .filter(({ requires }) => isAvailable(requires))
-                .map(({ label, value, caption, delta }, _, tiles) => (
+                .map(({ label, icon, value, caption, delta }, _, tiles) => (
                   <Grid
                     key={label}
                     // 2 por fila en celular y tablet (uno por fila obligaba a
@@ -339,6 +371,7 @@ const EPPCharts = () => {
                   >
                     <KpiTile
                       label={label}
+                      icon={icon}
                       value={value}
                       caption={caption}
                       isLoading={isFirstLoad}
@@ -376,28 +409,11 @@ const EPPCharts = () => {
               </Paper>
             ) : (
               <>
-                <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}>
-                  <Tabs
-                    value={activeTab}
-                    onChange={(_, newValue: number) =>
-                      setActiveTitle(groups[newValue].title)
-                    }
-                    aria-label="Grupos de indicadores EPP"
-                    variant="scrollable"
-                    scrollButtons="auto"
-                    allowScrollButtonsMobile
-                  >
-                    {groups.map((group, index) => (
-                      <Tab
-                        key={group.title}
-                        label={group.title}
-                        id={`epp-group-tab-${index}`}
-                        aria-controls={`epp-group-panel-${index}`}
-                        sx={{ fontWeight: 600 }}
-                      />
-                    ))}
-                  </Tabs>
-                </Box>
+                <GroupTabs
+                  groups={groups}
+                  value={activeTab}
+                  onChange={(index) => setActiveTitle(groups[index].title)}
+                />
 
                 <Grid
                   key={`${chartsMode}-${activeTab}`}

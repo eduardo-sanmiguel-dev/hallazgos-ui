@@ -93,6 +93,13 @@ const query = gql`
         user {
           name
         }
+        # Quién lo inició y quién lo cerró (nulos en hallazgos anteriores).
+        startedBy {
+          name
+        }
+        closedBy {
+          name
+        }
       }
     }
   }
@@ -122,6 +129,10 @@ export interface EvidenceGraphql {
   updatedAt: Date;
   solutionDate: Date | null;
   startProcessDate: Date | null;
+  /** Quién lo pasó a "En progreso" (null: anterior a que se registrara). */
+  startedBy?: OnlyName | null;
+  /** Quién lo cerró (null: anterior a que se registrara). */
+  closedBy?: OnlyName | null;
   imgEvidence: string;
   imgProcess: string;
   imgSolution: string;

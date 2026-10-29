@@ -5,13 +5,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import ClearIcon from "@mui/icons-material/Clear";
-import SaveIcon from "@mui/icons-material/Save";
 import { TextField } from "@mui/material";
 import { Button } from "@mui/material";
 import { FormHelperText } from "@mui/material";
 import PageHeader from "@shared/components/PageHeader";
 import { Box } from "@mui/material";
 import { Grid } from "@mui/material";
+import FormSection from "@shared/components/FormSection";
+import FormActions from "@shared/components/FormActions";
 import { v4 as uuidv4 } from "uuid";
 
 import { EvidencesService, UsersService } from "@services";
@@ -28,7 +29,6 @@ import ImageORCamera from "@shared/components/ImageORCamera";
 import DraftNotice from "@shared/components/DraftNotice";
 import { useFormDraft } from "@hooks/useFormDraft";
 import { dataURLtoFile, notify } from "@shared/utils";
-import { TOUCH_MEDIA } from "../../../theme";
 import SelectDefault from "@components/SelectDefault";
 import { SecondaryType, User } from "@interfaces";
 import {
@@ -377,29 +377,34 @@ export default function HallazgosFormPage() {
     setAttachedFile(null);
   };
 
+  // La clasificación decide si la foto es obligatoria (se dice en la sección).
+  const photoHint = !typeHallazgo
+    ? "Una foto de lo que observaste."
+    : isUnsafeBehavior
+      ? "Opcional para esta clasificación."
+      : "Obligatoria para esta clasificación.";
+
+  // Secciones en el orden en que se captura en campo: dónde, qué, la foto y
+  // quién da seguimiento. Ancho máximo en escritorio: los campos no se
+  // estiran a toda la pantalla.
   return (
-    <>
+    <Box sx={{ maxWidth: 960, mx: "auto" }}>
       <PageHeader title="Nuevo hallazgo" />
-      <Grid container spacing={2}>
-        {(draft.offer || draft.lock) && (
-          <Grid size={12}>
-            <DraftNotice
-              offer={draft.offer}
-              lock={draft.lock}
-              onRestore={draft.restore}
-              onDiscard={discardDraft}
-              onRetry={send}
-              isSending={isLoading}
-            />
-          </Grid>
-        )}
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+      {(draft.offer || draft.lock) && (
+        <Box sx={{ mb: 3 }}>
+          <DraftNotice
+            offer={draft.offer}
+            lock={draft.lock}
+            onRestore={draft.restore}
+            onDiscard={discardDraft}
+            onRetry={send}
+            isSending={isLoading}
+          />
+        </Box>
+      )}
+
+      <FormSection title="Ubicación" description="Dónde se observó.">
+        <Grid size={{ xs: 12, sm: 4 }}>
           <SelectDefault
             data={manufacturingPlants}
             label="Planta"
@@ -412,53 +417,7 @@ export default function HallazgosFormPage() {
             message={errorOf("manufacturingPlantId")}
           />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
-          <SelectDefault
-            data={mainTypes}
-            label="Hallazgo"
-            loading={mainTypesQuery.isLoading}
-            value={typeHallazgo}
-            onChange={({ target: { value } }) => {
-              setTypeHallazgo(value);
-              setSecondaryType("");
-            }}
-            disabled={isLocked}
-          />
-          <FieldError field="typeHallazgo" message={errorOf("typeHallazgo")} />
-        </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
-          <SelectDefault
-            data={secondaryTypes}
-            label="Tipo"
-            value={secondaryType}
-            onChange={(e) => setSecondaryType(e.target.value)}
-            helperText={!typeHallazgo ? "Seleccione un hallazgo" : ""}
-            disabled={isLocked}
-          />
-          <FieldError
-            field="secondaryType"
-            message={errorOf("secondaryType")}
-          />
-        </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 4 }}>
           <SelectDefault
             data={zones.filter(
               (data) =>
@@ -473,13 +432,7 @@ export default function HallazgosFormPage() {
           />
           <FieldError field="zone" message={errorOf("zone")} />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 4 }}>
           <SelectDefault
             data={processes.filter(
               (data) =>
@@ -493,13 +446,78 @@ export default function HallazgosFormPage() {
           />
           <FieldError field="process" message={errorOf("process")} />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+      </FormSection>
+
+      <FormSection
+        title="Lo que se observó"
+        description="Clasifica el hallazgo y descríbelo."
+      >
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <SelectDefault
+            data={mainTypes}
+            label="Hallazgo"
+            loading={mainTypesQuery.isLoading}
+            value={typeHallazgo}
+            onChange={({ target: { value } }) => {
+              setTypeHallazgo(value);
+              setSecondaryType("");
+            }}
+            disabled={isLocked}
+          />
+          <FieldError field="typeHallazgo" message={errorOf("typeHallazgo")} />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <SelectDefault
+            data={secondaryTypes}
+            label="Tipo"
+            value={secondaryType}
+            onChange={(e) => setSecondaryType(e.target.value)}
+            helperText={!typeHallazgo ? "Seleccione un hallazgo" : ""}
+            disabled={isLocked}
+          />
+          <FieldError
+            field="secondaryType"
+            message={errorOf("secondaryType")}
+          />
+        </Grid>
+        <Grid size={12}>
+          {/* Con contorno, como el resto de los campos (M8). */}
+          <TextField
+            {...fieldProps("description")}
+            multiline
+            minRows={4}
+            fullWidth
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            label="Describe lo que observaste"
+            slotProps={{ input: { readOnly: isLocked } }}
+            helperText={
+              errorOf("description") ??
+              "Qué viste, dónde y por qué es un riesgo."
+            }
+          />
+        </Grid>
+      </FormSection>
+
+      <FormSection title="Evidencia" description={photoHint}>
+        <Grid size={12}>
+          <ImageORCamera
+            setImage={setImage}
+            image={image}
+            setAttachedFile={setAttachedFile}
+            attachedFile={attachedFile}
+            uploadProgress={upload.progress}
+            readOnly={isLocked}
+          />
+          <FieldError field="photo" message={errorOf("photo")} />
+        </Grid>
+      </FormSection>
+
+      <FormSection
+        title="Seguimiento"
+        description="Quién da seguimiento y en cuánto tiempo."
+      >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <SelectDefault
             data={supervisorsCurrent}
             label="Supervisor"
@@ -522,13 +540,7 @@ export default function HallazgosFormPage() {
           />
           <FieldError field="supervisor" message={errorOf("supervisor")} />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 2,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <SelectDefault
             data={priorityOptions.map((item) => ({
               id: item.days,
@@ -541,92 +553,28 @@ export default function HallazgosFormPage() {
             disabled={isLocked}
           />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 4,
-          }}
-        >
-          {/* Con contorno, como el resto de los campos (M8). */}
-          <TextField
-            {...fieldProps("description")}
-            multiline
-            minRows={4}
-            fullWidth
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            label="Describe lo que observaste"
-            slotProps={{ input: { readOnly: isLocked } }}
-            helperText={
-              errorOf("description") ??
-              "Qué viste, dónde y por qué es un riesgo."
-            }
-          />
-        </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 12,
-            md: 12,
-          }}
-        >
-          <ImageORCamera
-            setImage={setImage}
-            image={image}
-            setAttachedFile={setAttachedFile}
-            attachedFile={attachedFile}
-            uploadProgress={upload.progress}
-            readOnly={isLocked}
-          />
-          <FieldError field="photo" message={errorOf("photo")} />
-        </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 12,
-            md: 12,
-          }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: { xs: "column-reverse", sm: "row" },
-              justifyContent: "flex-end",
-              gap: 1.5,
-              // 48 px en pantalla táctil, como el tema (A2): un minHeight
-              // propio le gana al del tema.
-              "& .MuiButton-root": {
-                minWidth: { sm: 180 },
-                minHeight: 44,
-                [TOUCH_MEDIA]: { minHeight: 48 },
-              },
-            }}
+      </FormSection>
+
+      {/* Con un envío pendiente, las acciones son las del aviso. */}
+      {isLocked ? (
+        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <Button
+            variant="outlined"
+            startIcon={<ClearIcon />}
+            onClick={() => router.push("/hallazgos")}
+            disabled={isLoading}
           >
-            <Button
-              variant="outlined"
-              startIcon={<ClearIcon />}
-              onClick={() => router.push("/hallazgos")}
-              disabled={isLoading}
-            >
-              Cancelar
-            </Button>
-            {/* Con un envío pendiente, las acciones son las del aviso. */}
-            {!isLocked && (
-              <Button
-                variant="contained"
-                startIcon={<SaveIcon />}
-                onClick={saveEvidence}
-                loading={isLoading}
-                loadingPosition="start"
-                disabled={isLoading}
-              >
-                Crear hallazgo
-              </Button>
-            )}
-          </Box>
-        </Grid>
-      </Grid>
-    </>
+            Cancelar
+          </Button>
+        </Box>
+      ) : (
+        <FormActions
+          onCancel={() => router.push("/hallazgos")}
+          onSave={saveEvidence}
+          isSaving={isLoading}
+          saveLabel="Crear hallazgo"
+        />
+      )}
+    </Box>
   );
 }

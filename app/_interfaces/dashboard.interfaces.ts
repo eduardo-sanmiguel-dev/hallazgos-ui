@@ -26,6 +26,17 @@ export interface ResponseDashboardStatusByFilters {
     name: string;
     y: number;
   }[];
+  // Periodo elegido y su comparación ('YYYY-MM-DD'), con la regla del
+  // análisis EPP; null si el rango no la admite (más de 3 años).
+  periodo?: {
+    actual: { desde: string; hasta: string };
+    anterior: { desde: string; hasta: string };
+  } | null;
+  // Mismos conteos en el periodo de comparación.
+  anterior?: {
+    total: number;
+    seriesData: { name: string; y: number }[];
+  } | null;
 }
 
 export interface ResponseDashboardPriorityInterventionByFilters {

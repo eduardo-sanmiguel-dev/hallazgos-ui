@@ -100,12 +100,20 @@ export const primaryTextColor = (theme: Theme) =>
     ? darken(theme.palette.primary.main, 0.45)
     : theme.palette.primary.light;
 
-// Fondo tenue en color primario (item activo del menú, encabezados de tabla).
+// Fondo tenue en color primario de los encabezados (tablas y barra del
+// detalle de hallazgo). 16 % en claro y 24 % en oscuro: con su texto
+// (`primaryTextColor`) da 5.7:1 o más en los tres temas.
 export const primarySoftBackground = (theme: Theme) =>
   alpha(
     theme.palette.primary.main,
-    theme.palette.mode === "light" ? 0.12 : 0.2,
+    theme.palette.mode === "light" ? 0.16 : 0.24,
   );
+
+// Línea de acento bajo esos encabezados: da presencia de marca sin un relleno
+// fuerte (que competiría con los botones principales). Es decorativa: el
+// fondo ya delimita el encabezado.
+export const primaryAccentBorder = (theme: Theme) =>
+  `2px solid ${theme.palette.primary.main}`;
 
 // En modo claro, el texto y los íconos en color primario usan el verde oscuro;
 // los rellenos (botón contained, chip filled) y el logo conservan el de marca.
@@ -193,6 +201,20 @@ const appThemeOptions = (appTheme: AppThemeName): ThemeOptions => ({
             {
               props: { color: "primary", variant: "outlined" },
               style: brandTextOnLight({ theme }),
+            },
+            // Contorno con el fondo del papel: transparente, sobre el fondo
+            // gris de la página solo se veía el borde verde claro y el botón
+            // se perdía ("Regresar", "Usar cámara del navegador"). Sobre una
+            // tarjeta no cambia nada. Al pasar el mouse, un tono encima.
+            {
+              props: { variant: "outlined" },
+              style: {
+                backgroundColor: theme.palette.background.paper,
+                "&:hover": {
+                  backgroundColor: theme.palette.background.paper,
+                  backgroundImage: `linear-gradient(${theme.palette.action.hover}, ${theme.palette.action.hover})`,
+                },
+              },
             },
             {
               props: { color: "error", variant: "text" },

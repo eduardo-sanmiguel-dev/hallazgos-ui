@@ -1,6 +1,9 @@
 import { useTheme } from "@mui/material/styles";
 
 import type { BusinessIntelligenceEpp } from "@interfaces";
+import { periodLabel } from "@shared/utils/period";
+
+export { periodLabel };
 
 export type BiData = BusinessIntelligenceEpp;
 
@@ -80,31 +83,6 @@ export const monthLabelEs = (pgLabel: string) => {
 export const formatIsoDate = (iso: string) => {
   const [year, month, day] = iso.split("-").map(Number);
   return `${day} ${ES_MONTHS[month - 1]} ${year}`;
-};
-
-/**
- * Rango de la API → texto corto:
- * - mismo mes: "1–22 oct 2026" (un solo día: "1 oct 2026");
- * - mismo año: "1 ago – 22 oct 2026";
- * - distinto año: "1 dic 2025 – 22 ene 2026".
- */
-export const periodLabel = ({
-  desde,
-  hasta,
-}: {
-  desde: string;
-  hasta: string;
-}) => {
-  const [y1, m1, d1] = desde.split("-").map(Number);
-  const [y2, m2, d2] = hasta.split("-").map(Number);
-  if (y1 === y2 && m1 === m2) {
-    const days = d1 === d2 ? `${d1}` : `${d1}–${d2}`;
-    return `${days} ${ES_MONTHS[m1 - 1]} ${y1}`;
-  }
-  if (y1 === y2) {
-    return `${d1} ${ES_MONTHS[m1 - 1]} – ${d2} ${ES_MONTHS[m2 - 1]} ${y2}`;
-  }
-  return `${formatIsoDate(desde)} – ${formatIsoDate(hasta)}`;
 };
 
 /** Nombres del periodo elegido y de su periodo de comparación. */

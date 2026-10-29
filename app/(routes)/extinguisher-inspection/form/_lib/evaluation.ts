@@ -35,10 +35,9 @@ export interface LocalEvaluation {
   access: EvaluationValues;
   support: EvaluationValues;
   signaling: EvaluationValues;
+  // Conceptos con novedad (NC o NA); los demás se envían como C.
   noveltyRecords: EvaluationNoveltyRecord[];
   observations: string;
-  newNoveltyConcept: GroupedConceptKey | "";
-  newNoveltyStatus: GroupedConceptStatus | "";
 }
 
 export const groupedConceptFields: Array<{
@@ -97,8 +96,6 @@ export const getDefaultEvaluationFromEmergencyTeam = (
   signaling: EvaluationValues.C,
   noveltyRecords: [],
   observations: "",
-  newNoveltyConcept: "",
-  newNoveltyStatus: "",
 });
 
 // Límite del API para las observaciones de cada evaluación.

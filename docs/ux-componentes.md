@@ -52,6 +52,31 @@ En código propio, para texto o ícono verde: `sx={{ color: "text.brand" }}`
 En oscuro y halloween se usa el tono claro del primario; los colores
 semánticos son los de MUI.
 
+### Botones de contorno (`outlined`)
+
+Llevan el fondo del papel (blanco en claro). Transparentes, sobre el fondo
+gris de la página solo se veía el borde verde claro y el botón se perdía
+("Regresar" en la agenda de Gemba Walk, "Usar cámara del navegador"). Sobre
+una tarjeta no cambia nada. Al pasar el mouse, un tono encima del papel.
+
+### Encabezados en verde de marca
+
+Cabeceras de tabla (`StyledTableCell` de `TableDefault`, que usan todas las
+listas) y barra del detalle de hallazgo:
+
+- Fondo `primarySoftBackground`: verde al 16 % en claro y 24 % en oscuro y
+  halloween (antes 12 % y 20 %), con texto `primaryTextColor`: 5.7:1 o más en
+  los tres temas.
+- Línea de acento `primaryAccentBorder`: 2 px en el verde de marca bajo el
+  encabezado. Da presencia sin un relleno fuerte, que competiría con los
+  botones principales.
+- En una barra fija, el verde va sobre el fondo del papel (opaco) para que
+  el contenido no se vea al pasar debajo.
+- La regla que quita el borde de la última fila (`StyledTableRow`) aplica
+  solo al cuerpo: antes también quitaba la línea de la fila de encabezados.
+- Las tablas de Análisis de datos EPP (dentro de tarjetas de gráficas) y la
+  selección del menú lateral no usan este patrón.
+
 ### Colores semánticos (`app/_shared/constants/semanticTones.ts`)
 
 Nombres de la paleta de MUI (`success`, `warning`, `info`, `error`,
@@ -98,13 +123,21 @@ Service.create(formData, { onUploadProgress: upload.onUploadProgress })
   .finally(upload.reset);
 ```
 
-- **Tomar foto** (principal): `<input type="file" accept="image/*"
-  capture="environment">` abre la cámara trasera del teléfono (mejor enfoque,
-  flash y resolución). En escritorio abre el selector de archivos.
-- **Elegir de galería**: mismo input, sin `capture`.
-- **Usar cámara del navegador** (alternativa): `react-html5-camera-photo`,
-  cargado solo al pedirlo (`PhotoCaptureBrowserCamera.tsx`), a la resolución
-  máxima de la cámara y sin espejo.
+- Sin foto, un **área con borde punteado** (ícono, una indicación y los
+  botones) que se distingue dentro de la tarjeta del formulario.
+- **En pantalla táctil** (celular, tablet; `TOUCH_MEDIA`), solo dos botones:
+  - **Tomar foto** (principal): `<input type="file" accept="image/*"
+    capture="environment">` abre la cámara trasera del teléfono (mejor
+    enfoque, flash y resolución).
+  - **Elegir de galería**: mismo input, sin `capture`.
+  - Sin "Usar cámara del navegador": la del teléfono hace lo mismo y mejor.
+- **Con mouse** (escritorio): un solo **Subir foto** (selector de archivos),
+  **Usar cámara del navegador** (cámara web) y **arrastrar y soltar** la foto
+  en el área. El navegador de escritorio ignora `capture`, así que "Tomar
+  foto" y "Elegir de galería" abrían lo mismo.
+- **Usar cámara del navegador**: `react-html5-camera-photo`, cargado solo al
+  pedirlo (`PhotoCaptureBrowserCamera.tsx`), a la resolución máxima de la
+  cámara y sin espejo.
 - Toda foto pasa por `compressEvidenceImage`
   (`app/_shared/utils/evidenceImage.ts`): máximo 1920 px en el lado mayor y
   ~1 MB. PNG y WEBP se conservan; todo lo demás (JPG, HEIC) sale como JPG. La
@@ -262,6 +295,16 @@ Ganó `description` opcional, y con `title` la sección queda nombrada para
 lectores de pantalla (`aria-labelledby`). Base para dividir CIAEL en
 secciones (A6, Fase 4).
 
+### `DetailSection`, `DetailField`, `DetailFieldList`
+
+`app/_shared/components/DetailSection.tsx`. Sección de una vista de detalle
+o de captura: título (h3), descripción y acción opcionales (un conteo, un
+filtro), con el acento de la barra de filtros activa (borde y franja
+izquierda en verde). `DetailFieldList` arma la lista de datos (`dl`) en dos
+columnas (una en la columna lateral de escritorio mediano) y `DetailField`
+cada par etiqueta/valor. Lo usan el detalle de hallazgo y el registro y el
+detalle de Gemba Walk.
+
 ### `FormActions`
 
 - `inline`: Cancelar y Guardar lado a lado también en celular (para barras
@@ -379,6 +422,13 @@ Archivos en `app/(routes)/hallazgos/`.
   (antes su spinner lo tapaba). La descripción de la solución ya no aparece en
   rojo al abrir.
 - **Nuevo hallazgo (A5):**
+  - **Cuatro secciones** (`FormSection`, como CIAEL e ICS), en el
+    orden en que se captura en campo: **Ubicación** (planta, lugar,
+    proceso), **Lo que se observó** (clasificación, tipo y descripción a todo
+    el ancho), **Evidencia** (dice si la foto es obligatoria u opcional para
+    la clasificación elegida) y **Seguimiento** (supervisor y prioridad).
+    Ancho máximo de 960 px en escritorio (antes, 9 campos en una cuadrícula
+    de 4 columnas a todo el ancho, sin tarjeta) y `FormActions` al pie.
   - Sin rojo al abrir. "Crear hallazgo" siempre está activo: al tocarlo se
     marca el primer campo que falta (`useFieldErrors`) y recibe el foco. Antes
     el botón quedaba deshabilitado sin decir qué faltaba.
@@ -388,6 +438,31 @@ Archivos en `app/(routes)/hallazgos/`.
     usuario y el lugar es de esa planta.
   - Descripción con contorno, como el resto de los campos (M8).
   - Progreso de subida y errores del API marcados en su campo.
+- **Detalle del hallazgo** (`EvidencePreview`, `DetailsEvidence`), sin
+  pestañas (antes "Imagenes" y "Comentarios" en pestañas):
+  - Barra fija "Hallazgo #N" con el verde de los encabezados.
+  - **Resumen:** planta, clasificación y tipo, chips de estatus, prioridad
+    (tono de su riesgo) y plazo, y ubicación ("Zona › Lugar · Proceso: X",
+    sin repetir nombres iguales).
+  - **Lo que se observó** primero; **Seguimiento** por etapas (Reportado →
+    En progreso → Cerrado o Cancelado), cada una con su fecha, quién lo hizo
+    y su foto; "Cómo se resolvió" en el cierre, en cualquier clasificación
+    (antes solo en comportamiento inseguro).
+  - **Datos** en una columna lateral fija en escritorio y **Comentarios** a
+    la vista (`EvidenceComments`): iniciales de quien escribió (antes, una
+    foto de internet para todos), estado vacío, campo de varias líneas,
+    Ctrl + Enter para enviar y el texto se conserva si falla.
+  - Secciones con el acento de la barra de filtros activa (borde y franja
+    izquierda en verde). Miniaturas con la foto completa (sin recortar) y
+    `EvidencePhotoViewer` a pantalla completa: "1 de 3" y paso entre fotos
+    con botones o flechas del teclado.
+  - En celular, una columna: resumen, lo observado, seguimiento, datos y
+    comentarios.
+- **Quién inició y quién cerró:** relaciones `startedBy` y `closedBy` del
+  hallazgo (columnas `startedById` y `closedById`, migración
+  `AddStartedAndClosedByToEvidence1793000000000`), guardadas al iniciar y al
+  cerrar. En los hallazgos anteriores son nulas y el seguimiento muestra solo
+  la fecha.
 
 ### Borrador local (C3, opción A)
 
@@ -498,9 +573,31 @@ Archivos en `app/(routes)/epp/`.
   columna; los filtros sí aplican.
 - **Estados:** sin filas, `TableBodyState` ("Sin entregas de EPP" o "Sin
   resultados") o `ErrorState` con "Reintentar" si la consulta falló.
-- **Entrega:** en celular, los equipos agregados en lista (con "Fuera de la
-  frecuencia de entrega" como `StatusChip`), la vista previa de la firma al
-  ancho disponible y menos margen interior.
+- **Entrega (rediseñada antes del despliegue, como extintores y Gemba
+  Walk):** `DialogCreateEpp` sigue a pantalla completa, con ancho máximo de
+  960 px y tres `DetailSection` en el orden de la entrega:
+  - **Colaborador:** planta y colaborador.
+  - **Equipos a entregar:** equipo, observaciones (campo normal; antes, un
+    `Paper` con campo de línea) y "Agregar" en una fila; los agregados en
+    lista en todos los tamaños (antes, tabla de 4 columnas en escritorio),
+    con franja verde o, si está fuera de la frecuencia, ámbar con
+    `StatusChip` "Fuera de la frecuencia de entrega" (en celular, en dos
+    líneas en vez de cortarse). Vacío: área punteada.
+  - **Firma:** área punteada con "Firmar" grande. Ya firmada, como en
+    papel: recuadro blanco a todo el ancho (también en oscuro) con la firma
+    centrada sobre una línea, el nombre del colaborador y "Firma de
+    recibido" debajo, y "Volver a firmar" al pie; chip "Firmado" en el
+    encabezado. Antes, la imagen a la izquierda y el botón suelto.
+  - Equipos y Firma están siempre a la vista; sin colaborador dicen "Elige
+    primero al colaborador." (antes aparecían de golpe).
+  - **Barra fija al pie:** "N equipos", "Firmado" / "Sin firma", "Falta:
+    colaborador, equipos y firma" (lo que quede) y `FormActions` (Cancelar,
+    Guardar). Antes, "Guardar" iba en la barra superior, deshabilitado sin
+    decir qué faltaba.
+  - Los selectores ya no se marcan en rojo al estar vacíos
+    (`validationEmpty`): el de equipo volvía a rojo tras cada "Agregar".
+  - La lógica (validación de frecuencia, idempotencia, lo que se envía) no
+    cambia.
 - **Sin borrador local:** la idempotencia y "Reintentar" ya cubren el envío
   fallido.
 
@@ -508,10 +605,32 @@ Archivos en `app/(routes)/epp/`.
 
 Archivos en `app/(routes)/extinguisher-inspection/`.
 
-- **Formulario (M1):** `FormSection` "Inspección" (planta y próxima recarga,
-  que aplica a todas las evaluaciones) y `FormSection` "Evaluaciones", con
-  "Agregar evaluación" (escanear el QR) arriba de las tarjetas y
-  `FormActions` al pie. En edición, el botón dice "Guardar evaluaciones".
+- **Formulario (M1, rediseñado antes del despliegue, como Gemba Walk):**
+  - Ancho máximo de 960 px con el título alineado. `DetailSection`
+    "Inspección" (planta y próxima recarga, que aplica a todas las
+    evaluaciones) y `DetailSection` "Extintores evaluados", con un chip
+    "N extintores" en el encabezado.
+  - Sin evaluaciones: área punteada con el ícono de QR, "Escanea el QR
+    impreso en el extintor…" y "Agregar evaluación" grande (a todo lo ancho
+    en celular); el error "Agrega al menos una evaluación" va ahí mismo. Con
+    evaluaciones, "Agregar evaluación" queda arriba de las tarjetas.
+  - **Tarjeta del extintor** (`_components/EvaluationCard.tsx`): ícono,
+    "Extintor N" con la ubicación, chips de tipo, capacidad y resumen
+    ("Sin novedades" / "N no cumple(n)" / "N no aplica(n)") y eliminar como
+    ícono. Franja izquierda roja si algo no cumple, verde si no.
+  - **Conceptos como lista de verificación:** los 10 conceptos con
+    "Cumple / No cumple / No aplica" (`ToggleButtonGroup`, todos en Cumple
+    al escanear). Antes, cada novedad pedía elegir concepto y estado en dos
+    listas y tocar "Agregar", y se veían en una tabla aparte; ahora es un
+    toque y se ve el estado de los 10 de un vistazo. Volver a "Cumple" quita
+    la novedad. Se envían los mismos datos (`noveltyRecords` → C/NC/NA por
+    concepto). "No cumple" elegido va en rojo sólido (en oscuro,
+    `error.dark` para que el blanco cumpla AA) y su fila se tiñe; "No
+    aplica", en gris. Sin elegir, los botones van en gris secundario: en
+    oscuro MUI los dejaba en blanco y parecían los elegidos.
+  - **Barra fija al pie** (como Gemba Walk): "N extintores", "N no cumplen"
+    (`aria-live`) y `FormActions`. En edición, el botón dice "Guardar
+    evaluaciones".
 - **Errores:**
   - Al guardar, `useFieldErrors` marca planta, fecha o "Agrega al menos una
     evaluación" junto al campo. `SelectManufacturingPlantsOwn` ganó `error`
@@ -583,6 +702,24 @@ Archivos en `app/(routes)/gemba-walk/`. Revisión y prioridades en
 
 ### Registrar recorrido (`/form`)
 
+**Presentación (rediseño):** ancho máximo de 960 px con el título alineado,
+como "Nuevo hallazgo", y `DetailSection` en lugar de tarjetas sueltas:
+
+- **Recorrido de hoy:** planta, recorrido y la hora actual en la cabecera de
+  la sección. Debajo, el estado del recorrido elegido en un panel: "Puedes
+  iniciar hasta las HH:mm" con **Iniciar recorrido** grande; "Fuera de
+  tiempo" en rojo; o, ya iniciado, el **cronómetro grande** con la hora de
+  inicio. Los avisos (sin recorridos, sin conceptos, error con
+  "Reintentar") van dentro de la misma sección.
+- **Evaluación:** por categoría, con "N de M cumplen" (en rojo si falta
+  alguno). Cada concepto con "Cumple / No cumple" y sus comentarios; los que
+  no cumplen se resaltan con un tono rojo suave.
+- **Barra fija al pie:** `ComplianceMeter` en vivo (C, NC y porcentaje con
+  barra) junto a "Cancelar" y "Terminar recorrido", con línea de acento
+  verde arriba.
+- Nada de la lógica cambió: borrador, tolerancia, inicio, confirmaciones,
+  idempotencia y bloqueo de un borrador vencido funcionan igual.
+
 - **Borrador local (G1):** `useFormDraft` con el formulario `gemba-walk` (uno
   por usuario y dispositivo). Se guarda solo un recorrido **iniciado**: planta,
   evento (hora, zona y ubicación), comprobante de inicio con su hora y las
@@ -637,8 +774,22 @@ Archivos en `app/(routes)/gemba-walk/`. Revisión y prioridades en
 - **Lista (G2):** `ResponsiveTable`. En celular, tarjetas con "Zona -
   Ubicación", planta, fechas, duración, C/NC, porcentaje, observador y "Ver".
 - **Detalle (G5):** "Recorrido no encontrado" (sin id o 404) y `ErrorState`
-  con "Reintentar" si falla (antes, barra de carga para siempre). "Regresar"
-  secundario y categorías con `text.brand` (G9).
+  con "Reintentar" si falla (antes, barra de carga para siempre). Con la
+  misma estructura que el detalle de un hallazgo:
+  - **Resumen:** planta, "Zona - Ubicación", tipo (regular o adicional) y
+    cuántos conceptos no cumplen; observador y fecha programada.
+  - **Indicadores:** `ComplianceMeter` (porcentaje con barra y los conteos C
+    y NC) y la duración.
+  - **Resultados** por categoría ("N de M cumplen"), con el filtro **Todos /
+    No cumple**; lo que no cumple, en un tono rojo suave, y los comentarios
+    como cita. Sin conceptos evaluados dice "Sin resultados" (no "Todo
+    cumple").
+  - **Datos** en una columna lateral fija en escritorio. "Regresar" en la
+    cabecera (antes, al final de la página).
+- **`ComplianceMeter`** (`gemba-walk/_components`): porcentaje de
+  conceptos que cumplen con barra en el verde de marca y los conteos; el NC
+  va en rojo solo si hay alguno. No hay colores por umbral de porcentaje
+  (no existe una regla definida).
 - **Agenda (G6):** en celular, vista de lista por semana
   (`@fullcalendar/list` 6.1.21, misma versión que los demás paquetes de
   FullCalendar) con "Sin recorridos programados esta semana." si no hay. En
@@ -770,6 +921,85 @@ Archivos en `app/(routes)/dashboard/` y
   obligaba a bajar unos 600 px antes de la primera gráfica); el "vs …" de la
   comparación baja de renglón en lugar de cortarse.
 - Revisado a 390 px: nada se desplaza de lado en ninguno de los dos.
+
+### Dashboard de hallazgos: rediseño (antes del despliegue)
+
+- **Encabezado visible** "Dashboard de hallazgos" (antes, título solo para
+  lectores de pantalla) con la leyenda del periodo, como el análisis EPP:
+  "30 sep – 29 oct 2026 comparado con 31 ago – 29 sep 2026". La comparación
+  solo se muestra si la respuesta corresponde al periodo en pantalla.
+- **Control de periodo compartido** (`@shared/components/PeriodFilter`,
+  atajos en `@shared/utils/period`): Últimos 30 días (por omisión), Este
+  mes, Mes anterior, Últimos 3 meses, Este año y Personalizado (Desde /
+  Hasta, que parte del rango que se veía). Reemplaza "Fecha inicio" y
+  "Fecha fin"; en la barra, un solo filtro "Periodo" sin quitar (antes,
+  "Desde" y "Hasta" se podían borrar y la pantalla quedaba en "Elige el
+  periodo"). `DashboardFilters` guarda el atajo (`periodPreset`) junto con
+  las fechas, que se siguen enviando igual a la API y a "Ir a Hallazgos".
+- **Sin hallazgos:** "Ver últimos 3 meses" (el atajo; antes, 90 días
+  sueltos), oculto si ya es ese periodo.
+- **Indicadores** (`@shared/components/KpiTile`, el mismo del análisis
+  EPP): Hallazgos, Abiertos (subir es malo), En progreso, Cerrados (subir
+  es bueno) y % de cierre (cerrados / total, en puntos), cada uno con su
+  variación contra el periodo anterior. Cinco por fila en pantallas
+  grandes, tres en tablet y dos en celular (el último, a lo ancho).
+- **API:** `status-by-filters` devuelve además `periodo` (actual y
+  anterior, `YYYY-MM-DD`) y `anterior` (`total` y `seriesData` del periodo
+  de comparación), con la regla del análisis EPP (`resolveBiEppPeriod`):
+  mismos días del mes o año anterior si empieza en día 1 o 1 de enero; si
+  no, el periodo previo de igual duración. Con más de 3 años, ambos en
+  `null` (como antes, sin error). Una consulta más de conteo por estatus.
+- **Gráficas** con el acento verde (`@shared/utils/accentCard`).
+- **Histórico:** título "Histórico de hallazgos" y "Regresar" de contorno
+  en la cabecera (antes, botón relleno suelto).
+- `PeriodFilter`, `KpiTile`, `accentCard` y `periodLabel` pasaron del
+  análisis EPP a `_shared` para usarse en los dos tableros;
+  `epp/_lib/period.ts` los reexporta.
+
+### Análisis de datos EPP: rediseño visual (antes del despliegue)
+
+Solo presentación; los datos, cálculos y consultas no cambian.
+
+- **Acento verde** (`_lib/accent.ts`, `accentCard`): borde y franja
+  izquierda de marca, como `DetailSection`, en los indicadores
+  (`KpiTile`), las tarjetas de gráficas (`ChartCard`, también en el detalle
+  por persona) y el ranking de colaboradores.
+- **Indicadores:** ícono en un círculo verde tenue (gasto, unidades, fuera
+  de rango, promedio, primera entrega; se oculta en celular). La variación
+  va en una pastilla del tono (verde, rojo o gris según la polaridad) y la
+  comparación dice "vs periodo anterior": antes repetía el rango en cada
+  indicador (dos renglones en celular) aunque ya está bajo el título. El
+  rango completo queda en el tooltip y en el `aria-label` ("Subió 66.7%
+  contra 1–22 sep 2026").
+- **Grupos como tarjetas** (`_components/GroupTabs.tsx`), bajo "Elige qué
+  analizar": antes eran pestañas de texto sobre el fondo gris y quien no
+  conocía la pantalla no veía que había más grupos. Cada una es una
+  tarjeta con borde, fondo y sombra, ícono en círculo, nombre y qué
+  contiene ("Cuánto se gastó y en qué equipos", "Qué se entregó y a
+  cuántos colaboradores", "Equipos entregados antes de tiempo"; en celular
+  solo ícono y nombre, las tres en una fila). La elegida, con fondo verde
+  tenue, borde de 2 px e ícono relleno; al pasar el mouse, borde verde.
+  Siguen siendo `Tabs` de MUI: `role="tab"`, flechas del teclado y
+  `aria-controls`; el nombre accesible es el título (`aria-label`) y la
+  frase va como descripción (`aria-describedby`).
+- **Tablas de fuera de rango** ("Colaboradores con más entregas fuera de
+  rango" y "Entregas del periodo" del detalle por persona): con las piezas
+  de las demás tablas (`StyledTableCell` / `StyledTableRow`: encabezado
+  verde tenue con línea de acento y filas alternadas) dentro de un `Paper`,
+  y estados con `StatusChip` ("Fuera de rango · N días antes" en ámbar, "En
+  rango" en verde). Antes eran tablas de MUI sin estilo, distintas al resto
+  del sistema. En el ranking, una flecha al final de la fila indica que
+  abre el detalle; la paginación usa `TablePaginationActions` como las
+  demás. En celular, tarjetas (como `ResponsiveTable`): el ranking con
+  nombre, "N fuera de rango · %", equipos y última entrega; las entregas,
+  con franja ámbar o verde según el estado. Antes, tablas de 6 y 7
+  columnas con desplazamiento lateral.
+- **Aviso de lo oculto** (sin precios o sin frecuencias): "Equipos" es un
+  enlace a `/equipments`; antes solo lo mencionaba.
+- **Gráficas:** barras y columnas con ancho máximo (72 y 40 px): con un
+  solo mes o un solo equipo se dibujaba un bloque que llenaba la gráfica.
+  Fondo transparente: en oscuro se veía una caja más clara dentro de la
+  tarjeta.
 
 ### Informe PDF
 

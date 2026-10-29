@@ -112,7 +112,7 @@ const fillForm = async (page: Page) => {
   await totalPeople(page).fill("6");
   await pickMany(page, "Personas que no cumplen *", 2);
   await description(page).fill(DESCRIPTION);
-  await page.getByLabel("Elegir de galería").setInputFiles({
+  await page.getByLabel("Subir foto").setInputFiles({
     name: "evidencia.png",
     mimeType: "image/png",
     buffer: PNG_1X1,

@@ -2,7 +2,6 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import type { Area, MainType } from "@interfaces";
-import dayjs, { Dayjs } from "dayjs";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
@@ -12,15 +11,10 @@ import {
   CircularProgress,
   Grid,
   IconButton,
-  Paper,
   SelectChangeEvent,
   Stack,
   Tooltip,
 } from "@mui/material";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { esES } from "@mui/x-date-pickers/locales";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
 import { UserOption } from "@interfaces";
@@ -28,11 +22,14 @@ import FilterBar, {
   compactFilters,
   joinNames,
 } from "@shared/components/FilterBar";
-import "dayjs/locale/es";
+import PeriodFilter from "@shared/components/PeriodFilter";
+import { PERIOD_PRESETS, type PeriodPreset } from "@shared/utils/period";
 
 export interface DashboardFilters {
   manufacturingPlantId: string;
   manufacturingPlantName: string;
+  // Atajo del periodo (como en el análisis EPP); las fechas son su rango.
+  periodPreset: PeriodPreset;
   startDate: string;
   endDate: string;
   areaIds: string[];
@@ -55,7 +52,6 @@ interface DashboardFiltersBarProps {
   isDownloadingPdfReport: boolean;
   // Hay gráficas en pantalla (sin datos o con error no hay qué exportar).
   canDownloadPdf: boolean;
-  parseDate: (value: string) => Dayjs | null;
   handlePlantChange: (event: SelectChangeEvent<string>) => void;
   handleToggleHeatmapView: () => void;
   handleBackToInitialCharts: () => void;
@@ -75,7 +71,6 @@ export const DashboardFiltersBar = ({
   setIsHistoricalView,
   isDownloadingPdfReport,
   canDownloadPdf,
-  parseDate,
   handlePlantChange,
   handleToggleHeatmapView,
   handleBackToInitialCharts,
@@ -92,18 +87,19 @@ export const DashboardFiltersBar = ({
           target: { value: "" },
         } as SelectChangeEvent<string>),
     },
-    !!filters.startDate && {
-      key: "startDate",
-      label: "Desde",
-      value: filters.startDate,
-      onRemove: () => setFilters((prev) => ({ ...prev, startDate: "" })),
-    },
-    !!filters.endDate && {
-      key: "endDate",
-      label: "Hasta",
-      value: filters.endDate,
-      onRemove: () => setFilters((prev) => ({ ...prev, endDate: "" })),
-    },
+    // Un solo filtro de periodo (antes "Desde" y "Hasta"). Sin quitar: el
+    // dashboard siempre necesita uno.
+    !!filters.startDate &&
+      !!filters.endDate && {
+        key: "period",
+        label: "Periodo",
+        value:
+          filters.periodPreset === "custom"
+            ? `${filters.startDate} – ${filters.endDate}`
+            : (PERIOD_PRESETS.find(
+                ({ value }) => value === filters.periodPreset,
+              )?.label ?? `${filters.startDate} – ${filters.endDate}`),
+      },
     filters.areaIds.length > 0 && {
       key: "areaIds",
       label: "Zonas",
@@ -228,97 +224,24 @@ export const DashboardFiltersBar = ({
         isFilter={true}
       />
 
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 2,
-        }}
-      >
-        <Paper>
-          <LocalizationProvider
-            dateAdapter={AdapterDayjs}
-            adapterLocale="es"
-            localeText={
-              esES.components.MuiLocalizationProvider.defaultProps.localeText
-            }
-          >
-            <DatePicker
-              label="Fecha inicio"
-              format="DD/MM/YYYY"
-              value={parseDate(filters.startDate)}
-              maxDate={parseDate(filters.endDate) || dayjs().endOf("month")}
-              onChange={(newValue: Dayjs | null) => {
-                // Al escribirla, la fecha pasa por valores incompletos
-                // ("Invalid Date") que el API rechaza: se ignoran.
-                if (newValue && !newValue.isValid()) return;
-                setFilters((prev) => ({
-                  ...prev,
-                  startDate: newValue ? newValue.format("DD/MM/YYYY") : "",
-                }));
-              }}
-              slotProps={{
-                field: {
-                  clearable: true,
-                  onClear: () =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      startDate: "",
-                    })),
-                },
-                textField: {
-                  fullWidth: true,
-                },
-              }}
-            />
-          </LocalizationProvider>
-        </Paper>
-      </Grid>
-
-      <Grid
-        size={{
-          xs: 12,
-          sm: 6,
-          md: 2,
-        }}
-      >
-        <Paper>
-          <LocalizationProvider
-            dateAdapter={AdapterDayjs}
-            adapterLocale="es"
-            localeText={
-              esES.components.MuiLocalizationProvider.defaultProps.localeText
-            }
-          >
-            <DatePicker
-              label="Fecha fin"
-              format="DD/MM/YYYY"
-              value={parseDate(filters.endDate)}
-              minDate={parseDate(filters.startDate) || undefined}
-              maxDate={dayjs()}
-              onChange={(newValue: Dayjs | null) => {
-                if (newValue && !newValue.isValid()) return;
-                setFilters((prev) => ({
-                  ...prev,
-                  endDate: newValue ? newValue.format("DD/MM/YYYY") : "",
-                }));
-              }}
-              slotProps={{
-                field: {
-                  clearable: true,
-                  onClear: () =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      endDate: "",
-                    })),
-                },
-                textField: {
-                  fullWidth: true,
-                },
-              }}
-            />
-          </LocalizationProvider>
-        </Paper>
+      {/* Atajos y "Personalizado" (Desde / Hasta), como el análisis EPP.
+          Antes, dos fechas sueltas. */}
+      <Grid size={{ xs: 12, md: "grow" }}>
+        <PeriodFilter
+          value={{
+            preset: filters.periodPreset,
+            startDate: filters.startDate,
+            endDate: filters.endDate,
+          }}
+          onChange={({ preset, startDate, endDate }) =>
+            setFilters((prev) => ({
+              ...prev,
+              periodPreset: preset,
+              startDate,
+              endDate,
+            }))
+          }
+        />
       </Grid>
 
       <Grid

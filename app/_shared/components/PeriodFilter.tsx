@@ -16,7 +16,7 @@ import {
   presetRange,
   type PeriodPreset,
   type PeriodValue,
-} from "../_lib/period";
+} from "@shared/utils/period";
 
 const FORMAT = "DD/MM/YYYY";
 const parse = (value: string) => (value ? dayjs(value, FORMAT) : null);
@@ -26,7 +26,7 @@ interface Props {
   onChange: (value: PeriodValue) => void;
 }
 
-// Periodo del análisis: atajos comunes y, en "Personalizado", dos fechas.
+// Periodo de un tablero: atajos comunes y, en "Personalizado", dos fechas.
 // La comparación (periodo anterior equivalente) la calcula la API.
 export default function PeriodFilter({ value, onChange }: Props) {
   const changePreset = (preset: PeriodPreset) =>

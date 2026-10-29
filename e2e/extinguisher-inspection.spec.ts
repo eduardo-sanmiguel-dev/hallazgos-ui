@@ -42,6 +42,10 @@ const scan = (page: Page) =>
 const saveButton = (page: Page) =>
   page.getByRole("button", { name: "Guardar" });
 
+/** Botones C / NC / NA de un concepto (de la única evaluación en pantalla). */
+const concept = (page: Page, label: string) =>
+  page.getByRole("group", { name: label, exact: true });
+
 test.describe("Inspección de extintores", () => {
   test("escanea un equipo, registra novedades y crea la inspección (sin guardar)", async ({
     page,
@@ -68,29 +72,45 @@ test.describe("Inspección de extintores", () => {
     ).toBeVisible();
     await expect(page.getByText("E2E Pasillo norte")).toBeVisible();
 
-    // Sin elegir novedad y estado no se agrega.
-    await page.getByRole("button", { name: "Agregar", exact: true }).click();
+    // Lista de verificación: los 10 conceptos inician en "Cumple".
+    const card = page.getByRole("region", {
+      name: "Evaluación del extintor E2E-501",
+    });
+    await expect(card.getByText("Sin novedades")).toBeVisible();
     await expect(
-      toast(page, "Seleccione novedad y estado para agregar"),
-    ).toBeVisible();
+      concept(page, "Manómetro").getByRole("button", {
+        name: "Cumple",
+        exact: true,
+      }),
+    ).toHaveAttribute("aria-pressed", "true");
 
-    await pickOption(page, "Novedad", "Manómetro");
-    await pickOption(page, "Estado", "NC: NO CUMPLE");
-    await page.getByRole("button", { name: "Agregar", exact: true }).click();
-    await expect(toast(page, "Novedad agregada")).toBeVisible();
+    // Una novedad: un toque (antes, dos listas y "Agregar").
+    await concept(page, "Manómetro")
+      .getByRole("button", { name: "No cumple" })
+      .click();
+    await expect(card.getByText("1 no cumple")).toBeVisible();
+    await expect(page.getByText("1 no cumple", { exact: true })).toHaveCount(2);
+    // "No cumple" elegido va en rojo sólido para que resalte.
+    await expect(
+      concept(page, "Manómetro").getByRole("button", { name: "No cumple" }),
+    ).toHaveCSS("background-color", "rgb(211, 47, 47)");
 
-    // El mismo concepto otra vez actualiza el estado.
-    await pickOption(page, "Novedad", "Manómetro");
-    await pickOption(page, "Estado", "NA: No Aplica");
-    await page.getByRole("button", { name: "Agregar", exact: true }).click();
-    await expect(toast(page, "Novedad actualizada")).toBeVisible();
+    // El mismo concepto otra vez cambia el estado.
+    await concept(page, "Manómetro")
+      .getByRole("button", { name: "No aplica" })
+      .click();
+    await expect(card.getByText("1 no aplica")).toBeVisible();
+    await expect(card.getByText("Sin novedades")).toBeVisible();
 
-    await pickOption(page, "Novedad", "Sello");
-    await pickOption(page, "Estado", "NC: NO CUMPLE");
-    await page.getByRole("button", { name: "Agregar", exact: true }).click();
-    await expect(page.getByRole("cell", { name: "Sello" })).toBeVisible();
-    await page.getByRole("button", { name: "Quitar novedad" }).last().click();
-    await expect(page.getByRole("cell", { name: "Sello" })).toHaveCount(0);
+    // Volver a "Cumple" quita la novedad.
+    await concept(page, "Sello")
+      .getByRole("button", { name: "No cumple" })
+      .click();
+    await expect(card.getByText("1 no cumple")).toBeVisible();
+    await concept(page, "Sello")
+      .getByRole("button", { name: "Cumple", exact: true })
+      .click();
+    await expect(card.getByText("Sin novedades")).toBeVisible();
 
     await page
       .getByLabel("Observaciones generales")
@@ -287,8 +307,13 @@ test.describe("Inspección de extintores", () => {
       }),
     ).toBeVisible();
     await expect(page.getByText("E2E Bodega")).toBeVisible();
-    await expect(page.getByRole("cell", { name: "Válvula" })).toBeVisible();
-    await expect(page.getByRole("cell", { name: "Manguera" })).toBeVisible();
+    // Las novedades guardadas aparecen marcadas en su concepto.
+    await expect(
+      concept(page, "Válvula").getByRole("button", { name: "No cumple" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      concept(page, "Manguera").getByRole("button", { name: "No aplica" }),
+    ).toHaveAttribute("aria-pressed", "true");
 
     await saveButton(page).click();
     await expect(
@@ -407,17 +432,31 @@ test.describe("Inspección de extintores", () => {
     });
     await expect(card).toBeVisible();
 
+    const cancelButton = page.getByRole("button", {
+      name: "Cancelar",
+      exact: true,
+    });
     const add = (await page
       .getByRole("button", { name: "Agregar evaluación" })
       .boundingBox())!;
     const cardBox = (await card.boundingBox())!;
-    const cancel = (await page
-      .getByRole("button", { name: "Cancelar", exact: true })
-      .boundingBox())!;
+    const cancel = (await cancelButton.boundingBox())!;
     const save = (await saveButton(page).boundingBox())!;
 
     expect(add.y).toBeLessThan(cardBox.y);
-    expect(cancel.y).toBeGreaterThan(cardBox.y + cardBox.height);
+    // La barra de acciones queda fija al pie de la pantalla...
+    const viewport = page.viewportSize()!;
+    expect(cancel.y + cancel.height).toBeGreaterThan(viewport.height - 100);
+    // ...y, al final de la página, después de las evaluaciones.
+    await card.hover();
+    await page.mouse.wheel(0, 5000);
+    await expect
+      .poll(async () => {
+        const cardEnd = (await card.boundingBox())!;
+        const bar = (await cancelButton.boundingBox())!;
+        return bar.y - (cardEnd.y + cardEnd.height);
+      })
+      .toBeGreaterThan(0);
     // En escritorio, Guardar a la derecha de Cancelar.
     expect(save.x).toBeGreaterThan(cancel.x);
     await expect(saveButton(page)).toHaveClass(/MuiButton-contained/);

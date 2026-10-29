@@ -197,6 +197,10 @@ test.describe("Gemba Walk: edición del calendario", () => {
   test("arrastra un evento a otro día y cambia a la vista semanal", async ({
     page,
   }) => {
+    // El mes completo a la vista: si el día destino cae en la última fila
+    // (según la fecha de hoy), Playwright desplaza la página a mitad del
+    // arrastre y FullCalendar lo pierde.
+    await page.setViewportSize({ width: 1440, height: 1300 });
     const writes = await captureWrites(page, { respond: () => [] });
     await openCalendar(page);
 

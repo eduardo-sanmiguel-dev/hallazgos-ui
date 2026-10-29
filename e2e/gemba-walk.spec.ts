@@ -98,6 +98,10 @@ test.describe("Gemba Walk: registrar recorrido", () => {
       epp.getByRole("button", { name: "No cumple" }),
     ).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByText("NC: 1")).toBeVisible();
+    // Cumplimiento en vivo en la barra fija.
+    await expect(
+      page.getByRole("progressbar", { name: "Cumplimiento: 50%" }),
+    ).toBeVisible();
     await page
       .getByLabel("Comentarios")
       .first()
@@ -594,21 +598,66 @@ test.describe("Gemba Walk: consulta", () => {
     await mockGet(page, "/gemba-walk/walks/9401", walkDetail());
 
     await page.goto("/gemba-walk/view?id=9401");
-    await expect(page.getByText("E2E Zona - Pasillo")).toBeVisible();
-    await expect(page.getByText("Observador E2E")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 2, name: "E2E Zona - Pasillo" }),
+    ).toBeVisible();
+    // Resumen: tipo de recorrido y cuántos conceptos no cumplen.
+    await expect(page.getByText("Recorrido regular")).toBeVisible();
+    await expect(page.getByText("1 concepto no cumple")).toBeVisible();
+    // Indicadores: cumplimiento con sus conteos y la duración.
+    await expect(page.getByText("50%", { exact: true })).toBeVisible();
     await expect(page.getByText("C: 1", { exact: true })).toBeVisible();
     await expect(page.getByText("NC: 1")).toBeVisible();
-    await expect(page.getByText("NC - No cumple")).toBeVisible();
-    await expect(page.getByText("Sin lentes")).toBeVisible();
+    await expect(
+      page.getByRole("progressbar", { name: "Cumplimiento: 50%" }),
+    ).toBeVisible();
+    // Datos.
+    const data = page.getByRole("region", { name: "Datos" });
+    await expect(data).toContainText("Observador E2E");
+    await expect(data).toContainText("Regular");
+    // Resultados.
+    const results = page.getByRole("region", { name: "Resultados" });
+    await expect(results.getByText("NC - No cumple")).toBeVisible();
+    await expect(results.getByText("Sin lentes")).toBeVisible();
     // Agrupado por categoría en el orden definido.
-    await expect(page.getByText(/^(SHE|CALIDAD)$/)).toHaveText([
+    await expect(results.getByText(/^(SHE|CALIDAD)$/)).toHaveText([
       "SHE",
       "CALIDAD",
     ]);
 
-    await page.getByRole("button", { name: "Regresar" }).click();
+    // "Solo no cumple": oculta lo que cumple.
+    await results.getByRole("button", { name: "No cumple (1)" }).click();
+    await expect(results.getByText("NC - No cumple")).toBeVisible();
+    await expect(results.getByText("C - Cumple")).toHaveCount(0);
+    await expect(results.getByText("CALIDAD")).toHaveCount(0);
+    await results.getByRole("button", { name: "Todos (2)" }).click();
+    await expect(results.getByText("C - Cumple")).toBeVisible();
+
+    // "Regresar" en la cabecera.
+    await page
+      .locator("header")
+      .filter({ hasText: "Detalle del recorrido" })
+      .getByRole("button", { name: "Regresar" })
+      .click();
     await expect(page).toHaveURL(/\/gemba-walk$/);
     expect(errors).toEqual([]);
+  });
+
+  test("un recorrido sin conceptos evaluados no dice «Todo cumple»", async ({
+    page,
+  }) => {
+    await mockGet(page, "/gemba-walk/walks/9401", {
+      ...walkDetail(),
+      results: [],
+    });
+    await page.goto("/gemba-walk/view?id=9401");
+
+    const results = page.getByRole("region", { name: "Resultados" });
+    await expect(results.getByText("Sin resultados")).toBeVisible();
+    await expect(page.getByText("Todo cumple")).toHaveCount(0);
+    // "Solo no cumple" sí: no hay ninguno.
+    await results.getByRole("button", { name: "No cumple (0)" }).click();
+    await expect(results.getByText("Todo cumple")).toBeVisible();
   });
 
   test("un detalle inexistente lo dice; si falla, deja reintentar", async ({
@@ -638,7 +687,9 @@ test.describe("Gemba Walk: consulta", () => {
     await expect(page.getByText("No se pudo cargar")).toBeVisible();
     fail = false;
     await page.getByRole("button", { name: "Reintentar" }).first().click();
-    await expect(page.getByText("Observador E2E")).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Datos" }).getByText("Observador E2E"),
+    ).toBeVisible();
   });
 
   test.describe("en celular", () => {
@@ -733,6 +784,25 @@ test.describe("Gemba Walk: consulta", () => {
     await page.getByText("✓ E2E Zona - Pasillo").click();
     await expect(page).toHaveURL(/\/gemba-walk\/view\?id=9401$/);
     expect(errors).toEqual([]);
+  });
+
+  test("Regresar va en la cabecera y no se pierde con el fondo", async ({
+    page,
+  }) => {
+    await page.goto("/gemba-walk/schedule");
+    const back = page
+      .locator("header")
+      .filter({ hasText: "Calendario de recorridos" })
+      .getByRole("button", { name: "Regresar" });
+    await expect(back).toBeVisible();
+    // Botón de contorno con el fondo del papel (antes, transparente sobre el
+    // gris de la página).
+    expect(
+      await back.evaluate((el) => getComputedStyle(el).backgroundColor),
+    ).toBe("rgb(255, 255, 255)");
+
+    await back.click();
+    await expect(page).toHaveURL(/\/gemba-walk$/);
   });
 });
 

@@ -148,7 +148,7 @@ test.describe("ICS", () => {
     ).toHaveCount(0);
     await totalPeople(page).fill("3");
     await pickMany(page, "Personas que no cumplen *");
-    await page.getByLabel("Elegir de galería").setInputFiles({
+    await page.getByLabel("Subir foto").setInputFiles({
       name: "evidencia.png",
       mimeType: "image/png",
       buffer: PNG_1X1,

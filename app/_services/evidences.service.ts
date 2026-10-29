@@ -184,15 +184,26 @@ const downloadExcel = async (filters: FiltersEvidences) => {
 };
 
 const downloadPdf = async (filters: FiltersEvidences) => {
-  const { data } = await api.get(`/download/pdf`, {
+  const { data, headers } = await api.get(`/download/pdf`, {
     responseType: "blob",
-    params: paramsFilter(filters),
+    params: {
+      ...paramsFilter(filters),
+      timeZone: getBrowserTimeZone(),
+    },
   });
+
+  // Mismo nombre que el Excel (lo arma el back); respaldo con la hora local.
+  const fileName = resolveDownloadFileName(
+    headers["content-disposition"],
+    () => `Hallazgos_${buildLocalFileNameTimestamp()}.pdf`,
+    ".pdf",
+  );
+
   const url = window.URL.createObjectURL(new Blob([data]));
 
   const link = document.createElement("a");
   link.href = url;
-  link.setAttribute("download", "Hallazgos.pdf");
+  link.setAttribute("download", fileName);
   document.body.appendChild(link);
   link.click();
   link.remove();

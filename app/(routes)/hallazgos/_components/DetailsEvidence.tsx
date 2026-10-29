@@ -1,15 +1,20 @@
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 
-import { useTheme } from "@mui/material/styles";
-import { Typography } from "@mui/material";
-import { Grid } from "@mui/material";
-import { Divider } from "@mui/material";
-import { Stack } from "@mui/material";
-import { Paper } from "@mui/material";
+import Image from "next/image";
+
 import { Box } from "@mui/material";
+import { ButtonBase } from "@mui/material";
+import { Stack } from "@mui/material";
+import { Typography } from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
+import AutorenewIcon from "@mui/icons-material/Autorenew";
+import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
+import ZoomInIcon from "@mui/icons-material/ZoomIn";
+import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 
 import {
-  durantionToTime,
+  baseUrlImage,
   stringToDateWithTime,
   updatedDateLabel,
 } from "@shared/utils";
@@ -20,276 +25,482 @@ import {
 } from "@routes/hallazgos/_constants/priorityOptions";
 import StatusChip, { EvidenceStatusChip } from "@shared/components/StatusChip";
 import { riskLevelTone } from "@shared/constants/semanticTones";
-import EvidenceDeadline from "./EvidenceDeadline";
-import TabsImageAndLogs from "./TabsImageAndLogs";
-import { EvidenceGraphql } from "@hooks";
+import { STATUS_CANCELLED } from "@shared/constants/semanticTones";
+import { STATUS_CLOSED } from "@shared/constants";
+import { CommentEvidenceGraphql, EvidenceGraphql } from "@hooks";
 import { requiresPhotoEvidence } from "@routes/hallazgos/_constants/mainTypes";
+import DetailSection, {
+  DetailField,
+  DetailFieldList,
+} from "@shared/components/DetailSection";
+import EvidenceDeadline from "./EvidenceDeadline";
+import EvidenceComments from "./EvidenceComments";
+import EvidencePhotoViewer, { EvidencePhoto } from "./EvidencePhotoViewer";
 
 interface Props {
   evidenceCurrent: EvidenceGraphql;
   setRefreshData: (refreshData: boolean) => void;
 }
 
-export default function DetailsTabs({
+/** Miniatura de una foto; al tocarla se abre el visor. */
+function PhotoThumb({
+  photo,
+  onOpen,
+}: {
+  photo: EvidencePhoto;
+  onOpen: () => void;
+}) {
+  return (
+    <ButtonBase
+      onClick={onOpen}
+      aria-label={`Ver ${photo.title.toLowerCase()} en grande`}
+      sx={{
+        position: "relative",
+        display: "block",
+        width: "100%",
+        maxWidth: 320,
+        aspectRatio: "4 / 3",
+        borderRadius: 2,
+        overflow: "hidden",
+        border: "1px solid",
+        borderColor: "divider",
+        backgroundColor: "action.hover",
+        "& .zoom-hint": { opacity: { xs: 1, md: 0 } },
+        "&:hover .zoom-hint, &.Mui-focusVisible .zoom-hint": { opacity: 1 },
+      }}
+    >
+      <Image
+        unoptimized
+        src={photo.src}
+        alt={photo.title}
+        fill
+        sizes="(max-width: 600px) 100vw, 320px"
+        // Completa (sin recortar): es evidencia.
+        style={{ objectFit: "contain" }}
+      />
+      <Box
+        className="zoom-hint"
+        aria-hidden
+        sx={{
+          position: "absolute",
+          right: 8,
+          bottom: 8,
+          display: "flex",
+          alignItems: "center",
+          gap: 0.5,
+          px: 1,
+          py: 0.25,
+          borderRadius: 1,
+          color: "common.white",
+          backgroundColor: "rgba(0, 0, 0, 0.55)",
+          fontSize: 12,
+          transition: "opacity 150ms",
+        }}
+      >
+        <ZoomInIcon sx={{ fontSize: 16 }} />
+        Ampliar
+      </Box>
+    </ButtonBase>
+  );
+}
+
+type StageState = "done" | "current" | "pending" | "cancelled";
+
+const STAGE_ICON: Record<StageState, ReactNode> = {
+  done: <CheckCircleIcon color="success" />,
+  current: <AutorenewIcon color="info" />,
+  pending: <RadioButtonUncheckedIcon sx={{ color: "text.disabled" }} />,
+  cancelled: <CancelIcon color="error" />,
+};
+
+/** Etapa del seguimiento: ícono con línea a la siguiente, título y detalle. */
+function Stage({
+  title,
+  state,
+  meta,
+  last = false,
+  children,
+}: {
+  title: string;
+  state: StageState;
+  meta?: ReactNode;
+  last?: boolean;
+  children?: ReactNode;
+}) {
+  return (
+    <Stack component="li" direction="row" spacing={1.5}>
+      <Stack sx={{ alignItems: "center" }} aria-hidden>
+        {STAGE_ICON[state]}
+        {!last && (
+          <Box
+            sx={{
+              flex: 1,
+              width: 2,
+              my: 0.5,
+              borderRadius: 1,
+              backgroundColor: state === "done" ? "success.light" : "divider",
+            }}
+          />
+        )}
+      </Stack>
+      <Box sx={{ minWidth: 0, flex: 1, pb: last ? 0 : 3 }}>
+        <Typography
+          variant="subtitle1"
+          component="h4"
+          sx={{
+            fontWeight: 700,
+            lineHeight: 1.5,
+            color: state === "pending" ? "text.secondary" : "text.primary",
+          }}
+        >
+          {title}
+        </Typography>
+        {meta && (
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            {meta}
+          </Typography>
+        )}
+        {children && <Box sx={{ mt: 1.5 }}>{children}</Box>}
+      </Box>
+    </Stack>
+  );
+}
+
+// Detalle de un hallazgo. Arriba, el resumen (qué, dónde, estatus, prioridad y
+// plazo); a la izquierda, lo que se observó y el seguimiento por etapas con su
+// foto y fecha; a la derecha, los datos; abajo, los comentarios. En celular,
+// una sola columna en ese orden (los datos antes de los comentarios).
+export default function DetailsEvidence({
   evidenceCurrent,
   setRefreshData,
 }: Props) {
-  const theme = useTheme();
-
-  const [withImages, setWithImages] = useState<boolean>(false);
-  const [isUnsafeBehavior, setIsUnsafeBehavior] = useState<boolean>(false);
+  const [comments, setComments] = useState<CommentEvidenceGraphql[]>(
+    evidenceCurrent.comments,
+  );
+  const [photoIndex, setPhotoIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    setWithImages(
-      !!evidenceCurrent.imgEvidence ||
-        !!evidenceCurrent.imgProcess ||
-        !!evidenceCurrent.imgSolution,
+    setRefreshData(false);
+  }, [setRefreshData]);
+
+  const {
+    status,
+    imgEvidence,
+    imgProcess,
+    imgSolution,
+    startProcessDate,
+    solutionDate,
+  } = evidenceCurrent;
+
+  const photos = useMemo(
+    () =>
+      [
+        imgEvidence && {
+          key: "evidence",
+          src: baseUrlImage(imgEvidence),
+          title: "Foto del hallazgo",
+        },
+        imgProcess && {
+          key: "process",
+          src: baseUrlImage(imgProcess),
+          title: "Foto del progreso",
+        },
+        imgSolution && {
+          key: "solution",
+          src: baseUrlImage(imgSolution),
+          title: "Foto de la solución",
+        },
+      ].filter(Boolean) as (EvidencePhoto & { key: string })[],
+    [imgEvidence, imgProcess, imgSolution],
+  );
+
+  const thumb = (key: string) => {
+    const index = photos.findIndex((photo) => photo.key === key);
+    if (index === -1) return null;
+    return (
+      <PhotoThumb photo={photos[index]} onOpen={() => setPhotoIndex(index)} />
     );
-  }, [evidenceCurrent]);
-
-  useEffect(() => {
-    if (!evidenceCurrent) return;
-    setIsUnsafeBehavior(!requiresPhotoEvidence(evidenceCurrent.mainType));
-  }, [evidenceCurrent]);
+  };
 
   const priorityLabel = getPriorityLabel(evidenceCurrent.priorityDays);
   const riskLevel = getPriorityRiskLevel(evidenceCurrent.priorityDays);
   // Mismo plazo y tonos que la tabla y las tarjetas.
   const deadline = getDeadline(evidenceCurrent);
+  const updatedLabel = updatedDateLabel(
+    evidenceCurrent.createdAt,
+    evidenceCurrent.updatedAt,
+  );
 
-  const responsiblesLabel =
+  const responsibles =
     evidenceCurrent.responsibles.length > 0
       ? evidenceCurrent.responsibles
-          .map((responsible) => responsible.name)
-          .join(" / ")
-      : evidenceCurrent.supervisors
-          .map((supervisor) => supervisor.name)
-          .join(" / ");
+      : evidenceCurrent.supervisors;
 
-  const sectionTitleSx = {
-    fontWeight: 700,
-    color: "text.secondary",
-    letterSpacing: 0.4,
-  };
+  const isCancelled = status === STATUS_CANCELLED;
+  const isClosed = status === STATUS_CLOSED;
+  const isStarted = !!startProcessDate || !!imgProcess;
+  const photoRequired = requiresPhotoEvidence(evidenceCurrent.mainType);
+  // "fecha · quién". Sin quién en hallazgos anteriores a que se registrara.
+  const withWho = (date: string, who?: { name: string } | null) =>
+    who?.name ? `${date} · ${who.name}` : date;
 
-  const rowLabelSx = {
-    color: "text.secondary",
-    fontSize: 12,
-    letterSpacing: 0.2,
-  };
+  // Zona › lugar, sin repetir cuando se llaman igual.
+  const place = [evidenceCurrent.zone.area?.name, evidenceCurrent.zone.name]
+    .filter((name, index, names) => name && names.indexOf(name) === index)
+    .join(" › ");
 
   return (
-    <Grid container spacing={2} sx={{ p: 2 }}>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 4,
-          md: 4,
-        }}
-      >
-        <Paper
-          variant="outlined"
-          sx={{
-            p: 2,
-            borderRadius: 2,
-            borderColor: theme.palette.divider,
-          }}
+    <Box
+      sx={{
+        width: "100%",
+        maxWidth: 1280,
+        mx: "auto",
+        p: { xs: 2, sm: 3 },
+        display: "grid",
+        gap: { xs: 2, md: 3 },
+        alignItems: "start",
+        gridTemplateColumns: {
+          xs: "minmax(0, 1fr)",
+          md: "minmax(0, 2fr) minmax(0, 1fr)",
+        },
+        gridTemplateAreas: {
+          xs: `"summary" "main" "data" "comments"`,
+          md: `"summary summary" "main data" "comments data"`,
+        },
+      }}
+    >
+      {/* Resumen */}
+      <Box component="header" sx={{ gridArea: "summary" }}>
+        <Typography
+          variant="overline"
+          sx={{ color: "text.secondary", lineHeight: 1.5 }}
         >
-          <Stack spacing={1.5}>
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{ alignItems: "center", flexWrap: "wrap" }}
+          {evidenceCurrent.manufacturingPlant.name}
+        </Typography>
+        <Typography
+          variant="h5"
+          component="h2"
+          sx={{ fontWeight: 700, overflowWrap: "anywhere" }}
+        >
+          {evidenceCurrent.mainType.name}
+        </Typography>
+        <Typography variant="body1" sx={{ color: "text.secondary" }}>
+          {evidenceCurrent.secondaryType.name}
+        </Typography>
+        <Stack
+          direction="row"
+          spacing={1}
+          useFlexGap
+          sx={{ mt: 1.5, alignItems: "center", flexWrap: "wrap" }}
+        >
+          <EvidenceStatusChip status={status} size="small" />
+          {priorityLabel !== "Sin prioridad" && (
+            // Con el tono de su nivel de riesgo, como en el dashboard.
+            <StatusChip
+              label={`Prioridad: ${priorityLabel}`}
+              tone={riskLevel ? riskLevelTone(riskLevel) : "default"}
+              size="small"
+              variant="outlined"
+            />
+          )}
+          {!photos.length && (
+            <StatusChip
+              label="Sin evidencia fotográfica"
+              tone="warning"
+              size="small"
+              variant="outlined"
+            />
+          )}
+          <EvidenceDeadline deadline={deadline} />
+        </Stack>
+        <Stack
+          direction="row"
+          spacing={0.5}
+          sx={{ mt: 1.5, alignItems: "center", color: "text.secondary" }}
+        >
+          <PlaceOutlinedIcon fontSize="small" aria-hidden />
+          <Typography variant="body2">
+            {place}
+            {evidenceCurrent.process?.name &&
+              ` · Proceso: ${evidenceCurrent.process.name}`}
+          </Typography>
+        </Stack>
+      </Box>
+
+      {/* Lo que se observó y seguimiento */}
+      <Stack spacing={{ xs: 2, md: 3 }} sx={{ gridArea: "main", minWidth: 0 }}>
+        <DetailSection title="Lo que se observó">
+          <Typography
+            variant="body1"
+            sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}
+          >
+            {evidenceCurrent.description || "Sin descripción."}
+          </Typography>
+        </DetailSection>
+
+        <DetailSection title="Seguimiento">
+          <Box component="ol" sx={{ listStyle: "none", m: 0, p: 0 }}>
+            <Stage
+              title="Reportado"
+              state="done"
+              meta={`${stringToDateWithTime(evidenceCurrent.createdAt)} · ${evidenceCurrent.user.name}`}
             >
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                Detalle del hallazgo
-              </Typography>
-              <EvidenceStatusChip
-                status={evidenceCurrent.status}
-                size="small"
-              />
-              {!withImages && (
-                <StatusChip
-                  label="Sin evidencia fotográfica"
-                  tone="warning"
-                  size="small"
-                  variant="outlined"
-                />
+              {thumb("evidence") ?? (
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  {photoRequired
+                    ? "Sin foto."
+                    : "Sin foto (esta clasificación no la exige)."}
+                </Typography>
               )}
-            </Stack>
+            </Stage>
 
-            <Divider />
+            <Stage
+              title="En progreso"
+              state={
+                isStarted
+                  ? isClosed || isCancelled
+                    ? "done"
+                    : "current"
+                  : "pending"
+              }
+              meta={
+                startProcessDate
+                  ? withWho(
+                      stringToDateWithTime(startProcessDate),
+                      evidenceCurrent.startedBy,
+                    )
+                  : isStarted
+                    ? undefined
+                    : isClosed || isCancelled
+                      ? "No se registró el inicio."
+                      : "Aún no se inicia."
+              }
+            >
+              {thumb("process")}
+            </Stage>
 
-            <Typography variant="caption" sx={sectionTitleSx}>
-              CLASIFICACIÓN
-            </Typography>
-            <Box>
-              <Typography sx={rowLabelSx}>Planta</Typography>
-              <Typography variant="body2">
-                {evidenceCurrent.manufacturingPlant.name}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography sx={rowLabelSx}>Hallazgo</Typography>
-              <Typography variant="body2">
-                {evidenceCurrent.mainType.name}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography sx={rowLabelSx}>Tipo de hallazgo</Typography>
-              <Typography variant="body2">
-                {evidenceCurrent.secondaryType.name}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography sx={rowLabelSx}>Zona</Typography>
-              <Typography variant="body2">
-                {evidenceCurrent.zone.area?.name || "Sin zona"}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography sx={rowLabelSx}>Lugar</Typography>
-              <Typography variant="body2">
-                {evidenceCurrent.zone.name}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography sx={rowLabelSx}>Proceso</Typography>
-              <Typography variant="body2">
-                {evidenceCurrent.process?.name || "-"}
-              </Typography>
-            </Box>
-
-            <Divider />
-
-            <Typography variant="caption" sx={sectionTitleSx}>
-              ASIGNACIÓN
-            </Typography>
-            <Box>
-              <Typography sx={rowLabelSx}>Usuario que reporta</Typography>
-              <Typography variant="body2">
-                {evidenceCurrent.user.name}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography sx={rowLabelSx}>Responsables asignados</Typography>
-              <Typography variant="body2">
-                {responsiblesLabel || "-"}
-              </Typography>
-            </Box>
-
-            <Divider />
-
-            <Typography variant="caption" sx={sectionTitleSx}>
-              PRIORIDAD Y TIEMPOS
-            </Typography>
-            {priorityLabel !== "Sin prioridad" && (
-              <Box>
-                <Typography sx={rowLabelSx}>Prioridad</Typography>
-                {/* Con el tono de su nivel de riesgo, como en el dashboard. */}
-                <StatusChip
-                  label={priorityLabel}
-                  tone={riskLevel ? riskLevelTone(riskLevel) : "default"}
-                  size="small"
-                  variant="outlined"
-                />
-              </Box>
+            {isCancelled ? (
+              <Stage title="Cancelado" state="cancelled" last />
+            ) : (
+              <Stage
+                title={isClosed ? "Cerrado" : "Cierre"}
+                state={isClosed ? "done" : "pending"}
+                meta={
+                  isClosed && solutionDate
+                    ? withWho(
+                        stringToDateWithTime(solutionDate),
+                        evidenceCurrent.closedBy,
+                      )
+                    : isClosed
+                      ? undefined
+                      : "Pendiente."
+                }
+                last
+              >
+                {(evidenceCurrent.descriptionSolution || imgSolution) && (
+                  <Stack spacing={1.5}>
+                    {evidenceCurrent.descriptionSolution && (
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          sx={{ color: "text.secondary" }}
+                        >
+                          Cómo se resolvió
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            whiteSpace: "pre-wrap",
+                            overflowWrap: "anywhere",
+                          }}
+                        >
+                          {evidenceCurrent.descriptionSolution}
+                        </Typography>
+                      </Box>
+                    )}
+                    {thumb("solution")}
+                  </Stack>
+                )}
+              </Stage>
             )}
-            {deadline && (
-              <Box>
-                <Typography sx={rowLabelSx}>
-                  {deadline.state === "resolved" ? "Resolución" : "Plazo"}
-                </Typography>
-                <EvidenceDeadline deadline={deadline} />
-              </Box>
-            )}
-            <Box>
-              <Typography sx={rowLabelSx}>Fecha de registro</Typography>
-              <Typography variant="body2">
-                {stringToDateWithTime(evidenceCurrent.createdAt)}
-              </Typography>
-            </Box>
-            {evidenceCurrent.startProcessDate && (
-              <Box>
-                <Typography sx={rowLabelSx}>
-                  Fecha de inicio de proceso
-                </Typography>
-                <Typography variant="body2">
-                  {stringToDateWithTime(evidenceCurrent.startProcessDate)}
-                </Typography>
-              </Box>
-            )}
-            {evidenceCurrent.solutionDate && (
-              <Box>
-                <Typography sx={rowLabelSx}>Fecha de cierre</Typography>
-                <Typography variant="body2">
-                  {stringToDateWithTime(evidenceCurrent.solutionDate)} (
-                  {durantionToTime(evidenceCurrent)})
-                </Typography>
-              </Box>
-            )}
-            {/* Solo si se editó: igual a la de registro no aporta nada. */}
-            {updatedDateLabel(
-              evidenceCurrent.createdAt,
-              evidenceCurrent.updatedAt,
-            ) && (
-              <Box>
-                <Typography sx={rowLabelSx}>Última actualización</Typography>
-                <Typography variant="body2">
-                  {updatedDateLabel(
-                    evidenceCurrent.createdAt,
-                    evidenceCurrent.updatedAt,
-                  )}
-                </Typography>
-              </Box>
-            )}
+          </Box>
+        </DetailSection>
+      </Stack>
 
-            <Divider />
-
-            <Typography variant="caption" sx={sectionTitleSx}>
-              DESCRIPCIÓN
-            </Typography>
-            <Box>
-              <Typography sx={rowLabelSx}>Lo que se observó</Typography>
-              <Typography variant="body2">
-                {evidenceCurrent.description || "-"}
-              </Typography>
-            </Box>
-
-            {isUnsafeBehavior && evidenceCurrent.descriptionSolution && (
-              <Box>
-                <Typography sx={rowLabelSx}>Cómo se resolvió</Typography>
-                <Typography variant="body2">
-                  {evidenceCurrent.descriptionSolution}
-                </Typography>
-              </Box>
-            )}
-          </Stack>
-        </Paper>
-      </Grid>
-      <Grid
-        size={{
-          xs: 12,
-          sm: 8,
-          md: 8,
+      {/* Datos */}
+      <Box
+        sx={{
+          gridArea: "data",
+          minWidth: 0,
+          position: { md: "sticky" },
+          top: { md: 88 },
         }}
       >
-        <Paper
-          variant="outlined"
-          sx={{
-            p: 1,
-            borderRadius: 2,
-            borderColor: theme.palette.divider,
-            minHeight: "100%",
-          }}
-        >
-          <TabsImageAndLogs
-            evidenceCurrent={evidenceCurrent}
-            setRefreshData={setRefreshData}
-            withImages={withImages}
+        <DetailSection title="Datos">
+          <DetailFieldList>
+            <DetailField label="Planta">
+              {evidenceCurrent.manufacturingPlant.name}
+            </DetailField>
+            <DetailField label="Zona">
+              {evidenceCurrent.zone.area?.name || "Sin zona"}
+            </DetailField>
+            <DetailField label="Lugar">{evidenceCurrent.zone.name}</DetailField>
+            <DetailField label="Proceso">
+              {evidenceCurrent.process?.name || "—"}
+            </DetailField>
+            <DetailField label="Reportado por">
+              {evidenceCurrent.user.name}
+            </DetailField>
+            <DetailField
+              label={responsibles.length === 1 ? "Responsable" : "Responsables"}
+            >
+              {responsibles.length
+                ? responsibles.map((person) => (
+                    <Box
+                      component="span"
+                      key={person.id}
+                      sx={{ display: "block" }}
+                    >
+                      {person.name}
+                    </Box>
+                  ))
+                : "—"}
+            </DetailField>
+            <DetailField label="Prioridad">
+              {priorityLabel !== "Sin prioridad" ? priorityLabel : "—"}
+            </DetailField>
+            <DetailField label="Registro">
+              {stringToDateWithTime(evidenceCurrent.createdAt)}
+            </DetailField>
+            {/* Solo si se editó: igual a la de registro no aporta nada. */}
+            {updatedLabel && (
+              <DetailField label="Última actualización">
+                {updatedLabel}
+              </DetailField>
+            )}
+          </DetailFieldList>
+        </DetailSection>
+      </Box>
+
+      {/* Comentarios */}
+      <Box sx={{ gridArea: "comments", minWidth: 0 }}>
+        <DetailSection title={`Comentarios (${comments.length})`}>
+          <EvidenceComments
+            evidenceId={evidenceCurrent.id}
+            comments={comments}
+            onCommentsChange={(next) => {
+              setComments(next);
+              setRefreshData(true);
+            }}
           />
-        </Paper>
-      </Grid>
-    </Grid>
+        </DetailSection>
+      </Box>
+
+      <EvidencePhotoViewer
+        photos={photos}
+        index={photoIndex}
+        onChange={setPhotoIndex}
+      />
+    </Box>
   );
 }
