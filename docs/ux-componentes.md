@@ -972,3 +972,66 @@ Otros:
 - Los borradores de iniciar o cerrar de un hallazgo que ya cambió de estado
   (por ejemplo, cerrado desde otro dispositivo) no se pueden abrir desde la
   lista; se borran a los 7 días o al cerrar sesión.
+
+## 13. Verificación (Fase 5, parte 2)
+
+Se revisó cada flujo de captura con los seis tipos de usuario a 360, 414 y
+1440 px, con teclado, contraste (temas claro, oscuro y halloween), red lenta
+(3–4 s por petición) y el API caído (500 en todas las consultas). Lo que se
+encontró y se corrigió:
+
+- **Lista de hallazgos con el API caído o sin señal:** entraba en un ciclo
+  de peticiones (unas 45 consultas de la lista y 90 de permisos en 5 s, con
+  un aviso por cada una) y se quedaba cargando. Ya estaba así en producción:
+  `findEvidences` (en `useEvidences`) se creaba en cada render y la página
+  la usa en un efecto, así que cada error provocaba otra consulta.
+  - `findEvidences` está memorizada (cambia, y vuelve a consultar, con la
+    página o las filas por página, como antes).
+  - Con error, `ErrorState` con "Reintentar" (`isError` de `useEvidences`).
+  - Los permisos de las acciones (`/evidences/permissions/config`) se piden
+    una vez con React Query; antes, en cada búsqueda.
+- **"Sin registros" antes de consultar:**
+  - `usePaginatedList`: durante el debounce de la primera carga la lista
+    decía "Sin registros" por un momento; ahora cuenta como carga
+    (esqueleto) si con los filtros actuales sí se va a consultar.
+  - EPP con varias plantas y ninguna elegida decía "Sin entregas de EPP · No
+    hay registros de EPP para esta planta"; ahora "Elige una planta". No
+    cambió cuándo se consulta.
+- **Botones de "Nuevo hallazgo"** ("Crear hallazgo" y "Cancelar"): medían 44
+  px en pantalla táctil porque su propio `minHeight` le ganaba al tema (como
+  `FormActions` en la Fase 4); ya miden 48 px.
+- **Agenda y calendario de Gemba Walk:** un recorrido programado después de
+  las 23:00 aparecía también al día siguiente (FullCalendar le da 1 h de
+  duración). `nextDayThreshold="01:00"` en ambos.
+- **API (dependencias del 28-oct):** con `@nestjs/platform-express` 12.3, un
+  cuerpo de más de 100 KB y un JSON mal formado respondían en inglés;
+  `ApiExceptionFilter` vuelve a responderlos en español.
+
+Comprobado sin cambios:
+
+- Extintores y CIAEL sin conexión al guardar: avisan "Sin conexión" y
+  conservan todo lo capturado. No ofrecen "Reintentar" porque sus envíos no
+  tienen clave de idempotencia (por diseño, Fase 3): se vuelve a tocar
+  "Guardar".
+- Gemba Walk con el API caído no muestra error hasta elegir planta: los
+  eventos se piden después de elegirla.
+
+Pendientes (no se cambiaron):
+
+- **Tema oscuro, contraste:** el texto rojo de error de MUI (`#f44336`)
+  sobre el fondo de los campos da 4.37:1, y el botón relleno con el mouse
+  encima (se oscurece) da 4.31:1 con su texto. Ambos apenas debajo de 4.5:1.
+  Propuesta: un rojo más claro para texto en oscuro y aclarar (no
+  oscurecer) el botón al pasar el mouse.
+- **Avisos repetidos con el API caído:** cada catálogo que falla muestra su
+  propio "Error del servidor" (3 en "Nuevo hallazgo", 12 en CIAEL).
+  Propuesta: agrupar los avisos iguales de consultas (GET) en uno.
+- **"Nuevo hallazgo" con red lenta:** las listas de clasificación y lugar se
+  ven vacías, sin "Cargando…", mientras llega su catálogo.
+- **Errores de subida de archivos en inglés:** Nest convierte los errores de
+  multer y busboy en 400 con su texto (por ejemplo, "Multipart: Unexpected
+  end of form" si la subida se corta a la mitad). Solo el de "más de 2 MB"
+  tiene mensaje en español.
+- **Áreas táctiles menores a 44 px** fuera de los flujos de captura: botón
+  de la cuenta (42 px), enlace del pie (17 px) y la barra de botones de
+  FullCalendar en el editor del calendario (39–40 px).

@@ -804,7 +804,12 @@ test.describe("Hallazgos: borrador del cierre", () => {
       mimeType: "image/png",
       buffer: PNG_1X1,
     });
-    // Guardado automático (~1 s) y se cierra el diálogo sin enviar.
+    // La foto se comprime antes de mostrarse (puede pasar de 1 s): se espera
+    // su vista previa y luego el guardado automático (~0.8 s), y se cierra el
+    // diálogo sin enviar.
+    await expect(
+      dialog.getByAltText("Vista previa de la evidencia"),
+    ).toBeVisible();
     await page.waitForTimeout(1_500);
     await dialog.getByRole("button", { name: "Cerrar", exact: true }).click();
     await expect(dialog).toHaveCount(0);

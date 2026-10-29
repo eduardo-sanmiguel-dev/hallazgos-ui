@@ -254,6 +254,9 @@ const GembaWalkSchedule = () => {
             plugins={[dayGridPlugin, timeGridPlugin, listPlugin]}
             initialView={isPhone ? "listWeek" : "dayGridMonth"}
             locale={esLocale}
+            // Los recorridos solo tienen hora de inicio: FullCalendar les da 1 h, y
+            // uno después de las 23:00 se pintaba también al día siguiente.
+            nextDayThreshold="01:00"
             headerToolbar={
               isPhone
                 ? { left: "prev,next", center: "title", right: "today" }

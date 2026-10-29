@@ -651,6 +651,9 @@ const GembaWalkCalendarFormPage = () => {
               initialView="dayGridMonth"
               initialDate={initialDate}
               locale={esLocale}
+              // Los recorridos solo tienen hora de inicio: FullCalendar les da 1 h, y
+              // uno después de las 23:00 se pintaba también al día siguiente.
+              nextDayThreshold="01:00"
               headerToolbar={{
                 left: "prev,next today",
                 center: "title",

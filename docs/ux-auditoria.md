@@ -416,8 +416,8 @@ Por regla del plan, no se modifican.
      separó en `gemba-walk.db-spec.ts` y
      `extinguisher-inspections.db-spec.ts` (una app por archivo). El
      servicio no cambió.
-   - `auth-users.db-spec.ts` tiene el mismo patrón (dos apps); no ha
-     fallado, pero conviene separarlo igual.
+   - `auth-users.db-spec.ts` tenía el mismo patrón (dos apps); se separó
+     igual en `auth.db-spec.ts` y `users.db-spec.ts`.
 6. **Etiquetas de prioridad invertidas.** Se guarda solo el número de días
    (`priorityDays`); el vencimiento se calcula con la fecha de registro más esos
    días, así que ningún vencimiento está mal. Lo que cambió fue el nombre de cada
@@ -537,6 +537,27 @@ Como está definida en el plan.
 M3 y M7; resueltos A7 y M8; atendidos los pendientes de
 `docs/ux-componentes.md`, sección 12, y la prueba intermitente de la
 sección 5, punto 5.
+
+**Parte 2 (verificación):** ver `docs/ux-componentes.md`, sección 13.
+- **Visibilidad por rol y por planta:** igual que en producción. El menú
+  (de donde salen la barra inferior y el bloqueo por URL) tiene las mismas
+  reglas que `d7e1236`; en el API, las mismas 88 rutas con `AdminGuard` que
+  `ae4b151`, y los filtros por planta solo cambiaron sus textos. Lo único con
+  efecto es la corrección ya documentada de los correos de la planta 3
+  (sección 5, punto 4).
+- **Captura por tipo de usuario** (Administrador, Supervisor, General
+  observador y no observador, solo-EPP y solo-HDS) a 360, 414 y 1440 px: 108
+  combinaciones; cada usuario ve exactamente sus flujos y "sin acceso" en
+  los demás, sin desplazamiento lateral ni errores de página, y "Guardar"
+  marca lo que falta en todos.
+- **Teclado, etiquetas y contraste:** sin controles sin nombre, sin foco
+  invisible y sin texto bajo AA en el tema claro ni en halloween. En el tema
+  oscuro, dos casos apenas debajo (pendientes, sección 13).
+- **Red lenta y fallos del API:** se corrigió un ciclo de peticiones en la
+  lista de hallazgos y dos estados que decían "sin registros" sin haber
+  consultado (sección 13).
+- **Pruebas:** API 1485 unitarias y 227 con base de datos; UI 489 e2e, tipos
+  y lint.
 
 ### Antes de la Fase 2 conviene decidir dos cosas
 

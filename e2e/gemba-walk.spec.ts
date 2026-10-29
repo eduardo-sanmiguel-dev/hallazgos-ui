@@ -666,6 +666,24 @@ test.describe("Gemba Walk: consulta", () => {
       await expect(page).toHaveURL(/\/gemba-walk\/view\?id=9401$/);
     });
 
+    test("un recorrido después de las 23:00 aparece una sola vez en la agenda", async ({
+      page,
+    }) => {
+      // Mismo día de la semana (no domingo), a las 23:30: con la duración de
+      // 1 h de FullCalendar, antes aparecía también al día siguiente.
+      const late = new Date();
+      if (late.getDay() === 0) late.setDate(late.getDate() - 1);
+      late.setHours(23, 30, 0, 0);
+      await mockGet(page, "/gemba-walk/walks/calendar", [
+        calendarEvent(9302, late.toISOString()),
+      ]);
+      await page.goto("/gemba-walk/schedule");
+      await choosePlant(page);
+
+      await expect(page.locator(".fc-list")).toBeVisible();
+      await expect(page.getByText("E2E Zona - Pasillo")).toHaveCount(1);
+    });
+
     test("la agenda se ve como lista de la semana", async ({ page }) => {
       await mockGet(page, "/gemba-walk/walks/9401", walkDetail());
       await mockGet(page, "/gemba-walk/walks/calendar", [

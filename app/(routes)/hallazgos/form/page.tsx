@@ -28,6 +28,7 @@ import ImageORCamera from "@shared/components/ImageORCamera";
 import DraftNotice from "@shared/components/DraftNotice";
 import { useFormDraft } from "@hooks/useFormDraft";
 import { dataURLtoFile, notify } from "@shared/utils";
+import { TOUCH_MEDIA } from "../../../theme";
 import SelectDefault from "@components/SelectDefault";
 import { SecondaryType, User } from "@interfaces";
 import {
@@ -587,7 +588,13 @@ export default function HallazgosFormPage() {
               flexDirection: { xs: "column-reverse", sm: "row" },
               justifyContent: "flex-end",
               gap: 1.5,
-              "& .MuiButton-root": { minWidth: { sm: 180 }, minHeight: 44 },
+              // 48 px en pantalla táctil, como el tema (A2): un minHeight
+              // propio le gana al del tema.
+              "& .MuiButton-root": {
+                minWidth: { sm: 180 },
+                minHeight: 44,
+                [TOUCH_MEDIA]: { minHeight: 48 },
+              },
             }}
           >
             <Button

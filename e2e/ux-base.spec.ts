@@ -13,7 +13,9 @@ test.describe("Celular", () => {
   test("usuarios se ven como tarjetas con sus acciones", async ({ page }) => {
     await page.goto("/users");
 
-    const cards = page.getByRole("list", { name: "Usuarios" }).getByRole("listitem");
+    const cards = page
+      .getByRole("list", { name: "Usuarios" })
+      .getByRole("listitem");
     await expect(cards.first()).toBeVisible();
     await expect(page.getByRole("table")).toHaveCount(0);
 
@@ -39,6 +41,15 @@ test.describe("Celular", () => {
     const menu = page.getByRole("button", { name: "Abrir menú" });
     const box = (await menu.boundingBox())!;
     expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(48);
+    // Nuevo hallazgo: su propio minHeight de 44 le ganaba al tema.
+    await page.goto("/hallazgos/form");
+    for (const name of ["Crear hallazgo", "Cancelar"]) {
+      const button = page.getByRole("button", { name, exact: true });
+      await button.scrollIntoViewIfNeeded();
+      expect((await button.boundingBox())!.height, name).toBeGreaterThanOrEqual(
+        48,
+      );
+    }
   });
 
   test("el texto verde sobre blanco usa el tono oscuro; el relleno no cambia", async ({
@@ -49,7 +60,10 @@ test.describe("Celular", () => {
     const filled = page.getByText("Tomar foto");
     await expect(outlined).toBeVisible();
 
-    const color = (locator: typeof outlined, prop: "color" | "backgroundColor") =>
+    const color = (
+      locator: typeof outlined,
+      prop: "color" | "backgroundColor",
+    ) =>
       locator
         .locator("xpath=ancestor-or-self::label[1]")
         .evaluate((el, p) => getComputedStyle(el)[p], prop);

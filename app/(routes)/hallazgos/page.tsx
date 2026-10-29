@@ -12,6 +12,7 @@ import { toast } from "sonner";
 
 import TableEvidences from "./_components/TableEvidences";
 import { TableSkeleton } from "@shared/components/Skeletons";
+import ErrorState from "@shared/components/ErrorState";
 import FiltersEvidence, {
   FiltersEvidences,
 } from "./_components/FiltersEvidence";
@@ -43,6 +44,7 @@ export default function HallazgosPage() {
     findEvidences,
     evidences,
     isLoading,
+    isError,
     countEvidence,
     page,
     setPage,
@@ -173,6 +175,11 @@ export default function HallazgosPage() {
         >
           {isLoading ? (
             <TableSkeleton />
+          ) : isError ? (
+            <ErrorState
+              offline={typeof navigator !== "undefined" && !navigator.onLine}
+              onRetry={getData}
+            />
           ) : (
             <TableEvidences
               rows={evidences}

@@ -299,6 +299,19 @@ test.describe("EPP: entregas", () => {
 });
 
 test.describe("EPP: lista de entregas", () => {
+  test("con varias plantas y ninguna elegida, pide elegirla (no dice 'sin registros')", async ({
+    page,
+  }) => {
+    await page.goto("/epp");
+    const plants = await sessionPlants(page);
+    test.skip(plants.length < 2, "El usuario de e2e necesita dos plantas.");
+    await expect(page.getByText("Elige una planta")).toBeVisible();
+    await expect(page.getByText("Sin entregas de EPP")).toHaveCount(0);
+
+    await pickOption(page, "Planta", plants[0].name);
+    await expect(page.getByText("Elige una planta")).toHaveCount(0);
+  });
+
   const SIGNATURE =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 

@@ -17,6 +17,17 @@ tienen todas las que pide el API (`joi.validarion.ts`). La UI tiene **una
 dependencia nueva** desde Gemba Walk (`@fullcalendar/list`, ver la sección 5):
 instalar dependencias antes de `next build`.
 
+**El API también actualiza dependencias** (commit `85ed714`, "feat: update
+node", 28-oct-2026): pnpm 12.16.1 y lockfile regenerado. Entre otras, Nest
+(`common`, `core`, `platform-express`) 12.2.0 → 12.3.2, `@nestjs/apollo` y
+`@nestjs/graphql` 14.0 → 14.1, `@nestjs/serve-static` 12.1.1, multer 2.5.0,
+body-parser 2.4.0, nodemailer 10.2.1 y pdfmake 0.3.13. Va en el mismo
+despliegue: en el servidor, `pnpm install --frozen-lockfile` antes de
+compilar el API. Con Nest 12.3, los errores del lector del cuerpo (más de
+100 KB, JSON mal formado) llegaban en inglés; ya se corrigió en
+`ApiExceptionFilter` (ver "Fase 5: actualización de dependencias", sección
+5).
+
 ---
 
 ## 1. Antes de desplegar
@@ -561,3 +572,37 @@ escritorio. Nada de esto requiere cambios en el servidor.
   formulario a medias, el navegador le pregunta antes de salir. En los
   formularios con borrador (hallazgos, ICS, recorrido de Gemba Walk) lo
   capturado se recupera igual al volver.
+
+### Fase 5: actualización de dependencias del API
+
+- **Sin migraciones, variables ni cambios de nginx.** Requiere
+  `pnpm install --frozen-lockfile` en el API (commit `85ed714`).
+- **API:** con `@nestjs/platform-express` 12.3, el adaptador de Express
+  convierte los errores del lector del cuerpo en `HttpException` con su
+  texto en inglés. `ApiExceptionFilter` los vuelve a responder en español,
+  como antes:
+  - Cuerpo de más de 100 KB: 413 "La información enviada es demasiado
+    grande." (llegaba "request entity too large").
+  - JSON mal formado: 400 "La solicitud no es válida." (llegaba, por
+    ejemplo, "Expected double-quoted property name in JSON at position 17").
+- **Para el cliente:** nada visible; los mensajes quedan igual que antes de
+  la actualización.
+
+### Fase 5: verificación
+
+- **Sin migraciones, variables, dependencias ni cambios de nginx.** El API
+  no cambia en esta parte (además de lo de la sección anterior).
+- **UI:**
+  - Hallazgos: si la lista no carga (sin señal o error del servidor), se ve
+    "No se pudo cargar" con "Reintentar". Antes repetía la consulta sin
+    parar y llenaba la pantalla de avisos.
+  - Las listas ya no dicen "Sin registros" por un momento antes de
+    consultar; se ve el esqueleto de carga.
+  - EPP: con varias plantas y ninguna elegida dice "Elige una planta" (antes
+    "No hay registros de EPP para esta planta").
+  - "Nuevo hallazgo": "Crear hallazgo" y "Cancelar" miden 48 px en pantalla
+    táctil, como el resto.
+  - Agenda y calendario de Gemba Walk: un recorrido después de las 23:00 ya
+    no aparece también al día siguiente.
+- **Para el cliente:** sin cambios de uso. Con mala señal, la lista de
+  hallazgos avisa una vez y ofrece "Reintentar".

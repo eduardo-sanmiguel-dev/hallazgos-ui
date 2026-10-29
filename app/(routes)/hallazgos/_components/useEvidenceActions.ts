@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-
+import { useQuery } from "@tanstack/react-query";
 import { useShallow } from "zustand/shallow";
 
 import {
@@ -16,12 +15,15 @@ import { EvidenceGraphql } from "@hooks";
 // menú de la tabla, en un solo lugar para la tabla y las tarjetas de celular.
 // El API valida cada acción por su cuenta.
 export function useEvidenceActions() {
-  const [supervisorOverrideEmails, setSupervisorOverrideEmails] = useState<
-    string[]
-  >([]);
-  const [cancelEvidenceEmails, setCancelEvidenceEmails] = useState<string[]>(
-    [],
-  );
+  // Una sola consulta para toda la lista: antes cada montaje de la tabla (en
+  // cada búsqueda) la repetía. Si falla, sin correos especiales, como antes.
+  const { data: config } = useQuery({
+    queryKey: ["evidence-permissions-config"],
+    queryFn: EvidencesService.getPermissionsConfig,
+    staleTime: 5 * 60 * 1000,
+  });
+  const supervisorOverrideEmails = config?.supervisorOverrideEmails || [];
+  const cancelEvidenceEmails = config?.cancelEvidenceEmails || [];
   const { userId, role, email } = useUserSessionStore(
     useShallow((state) => ({
       userId: state.id,
@@ -29,18 +31,6 @@ export function useEvidenceActions() {
       email: state.email,
     })),
   );
-
-  useEffect(() => {
-    EvidencesService.getPermissionsConfig()
-      .then((config) => {
-        setSupervisorOverrideEmails(config.supervisorOverrideEmails || []);
-        setCancelEvidenceEmails(config.cancelEvidenceEmails || []);
-      })
-      .catch(() => {
-        setSupervisorOverrideEmails([]);
-        setCancelEvidenceEmails([]);
-      });
-  }, []);
 
   // Cerrado y Cancelado son finales: el API responde 409 a cerrar, cancelar o
   // reasignar fuera de Abierto / En progreso.

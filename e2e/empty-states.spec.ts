@@ -64,6 +64,47 @@ test.describe("Sin datos", () => {
     });
   }
 
+  test("si la lista de hallazgos no carga: un solo intento, sin repetir, y Reintentar", async ({
+    page,
+  }) => {
+    let fail = true;
+    let queries = 0;
+    let permissions = 0;
+    await page.route(
+      (url) => url.pathname.endsWith("/graphql"),
+      (route) => {
+        queries++;
+        return fail
+          ? route.fulfill({ status: 500, body: "E2E caído" })
+          : route.fallback();
+      },
+    );
+    await page.route(
+      (url) => url.pathname.endsWith("/api/v1/evidences/permissions/config"),
+      (route) => {
+        permissions++;
+        return route.fallback();
+      },
+    );
+    await page.goto("/hallazgos");
+
+    const alert = page
+      .getByRole("alert")
+      .filter({ hasText: "No se pudo cargar" });
+    await expect(alert).toBeVisible();
+    // Antes, cada error provocaba otra consulta: decenas por segundo.
+    await page.waitForTimeout(2_000);
+    expect(queries).toBe(1);
+
+    fail = false;
+    await alert.getByRole("button", { name: "Reintentar" }).click();
+    await expect(page.getByRole("table")).toBeVisible();
+    await expect(alert).toHaveCount(0);
+    expect(queries).toBe(2);
+    // Los permisos de las acciones se piden una vez, no en cada búsqueda.
+    expect(permissions).toBe(1);
+  });
+
   test("si la lista no carga, lo dice y deja reintentar", async ({ page }) => {
     let fail = true;
     await page.route(

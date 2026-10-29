@@ -78,6 +78,10 @@ export function usePaginatedList<TFilters, TItem>({
     initial: initialRowsPerPage,
   });
   const isEnabled = canQuery && rowsPerPageReady;
+  // Con los filtros actuales sí se consultará (aunque el debounce aún no
+  // termine): la primera carga se muestra como carga y no como "Sin
+  // registros" durante esa espera.
+  const willQuery = typeof enabled === "function" ? enabled(filters) : enabled;
 
   // La página se guarda junto a los filtros con los que se eligió: si los
   // filtros cambian, la página efectiva vuelve a 0 en el mismo render.
@@ -124,7 +128,7 @@ export function usePaginatedList<TFilters, TItem>({
       },
     } satisfies ServerPagination,
     /** Primera carga (aún no hay datos que mostrar). */
-    isLoading: query.isPending && canQuery,
+    isLoading: query.isPending && willQuery,
     /** Cualquier petición en curso, incluida una recarga con datos visibles. */
     isFetching: query.isFetching,
     /** Vuelve a pedir la página actual (p. ej. tras eliminar un registro). */

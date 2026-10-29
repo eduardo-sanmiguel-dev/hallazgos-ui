@@ -37,6 +37,7 @@ import { Epp, EppHistoryItem, EppSortableColumn } from "@interfaces";
 import { useMediaQuery } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 import ErrorState from "@shared/components/ErrorState";
+import EmptyState from "@shared/components/EmptyState";
 import { TableBodyState } from "@shared/components/TableDefaultServer";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import { constants } from "@constants";
@@ -571,8 +572,15 @@ export default function TableEpps({
   const isPhone = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
 
   // Sin filas: vacío (con o sin filtros) o error con "Reintentar", con los
-  // componentes compartidos.
-  const bodyState = (
+  // componentes compartidos. Sin planta todavía no se consulta: se pide
+  // elegirla (antes decía "No hay registros de EPP para esta planta").
+  const bodyState = !manufacturingPlantId ? (
+    <EmptyState
+      title="Elige una planta"
+      description="Las entregas de EPP se consultan por planta."
+      size="small"
+    />
+  ) : (
     <TableBodyState
       isError={isError}
       onRetry={onRetry}
