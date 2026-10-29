@@ -34,6 +34,7 @@ import { AuthService } from "@services";
 import { useInstallApp } from "@hooks";
 import { deleteUserDrafts, listUserDrafts } from "@shared/drafts/draftStore";
 import { useConfirmDialog } from "./ConfirmDialog";
+import { TOUCH_MEDIA } from "../../theme";
 
 const initialsOf = (name: string, email: string) => {
   const words = name.trim().split(/\s+/).filter(Boolean);
@@ -149,6 +150,8 @@ export default function HeaderUserMenu() {
           pr: { xs: 0.5, md: 1 },
           borderRadius: 999,
           textAlign: "left",
+          // 44 px en pantalla táctil (A2): el avatar de 34 px dejaba 42.
+          [TOUCH_MEDIA]: { minHeight: 44, minWidth: 44 },
           transition: theme.transitions.create("background-color", {
             duration: 150,
           }),

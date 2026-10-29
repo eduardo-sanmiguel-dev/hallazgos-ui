@@ -1016,22 +1016,40 @@ Comprobado sin cambios:
 - Gemba Walk con el API caído no muestra error hasta elegir planta: los
   eventos se piden después de elegirla.
 
-Pendientes (no se cambiaron):
+Pendientes de la verificación, resueltos al cierre (aprobados):
 
-- **Tema oscuro, contraste:** el texto rojo de error de MUI (`#f44336`)
-  sobre el fondo de los campos da 4.37:1, y el botón relleno con el mouse
-  encima (se oscurece) da 4.31:1 con su texto. Ambos apenas debajo de 4.5:1.
-  Propuesta: un rojo más claro para texto en oscuro y aclarar (no
-  oscurecer) el botón al pasar el mouse.
-- **Avisos repetidos con el API caído:** cada catálogo que falla muestra su
-  propio "Error del servidor" (3 en "Nuevo hallazgo", 12 en CIAEL).
-  Propuesta: agrupar los avisos iguales de consultas (GET) en uno.
-- **"Nuevo hallazgo" con red lenta:** las listas de clasificación y lugar se
-  ven vacías, sin "Cargando…", mientras llega su catálogo.
-- **Errores de subida de archivos en inglés:** Nest convierte los errores de
-  multer y busboy en 400 con su texto (por ejemplo, "Multipart: Unexpected
-  end of form" si la subida se corta a la mitad). Solo el de "más de 2 MB"
-  tiene mensaje en español.
-- **Áreas táctiles menores a 44 px** fuera de los flujos de captura: botón
-  de la cuenta (42 px), enlace del pie (17 px) y la barra de botones de
-  FullCalendar en el editor del calendario (39–40 px).
+- **Tema oscuro, contraste** (`app/theme.tsx`): `ERROR_TEXT_ON_DARK`
+  (`#ff8a80`) para texto rojo en los temas oscuros (oscuro y halloween):
+  ayudas y etiquetas con error, `Typography`, botones de texto y contorno,
+  `IconButton` y `ToggleButton` en color error. Da 7.05:1 sobre los campos y
+  5.14:1 sobre el papel de los diálogos (MUI lo aclara con la elevación; con
+  el rojo anterior, 3.18:1). Rellenos y bordes conservan el rojo de MUI. El
+  botón relleno primario se aclara (`primary.light`) al pasar el mouse en
+  lugar de oscurecerse (texto a 9.2:1; antes 4.3:1). Pruebas en
+  `e2e/unit/theme-contrast.spec.ts`.
+- **Avisos repetidos** (`notifyApiError` en `axiosWrapper`): los errores de
+  consultas (GET) iguales dentro de 4 s se agrupan en un aviso que dice
+  cuántas fueron ("(12 consultas)"). Los de servidor se agrupan por tipo (la
+  referencia cambia en cada uno; queda la del último). Los errores al guardar
+  (POST, PATCH, DELETE) y los que muestra una pantalla con
+  `handleErrorResponse` siguen uno por uno. "Sin conexión" ya era uno solo.
+- **"Nuevo hallazgo" con red lenta:** `loading` en Hallazgo y Lugar con el
+  estado de `useMainTypes` y `useZones` ("Cargando…" y spinner en el
+  campo), como en ICS y CIAEL.
+- **Errores de subida en el API** (`ApiExceptionFilter`): Nest entrega los
+  de multer y busboy sin el error original, así que se reconocen por su
+  texto fijo (las mismas constantes que usa `@nestjs/platform-express`). La
+  subida cortada ("Unexpected end of form/file") responde "La subida de la
+  foto se interrumpió. Intenta de nuevo."; los demás, "No se pudo recibir la
+  foto. Revisa que sea un solo archivo e intenta de nuevo.". Prueba con una
+  subida realmente cortada en `test/db/evidences.db-spec.ts`.
+- **Áreas táctiles:** botón de la cuenta (`HeaderUserMenu`) y barra de
+  FullCalendar del editor del calendario a 44 px en pantalla táctil. El
+  enlace del pie se queda como está (decisión aprobada).
+
+Pendiente encontrado al cierre (no se cambió):
+
+- **Tema oscuro, botón relleno rojo** ("Descartar", "Eliminar"): texto
+  blanco sobre el rojo de MUI (`#f44336`) da 3.68:1. Propuesta: en oscuro,
+  texto oscuro sobre ese rojo (`error.contrastText`), o un rojo de relleno
+  más oscuro.

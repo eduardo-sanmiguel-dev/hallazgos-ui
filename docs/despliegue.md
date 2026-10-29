@@ -1,147 +1,186 @@
 # Despliegue de las mejoras de UX
 
-Qué hacer al subir a producción los cambios del plan de mejora de UX. Se
-actualiza con cada módulo de la Fase 4.
+Lista final para subir a producción todo el plan de mejora de UX (fases 1 a
+5). Las secciones 1 a 4 se siguen en orden; la 5 es el texto para avisar al
+cliente; la 6 y la 7 son el detalle de referencia.
 
-**Estado al 27-oct-2026:** producción está en `ae4b151` (API) y `d7e1236` (UI).
-Falta desplegar todo lo de las fases 1 a 3: commit "feat: backup" en ambos
-repositorios (`306a372` API, `3313cf7` UI).
+**Qué se despliega:** producción está en `ae4b151` (API) y `d7e1236` (UI). Se
+sube lo último de `main` en cada repositorio: desde "feat: backup" (`306a372`
+API, `3313cf7` UI) hasta el commit que incluya la Fase 5 (cierre).
 
 | Servidor | Proceso pm2 | Ruta | Dominio |
 | --- | --- | --- | --- |
 | API | `api-comp` (fork, puerto 4000) | `/home/eduardo/hallazgos-api` | `api.comportarte.com` (`/etc/nginx/sites-available/api.conf`) |
 | UI | `ui-comp` (puerto 3000) | `/home/eduardo/hallazgos-ui` | `comportarte.com` (`ui.conf`) |
 
-No hay variables de entorno nuevas: los `.env.production` del servidor ya
-tienen todas las que pide el API (`joi.validarion.ts`). La UI tiene **una
-dependencia nueva** desde Gemba Walk (`@fullcalendar/list`, ver la sección 5):
-instalar dependencias antes de `next build`.
+**Cómo se despliega hoy:** un push a `main` corre en GitHub Actions las
+pruebas (API: tipos, unitarias, HTTP y base de datos; UI: tipos y lint) y, si
+pasan, entra por SSH y ejecuta `~/scripts/hallazgos-api.sh` o
+`~/scripts/hallazgos-ui.sh`. Cada script detiene el proceso en pm2, actualiza
+el código, borra `node_modules`, corre `pnpm install` y `pnpm build`, y lo
+vuelve a arrancar: **la app no responde mientras instala y compila** (varios
+minutos).
 
-**El API también actualiza dependencias** (commit `85ed714`, "feat: update
-node", 28-oct-2026): pnpm 12.16.1 y lockfile regenerado. Entre otras, Nest
-(`common`, `core`, `platform-express`) 12.2.0 → 12.3.2, `@nestjs/apollo` y
-`@nestjs/graphql` 14.0 → 14.1, `@nestjs/serve-static` 12.1.1, multer 2.5.0,
-body-parser 2.4.0, nodemailer 10.2.1 y pdfmake 0.3.13. Va en el mismo
-despliegue: en el servidor, `pnpm install --frozen-lockfile` antes de
-compilar el API. Con Nest 12.3, los errores del lector del cuerpo (más de
-100 KB, JSON mal formado) llegaban en inglés; ya se corrigió en
-`ApiExceptionFilter` (ver "Fase 5: actualización de dependencias", sección
-5).
+**Resumen de lo que cambia en el servidor:**
 
----
-
-## 1. Antes de desplegar
-
-### 1.1 Respaldo de la base
-
-Las dos migraciones son pequeñas y tienen `down`, pero tocan una tabla de
-negocio (`main_type`). Respaldo antes de reiniciar el API.
-
-### 1.2 Revisar los datos que necesita la migración `requires_evidence`
-
-`AddRequiresEvidenceToMainTypes1792860000000` agrega la bandera "Requiere
-evidencia fotográfica" a las clasificaciones y la apaga **solo** en la de
-comportamiento inseguro. Debe haber **exactamente una** clasificación cuyo
-nombre contenga "comportamiento inseguro"; con cero o varias, la migración falla
-a propósito (en transacción, sin dejar nada a medias) y **el API no arranca**.
-
-Consulta de solo lectura en producción:
-
-```sql
-SELECT id, name, "isActive"
-  FROM main_type
- WHERE LOWER(name) LIKE '%comportamiento inseguro%';
-```
-
-Debe regresar una sola fila (cuenta también las inactivas). "Comportamiento por
-condición insegura" no coincide. Si hay más de una, renombrar antes de
-desplegar.
-
-### 1.3 nginx: límite de tamaño de las fotos (aplicar antes)
-
-Revisión del 27-oct-2026 (solo lectura) en `/etc/nginx/nginx.conf`,
-`sites-enabled/` (`api.conf` y los demás), `conf.d/` (vacío) y `snippets/`:
-
-- **`client_max_body_size` no está definido en ningún lado**, así que nginx usa
-  su valor por omisión: **1 MB**. El API acepta fotos de hasta 2 MB.
-- Evidencia: de las 8452 fotos en el servidor, 163 pesan entre 900 KB y 1 MB y
-  **ninguna** pasa de 1 MB (la mayor, 1 047 355 bytes). Las más pesadas las
-  rechazaba nginx con un 413 antes de llegar al API.
-- No hay `proxy_read_timeout`, `proxy_send_timeout` ni `client_body_timeout`:
-  quedan en 60 s. No afectan a los 90 s de la UI para subir fotos: los tres
-  miden el tiempo **entre dos lecturas o escrituras**, no la subida completa, y
-  nginx recibe todo el cuerpo antes de pasarlo al API
-  (`proxy_request_buffering` activo por omisión). Una subida lenta pero
-  continua no se corta.
-
-**Cambio:** en `/etc/nginx/sites-available/api.conf`, dentro del bloque
-`server` que tiene `listen 443 ssl http2;` (`server_name api.comportarte.com`),
-justo debajo de `server_name`:
-
-```nginx
-    # Fotos de evidencia: el API acepta hasta 2 MB; margen para el multipart.
-    client_max_body_size 3m;
-```
-
-Luego:
-
-```bash
-sudo nginx -t && sudo systemctl reload nginx
-```
-
-`reload` no corta conexiones. La UI ya muestra "Archivo muy pesado" si llega un
-413 de nginx (antes no mostraba nada útil).
+| Qué | Dónde | Detalle |
+| --- | --- | --- |
+| 2 migraciones | API (corren solas al arrancar) | `requires_evidence` en `main_type` y tabla `idempotency_key` (sección 2, paso 3) |
+| `client_max_body_size 3m` | nginx (`api.conf`) | Hoy nginx corta a 1 MB y el API acepta fotos de 2 MB (sección 2, paso 2) |
+| Dependencias | API y UI | API: Nest 12.3, multer 2.5, body-parser 2.4, nodemailer 10.2… (commit `85ed714`). UI: `@fullcalendar/list` 6.1.21 nueva |
+| pnpm 12.16.1 | Ambos (`packageManager`) | Antes 12.15.0 |
+| Variables de entorno | — | Ninguna nueva |
 
 ---
 
-## 2. Orden de despliegue
+## 1. Antes del día del despliegue
 
-**API primero, después UI.** El API nuevo es compatible con la UI anterior
-(el campo `message` de los errores sigue existiendo, ahora siempre como texto,
-y la clave de idempotencia es opcional). La UI nueva sí necesita el API nuevo:
-manda `Idempotency-Key` y espera los códigos de error (`SESSION_EXPIRED`,
-`VALIDATION_FAILED`…).
+1. **Avisar al cliente** con el texto de la sección 5, sobre todo por las
+   etiquetas de prioridad (6.1) y el periodo del dashboard (últimos 30 días).
+2. **Planta 3:** confirmar con el cliente si `strujillo@` y `dspaggiari@`
+   deben tener asignada la planta 3 para recibir los avisos por correo (6.2).
+   No bloquea el despliegue.
+3. **Revisar el dato que necesita la migración `requires_evidence`.**
+   `AddRequiresEvidenceToMainTypes1792860000000` apaga la foto obligatoria
+   **solo** en la clasificación de comportamiento inseguro, y exige que
+   exista **exactamente una**. Con cero o varias falla a propósito (en
+   transacción, sin dejar nada a medias) y **el API no arranca**. Consulta de
+   solo lectura en producción:
 
-1. **API** (`api-comp`): actualizar código, compilar y reiniciar.
-   - Las migraciones corren solas al arrancar (`migrationsRun: true`), en este
-     orden:
+   ```sql
+   SELECT id, name, "isActive"
+     FROM main_type
+    WHERE LOWER(name) LIKE '%comportamiento inseguro%';
+   ```
+
+   Debe regresar una sola fila (cuenta también las inactivas).
+   "Comportamiento por condición insegura" no coincide. Si hay más de una,
+   renombrar antes de desplegar.
+4. **pnpm en el servidor:** `pnpm --version` debe ser 12.16.1 o mayor (si no,
+   `pnpm add -g pnpm@12.16.1`).
+5. **Scripts del servidor:** conviene cambiar `pnpm install` por
+   `pnpm install --frozen-lockfile` en `~/scripts/hallazgos-api.sh` y
+   `~/scripts/hallazgos-ui.sh`, para instalar exactamente las versiones
+   probadas (las mismas que usa CI).
+6. **Horario:** elegir uno sin capturas en planta; cada script deja su parte
+   fuera de servicio unos minutos.
+
+## 2. El día del despliegue, en orden
+
+**API primero, después UI.** El API nuevo funciona con la UI anterior (el
+campo `message` de los errores sigue existiendo, y la clave de idempotencia es
+opcional). La UI nueva necesita el API nuevo: manda `Idempotency-Key` y
+espera los códigos de error (`SESSION_EXPIRED`, `VALIDATION_FAILED`…). No usar
+`bash ~/scripts/hallazgos-ui.sh && bash ~/scripts/hallazgos-api.sh` (corre
+primero la UI).
+
+1. **Respaldo de la base de producción.** Las migraciones son pequeñas y
+   tienen `down`, pero tocan una tabla de negocio (`main_type`).
+2. **nginx: límite de las fotos.** Hoy `client_max_body_size` no está
+   definido en ningún archivo (revisado el 27-oct-2026), así que nginx usa 1
+   MB; ninguna de las 8452 fotos del servidor pasa de 1 MB porque nginx
+   rechazaba las más pesadas. En `/etc/nginx/sites-available/api.conf`, dentro
+   del bloque `server` con `listen 443 ssl http2;`
+   (`server_name api.comportarte.com`), justo debajo de `server_name`:
+
+   ```nginx
+       # Fotos de evidencia: el API acepta hasta 2 MB; margen para el multipart.
+       client_max_body_size 3m;
+   ```
+
+   ```bash
+   sudo nginx -t && sudo systemctl reload nginx
+   ```
+
+   `reload` no corta conexiones. Los tiempos límite de nginx (60 s entre dos
+   lecturas o escrituras) no afectan a los 90 s de la UI para subir fotos: una
+   subida lenta pero continua no se corta.
+3. **API:** push (o merge) a `main` de `hallazgos-api` y esperar a que
+   GitHub Actions pase las pruebas y termine el paso "Deploy por SSH".
+   - Las migraciones corren solas al arrancar (`migrationsRun: true`):
      1. `AddRequiresEvidenceToMainTypes1792860000000`: columna
         `main_type.requires_evidence`.
      2. `CreateIdempotencyKeys1792900000000`: tabla `idempotency_key`
-        (envíos ya procesados; se borran solos a los 7 días, cron diario a las
-        3 a. m.).
-   - Revisar en el log del arranque que no haya error de migración y que diga
-     `Running on port: [4000]`.
-2. **UI** (`ui-comp`): actualizar código, `next build` y reiniciar.
+        (envíos ya procesados; se borran solos a los 7 días con un cron
+        diario a las 3 a. m.).
+   - En el log del arranque (`pm2 logs api-comp`): sin errores de migración
+     y `Running on port: [4000]`.
+4. **UI:** solo con el API arriba, push (o merge) a `main` de
+   `hallazgos-ui` y esperar el deploy. El script instala `@fullcalendar/list`
+   al correr `pnpm install`.
+5. **Revisar ambos procesos:** `pm2 status` con `api-comp` y `ui-comp` en
+   `online`, sin reinicios en bucle.
 
-### Si hay que revertir
+## 3. Después de desplegar (verificación)
 
-- **Solo UI:** volver al commit anterior y reconstruir. El API nuevo funciona
-  con la UI anterior.
+En producción, con un usuario de pruebas o el administrador:
+
+1. **Errores en español:** iniciar sesión con una contraseña equivocada dice
+   "No se pudo iniciar sesión".
+2. **Foto pesada y progreso:** crear un hallazgo con una foto de entre 1 y 2
+   MB desde el celular; se ve "Subiendo foto… N %" y se guarda (antes nginx
+   la rechazaba).
+3. **Idempotencia:** `SELECT count(*) FROM idempotency_key;` crece con cada
+   hallazgo creado, iniciado o cerrado.
+4. **Validación:** en Equipos de emergencia, una ubicación de 3 letras sale
+   en español y marca el campo.
+5. **Dashboard:** abre con los últimos 30 días y cargan las gráficas de
+   prioridad y de riesgo (6.1).
+6. **Celular:** la lista de hallazgos se ve en tarjetas, con la barra inferior
+   y "Nuevo hallazgo" al centro.
+7. **Borrador:** empezar un hallazgo, recargar la página y comprobar que
+   ofrece "Recuperar".
+8. **EPP:** registrar una entrega con firma y descargar su Excel; la firma
+   sale centrada en la celda.
+9. **Logs:** `pm2 logs api-comp --lines 200` sin errores nuevos;
+   en OpenObserve, sin aumento de errores 500.
+
+## 4. Si hay que revertir
+
+- **Solo UI:** volver al commit anterior (`d7e1236`) y reconstruir. El API
+  nuevo funciona con la UI anterior.
 - **API:** primero revertir la UI. Luego, si hace falta deshacer las
   migraciones, `pnpm migration:revert:prod` dos veces (deshace la última cada
-  vez: primero `idempotency_key`, luego `requires_evidence`) y volver al commit
-  anterior del API.
+  vez: primero `idempotency_key`, luego `requires_evidence`) y volver al
+  commit anterior del API (`ae4b151`), con `pnpm install` para regresar
+  también las dependencias.
+- **nginx:** el cambio de `client_max_body_size` se puede dejar; solo permite
+  fotos de hasta 3 MB.
+
+## 5. Texto para avisar al cliente
+
+> **Actualización de ComportArte — [fecha y hora]**
+>
+> El [fecha], entre [hora] y [hora], ComportArte estará fuera de servicio unos
+> minutos por una actualización. Esto es lo que van a notar:
+>
+> - **En el celular**, los hallazgos se ven en tarjetas, con su estado y la
+>   acción principal a la mano, y hay una barra abajo con "Nuevo hallazgo" al
+>   centro.
+> - **Fotos:** "Tomar foto" abre la cámara del teléfono, con mejor calidad. Se
+>   ve el avance de la subida.
+> - **No se pierde lo capturado:** si se va la señal o se cierra la app al
+>   crear, iniciar o cerrar un hallazgo, al registrar ICS o durante un
+>   recorrido de Gemba Walk, al volver se ofrece recuperarlo. Esto queda en el
+>   teléfono; al cerrar sesión se borra.
+> - **Mensajes claros:** los formularios marcan qué falta y los errores dicen
+>   qué pasó, con la opción de reintentar sin duplicar registros.
+> - **Dashboard:** abre con los últimos 30 días (antes, el mes en curso).
+> - **Prioridad:** ahora "Inmediato" es 2 días y "Corto plazo" 8 días en todas
+>   las pantallas, gráficas y correos. Ningún vencimiento cambia, pero unos 300
+>   hallazgos registrados antes del 27 de junio de 2026 pueden mostrar la otra
+>   etiqueta de la que se eligió al capturarlos.
+> - **Avisos de la planta 3:** ahora llegan a 4 personas de la lista (antes,
+>   por un error, solo a 1).
+>
+> Si algo no funciona como esperan, avísennos con la hora y, si aparece, la
+> referencia del error (por ejemplo, E-7K3Q9P).
 
 ---
 
-## 3. Después de desplegar (verificación rápida)
+## 6. Cambios que el cliente va a notar (detalle)
 
-1. Iniciar sesión con una contraseña equivocada: el aviso dice "No se pudo
-   iniciar sesión".
-2. Crear un hallazgo con una foto de entre 1 y 2 MB: se guarda (antes, nginx la
-   rechazaba).
-3. `SELECT count(*) FROM idempotency_key;` crece con cada hallazgo creado,
-   iniciado o cerrado desde la UI nueva.
-4. Un error de validación (por ejemplo, ubicación de 3 letras en equipos de
-   emergencia) sale en español y marca el campo.
-5. Dashboard: las gráficas de prioridad y de riesgo cargan (ver 4.1).
-
----
-
-## 4. Cambios que el cliente va a notar
-
-### 4.1 Dashboard: gráficas de prioridad y de riesgo
+### 6.1 Dashboard: gráficas de prioridad y de riesgo
 
 El dashboard usaba el mapeo de prioridad anterior al 26-jun-2026 (Inmediato =
 8 días, Corto plazo = 2 días). Ahora todo usa uno solo: **Inmediato = 2 días
@@ -158,16 +197,16 @@ plazo = 30 (Bajo)**.
   sección 5, punto 6).
 - Los correos también usan el mapeo único.
 
-Conviene avisarlo al cliente antes de desplegar.
+Conviene avisarlo al cliente antes de desplegar (sección 5).
 
-### 4.2 Avisos por correo de la planta 3
+### 6.2 Avisos por correo de la planta 3
 
 La lista fija de destinatarios distinguía mayúsculas: solo se avisaba a 1
 persona (`sst@`). Ahora se avisa a 4. `strujillo@` y `dspaggiari@` siguen sin
 recibir avisos porque no tienen asignada la planta 3: confirmar con el cliente
 si deben tenerla.
 
-### 4.3 Hallazgos y evidencia
+### 6.3 Hallazgos y evidencia
 
 - **Foto obligatoria según la clasificación:** la decide la bandera "Requiere
   evidencia fotográfica" de cada clasificación (en Criterios), no el nombre.
@@ -179,7 +218,7 @@ si deben tenerla.
   progreso de subida.
 - Cerrar un hallazgo pide confirmación.
 
-### 4.4 Toda la app
+### 6.4 Toda la app
 
 - Botones más grandes en pantallas táctiles y mejor contraste del verde y del
   naranja.
@@ -188,7 +227,7 @@ si deben tenerla.
   acceso a esta sección" (el API ya protegía las escrituras).
 - Estados de carga, vacío y error con el mismo diseño, con "Reintentar".
 
-### 4.5 Errores
+### 6.5 Errores
 
 - Mensajes en español, con el título según el tipo ("Revisa los datos",
   "Sin permiso", "Sin conexión", "Error del servidor"…) y el campo marcado en
@@ -203,7 +242,10 @@ si deben tenerla.
 
 ---
 
-## 5. Pendientes de despliegue por módulo (Fase 4)
+## 7. Detalle técnico por módulo (referencia)
+
+Lo que se agregó al plan módulo por módulo, con los cambios del API y de la
+UI de cada uno. Todo va en el mismo despliegue (secciones 1 a 4).
 
 ### Hallazgos
 
@@ -606,3 +648,25 @@ escritorio. Nada de esto requiere cambios en el servidor.
     no aparece también al día siguiente.
 - **Para el cliente:** sin cambios de uso. Con mala señal, la lista de
   hallazgos avisa una vez y ofrece "Reintentar".
+
+### Fase 5: pendientes aprobados (cierre)
+
+- **Sin migraciones, variables, dependencias ni cambios de nginx.**
+- **API:** errores al recibir la foto en español (`ApiExceptionFilter`).
+  - Subida cortada a la mitad (por ejemplo, se perdió la señal): 400 "La
+    subida de la foto se interrumpió. Intenta de nuevo." (antes "Multipart:
+    Unexpected end of form").
+  - Los demás errores de multer y busboy (partes de más, campo inesperado,
+    tipo de contenido): "No se pudo recibir la foto. Revisa que sea un solo
+    archivo e intenta de nuevo.".
+- **UI:**
+  - Tema oscuro (y halloween): texto rojo de error más claro (`#ff8a80`,
+    5.1:1 o más, también en diálogos) y el botón verde se aclara al pasar el
+    mouse (antes se oscurecía y su texto quedaba en 4.3:1).
+  - Varias consultas que fallan casi a la vez muestran un solo aviso ("…
+    (12 consultas)"); los errores al guardar se siguen mostrando uno por uno.
+  - "Nuevo hallazgo": "Cargando…" en Hallazgo y Lugar mientras llega su
+    catálogo.
+  - Pantalla táctil: botón de la cuenta y barra de FullCalendar del editor
+    del calendario a 44 px.
+- **Para el cliente:** sin cambios de uso.

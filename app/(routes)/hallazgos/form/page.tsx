@@ -100,8 +100,12 @@ export default function HallazgosFormPage() {
   const [description, setDescription] = useState<string>("");
   const [priorityDays, setPriorityDays] = useState<string>("");
 
-  const mainTypes = useMainTypes().data ?? EMPTY_CATALOG;
-  const zones = useZones().data ?? EMPTY_CATALOG;
+  // Con señal lenta, "Cargando…" en su campo mientras llega el catálogo
+  // (antes la lista se veía vacía), como en ICS y CIAEL.
+  const mainTypesQuery = useMainTypes();
+  const zonesQuery = useZones();
+  const mainTypes = mainTypesQuery.data ?? EMPTY_CATALOG;
+  const zones = zonesQuery.data ?? EMPTY_CATALOG;
   const processes = useProcesses().data ?? EMPTY_CATALOG;
 
   const manufacturingPlants = useUserSessionStore(
@@ -418,6 +422,7 @@ export default function HallazgosFormPage() {
           <SelectDefault
             data={mainTypes}
             label="Hallazgo"
+            loading={mainTypesQuery.isLoading}
             value={typeHallazgo}
             onChange={({ target: { value } }) => {
               setTypeHallazgo(value);
@@ -460,6 +465,7 @@ export default function HallazgosFormPage() {
                 data.manufacturingPlant.id === Number(manufacturingPlantId),
             )}
             label="Lugar"
+            loading={zonesQuery.isLoading}
             value={zone}
             onChange={(e) => setZone(e.target.value)}
             helperText={!manufacturingPlantId ? "Seleccione una planta" : ""}

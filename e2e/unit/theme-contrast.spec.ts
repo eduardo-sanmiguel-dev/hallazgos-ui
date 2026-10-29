@@ -1,7 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { getContrastRatio } from "@mui/material/styles";
+import { getContrastRatio, lighten } from "@mui/material/styles";
 
-import { BRAND_PRIMARY, createAppTheme } from "../../app/theme";
+import {
+  BRAND_PRIMARY,
+  createAppTheme,
+  ERROR_TEXT_ON_DARK,
+} from "../../app/theme";
 
 // Contraste AA (4.5:1) del tema claro, que es el que se usa al sol en planta
 // (A3 de docs/ux-auditoria.md).
@@ -46,4 +50,37 @@ test.describe("Contraste del tema claro", () => {
       ).toBeGreaterThanOrEqual(AA);
     }
   });
+});
+
+test.describe("Contraste de los temas oscuros", () => {
+  // Papel de un diálogo en oscuro: MUI lo aclara con la elevación 24 (16 %
+  // de blanco encima del fondo).
+  const dialogPaper = (paper: string) => lighten(paper, 0.16);
+
+  for (const name of ["dark", "halloween"] as const) {
+    const theme = createAppTheme(name);
+    const paper = theme.palette.background.paper;
+
+    test(`${name}: el texto rojo de error se lee en campos y diálogos`, () => {
+      for (const background of [
+        paper,
+        theme.palette.background.default,
+        "#212121", // campo con relleno en oscuro
+        dialogPaper(paper),
+      ]) {
+        expect(
+          getContrastRatio(ERROR_TEXT_ON_DARK, background),
+          background,
+        ).toBeGreaterThanOrEqual(AA);
+      }
+    });
+
+    test(`${name}: el botón relleno con el mouse encima se aclara y se lee`, () => {
+      const { light, main, contrastText } = theme.palette.primary;
+      expect(getContrastRatio(contrastText, light)).toBeGreaterThanOrEqual(AA);
+      expect(getContrastRatio(contrastText, light)).toBeGreaterThanOrEqual(
+        getContrastRatio(contrastText, main),
+      );
+    });
+  }
 });

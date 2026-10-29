@@ -41,6 +41,23 @@ test.describe("Celular", () => {
     const menu = page.getByRole("button", { name: "Abrir menú" });
     const box = (await menu.boundingBox())!;
     expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(48);
+    // Botón de la cuenta: el avatar de 34 px dejaba 42.
+    const account = page.getByRole("button", { name: /^Cuenta de / });
+    const accountBox = (await account.boundingBox())!;
+    expect(
+      Math.min(accountBox.width, accountBox.height),
+    ).toBeGreaterThanOrEqual(44);
+
+    // Barra de FullCalendar del editor del calendario (medía 39–40 px).
+    await page.goto("/gemba-walk/calendar/form");
+    const toolbar = page.locator(".fc-toolbar .fc-button");
+    await expect(toolbar.first()).toBeVisible();
+    for (const box of await toolbar.evaluateAll((buttons) =>
+      buttons.map((b) => b.getBoundingClientRect().height),
+    )) {
+      expect(box).toBeGreaterThanOrEqual(44);
+    }
+
     // Nuevo hallazgo: su propio minHeight de 44 le ganaba al tema.
     await page.goto("/hallazgos/form");
     for (const name of ["Crear hallazgo", "Cancelar"]) {

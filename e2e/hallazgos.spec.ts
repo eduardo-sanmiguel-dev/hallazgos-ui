@@ -347,3 +347,29 @@ test.describe("Hallazgos", () => {
     await expect(fieldText("Lugar")).toContainText(zone);
   });
 });
+
+test("Nuevo hallazgo con señal lenta: 'Cargando…' en Hallazgo y Lugar mientras llegan", async ({
+  page,
+}) => {
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(
+    (url) =>
+      url.pathname.endsWith("/api/v1/main-types") ||
+      url.pathname.endsWith("/api/v1/zones"),
+    async (route) => {
+      await held;
+      await route.fallback();
+    },
+  );
+  await page.goto("/hallazgos/form");
+  const [plant] = await sessionPlants(page);
+  await pickOption(page, "Planta", plant.name);
+
+  await expect(page.getByLabel("Cargando Hallazgo")).toBeVisible();
+  await expect(page.getByLabel("Cargando Lugar")).toBeVisible();
+
+  release();
+  await expect(page.getByLabel("Cargando Hallazgo")).toHaveCount(0);
+  await expect(page.getByLabel("Cargando Lugar")).toHaveCount(0);
+});

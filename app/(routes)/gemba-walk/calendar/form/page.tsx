@@ -43,6 +43,7 @@ import DialogCalendarEvent, {
   CalendarOption,
   DialogState,
 } from "../_components/DialogCalendarEvent";
+import { TOUCH_MEDIA } from "../../../../theme";
 
 // Evento pendiente de guardar. scheduledAt es ISO 8601 (instante real).
 interface DraftEvent {
@@ -631,6 +632,11 @@ const GembaWalkCalendarFormPage = () => {
             "--fc-button-active-border-color": theme.palette.primary.dark,
             "& .fc": { color: theme.palette.text.primary },
             "& .fc .fc-toolbar-title": { fontSize: "1.25rem" },
+            // Barra de FullCalendar (anterior, siguiente, hoy, mes, semana):
+            // 44 px en pantalla táctil (A2); medían 39–40.
+            [TOUCH_MEDIA]: {
+              "& .fc .fc-button": { minHeight: 44, minWidth: 44 },
+            },
             "& .fc-event": { cursor: "pointer" },
             "& .fc .fc-day-past": {
               backgroundColor: theme.palette.action.disabledBackground,

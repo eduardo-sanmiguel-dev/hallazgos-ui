@@ -552,12 +552,20 @@ sección 5, punto 5.
   marca lo que falta en todos.
 - **Teclado, etiquetas y contraste:** sin controles sin nombre, sin foco
   invisible y sin texto bajo AA en el tema claro ni en halloween. En el tema
-  oscuro, dos casos apenas debajo (pendientes, sección 13).
+  oscuro, dos casos apenas debajo, corregidos al cierre (sección 13).
 - **Red lenta y fallos del API:** se corrigió un ciclo de peticiones en la
   lista de hallazgos y dos estados que decían "sin registros" sin haber
   consultado (sección 13).
 - **Pruebas:** API 1485 unitarias y 227 con base de datos; UI 489 e2e, tipos
   y lint.
+
+**Parte 3 (cierre):** se resolvieron los pendientes aprobados de la
+verificación (contraste del tema oscuro, avisos repetidos, "Cargando…" en
+"Nuevo hallazgo", errores de subida en español y áreas táctiles; ver
+`docs/ux-componentes.md`, sección 13). Resumen final por módulo, pendientes y
+recomendaciones en `docs/ux-cambios.md`; lista de despliegue en
+`docs/despliegue.md`. Pruebas al cierre: API 1496 unitarias y 228 con base de
+datos; UI 496 e2e, tipos y lint.
 
 ### Antes de la Fase 2 conviene decidir dos cosas
 

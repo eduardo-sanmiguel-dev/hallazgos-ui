@@ -112,6 +112,15 @@ export const primarySoftBackground = (theme: Theme) =>
 const brandTextOnLight = ({ theme }: { theme: Theme }) =>
   theme.palette.mode === "light" ? { color: theme.palette.text.brand } : {};
 
+// Texto e íconos rojos en los temas oscuros: el rojo de error de MUI
+// (#f44336) sobre los campos da 4.37:1 y sobre el papel de los diálogos
+// (más claro por la elevación) 3.18:1. Este tono da 7.05:1 y 5.14:1. Los
+// rellenos y bordes conservan el de MUI.
+export const ERROR_TEXT_ON_DARK = "#ff8a80";
+
+const errorTextOnDark = ({ theme }: { theme: Theme }) =>
+  theme.palette.mode === "dark" ? { color: ERROR_TEXT_ON_DARK } : {};
+
 const paletteFor = (appTheme: AppThemeName): ThemeOptions["palette"] =>
   appTheme === "halloween"
     ? HALLOWEEN_PALETTE
@@ -185,6 +194,28 @@ const appThemeOptions = (appTheme: AppThemeName): ThemeOptions => ({
               props: { color: "primary", variant: "outlined" },
               style: brandTextOnLight({ theme }),
             },
+            {
+              props: { color: "error", variant: "text" },
+              style: errorTextOnDark({ theme }),
+            },
+            {
+              props: { color: "error", variant: "outlined" },
+              style: errorTextOnDark({ theme }),
+            },
+            // En oscuro, al pasar el mouse el relleno se aclara: oscurecido
+            // (lo de MUI) su texto quedaba en 4.3:1.
+            ...(theme.palette.mode === "dark"
+              ? [
+                  {
+                    props: { color: "primary", variant: "contained" },
+                    style: {
+                      "&:hover": {
+                        backgroundColor: theme.palette.primary.light,
+                      },
+                    },
+                  } as const,
+                ]
+              : []),
           ],
         }),
       },
@@ -213,6 +244,10 @@ const appThemeOptions = (appTheme: AppThemeName): ThemeOptions => ({
               props: { color: "primary" },
               style: brandTextOnLight({ theme }),
             },
+            {
+              props: { color: "error" },
+              style: errorTextOnDark({ theme }),
+            },
           ],
         }),
       },
@@ -237,6 +272,10 @@ const appThemeOptions = (appTheme: AppThemeName): ThemeOptions => ({
               style: {
                 "&.Mui-selected": brandTextOnLight({ theme }),
               },
+            },
+            {
+              props: { color: "error" },
+              style: { "&.Mui-selected": errorTextOnDark({ theme }) },
             },
           ],
         }),
@@ -290,6 +329,14 @@ const appThemeOptions = (appTheme: AppThemeName): ThemeOptions => ({
               style: { "&.Mui-focused": brandTextOnLight({ theme }) },
             },
           ],
+          "&.Mui-error": errorTextOnDark({ theme }),
+        }),
+      },
+    },
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          "&.Mui-error": errorTextOnDark({ theme }),
         }),
       },
     },
@@ -303,10 +350,7 @@ const appThemeOptions = (appTheme: AppThemeName): ThemeOptions => ({
                 theme.palette.mode === "light"
                   ? {
                       color: theme.palette.text.brand,
-                      textDecorationColor: alpha(
-                        theme.palette.text.brand,
-                        0.4,
-                      ),
+                      textDecorationColor: alpha(theme.palette.text.brand, 0.4),
                     }
                   : {},
             },
@@ -321,6 +365,10 @@ const appThemeOptions = (appTheme: AppThemeName): ThemeOptions => ({
             {
               props: { color: "primary" },
               style: brandTextOnLight({ theme }),
+            },
+            {
+              props: { color: "error" },
+              style: errorTextOnDark({ theme }),
             },
           ],
         }),

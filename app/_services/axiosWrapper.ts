@@ -71,14 +71,44 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const isLoginPage = () =>
   typeof window !== "undefined" && window.location.pathname === "/";
 
+// Consultas (GET) que fallan casi a la vez (p. ej. los catálogos de un
+// formulario con el servidor caído) se agrupan en un solo aviso que dice
+// cuántas fueron. Los errores al guardar se siguen mostrando uno por uno.
+const QUERY_GROUP_WINDOW_MS = 4_000;
+const queryErrorGroups = new Map<string, { count: number; at: number }>();
+
+// En un error del servidor la referencia cambia en cada respuesta: se agrupan
+// por tipo; los demás, por tipo y mensaje.
+const queryGroupKey = (parsed: ParsedApiError) =>
+  [parsed.kind, parsed.title, parsed.kind === "server" ? "" : parsed.message]
+    .filter(Boolean)
+    .join("|");
+
 /** Aviso con el título del tipo de error (antes "¡ Atención !" para todo). */
-export const notifyApiError = (parsed: ParsedApiError) => {
+export const notifyApiError = (
+  parsed: ParsedApiError,
+  { isQuery = false }: { isQuery?: boolean } = {},
+) => {
   const ref = parsed.ref;
+  // Uno solo aunque fallen varias consultas a la vez sin conexión.
+  let id: string | undefined =
+    parsed.kind === "offline" ? "api-offline" : undefined;
+  let description = parsed.message;
+
+  if (isQuery && !id) {
+    const key = queryGroupKey(parsed);
+    const now = Date.now();
+    const last = queryErrorGroups.get(key);
+    const count =
+      last && now - last.at < QUERY_GROUP_WINDOW_MS ? last.count + 1 : 1;
+    queryErrorGroups.set(key, { count, at: now });
+    id = `api-query:${key}`;
+    if (count > 1) description = `${parsed.message} (${count} consultas)`;
+  }
 
   toast.error(parsed.title, {
-    // Uno solo aunque fallen varias consultas a la vez sin conexión.
-    id: parsed.kind === "offline" ? "api-offline" : undefined,
-    description: parsed.message,
+    id,
+    description,
     duration: parsed.kind === "server" ? 15_000 : 7_000,
     ...(ref && {
       action: {
@@ -173,7 +203,9 @@ const handleError = async (
     return offerRetry(instance, config!, error, parsed);
   }
 
-  notifyApiError(parsed);
+  notifyApiError(parsed, {
+    isQuery: (config?.method ?? "get").toLowerCase() === "get",
+  });
   markNotified(error);
   throw error;
 };

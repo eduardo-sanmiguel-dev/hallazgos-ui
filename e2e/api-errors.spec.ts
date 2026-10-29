@@ -248,3 +248,66 @@ test.describe("Errores del API", () => {
     ]);
   });
 });
+
+test.describe("Avisos agrupados", () => {
+  const serverError = (route: Route, ref: string) =>
+    route.fulfill({
+      status: 500,
+      json: {
+        statusCode: 500,
+        code: "INTERNAL_ERROR",
+        message: `Ocurrió un error inesperado. Intenta de nuevo; si continúa, avisa al administrador con la referencia ${ref}.`,
+        ref,
+      },
+    });
+
+  test("varias consultas que fallan a la vez muestran un solo aviso con cuántas fueron", async ({
+    page,
+  }) => {
+    await page.goto("/hallazgos/form");
+    await sessionPlants(page);
+    let failed = 0;
+    await page.route("**/api/v1/**", (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (
+        route.request().method() !== "GET" ||
+        path.endsWith("/get-information-current-user") ||
+        path.endsWith("/walks/access")
+      ) {
+        return route.fallback();
+      }
+      failed++;
+      return serverError(route, `E-GRUPO${failed}`);
+    });
+    await page.reload();
+
+    await expect.poll(() => failed).toBeGreaterThan(1);
+    const notices = page.locator("[data-sonner-toast]").filter({
+      hasText: "Error del servidor",
+    });
+    await expect(notices).toHaveCount(1);
+    await expect(notices).toContainText(`(${failed} consultas)`);
+  });
+
+  test("los errores al guardar se siguen mostrando uno por uno", async ({
+    page,
+  }) => {
+    let posts = 0;
+    await page.route("**/api/v1/processes", (route) => {
+      if (route.request().method() !== "POST") return route.fallback();
+      posts++;
+      return serverError(route, `E-GUARD${posts}`);
+    });
+    await page.goto("/processes/form");
+    const [plant] = await sessionPlants(page);
+    await page.getByLabel("Nombre").fill("E2E Proceso (no se guarda)");
+    await pickOption(page, "Planta", plant.name);
+    const save = page.getByRole("button", { name: "Guardar" });
+    await save.click();
+    await expect(toast(page, /E-GUARD1/)).toBeVisible();
+    await save.click();
+    await expect(toast(page, /E-GUARD2/)).toBeVisible();
+    await expect(toast(page, /E-GUARD1/)).toBeVisible();
+    expect(posts).toBe(2);
+  });
+});
