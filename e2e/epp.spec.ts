@@ -229,6 +229,11 @@ test.describe("EPP: entregas", () => {
         signature: expect.stringMatching(/^data:image\/png;base64,/),
       },
     });
+    // Al guardar se avisa y el diálogo se cierra.
+    await expect(
+      toast(page, "Entrega de EPP registrada correctamente"),
+    ).toBeVisible();
+    await expect(dialog).toBeHidden();
     expect(errors).toEqual([]);
   });
 

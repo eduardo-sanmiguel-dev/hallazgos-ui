@@ -9,6 +9,7 @@ import "highcharts/esm/modules/accessibility.src.js";
 import "highcharts/esm/highcharts-more.src.js";
 
 import { DashboardService } from "@services";
+import { EVIDENCE_STATUS_COLOR } from "@shared/constants/semanticTones";
 import { useDashboardQuery } from "../_components/useDashboardSummary";
 import { optionsChartDefault } from "@shared/libs";
 
@@ -147,6 +148,8 @@ const PackedBubbleChart = ({ filters }: Props) => {
           series: (chartData?.series || []).map((serie) => ({
             type: "packedbubble",
             name: serie.name,
+            // Cada estatus con su color del sistema.
+            color: EVIDENCE_STATUS_COLOR[serie.name]?.main,
             data: serie.data.map((point) => ({
               name: point.name,
               value: point.value,

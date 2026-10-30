@@ -25,8 +25,12 @@ import {
 } from "@routes/hallazgos/_constants/priorityOptions";
 import StatusChip, { EvidenceStatusChip } from "@shared/components/StatusChip";
 import { riskLevelTone } from "@shared/constants/semanticTones";
-import { STATUS_CANCELLED } from "@shared/constants/semanticTones";
-import { STATUS_CLOSED } from "@shared/constants";
+import {
+  evidenceStatusColor,
+  STATUS_CANCELLED,
+} from "@shared/constants/semanticTones";
+import type { Theme } from "@mui/material/styles";
+import { STATUS_CLOSED, STATUS_IN_PROGRESS } from "@shared/constants";
 import type { EvidenceRow, EvidenceRowComment } from "@interfaces";
 import { requiresPhotoEvidence } from "@routes/hallazgos/_constants/mainTypes";
 import DetailSection, {
@@ -106,11 +110,16 @@ function PhotoThumb({
 
 type StageState = "done" | "current" | "pending" | "cancelled";
 
+// Con los colores de estatus del sistema: hecho = Cerrado (verde), en curso
+// = En progreso (azul), cancelado = Cancelado (gris).
+const stageColor = (status: string) => (theme: Theme) =>
+  evidenceStatusColor(status, theme.palette.mode);
+
 const STAGE_ICON: Record<StageState, ReactNode> = {
-  done: <CheckCircleIcon color="success" />,
-  current: <AutorenewIcon color="info" />,
+  done: <CheckCircleIcon sx={{ color: stageColor(STATUS_CLOSED) }} />,
+  current: <AutorenewIcon sx={{ color: stageColor(STATUS_IN_PROGRESS) }} />,
   pending: <RadioButtonUncheckedIcon sx={{ color: "text.disabled" }} />,
-  cancelled: <CancelIcon color="error" />,
+  cancelled: <CancelIcon sx={{ color: stageColor(STATUS_CANCELLED) }} />,
 };
 
 /** Etapa del seguimiento: ícono con línea a la siguiente, título y detalle. */
@@ -138,7 +147,8 @@ function Stage({
               width: 2,
               my: 0.5,
               borderRadius: 1,
-              backgroundColor: state === "done" ? "success.light" : "divider",
+              backgroundColor:
+                state === "done" ? stageColor(STATUS_CLOSED) : "divider",
             }}
           />
         )}

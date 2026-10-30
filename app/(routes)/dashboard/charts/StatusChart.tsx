@@ -9,6 +9,7 @@ import { Chart } from "@highcharts/react";
 import "highcharts/esm/modules/accessibility.src.js";
 
 import { optionsChartDefault } from "@shared/libs";
+import { EVIDENCE_STATUS_COLOR } from "@shared/constants/semanticTones";
 import {
   hasCompleteFilters as isComplete,
   useDashboardSummary,
@@ -50,6 +51,8 @@ const StatusChart = ({ filters }: Props) => {
 
     return statusOrder.map((name) => ({
       name,
+      // Cada estatus con su color del sistema.
+      color: EVIDENCE_STATUS_COLOR[name]?.main,
       y: dataMap.get(name) || 0,
     }));
   }, [statusData]);

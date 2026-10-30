@@ -9,6 +9,7 @@ import { Chart } from "@highcharts/react";
 import "highcharts/esm/modules/accessibility.src.js";
 
 import { DashboardService } from "@services";
+import { EVIDENCE_STATUS_COLOR } from "@shared/constants/semanticTones";
 import { useDashboardQuery } from "../_components/useDashboardSummary";
 import { optionsChartDefault } from "@shared/libs";
 
@@ -49,6 +50,8 @@ const AssignedResponsibleChart = ({ filters }: Props) => {
       (chartData?.series || []).map((item) => ({
         ...item,
         type: "bar" as const,
+        // Cada estatus con su color del sistema.
+        color: EVIDENCE_STATUS_COLOR[item.name]?.main,
       })),
     [chartData],
   );

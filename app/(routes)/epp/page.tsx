@@ -17,7 +17,7 @@ import { useIdempotencyKey, usePaginatedList } from "@hooks";
 import { useUserSessionStore } from "@store";
 import { EppService } from "@services";
 import { EppSortableColumn } from "@interfaces";
-import { SortOrder } from "@shared/utils";
+import { notify, SortOrder } from "@shared/utils";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 
@@ -86,6 +86,8 @@ export default function EppPage() {
       EppService.create(form, { idempotencyKey: submission.key() }),
     onSuccess: () => {
       submission.settle();
+      // Antes se cerraba sin avisar: no quedaba claro si se guardó.
+      notify("Entrega de EPP registrada correctamente", true);
       setOpen(false);
       getData();
     },

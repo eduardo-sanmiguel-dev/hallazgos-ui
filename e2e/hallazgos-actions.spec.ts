@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 
 import { captureWrites, mockGet } from "./support/api";
 import { expect, test } from "./support/fixtures";
-import { pickOption, toast, trackPageErrors } from "./support/ui";
+import { openFilters, pickOption, toast, trackPageErrors } from "./support/ui";
 
 // Acciones sobre hallazgos de la tabla: detalle, comentarios, en progreso,
 // cierre, reasignación y cancelación. La lista (GET /evidences) viene con
@@ -154,6 +154,39 @@ const rowOf = (page: Page, id: number) =>
   });
 
 test.describe("Hallazgos: acciones", () => {
+  // Mismos colores de estatus en todo el sistema (EVIDENCE_STATUS_COLOR):
+  // ámbar, azul, verde y gris; el chip lleva texto blanco.
+  test("cada estatus con su color en la tabla y un círculo en el filtro", async ({
+    page,
+  }) => {
+    await openList(page);
+    const expected: [number, string, string][] = [
+      [9001, "Abierto", "rgb(180, 83, 9)"],
+      [9002, "En progreso", "rgb(29, 78, 216)"],
+      [9003, "Cerrado", "rgb(21, 128, 61)"],
+      [9004, "Cancelado", "rgb(107, 114, 128)"],
+    ];
+    for (const [id, status, color] of expected) {
+      const chip = rowOf(page, id)
+        .locator(".MuiChip-root")
+        .filter({ hasText: status });
+      await expect(chip).toHaveCSS("background-color", color);
+      await expect(chip).toHaveCSS("color", "rgb(255, 255, 255)");
+    }
+
+    await openFilters(page);
+    await page.getByLabel("Estatus").click();
+    const dots = page
+      .getByRole("listbox")
+      .getByRole("option")
+      .locator("span[aria-hidden]");
+    await expect(dots).toHaveCount(4);
+    const colors = await dots.evaluateAll((spans) =>
+      spans.map((span) => getComputedStyle(span).backgroundColor),
+    );
+    expect(new Set(colors).size).toBe(4);
+  });
+
   test("muestra el detalle de cada estado y agrega un comentario (sin guardar)", async ({
     page,
   }) => {
