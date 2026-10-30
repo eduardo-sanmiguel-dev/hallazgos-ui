@@ -58,7 +58,10 @@ export function usePaginatedList<TFilters, TItem>({
   debounceMs = 500,
   enabled = true,
 }: Options<TFilters, TItem>) {
-  const [debouncedFilters] = useDebounce(filters, debounceMs);
+  const [debouncedFilters] = useDebounce(filters, debounceMs, {
+    equalityFn: (previous, next) =>
+      JSON.stringify(previous) === JSON.stringify(next),
+  });
   const filtersKey = JSON.stringify(debouncedFilters);
   // Mientras el debounce conserva filtros anteriores, no consultar ni
   // recargar esa consulta por paginación, foco de ventana o refresh.
