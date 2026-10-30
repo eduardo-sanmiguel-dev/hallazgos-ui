@@ -18,6 +18,7 @@ import { useFormFieldErrors } from "@hooks/useFieldErrors";
 import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
 import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
+import FormContainer from "@shared/components/FormContainer";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
 import EditRecordState from "@shared/components/EditRecordState";
@@ -98,16 +99,13 @@ const MainTypesFormPage = () => {
   }
 
   return (
-    <>
+    <FormContainer>
       <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
-      <FormSection>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 4,
-          }}
-        >
+      <FormSection
+        title="Datos del criterio"
+        description="Clasificación principal de un hallazgo."
+      >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             {...fieldProps("name")}
             label="Nombre"
@@ -146,7 +144,7 @@ const MainTypesFormPage = () => {
         isSaving={isLoading}
       />
       {leave.confirmDialog}
-    </>
+    </FormContainer>
   );
 };
 

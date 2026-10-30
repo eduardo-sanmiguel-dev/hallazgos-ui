@@ -19,6 +19,7 @@ import { useFormFieldErrors } from "@hooks/useFieldErrors";
 import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
 import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
+import FormContainer from "@shared/components/FormContainer";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
 import EditRecordState from "@shared/components/EditRecordState";
@@ -172,10 +173,14 @@ const GembaWalkObserversFormPage = () => {
   }
 
   return (
-    <>
+    <FormContainer>
       <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
-      <FormSection>
+      <FormSection
+        title="Recorrido"
+        description="Planta y zona del recorrido que van a observar."
+      >
         <SelectManufacturingPlantsOwn
+          size={{ xs: 12, sm: 6 }}
           value={form.manufacturingPlantId}
           onChange={(e) =>
             setForm((prev) =>
@@ -190,13 +195,7 @@ const GembaWalkObserversFormPage = () => {
           }
           error={errorOf("manufacturingPlantId")}
         />
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <SelectDefault
             data={zones}
             label="Zona"
@@ -215,13 +214,16 @@ const GembaWalkObserversFormPage = () => {
             </FormHelperText>
           )}
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 12,
-            md: 6,
-          }}
-        >
+      </FormSection>
+      <FormSection
+        title={idCurrent ? "Observador" : "Observadores"}
+        description={
+          idCurrent
+            ? "Usuario que hace el recorrido en la zona."
+            : "Usuarios que hacen el recorrido en la zona."
+        }
+      >
+        <Grid size={{ xs: 12 }}>
           {idCurrent ? (
             <SelectDefault
               data={users}
@@ -263,7 +265,7 @@ const GembaWalkObserversFormPage = () => {
         isSaving={isLoading}
       />
       {leave.confirmDialog}
-    </>
+    </FormContainer>
   );
 };
 

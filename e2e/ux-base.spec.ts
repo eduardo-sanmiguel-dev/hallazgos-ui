@@ -1,4 +1,5 @@
 import { expect, test } from "./support/fixtures";
+import { FORCED_THEME } from "../app/seasonalTheme";
 
 // Base común de UX (Fase 2 de docs/ux-auditoria.md) en un celular táctil:
 // tarjetas en vez de tabla, áreas táctiles y contraste del verde de marca.
@@ -72,6 +73,10 @@ test.describe("Celular", () => {
   test("el texto verde sobre blanco usa el tono oscuro; el relleno no cambia", async ({
     page,
   }) => {
+    test.skip(
+      !!FORCED_THEME,
+      "Tema forzado temporal (app/seasonalTheme.ts): la prueba es del tema claro u oscuro.",
+    );
     await page.goto("/ics/form");
     const outlined = page.getByText("Elegir de galería");
     const filled = page.getByText("Tomar foto");

@@ -20,6 +20,7 @@ import { useFormFieldErrors } from "@hooks/useFieldErrors";
 import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
 import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
+import FormContainer from "@shared/components/FormContainer";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
 import EditRecordState from "@shared/components/EditRecordState";
@@ -122,16 +123,13 @@ const ZonesFormPage = () => {
   }
 
   return (
-    <>
+    <FormContainer>
       <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
-      <FormSection>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 4,
-          }}
-        >
+      <FormSection
+        title="Datos del lugar"
+        description="Nombre del lugar, la planta donde está y, si aplica, su zona."
+      >
+        <Grid size={{ xs: 12, sm: 4 }}>
           <TextField
             {...fieldProps("name")}
             required
@@ -148,13 +146,7 @@ const ZonesFormPage = () => {
             }
           />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 4,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 4 }}>
           <SelectManufacturingPlants
             value={form.manufacturingPlantId}
             onChange={(e) =>
@@ -170,13 +162,7 @@ const ZonesFormPage = () => {
             </FormHelperText>
           )}
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 3,
-            md: 4,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 4 }}>
           <SelectDefault
             data={areas}
             label="Zona (opcional)"
@@ -197,7 +183,7 @@ const ZonesFormPage = () => {
         isSaving={isLoading}
       />
       {leave.confirmDialog}
-    </>
+    </FormContainer>
   );
 };
 

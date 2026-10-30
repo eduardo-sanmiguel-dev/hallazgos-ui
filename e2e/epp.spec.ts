@@ -57,9 +57,11 @@ test.describe("EPP: equipos", () => {
     const writes = await captureWrites(page);
     await page.goto("/equipments");
     await page.getByRole("button", { name: "Crear", exact: true }).click();
-    const dialog = page.getByRole("dialog", { name: "Nuevo equipo" });
+    await expect(page).toHaveURL(/\/equipments\/form$/);
+    // Ahora es su propia ruta: los campos van en la página (antes, diálogo).
+    const form = page.getByRole("main");
 
-    const save = dialog.getByRole("button", { name: "Guardar" });
+    const save = form.getByRole("button", { name: "Guardar" });
     const plants = await sessionPlants(page);
     // "Guardar" marca a la vez lo que falta: nombre y, con varias plantas,
     // la planta (con una sola se elige sola).
@@ -72,28 +74,29 @@ test.describe("EPP: equipos", () => {
           : "Escribe el nombre.",
       ),
     ).toBeVisible();
-    await expect(dialog.getByText("Escribe el nombre.")).toBeVisible();
-    await dialog.getByLabel("Nombre").fill("  E2E Lentes  ");
+    await expect(form.getByText("Escribe el nombre.")).toBeVisible();
+    await form.getByLabel("Nombre").fill("  E2E Lentes  ");
     if (plants.length > 1) await pickOption(page, "Planta", plants[0].name);
 
     // Teclado numérico (B1); solo números positivos y el precio se redondea
     // a centavos.
-    const frequency = dialog.getByLabel("Frecuencia de entrega (días)");
+    const frequency = form.getByLabel("Frecuencia de entrega (días)");
     await expect(frequency).toHaveAttribute("inputmode", "numeric");
-    await expect(dialog.getByLabel("Precio")).toHaveAttribute(
+    await expect(form.getByLabel("Precio")).toHaveAttribute(
       "inputmode",
       "decimal",
     );
     await frequency.pressSequentially("e-.0");
     await expect(frequency).toHaveValue("");
     await frequency.fill("15");
-    const price = dialog.getByLabel("Precio");
+    const price = form.getByLabel("Precio");
     await price.pressSequentially("e-");
     await price.fill("12.345");
     await expect(price).toHaveValue("12.35");
 
     await save.click();
     await expect(toast(page, "Equipo creado correctamente")).toBeVisible();
+    await expect(page).toHaveURL(/\/equipments$/);
     expect(writes).toEqual([
       {
         method: "POST",
@@ -113,28 +116,26 @@ test.describe("EPP: equipos", () => {
     const writes = await captureWrites(page);
     await page.goto("/equipments");
     await page.getByRole("button", { name: "Editar" }).first().click();
-    const dialog = page.getByRole("dialog", { name: "Editar equipo" });
-    await expect(dialog.getByLabel("Nombre")).toHaveValue(/\S/);
+    await expect(page).toHaveURL(/\/equipments\/form\?id=\d+$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Editar equipo" }),
+    ).toBeVisible();
+    await expect(page.getByLabel("Nombre")).toHaveValue(/\S/);
 
-    await dialog.getByRole("button", { name: "Cancelar" }).click();
-    await expect(dialog).toHaveCount(0);
+    // Sin cambios, Cancelar regresa a la lista sin preguntar.
+    await page.getByRole("button", { name: "Cancelar" }).click();
+    await expect(page).toHaveURL(/\/equipments$/);
     expect(writes).toEqual([]);
 
     await page.getByRole("button", { name: "Editar" }).first().click();
-    await expect(dialog.getByLabel("Nombre")).toHaveValue(/\S/);
-    await dialog.getByRole("button", { name: "Guardar" }).click();
+    await expect(page.getByLabel("Nombre")).toHaveValue(/\S/);
+    await page.getByRole("button", { name: "Guardar" }).click();
     await expect(toast(page, "Equipo actualizado correctamente")).toBeVisible();
+    await expect(page).toHaveURL(/\/equipments$/);
     expect(writes[0]).toMatchObject({
       method: "PATCH",
       path: expect.stringMatching(/^\/equipments\/\d+$/),
     });
-
-    await page.getByRole("button", { name: "Crear", exact: true }).click();
-    await page
-      .getByRole("dialog")
-      .getByRole("button", { name: "Cerrar" })
-      .click();
-    await expect(page.getByRole("dialog")).toHaveCount(0);
   });
 });
 

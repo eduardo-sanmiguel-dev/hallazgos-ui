@@ -17,6 +17,7 @@ import { useFormFieldErrors } from "@hooks/useFieldErrors";
 import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
 import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
+import FormContainer from "@shared/components/FormContainer";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
 import EditRecordState from "@shared/components/EditRecordState";
@@ -117,10 +118,14 @@ const GembaWalkZonesFormPage = () => {
   }
 
   return (
-    <>
+    <FormContainer>
       <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
-      <FormSection>
+      <FormSection
+        title="Datos generales"
+        description="Zona del recorrido y dónde está dentro de la planta."
+      >
         <SelectManufacturingPlantsOwn
+          size={{ xs: 12, sm: 4 }}
           value={form.manufacturingPlantId}
           onChange={(e) =>
             setForm({
@@ -130,13 +135,7 @@ const GembaWalkZonesFormPage = () => {
           }
           error={errorOf("manufacturingPlantId")}
         />
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 4,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 4 }}>
           <TextField
             {...fieldProps("nameZone")}
             required
@@ -153,13 +152,7 @@ const GembaWalkZonesFormPage = () => {
             }
           />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 4,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 4 }}>
           <TextField
             {...fieldProps("nameLocation")}
             required
@@ -183,7 +176,7 @@ const GembaWalkZonesFormPage = () => {
         isSaving={isLoading}
       />
       {leave.confirmDialog}
-    </>
+    </FormContainer>
   );
 };
 

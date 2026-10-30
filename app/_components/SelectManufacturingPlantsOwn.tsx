@@ -1,6 +1,7 @@
 import { SelectChangeEvent } from "@mui/material";
 import { FormHelperText } from "@mui/material";
 import { Grid } from "@mui/material";
+import type { GridProps } from "@mui/material";
 
 import { useUserSessionStore } from "@store";
 import SelectDefault from "./SelectDefault";
@@ -13,6 +14,8 @@ interface Props {
   // Error junto al campo (useFieldErrors lo encuentra para el foco).
   error?: string;
   disabled?: boolean;
+  // Columnas que ocupa (por omisión, las de una barra de filtros).
+  size?: GridProps["size"];
 }
 
 const SelectManufacturingPlantsOwn = ({
@@ -21,6 +24,7 @@ const SelectManufacturingPlantsOwn = ({
   isFilter = false,
   error,
   disabled,
+  size = { xs: 12, sm: 6, md: 3 },
 }: Props) => {
   const manufacturingPlants = useUserSessionStore(
     (state) => state.manufacturingPlants || [],
@@ -37,13 +41,7 @@ const SelectManufacturingPlantsOwn = ({
   }, [manufacturingPlants, value, onChange]);
 
   return (
-    <Grid
-      size={{
-        xs: 12,
-        sm: 6,
-        md: 3,
-      }}
-    >
+    <Grid size={size}>
       <SelectDefault
         data={manufacturingPlants}
         label="Planta"

@@ -11,12 +11,9 @@ import { Grid } from "@mui/material";
 import { Box } from "@mui/material";
 import { Paper } from "@mui/material";
 import { Typography } from "@mui/material";
-import { Button } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import SaveIcon from "@mui/icons-material/Save";
-import CloseIcon from "@mui/icons-material/Close";
 import { toast } from "sonner";
 import dayjs, { toISOStringOrNull } from "@shared/libs/dayjs";
 
@@ -38,6 +35,8 @@ import { GembaWalkCalendarService } from "@services";
 import { GembaWalkCalendar } from "@interfaces";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import PageHeader from "@shared/components/PageHeader";
+import FormSection from "@shared/components/FormSection";
+import FormActions from "@shared/components/FormActions";
 import ConfirmDialog from "@shared/components/ConfirmDialog";
 import DialogCalendarEvent, {
   CalendarOption,
@@ -541,6 +540,9 @@ const GembaWalkCalendarFormPage = () => {
     }
   };
 
+  // Como los demás formularios: la planta y cómo usar el calendario en una
+  // sección, el calendario y "Cancelar" / "Guardar" al pie. A todo el ancho:
+  // el calendario necesita el espacio.
   return (
     <Grid container spacing={2}>
       <Grid size={{ xs: 12 }}>
@@ -551,67 +553,41 @@ const GembaWalkCalendarFormPage = () => {
           breadcrumbs
           onNavigate={cancel}
         />
-      </Grid>
-      <SelectManufacturingPlantsOwn
-        value={manufacturingPlantId}
-        onChange={(e) => changePlant(e.target.value)}
-      />
-      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <Button
-          variant="outlined"
-          fullWidth
-          startIcon={<CloseIcon />}
-          onClick={cancel}
-          sx={{ minHeight: 44 }}
+        <FormSection
+          title="Programación"
+          description={
+            !manufacturingPlantId
+              ? "Selecciona una planta para ver y programar eventos."
+              : isTouch
+                ? "Mantén presionado un día (de hoy en adelante) y desliza para elegir varios; al soltar, agrega los eventos. Toca un evento futuro para editarlo, o mantenlo presionado para moverlo."
+                : "Selecciona uno o varios días (de hoy en adelante) para agregar eventos. Arrastra o haz clic en un evento futuro para editarlo."
+          }
         >
-          Cancelar
-        </Button>
-      </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <Button
-          loading={isLoading}
-          loadingPosition="start"
-          startIcon={<SaveIcon />}
-          variant="contained"
-          color="primary"
-          fullWidth
-          onClick={save}
-          disabled={!hasChanges || isLoading}
-          sx={{ minHeight: 44 }}
-        >
-          Guardar
-        </Button>
-      </Grid>
-      <Grid size={{ xs: 12 }}>
-        <Typography
-          variant="body2"
-          sx={{ color: (theme) => theme.palette.text.secondary }}
-        >
-          {!manufacturingPlantId
-            ? "Selecciona una planta para ver y programar eventos."
-            : isTouch
-              ? "Mantén presionado un día (de hoy en adelante) y desliza para elegir varios; al soltar, agrega los eventos. Toca un evento futuro para editarlo, o mantenlo presionado para moverlo."
-              : "Selecciona uno o varios días (de hoy en adelante) para agregar eventos. Arrastra o haz clic en un evento futuro para editarlo."}
-        </Typography>
-      </Grid>
-      <Grid size={{ xs: 12 }}>
-        <Box
-          sx={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            gap: 3,
-          }}
-        >
-          <LegendItem
-            label="Recorrido regular"
-            color={(theme) => theme.palette.primary.main}
+          <SelectManufacturingPlantsOwn
+            size={{ xs: 12, sm: 6, md: 4 }}
+            value={manufacturingPlantId}
+            onChange={(e) => changePlant(e.target.value)}
           />
-          <LegendItem
-            label="Recorrido adicional"
-            color={(theme) => theme.palette.info.main}
-          />
-        </Box>
+          <Grid size={{ xs: 12 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: 3,
+              }}
+            >
+              <LegendItem
+                label="Recorrido regular"
+                color={(theme) => theme.palette.primary.main}
+              />
+              <LegendItem
+                label="Recorrido adicional"
+                color={(theme) => theme.palette.info.main}
+              />
+            </Box>
+          </Grid>
+        </FormSection>
       </Grid>
       <Grid size={{ xs: 12 }}>
         <Paper
@@ -712,6 +688,14 @@ const GembaWalkCalendarFormPage = () => {
             />
           </Box>
         </Paper>
+      </Grid>
+      <Grid size={{ xs: 12 }}>
+        <FormActions
+          onCancel={cancel}
+          onSave={save}
+          isSaving={isLoading}
+          isSaveDisabled={!hasChanges}
+        />
       </Grid>
       <DialogCalendarEvent
         state={dialogState}

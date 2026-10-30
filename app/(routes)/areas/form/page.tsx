@@ -17,6 +17,7 @@ import { useFormFieldErrors } from "@hooks/useFieldErrors";
 import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
 import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
+import FormContainer from "@shared/components/FormContainer";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
 import EditRecordState from "@shared/components/EditRecordState";
@@ -139,16 +140,13 @@ const AreasFormPage = () => {
   }
 
   return (
-    <>
+    <FormContainer>
       <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
-      <FormSection>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 4,
-          }}
-        >
+      <FormSection
+        title="Datos de la zona"
+        description="Nombre de la zona y planta a la que pertenece."
+      >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             {...fieldProps("name")}
             required
@@ -166,6 +164,7 @@ const AreasFormPage = () => {
           />
         </Grid>
         <SelectManufacturingPlantsOwn
+          size={{ xs: 12, sm: 6 }}
           value={form.manufacturingPlantId}
           onChange={(e) =>
             setForm({
@@ -176,7 +175,10 @@ const AreasFormPage = () => {
           error={errorOf("manufacturingPlantId")}
         />
       </FormSection>
-      <FormSection title="Ubicación en el plano">
+      <FormSection
+        title="Ubicación en el plano"
+        description="Opcional: marca en el plano dónde está la zona."
+      >
         <Grid size={{ xs: 12 }} sx={{ display: "flex" }}>
           <AreaImageCoordinateSelector
             imageSrc="/images/planos.png"
@@ -191,7 +193,7 @@ const AreasFormPage = () => {
         isSaving={isLoading}
       />
       {leave.confirmDialog}
-    </>
+    </FormContainer>
   );
 };
 

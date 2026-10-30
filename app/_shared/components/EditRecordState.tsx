@@ -10,6 +10,7 @@ import SearchOffIcon from "@mui/icons-material/SearchOff";
 import type { EditRecordStatus } from "@hooks/useEditRecord";
 import EmptyState from "./EmptyState";
 import ErrorState from "./ErrorState";
+import FormContainer from "./FormContainer";
 import PageHeader from "./PageHeader";
 import { FormSkeleton } from "./Skeletons";
 
@@ -48,7 +49,7 @@ export default function EditRecordState({
   );
 
   return (
-    <>
+    <FormContainer>
       <PageHeader title={title} breadcrumbs />
       <Paper variant="outlined" sx={{ p: 2 }}>
         {status === "notFound" ? (
@@ -68,6 +69,6 @@ export default function EditRecordState({
           </ErrorState>
         )}
       </Paper>
-    </>
+    </FormContainer>
   );
 }

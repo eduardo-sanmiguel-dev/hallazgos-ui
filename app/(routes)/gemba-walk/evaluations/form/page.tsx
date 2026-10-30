@@ -20,6 +20,7 @@ import { useFormFieldErrors } from "@hooks/useFieldErrors";
 import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
 import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
+import FormContainer from "@shared/components/FormContainer";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
 import EditRecordState from "@shared/components/EditRecordState";
@@ -126,10 +127,14 @@ const GembaWalkEvaluationsFormPage = () => {
   }
 
   return (
-    <>
+    <FormContainer>
       <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
-      <FormSection>
+      <FormSection
+        title="Clasificación"
+        description="Planta, categoría y área a la que pertenece la evaluación."
+      >
         <SelectManufacturingPlantsOwn
+          size={{ xs: 12, sm: 6 }}
           value={form.manufacturingPlantId}
           onChange={(e) =>
             setForm((prev) => ({
@@ -139,7 +144,7 @@ const GembaWalkEvaluationsFormPage = () => {
           }
           error={errorOf("manufacturingPlantId")}
         />
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <SelectDefault
             data={categoryOptions}
             label="Categoría"
@@ -157,7 +162,7 @@ const GembaWalkEvaluationsFormPage = () => {
             </FormHelperText>
           )}
         </Grid>
-        <Grid size={{ xs: 12, sm: 12, md: 6 }}>
+        <Grid size={{ xs: 12 }}>
           <TextField
             {...fieldProps("area")}
             required
@@ -175,6 +180,11 @@ const GembaWalkEvaluationsFormPage = () => {
             }
           />
         </Grid>
+      </FormSection>
+      <FormSection
+        title="Qué se verifica"
+        description="Lo que el observador revisa durante el recorrido."
+      >
         <Grid size={{ xs: 12 }}>
           <TextField
             {...fieldProps("description")}
@@ -201,7 +211,7 @@ const GembaWalkEvaluationsFormPage = () => {
         isSaving={isLoading}
       />
       {leave.confirmDialog}
-    </>
+    </FormContainer>
   );
 };
 

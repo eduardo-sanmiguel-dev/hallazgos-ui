@@ -29,6 +29,7 @@ import { useFormFieldErrors } from "@hooks/useFieldErrors";
 import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
 import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
+import FormContainer from "@shared/components/FormContainer";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
 import EditRecordState from "@shared/components/EditRecordState";
@@ -179,16 +180,13 @@ const UsersFormPage = () => {
   }
 
   return (
-    <>
+    <FormContainer>
       <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
-      <FormSection>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+      <FormSection
+        title="Datos de acceso"
+        description="Con el correo y la contraseña inicia sesión."
+      >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             {...fieldProps("name")}
             required
@@ -205,13 +203,7 @@ const UsersFormPage = () => {
             }
           />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             {...fieldProps("email")}
             required
@@ -232,13 +224,7 @@ const UsersFormPage = () => {
             }
           />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             {...fieldProps("password")}
             required={!idCurrent}
@@ -280,13 +266,12 @@ const UsersFormPage = () => {
             }}
           />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+      </FormSection>
+      <FormSection
+        title="Permisos"
+        description="El rol define qué puede hacer; las plantas, qué registros ve. A un supervisor se le asignan además zonas y procesos."
+      >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <FormControl fullWidth error={!!errorOf("rule")}>
             <InputLabel id="rule-select-label">Rol</InputLabel>
             <Select
@@ -314,13 +299,7 @@ const UsersFormPage = () => {
         </Grid>
 
         {form.rule && (
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4,
-            }}
-          >
+          <Grid size={{ xs: 12, sm: 6 }}>
             <MultiSelectManufacturingPlants
               values={form.manufacturingPlantNames}
               onChange={(values) => {
@@ -341,13 +320,7 @@ const UsersFormPage = () => {
         {form.rule === "Supervisor" &&
           !!form.manufacturingPlantNames.length && (
             <>
-              <Grid
-                size={{
-                  xs: 12,
-                  sm: 6,
-                  md: 4,
-                }}
-              >
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <MultiSelectZones
                   values={form.zoneNames}
                   onChange={(values) => {
@@ -364,13 +337,7 @@ const UsersFormPage = () => {
                   </FormHelperText>
                 )}
               </Grid>
-              <Grid
-                size={{
-                  xs: 12,
-                  sm: 6,
-                  md: 4,
-                }}
-              >
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <MultiSelectProcesses
                   values={form.processNames}
                   onChange={(values) => {
@@ -391,7 +358,7 @@ const UsersFormPage = () => {
         isSaving={isLoading}
       />
       {leave.confirmDialog}
-    </>
+    </FormContainer>
   );
 };
 

@@ -16,6 +16,7 @@ import { useFormFieldErrors } from "@hooks/useFieldErrors";
 import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
 import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
+import FormContainer from "@shared/components/FormContainer";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
 import EditRecordState from "@shared/components/EditRecordState";
@@ -140,16 +141,13 @@ const ManufacturingPlantsFormPage = () => {
   }
 
   return (
-    <>
+    <FormContainer>
       <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
-      <FormSection>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+      <FormSection
+        title="Datos de la planta"
+        description="Nombre de la planta y su link."
+      >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             {...fieldProps("name")}
             required
@@ -166,13 +164,7 @@ const ManufacturingPlantsFormPage = () => {
             }
           />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             {...fieldProps("link")}
             required
@@ -193,13 +185,12 @@ const ManufacturingPlantsFormPage = () => {
             }
           />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+      </FormSection>
+      <FormSection
+        title="Ubicación"
+        description="Coordenadas de la planta en el mapa."
+      >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             {...fieldProps("lat")}
             required
@@ -216,13 +207,7 @@ const ManufacturingPlantsFormPage = () => {
             }
           />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             {...fieldProps("lng")}
             required
@@ -246,7 +231,7 @@ const ManufacturingPlantsFormPage = () => {
         isSaving={isLoading}
       />
       {leave.confirmDialog}
-    </>
+    </FormContainer>
   );
 };
 

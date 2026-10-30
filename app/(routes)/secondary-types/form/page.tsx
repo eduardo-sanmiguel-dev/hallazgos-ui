@@ -22,6 +22,7 @@ import { useFormFieldErrors } from "@hooks/useFieldErrors";
 import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
 import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
+import FormContainer from "@shared/components/FormContainer";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
 import EditRecordState from "@shared/components/EditRecordState";
@@ -122,16 +123,13 @@ const SecondaryTypesFormPage = () => {
   }
 
   return (
-    <>
+    <FormContainer>
       <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
-      <FormSection>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 4,
-          }}
-        >
+      <FormSection
+        title="Datos del tipo de criterio"
+        description="A qué criterio pertenece y qué área le da seguimiento."
+      >
+        <Grid size={{ xs: 12 }}>
           <TextField
             {...fieldProps("name")}
             required
@@ -148,13 +146,7 @@ const SecondaryTypesFormPage = () => {
             }
           />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 4,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <SelectMainTypes
             value={form.mainTypeId}
             onChange={(e) =>
@@ -170,13 +162,7 @@ const SecondaryTypesFormPage = () => {
             </FormHelperText>
           )}
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 4,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <FormControl fullWidth required error={!!errorOf("typeResponsible")}>
             <InputLabel id="responsible-type-select-label">
               Responsable
@@ -210,7 +196,7 @@ const SecondaryTypesFormPage = () => {
         isSaving={isLoading}
       />
       {leave.confirmDialog}
-    </>
+    </FormContainer>
   );
 };
 

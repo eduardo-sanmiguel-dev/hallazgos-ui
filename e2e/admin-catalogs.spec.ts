@@ -101,65 +101,88 @@ test.describe("Criterios y tipos de criterios", () => {
   });
 });
 
-test.describe("Equipos de protección (diálogo)", () => {
-  test("cerrar con algo capturado pide confirmación; sin cambios cierra directo", async ({
-    page,
-  }) => {
+test.describe("Equipos de protección", () => {
+  test("Crear abre su propia ruta, con breadcrumbs", async ({ page }) => {
     await page.goto("/equipments");
     await page.getByRole("button", { name: "Crear", exact: true }).click();
-    const dialog = page.getByRole("dialog", { name: "Nuevo equipo" });
-    // Sin cambios (la planta elegida sola no cuenta): cierra directo.
-    await dialog.getByRole("button", { name: "Cancelar" }).click();
-    await expect(dialog).toHaveCount(0);
+    await expect(page).toHaveURL(/\/equipments\/form$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Nuevo equipo" }),
+    ).toBeVisible();
+    await expect(trail(page)).toHaveText(
+      "Configuración›Equipos›Equipo de protección›Nuevo equipo",
+    );
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
 
-    await page.getByRole("button", { name: "Crear", exact: true }).click();
-    await dialog.getByLabel("Nombre").fill("E2E a medias");
-    // Con Esc también pregunta.
-    await page.keyboard.press("Escape");
+  test("salir con algo capturado pide confirmación; sin cambios sale directo", async ({
+    page,
+  }) => {
+    await page.goto("/equipments/form");
+    const cancel = page.getByRole("button", { name: "Cancelar" });
+    // Sin cambios (la planta elegida sola no cuenta): regresa a la lista.
+    await cancel.click();
+    await expect(page).toHaveURL(/\/equipments$/);
+
+    await page.goto("/equipments/form");
+    await page.getByLabel("Nombre").fill("E2E a medias");
+    await cancel.click();
     const confirmation = page.getByRole("dialog", {
       name: "¿Descartar el registro?",
     });
     await confirmation.getByRole("button", { name: "Seguir editando" }).click();
-    await expect(dialog.getByLabel("Nombre")).toHaveValue("E2E a medias");
+    await expect(page.getByLabel("Nombre")).toHaveValue("E2E a medias");
 
-    await dialog.getByRole("button", { name: "Cerrar" }).click();
+    await cancel.click();
     await confirmation.getByRole("button", { name: "Descartar" }).click();
-    await expect(dialog).toHaveCount(0);
+    await expect(page).toHaveURL(/\/equipments$/);
   });
 
   test("el precio acepta coma decimal y la frecuencia solo enteros", async ({
     page,
   }) => {
     const writes = await captureWrites(page);
-    await page.goto("/equipments");
+    await page.goto("/equipments/form");
     const plants = await sessionPlants(page);
-    await page.getByRole("button", { name: "Crear", exact: true }).click();
-    const dialog = page.getByRole("dialog", { name: "Nuevo equipo" });
     if (plants.length > 1) {
-      await dialog.getByRole("combobox", { name: "Planta" }).click();
+      await page.getByRole("combobox", { name: "Planta" }).click();
       await page.getByRole("option", { name: plants[0].name }).click();
     }
-    await dialog.getByLabel("Nombre").fill("E2E Guantes");
-    await dialog.getByLabel("Frecuencia de entrega (días)").fill("15.5");
-    await expect(dialog.getByLabel("Frecuencia de entrega (días)")).toHaveValue(
-      "155",
-    );
-    await dialog.getByLabel("Frecuencia de entrega (días)").fill("15");
-    await dialog.getByLabel("Precio").fill("99,9");
-    await expect(dialog.getByLabel("Precio")).toHaveValue("99.9");
+    await page.getByLabel("Nombre").fill("E2E Guantes");
+    const frequency = page.getByLabel("Frecuencia de entrega (días)");
+    await frequency.fill("15.5");
+    await expect(frequency).toHaveValue("155");
+    await frequency.fill("15");
+    await page.getByLabel("Precio").fill("99,9");
+    await expect(page.getByLabel("Precio")).toHaveValue("99.9");
 
-    await dialog.getByRole("button", { name: "Guardar" }).click();
+    await page.getByRole("button", { name: "Guardar" }).click();
     await expect(toast(page, "Equipo creado correctamente")).toBeVisible();
+    await expect(page).toHaveURL(/\/equipments$/);
     expect(writes[0].body).toMatchObject({
       deliveryFrequency: 15,
       price: 99.9,
     });
   });
 
-  test("si falla la carga del equipo: error con Reintentar dentro del diálogo", async ({
+  test("Editar abre el formulario con el equipo cargado", async ({ page }) => {
+    await servePage(page, "/equipments", [EQUIPMENT]);
+    await mockGet(page, `/equipments/${EQUIPMENT.id}`, EQUIPMENT);
+    await page.goto("/equipments");
+    await page.getByRole("button", { name: "Editar" }).first().click();
+    await expect(page).toHaveURL(
+      new RegExp(`/equipments/form\\?id=${EQUIPMENT.id}$`),
+    );
+    await expect(page.getByLabel("Nombre")).toHaveValue("E2E Lentes");
+    await expect(page.getByLabel("Frecuencia de entrega (días)")).toHaveValue(
+      "30",
+    );
+    await expect(page.getByLabel("Precio")).toHaveValue("120");
+  });
+
+  test("si falla la carga del equipo: error con Reintentar", async ({
     page,
   }) => {
-    await servePage(page, "/equipments", [EQUIPMENT]);
     let fail = true;
     await page.route(
       (url) => url.pathname.endsWith(`/api/v1/equipments/${EQUIPMENT.id}`),
@@ -168,35 +191,34 @@ test.describe("Equipos de protección (diálogo)", () => {
           ? route.fulfill({ status: 500, json: { statusCode: 500 } })
           : route.fulfill({ json: EQUIPMENT }),
     );
-    await page.goto("/equipments");
-    await page.getByRole("button", { name: "Editar" }).first().click();
-    const dialog = page.getByRole("dialog", { name: "Editar equipo" });
+    await page.goto(`/equipments/form?id=${EQUIPMENT.id}`);
 
-    const error = dialog
+    const error = page
       .getByRole("alert")
       .filter({ hasText: "No se pudo cargar" });
     await expect(error).toBeVisible();
-    await expect(
-      dialog.getByRole("button", { name: "Guardar" }),
-    ).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Guardar" })).toHaveCount(0);
     fail = false;
     await error.getByRole("button", { name: "Reintentar" }).click();
-    await expect(dialog.getByLabel("Nombre")).toHaveValue("E2E Lentes");
+    await expect(page.getByLabel("Nombre")).toHaveValue("E2E Lentes");
   });
 
-  test.describe("en celular", () => {
-    test.use({ viewport: { width: 390, height: 844 }, isMobile: true });
-
-    test("el diálogo ocupa toda la pantalla", async ({ page }) => {
-      await page.goto("/equipments");
-      await page.getByRole("button", { name: "Crear", exact: true }).click();
-      // El papel del diálogo es el que lleva role="dialog".
-      const dialog = page.getByRole("dialog", { name: "Nuevo equipo" });
-      await expect(dialog).toBeVisible();
-      const box = (await dialog.boundingBox())!;
-      expect(Math.round(box.width)).toBe(390);
-      expect(Math.round(box.height)).toBe(844);
-    });
+  test("un equipo que no existe lo dice", async ({ page }) => {
+    await page.route(
+      (url) => url.pathname.endsWith("/api/v1/equipments/9799"),
+      (route) =>
+        route.fulfill({
+          status: 404,
+          json: {
+            statusCode: 404,
+            code: "NOT_FOUND",
+            message: "Equipo #9799 no encontrado",
+            error: "Not Found",
+          },
+        }),
+    );
+    await page.goto("/equipments/form?id=9799");
+    await expect(page.getByText("Equipo no encontrado")).toBeVisible();
   });
 });
 

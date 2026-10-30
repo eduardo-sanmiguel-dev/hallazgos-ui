@@ -2,6 +2,7 @@ import type { Page, Request } from "@playwright/test";
 
 import { captureWrites, editingId, mockGet } from "./support/api";
 import { expect, test } from "./support/fixtures";
+import { FORCED_THEME } from "../app/seasonalTheme";
 import {
   choosePlant,
   pickMany,
@@ -789,6 +790,10 @@ test.describe("Gemba Walk: consulta", () => {
   test("Regresar va en la cabecera y no se pierde con el fondo", async ({
     page,
   }) => {
+    test.skip(
+      !!FORCED_THEME,
+      "Tema forzado temporal (app/seasonalTheme.ts): la prueba es del tema claro u oscuro.",
+    );
     await page.goto("/gemba-walk/schedule");
     const back = page
       .locator("header")

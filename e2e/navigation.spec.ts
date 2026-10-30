@@ -1,5 +1,6 @@
 import { mockGet } from "./support/api";
 import { expect, test } from "./support/fixtures";
+import { FORCED_THEME } from "../app/seasonalTheme";
 
 // Menú lateral (colapsado, expandido y móvil), tema claro/oscuro y menú
 // según el rol del usuario.
@@ -25,7 +26,9 @@ test.describe("Navegación", () => {
     const nav = page.getByRole("navigation", { name: "Menú principal" });
 
     // El grupo va antes que su opción del mismo nombre.
-    const group = nav.getByRole("button", { name: "Criterios", exact: true }).first();
+    const group = nav
+      .getByRole("button", { name: "Criterios", exact: true })
+      .first();
     await group.click();
     await nav.getByRole("button", { name: "Tipos de criterios" }).click();
     await expect(page).toHaveURL(/\/secondary-types$/);
@@ -36,7 +39,9 @@ test.describe("Navegación", () => {
     await nav.getByRole("button", { name: "Hallazgos" }).click();
     await expect(page).toHaveURL(/\/hallazgos$/);
     await page.getByRole("button", { name: "Cerrar menú" }).click();
-    await expect(page.getByRole("button", { name: "Abrir menú" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Abrir menú" }),
+    ).toBeVisible();
   });
 
   test("en móvil el menú es un panel que se cierra al navegar", async ({
@@ -46,15 +51,21 @@ test.describe("Navegación", () => {
     await page.goto("/dashboard");
     await page.getByRole("button", { name: "Abrir menú" }).click();
     const nav = page.getByRole("navigation", { name: "Menú principal" });
-    await nav.getByRole("button", { name: "Configuración" }).or(
-      nav.getByRole("button", { name: "General" }),
-    ).first().click();
+    await nav
+      .getByRole("button", { name: "Configuración" })
+      .or(nav.getByRole("button", { name: "General" }))
+      .first()
+      .click();
     await nav.getByRole("button", { name: "Plantas" }).click();
     await expect(page).toHaveURL(/\/manufacturing-plants$/);
     await expect(nav).toBeHidden();
   });
 
   test("el tema elegido se conserva al recargar", async ({ page }) => {
+    test.skip(
+      !!FORCED_THEME,
+      "Tema forzado temporal (app/seasonalTheme.ts): no hay selector de tema.",
+    );
     const themeButton = (label: string) =>
       page.getByRole("button", { name: `Cambiar tema (actual: ${label})` });
     const chooseTheme = async (from: string, to: string) => {
@@ -70,12 +81,16 @@ test.describe("Navegación", () => {
 
     // Halloween agrega la araña al header.
     await chooseTheme("Oscuro", "Halloween");
-    await expect(page.getByRole("img", { name: "Araña de Halloween" })).toBeVisible();
+    await expect(
+      page.getByRole("img", { name: "Araña de Halloween" }),
+    ).toBeVisible();
     await page.reload();
     await expect(themeButton("Halloween")).toBeVisible();
 
     await chooseTheme("Halloween", "Claro");
-    await expect(page.getByRole("img", { name: "Araña de Halloween" })).toHaveCount(0);
+    await expect(
+      page.getByRole("img", { name: "Araña de Halloween" }),
+    ).toHaveCount(0);
   });
 
   for (const role of ["General", "Supervisor"]) {
@@ -94,8 +109,12 @@ test.describe("Navegación", () => {
       await page.goto("/hallazgos");
       await page.getByRole("button", { name: "Abrir menú" }).click();
       const nav = page.getByRole("navigation", { name: "Menú principal" });
-      await expect(nav.getByRole("button", { name: "Hallazgos" })).toBeVisible();
-      await expect(nav.getByRole("button", { name: "Usuarios" })).toHaveCount(0);
+      await expect(
+        nav.getByRole("button", { name: "Hallazgos" }),
+      ).toBeVisible();
+      await expect(nav.getByRole("button", { name: "Usuarios" })).toHaveCount(
+        0,
+      );
       await expect(
         nav.getByRole("button", { name: "Comportamiento seguro (ICS)" }),
       ).toHaveCount(0);

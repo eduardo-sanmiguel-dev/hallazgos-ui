@@ -19,6 +19,7 @@ import { useFormFieldErrors } from "@hooks/useFieldErrors";
 import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
 import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
+import FormContainer from "@shared/components/FormContainer";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
 import EditRecordState from "@shared/components/EditRecordState";
@@ -144,10 +145,14 @@ const EmergencyTeamsFormPage = () => {
   }
 
   return (
-    <>
+    <FormContainer>
       <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
-      <FormSection>
+      <FormSection
+        title="Planta y lugar"
+        description="Elige primero la planta: el resto de los campos se habilita después."
+      >
         <SelectManufacturingPlantsOwn
+          size={{ xs: 12, sm: 6 }}
           value={form.manufacturingPlantId}
           onChange={(e) =>
             setForm({
@@ -157,13 +162,7 @@ const EmergencyTeamsFormPage = () => {
           }
           error={errorOf("manufacturingPlantId")}
         />
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             {...fieldProps("location")}
             required
@@ -181,13 +180,9 @@ const EmergencyTeamsFormPage = () => {
             }
           />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+      </FormSection>
+      <FormSection title="Extintor" description="Número, tipo y capacidad.">
+        <Grid size={{ xs: 12, sm: 4 }}>
           <TextField
             {...fieldProps("extinguisherNumber")}
             required
@@ -208,13 +203,7 @@ const EmergencyTeamsFormPage = () => {
             }
           />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 4 }}>
           <TextField
             {...fieldProps("typeOfExtinguisher")}
             required
@@ -239,13 +228,7 @@ const EmergencyTeamsFormPage = () => {
             ))}
           </TextField>
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 4 }}>
           <TextField
             {...fieldProps("capacity")}
             required
@@ -272,7 +255,7 @@ const EmergencyTeamsFormPage = () => {
         isSaving={isLoading}
       />
       {leave.confirmDialog}
-    </>
+    </FormContainer>
   );
 };
 

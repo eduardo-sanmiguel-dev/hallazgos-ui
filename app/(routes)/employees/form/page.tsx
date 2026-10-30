@@ -27,6 +27,7 @@ import { useFormFieldErrors } from "@hooks/useFieldErrors";
 import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
 import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
 import PageHeader from "@shared/components/PageHeader";
+import FormContainer from "@shared/components/FormContainer";
 import FormSection from "@shared/components/FormSection";
 import FormActions from "@shared/components/FormActions";
 import EditRecordState from "@shared/components/EditRecordState";
@@ -119,13 +120,13 @@ const EmployeesFormPage = () => {
         code: !codeClean ? "Escribe el código." : undefined,
         name: !nameClean ? "Escribe el nombre completo." : undefined,
         birthdate: dateError(birthdateClean, "nacimiento"),
-        dateOfAdmission: dateError(dateOfAdmissionClean, "admisión"),
-        area: !areaClean ? "Selecciona el área." : undefined,
-        position: !positionClean ? "Selecciona el puesto." : undefined,
         gender: !form.gender ? "Selecciona el género." : undefined,
+        dateOfAdmission: dateError(dateOfAdmissionClean, "admisión"),
         manufacturingPlantNames: !manufacturingPlantNamesClean.length
           ? "Selecciona al menos una planta."
           : undefined,
+        area: !areaClean ? "Selecciona el área." : undefined,
+        position: !positionClean ? "Selecciona el puesto." : undefined,
       }) ||
       !birthdateClean ||
       !dateOfAdmissionClean
@@ -195,16 +196,13 @@ const EmployeesFormPage = () => {
   }
 
   return (
-    <>
+    <FormContainer>
       <PageHeader title={title} breadcrumbs onNavigate={leave.go} />
-      <FormSection>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+      <FormSection
+        title="Datos personales"
+        description="Cómo se identifica al colaborador."
+      >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             {...fieldProps("code")}
             // Si hay error se muestra el error; si no, la ayuda.
@@ -220,13 +218,7 @@ const EmployeesFormPage = () => {
             slotProps={{ htmlInput: NUMERIC_INPUT }}
           />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             {...fieldProps("name")}
             required
@@ -239,13 +231,7 @@ const EmployeesFormPage = () => {
             name="name"
           />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <LocalizationProvider
             dateAdapter={AdapterDayjs}
             adapterLocale="es"
@@ -274,13 +260,26 @@ const EmployeesFormPage = () => {
             )}
           </LocalizationProvider>
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <SelectDefault
+            data={catalogs?.genres || []}
+            label="Género *"
+            value={form.gender}
+            onChange={onChangeSelect}
+            name="gender"
+          />
+          {errorOf("gender") && (
+            <FormHelperText data-error-for="gender" error>
+              {errorOf("gender")}
+            </FormHelperText>
+          )}
+        </Grid>
+      </FormSection>
+      <FormSection
+        title="Datos laborales"
+        description="Dónde trabaja y desde cuándo."
+      >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <LocalizationProvider
             dateAdapter={AdapterDayjs}
             adapterLocale="es"
@@ -309,73 +308,7 @@ const EmployeesFormPage = () => {
             )}
           </LocalizationProvider>
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
-          <SelectDefault
-            data={catalogs?.areas || []}
-            label="Área *"
-            value={form.area}
-            onChange={onChangeSelect}
-            name="area"
-          />
-          {errorOf("area") && (
-            <FormHelperText data-error-for="area" error>
-              {errorOf("area")}
-            </FormHelperText>
-          )}
-        </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
-          <SelectDefault
-            data={catalogs?.positions || []}
-            label="Puesto *"
-            value={form.position}
-            onChange={onChangeSelect}
-            name="position"
-          />
-          {errorOf("position") && (
-            <FormHelperText data-error-for="position" error>
-              {errorOf("position")}
-            </FormHelperText>
-          )}
-        </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
-          <SelectDefault
-            data={catalogs?.genres || []}
-            label="Género *"
-            value={form.gender}
-            onChange={onChangeSelect}
-            name="gender"
-          />
-          {errorOf("gender") && (
-            <FormHelperText data-error-for="gender" error>
-              {errorOf("gender")}
-            </FormHelperText>
-          )}
-        </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
+        <Grid size={{ xs: 12, sm: 6 }}>
           <MultiSelectManufacturingPlants
             values={form.manufacturingPlantNames}
             onChange={(values) => {
@@ -391,6 +324,34 @@ const EmployeesFormPage = () => {
             </FormHelperText>
           )}
         </Grid>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <SelectDefault
+            data={catalogs?.areas || []}
+            label="Área *"
+            value={form.area}
+            onChange={onChangeSelect}
+            name="area"
+          />
+          {errorOf("area") && (
+            <FormHelperText data-error-for="area" error>
+              {errorOf("area")}
+            </FormHelperText>
+          )}
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <SelectDefault
+            data={catalogs?.positions || []}
+            label="Puesto *"
+            value={form.position}
+            onChange={onChangeSelect}
+            name="position"
+          />
+          {errorOf("position") && (
+            <FormHelperText data-error-for="position" error>
+              {errorOf("position")}
+            </FormHelperText>
+          )}
+        </Grid>
       </FormSection>
       <FormActions
         onCancel={() => leave.go(LIST_HREF)}
@@ -398,7 +359,7 @@ const EmployeesFormPage = () => {
         isSaving={isLoading}
       />
       {leave.confirmDialog}
-    </>
+    </FormContainer>
   );
 };
 

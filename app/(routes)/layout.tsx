@@ -33,6 +33,7 @@ import SessionEndedDialog from "@shared/components/SessionEndedDialog";
 import { purgeExpiredDrafts } from "@shared/drafts/draftStore";
 import { useUserSessionStore } from "@store";
 import { AppThemeName, createAppTheme, isAppThemeName } from "../theme";
+import { FORCED_THEME } from "../seasonalTheme";
 import { UsersService } from "@services";
 
 // Ancho suficiente para que ninguna etiqueta del menú se corte.
@@ -98,6 +99,8 @@ const Drawer = styled(MuiDrawer, {
 }));
 
 // Clave de localStorage con el tema elegido ("light" | "dark" | "halloween").
+// Con FORCED_THEME (temporal, ver seasonalTheme.ts) no se lee ni se escribe:
+// la preferencia de cada usuario queda intacta para cuando se quite.
 const THEME_STORAGE_KEY = "colorMode";
 
 // Marca: logo y nombre del producto. En modo oscuro el logo va en blanco
@@ -151,7 +154,9 @@ function Brand() {
 }
 
 export default function MainLayout({ children }: { children: ReactNode }) {
-  const [themeName, setThemeName] = useState<AppThemeName>("light");
+  const [themeName, setThemeName] = useState<AppThemeName>(
+    FORCED_THEME ?? "light",
+  );
   const [open, setOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -246,6 +251,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
+    if (FORCED_THEME) return;
     const saved = localStorage.getItem(THEME_STORAGE_KEY);
     if (isAppThemeName(saved)) {
       setThemeName(saved);
@@ -307,7 +313,10 @@ export default function MainLayout({ children }: { children: ReactNode }) {
             {!(open && !isMobile) && <Brand />}
             {themeName === "halloween" && <HalloweenSpider />}
             <Box sx={{ flexGrow: 1 }} />
-            <ThemeSelector value={themeName} onChange={changeTheme} />
+            {/* Con un tema forzado es el único disponible: sin selector. */}
+            {!FORCED_THEME && (
+              <ThemeSelector value={themeName} onChange={changeTheme} />
+            )}
             <Divider
               orientation="vertical"
               flexItem

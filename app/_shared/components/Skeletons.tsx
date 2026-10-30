@@ -8,6 +8,8 @@ import { Paper } from "@mui/material";
 import { Skeleton } from "@mui/material";
 import { Stack } from "@mui/material";
 
+import FormContainer from "./FormContainer";
+
 // Esqueletos por tipo de pantalla: ocupan el lugar de lo que va a cargar para
 // que la página no "salte" al llegar los datos.
 
@@ -91,29 +93,31 @@ export function ListSkeleton({ rows = 8 }: { rows?: number }) {
 // Formulario: secciones con campos en dos columnas y botones al pie.
 export function FormSkeleton({ sections = 2 }: { sections?: number }) {
   return (
-    <SkeletonRoot>
-      <HeaderSkeleton />
-      {Array.from({ length: sections }, (_, section) => (
-        <Paper
-          key={section}
-          variant="outlined"
-          sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}
-        >
-          <Skeleton variant="text" width={160} height={28} sx={{ mb: 2 }} />
-          <Grid container spacing={2}>
-            {Array.from({ length: 4 }, (_, field) => (
-              <Grid key={field} size={{ xs: 12, md: 6 }}>
-                <Skeleton variant="rounded" height={56} />
-              </Grid>
-            ))}
-          </Grid>
-        </Paper>
-      ))}
-      <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
-        <Skeleton variant="rounded" width={110} height={40} />
-        <Skeleton variant="rounded" width={110} height={40} />
-      </Stack>
-    </SkeletonRoot>
+    <FormContainer>
+      <SkeletonRoot>
+        <HeaderSkeleton />
+        {Array.from({ length: sections }, (_, section) => (
+          <Paper
+            key={section}
+            variant="outlined"
+            sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}
+          >
+            <Skeleton variant="text" width={160} height={28} sx={{ mb: 2 }} />
+            <Grid container spacing={2}>
+              {Array.from({ length: 4 }, (_, field) => (
+                <Grid key={field} size={{ xs: 12, md: 6 }}>
+                  <Skeleton variant="rounded" height={56} />
+                </Grid>
+              ))}
+            </Grid>
+          </Paper>
+        ))}
+        <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
+          <Skeleton variant="rounded" width={110} height={40} />
+          <Skeleton variant="rounded" width={110} height={40} />
+        </Stack>
+      </SkeletonRoot>
+    </FormContainer>
   );
 }
 
