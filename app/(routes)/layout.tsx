@@ -26,6 +26,12 @@ import { MainListItems } from "@shared/components/menu";
 import HeaderUserMenu from "@shared/components/HeaderUserMenu";
 import Copyright from "@shared/components/Copyright";
 import HalloweenSpider from "@shared/components/HalloweenSpider";
+import {
+  HalloweenBackdrop,
+  HalloweenCobweb,
+  HalloweenFlyers,
+  HalloweenHeaderScene,
+} from "@shared/components/HalloweenDecor";
 import ThemeSelector from "@shared/components/ThemeSelector";
 import RouteAccessGuard from "@shared/components/RouteAccessGuard";
 import MobileBottomNav from "@shared/components/MobileBottomNav";
@@ -247,6 +253,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
       >
         <MainListItems expanded={expanded} onNavigate={closeMobileDrawer} />
       </Box>
+      {expanded && <HalloweenCobweb />}
     </>
   );
 
@@ -312,7 +319,12 @@ export default function MainLayout({ children }: { children: ReactNode }) {
             {/* Con el menú lateral abierto la marca vive arriba del menú. */}
             {!(open && !isMobile) && <Brand />}
             {themeName === "halloween" && <HalloweenSpider />}
-            <Box sx={{ flexGrow: 1 }} />
+            {/* Espacio libre del header (en Halloween, luna y estrellas). */}
+            <Box
+              sx={{ flexGrow: 1, alignSelf: "stretch", position: "relative" }}
+            >
+              <HalloweenHeaderScene />
+            </Box>
             {/* Con un tema forzado es el único disponible: sin selector. */}
             {!FORCED_THEME && (
               <ThemeSelector value={themeName} onChange={changeTheme} />
@@ -356,6 +368,10 @@ export default function MainLayout({ children }: { children: ReactNode }) {
           tabIndex={-1}
           sx={{
             "&:focus": { outline: "none" },
+            // En Halloween, la noche de fondo (z-index -1) va encima de este
+            // fondo y debajo del contenido.
+            isolation: (theme) =>
+              theme.appTheme === "halloween" ? "isolate" : undefined,
             backgroundColor: (theme) =>
               ({
                 light: theme.palette.grey[100],
@@ -370,12 +386,14 @@ export default function MainLayout({ children }: { children: ReactNode }) {
             pb: "env(safe-area-inset-bottom, 0px)",
           }}
         >
+          <HalloweenBackdrop />
           <Toolbar />
           <Container maxWidth={false} sx={{ mt: 4, mb: 4 }}>
             <RouteAccessGuard>{children}</RouteAccessGuard>
             <Copyright sx={{ pt: 4 }} />
           </Container>
           <MobileBottomNav />
+          <HalloweenFlyers />
           <SessionEndedDialog />
         </Box>
       </Box>

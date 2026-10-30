@@ -25,6 +25,13 @@ import type { AppThemeName } from "./theme";
  * 4. app/(routes)/layout.tsx: quitar HalloweenSpider (import y uso) y la
  *    entrada "halloween" del mapa por appTheme (busca "[theme.appTheme]").
  *    Borrar app/_shared/components/HalloweenSpider.tsx.
+ *    Ambientación (luna, cementerio, calabazas, cuervos, murciélagos,
+ *    telaraña): borrar app/_shared/components/HalloweenDecor.tsx y sus usos
+ *    (buscar "Halloween" en app/(routes)/layout.tsx y app/page.tsx): el
+ *    fondo y lo que vuela en <main>, el `isolation` de <main>, la escena del
+ *    espacio libre del header (dejar solo `<Box sx={{ flexGrow: 1 }} />`) y
+ *    la telaraña del menú lateral; en el login, el fragmento <>…</> que
+ *    envuelve al <Container>.
  * 5. Comentarios que lo mencionan: app/_shared/constants/semanticTones.ts.
  * 6. Pruebas: e2e/seasonal-theme.spec.ts (borrar), e2e/navigation.spec.ts
  *    (paso de Halloween y la araña), e2e/theme-color.spec.ts (caso
