@@ -154,6 +154,36 @@ const rowOf = (page: Page, id: number) =>
   });
 
 test.describe("Hallazgos: acciones", () => {
+  // Quién hizo la última reasignación (antes no se registraba): solo en los
+  // reasignados.
+  test("el detalle dice quién hizo la última reasignación y cuándo", async ({
+    page,
+  }) => {
+    await openList(page, {
+      data: [
+        evidence(9101, {
+          status: "Cerrado",
+          solutionDate: daysAgo(1),
+          reassignedBy: { name: "E2E Quien reasignó" },
+          reassignedAt: "2026-10-20T10:30:00",
+        }),
+        evidence(9102, { status: "Cancelado" }),
+      ],
+    });
+
+    await viewDetails(page, 9101);
+    const reassigned = page.getByRole("dialog", { name: "Hallazgo #9101" });
+    await expect(reassigned.getByText("Reasignado por")).toBeVisible();
+    await expect(reassigned).toContainText("E2E Quien reasignó");
+    await expect(reassigned).toContainText("20/10/2026 10:30 am");
+    await reassigned.getByRole("button", { name: "Cerrar" }).click();
+
+    await viewDetails(page, 9102);
+    await expect(
+      page.getByRole("dialog", { name: "Hallazgo #9102" }),
+    ).not.toContainText("Reasignado por");
+  });
+
   // Mismos colores de estatus en todo el sistema (EVIDENCE_STATUS_COLOR):
   // ámbar, azul, verde y gris; el chip lleva texto blanco.
   test("cada estatus con su color en la tabla y un círculo en el filtro", async ({

@@ -476,6 +476,25 @@ export default function DetailsEvidence({
                   ))
                 : "—"}
             </DetailField>
+            {/* Última reasignación de responsables: quién y cuándo (nulo en
+                los nunca reasignados o reasignados antes de registrarse). */}
+            {evidenceCurrent.reassignedBy && (
+              <DetailField label="Reasignado por">
+                {evidenceCurrent.reassignedBy.name}
+                {evidenceCurrent.reassignedAt && (
+                  <Box
+                    component="span"
+                    sx={{
+                      display: "block",
+                      typography: "body2",
+                      color: "text.secondary",
+                    }}
+                  >
+                    {stringToDateWithTime(evidenceCurrent.reassignedAt)}
+                  </Box>
+                )}
+              </DetailField>
+            )}
             <DetailField label="Prioridad">
               {priorityLabel !== "Sin prioridad" ? priorityLabel : "—"}
             </DetailField>

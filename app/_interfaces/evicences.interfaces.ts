@@ -79,6 +79,10 @@ export interface EvidenceRow {
   startedBy?: OnlyName | null;
   /** Quién lo cerró (null: anterior a que se registrara). */
   closedBy?: OnlyName | null;
+  /** Quién hizo la última reasignación y cuándo (null: nunca, o antes de
+   * que se registrara). */
+  reassignedBy?: OnlyName | null;
+  reassignedAt?: Date | null;
   imgEvidence: string;
   imgProcess: string;
   imgSolution: string;
