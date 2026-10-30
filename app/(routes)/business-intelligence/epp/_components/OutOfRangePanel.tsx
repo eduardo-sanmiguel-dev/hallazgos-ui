@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { Box, Grid, Paper, Skeleton } from "@mui/material";
 
@@ -26,39 +28,35 @@ export default function OutOfRangePanel({
   startDate,
   endDate,
 }: Props) {
-  const [data, setData] = useState<BiEppOutOfRange | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedEquipmentId, setSelectedEquipmentId] = useState<number | null>(
+  const [chosenEquipmentId, setSelectedEquipmentId] = useState<number | null>(
     null,
   );
   const [employee, setEmployee] = useState<EmployeeRanking | null>(null);
 
-  useEffect(() => {
-    if (!manufacturingPlantId) return;
-    let ignore = false;
-    setIsLoading(true);
-    DashboardService.findBusinessIntelligenceEppOutOfRange({
-      manufacturingPlantId,
-      startDate,
-      endDate,
-    })
-      .then((response) => {
-        if (ignore) return;
-        setData(response);
-        // El equipo elegido puede no existir en otro periodo o planta.
-        setSelectedEquipmentId((current) =>
-          response.byEquipment.some((row) => row.equipmentId === current)
-            ? current
-            : null,
-        );
-      })
-      .finally(() => {
-        if (!ignore) setIsLoading(false);
-      });
-    return () => {
-      ignore = true;
-    };
-  }, [manufacturingPlantId, startDate, endDate]);
+  // Al cambiar planta o periodo se conserva lo anterior hasta tener lo nuevo.
+  const query = useQuery({
+    queryKey: [
+      "business-intelligence",
+      "epp-out-of-range",
+      { manufacturingPlantId, startDate, endDate },
+    ],
+    queryFn: () =>
+      DashboardService.findBusinessIntelligenceEppOutOfRange({
+        manufacturingPlantId,
+        startDate,
+        endDate,
+      }),
+    enabled: !!manufacturingPlantId,
+    placeholderData: keepPreviousData,
+  });
+  const data: BiEppOutOfRange | null = query.data ?? null;
+  const isLoading = query.isFetching;
+  // El equipo elegido puede no existir en otro periodo o planta.
+  const selectedEquipmentId = data?.byEquipment.some(
+    (row) => row.equipmentId === chosenEquipmentId,
+  )
+    ? chosenEquipmentId
+    : null;
 
   if (!data) {
     return (

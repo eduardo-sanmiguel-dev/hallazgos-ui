@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "./support/fixtures";
+import { scrollContent } from "./support/ui";
 
 // Zona segura de los botones del sistema (Android/iOS). Con
 // viewport-fit=cover la página se dibuja detrás de ellos para que se vea el
@@ -47,6 +48,8 @@ test.describe("Zona segura inferior", () => {
 
     expect(await paddingBottom(page, "main#contenido")).toBe(INSET);
 
+    // El botón aparece al bajar.
+    await scrollContent(page, 1200);
     const fab = page.getByRole("button", { name: "Volver arriba" });
     await expect(fab).toBeVisible();
     // 24px de margen (escritorio) + la zona segura. Se lee `bottom` y no la

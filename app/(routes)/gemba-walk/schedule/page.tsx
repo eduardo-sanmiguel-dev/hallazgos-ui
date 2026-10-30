@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { useRouter } from "next/navigation";
 
@@ -55,6 +57,8 @@ const LegendItem = ({
   </Box>
 );
 
+const EMPTY_EVENTS: GembaWalkScheduleEvent[] = [];
+
 const STATUS_MARK: Record<GembaWalkScheduleEvent["status"], string> = {
   DONE: "✓ ",
   MISSED: "✗ ",
@@ -76,28 +80,29 @@ const GembaWalkSchedule = () => {
   const [range, setRange] = useState<{ start: string; end: string } | null>(
     null,
   );
-  const [scheduleEvents, setScheduleEvents] = useState<
-    GembaWalkScheduleEvent[]
-  >([]);
 
   const lastViewType = useRef<string | null>(null);
 
-  const getEvents = useCallback(() => {
-    if (!manufacturingPlantId || !range) {
-      setScheduleEvents([]);
-      return;
-    }
-
-    GembaWalksService.findCalendar({
-      manufacturingPlantId,
-      startDate: range.start,
-      endDate: range.end,
-    }).then(setScheduleEvents);
-  }, [manufacturingPlantId, range]);
-
-  useEffect(() => {
-    getEvents();
-  }, [getEvents]);
+  // Eventos del rango visible; al cambiar de mes o semana se conservan los
+  // anteriores hasta tener los nuevos.
+  const hasRange = !!manufacturingPlantId && !!range;
+  const eventsQuery = useQuery({
+    queryKey: [
+      "gemba-walk",
+      "calendar",
+      { manufacturingPlantId, startDate: range?.start, endDate: range?.end },
+    ],
+    queryFn: () =>
+      GembaWalksService.findCalendar({
+        manufacturingPlantId,
+        startDate: range!.start,
+        endDate: range!.end,
+      }),
+    enabled: hasRange,
+    placeholderData: keepPreviousData,
+  });
+  const scheduleEvents: GembaWalkScheduleEvent[] =
+    (hasRange && eventsQuery.data) || EMPTY_EVENTS;
 
   const events = useMemo<EventInput[]>(
     () =>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
@@ -86,20 +86,18 @@ const columns: ResponsiveColumn<Employee>[] = [
 ];
 
 export default function TableEmployees({ rows, getData, pagination }: Props) {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
   const router = useRouter();
   const { confirm, confirmDialog } = useConfirmDialog();
 
-  const remove = (id: number) => {
-    setIsLoading(true);
-    return EmployeesService.remove(id)
-      .then(() => {
-        notify("Colaborador desactivado correctamente", true);
-        getData();
-      })
-      .finally(() => setIsLoading(false));
-  };
+  const removeMutation = useMutation({
+    mutationFn: (id: number) => EmployeesService.remove(id),
+    onSuccess: () => {
+      notify("Colaborador desactivado correctamente", true);
+      getData();
+    },
+  });
+
+  const remove = (id: number) => removeMutation.mutateAsync(id);
 
   const confirmRemove = async (row: Employee) => {
     await confirm({
@@ -130,7 +128,7 @@ export default function TableEmployees({ rows, getData, pagination }: Props) {
               <DeleteAction
                 label="Desactivar"
                 onClick={() => confirmRemove(row)}
-                disabled={isLoading}
+                disabled={removeMutation.isPending}
               />
             )}
           </RowActions>

@@ -131,17 +131,14 @@ test.describe("Filas por página", () => {
     page,
   }) => {
     const limits: number[] = [];
-    await page.route("**/graphql", async (route) => {
-      const body = route.request().postDataJSON();
-      if (body?.operationName === "Evidences") {
-        limits.push(body.variables.limit);
-      }
-      await route.fulfill({
-        json: {
-          data: { evidences: { __typename: "Evidences", count: 0, data: [] } },
-        },
-      });
-    });
+    await page.route(
+      (url) => url.pathname.endsWith("/api/v1/evidences"),
+      async (route) => {
+        const url = new URL(route.request().url());
+        limits.push(Number(url.searchParams.get("limit")));
+        await route.fulfill({ json: { count: 0, data: [] } });
+      },
+    );
 
     await page.goto("/hallazgos");
     await expect(rowsPerPageSelect(page)).toHaveText("10");

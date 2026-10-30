@@ -20,7 +20,7 @@ import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutlineOutlined";
 
 import { constants } from "@constants";
-import { EvidenceGraphql } from "@hooks";
+import type { EvidenceRow } from "@interfaces";
 import { EvidenceStatusChip } from "@shared/components/StatusChip";
 import { TableBodyState } from "@shared/components/TableDefaultServer";
 import TablePaginationActions from "@shared/components/TablePaginationActions";
@@ -28,19 +28,19 @@ import { getDeadline } from "@routes/hallazgos/_constants/priorityOptions";
 import EvidenceDeadline from "./EvidenceDeadline";
 import type { EvidenceActions } from "./useEvidenceActions";
 
-export const responsiblesLabel = (row: EvidenceGraphql) =>
+export const responsiblesLabel = (row: EvidenceRow) =>
   (row.responsibles.length > 0 ? row.responsibles : row.supervisors)
     .map((person) => person.name)
     .join(", ");
 
 interface Props {
-  rows: EvidenceGraphql[];
+  rows: EvidenceRow[];
   actions: EvidenceActions;
-  onDetails: (row: EvidenceGraphql) => void;
-  onStart: (row: EvidenceGraphql) => void;
-  onClose: (row: EvidenceGraphql) => void;
-  onReassign: (row: EvidenceGraphql) => void;
-  onCancel: (row: EvidenceGraphql) => void;
+  onDetails: (row: EvidenceRow) => void;
+  onStart: (row: EvidenceRow) => void;
+  onClose: (row: EvidenceRow) => void;
+  onReassign: (row: EvidenceRow) => void;
+  onCancel: (row: EvidenceRow) => void;
   isBusy?: boolean;
   page: number;
   setPage: (page: number) => void;
@@ -70,16 +70,16 @@ export default function EvidenceCards({
 }: Props) {
   const [menu, setMenu] = useState<{
     anchor: HTMLElement;
-    row: EvidenceGraphql;
+    row: EvidenceRow;
   } | null>(null);
 
-  const openMenu = (event: MouseEvent<HTMLElement>, row: EvidenceGraphql) =>
+  const openMenu = (event: MouseEvent<HTMLElement>, row: EvidenceRow) =>
     setMenu({ anchor: event.currentTarget, row });
 
   const closeMenu = () => setMenu(null);
 
   // Del menú: se cierra antes de abrir el diálogo de la acción.
-  const fromMenu = (action: (row: EvidenceGraphql) => void) => () => {
+  const fromMenu = (action: (row: EvidenceRow) => void) => () => {
     const row = menu?.row;
     closeMenu();
     if (row) action(row);

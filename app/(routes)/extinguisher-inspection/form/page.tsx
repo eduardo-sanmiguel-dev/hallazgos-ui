@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useRef, useState } from "react";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+
 import { useRouter, useSearchParams } from "next/navigation";
 
 import Grid from "@mui/material/Grid";
@@ -36,6 +38,7 @@ import DetailSection from "@shared/components/DetailSection";
 import StatusChip from "@shared/components/StatusChip";
 import FormActions from "@shared/components/FormActions";
 import { useFieldErrors } from "@hooks/useFieldErrors";
+import { useEditRecord } from "@hooks/useEditRecord";
 import {
   EmergencyTeamsService,
   ExtinguisherInspectionsService,
@@ -64,7 +67,6 @@ const ExtinguisherInspectionFormPage = () => {
   const today = dayjs().startOf("day");
   const defaultNextRechargeDate = dayjs().add(1, "year").format("YYYY-MM-DD");
 
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [idCurrent, setIdCurrent] = useState<number>(0);
   const [isScannerOpen, setIsScannerOpen] = useState<boolean>(false);
   const [scannerError, setScannerError] = useState<string>("");
@@ -137,9 +139,60 @@ const ExtinguisherInspectionFormPage = () => {
     };
   };
 
+  const queryClient = useQueryClient();
+
   const cancel = () => {
     router.push("/extinguisher-inspection");
   };
+
+  // Inspección que se edita (?id=): se agregan evaluaciones a las suyas.
+  const record = useEditRecord(
+    "extinguisher-inspection",
+    Number(searchParams.get("id") || 0),
+    ExtinguisherInspectionsService.findOne,
+    (inspection: ExtinguisherInspection) => {
+      const firstEvaluation = inspection.evaluations?.[0];
+
+      setForm({
+        manufacturingPlantId: String(inspection.manufacturingPlant?.id || ""),
+        sharedNextRechargeDate: firstEvaluation?.nextRechargeDate
+          ? dayjs(firstEvaluation.nextRechargeDate).format("YYYY-MM-DD")
+          : defaultNextRechargeDate,
+        evaluations: (inspection.evaluations || []).map(mapEvaluationToLocal),
+      });
+    },
+  );
+
+  const saveMutation = useMutation({
+    mutationFn: (
+      payload: Parameters<typeof ExtinguisherInspectionsService.create>[0],
+    ) =>
+      idCurrent
+        ? ExtinguisherInspectionsService.update(idCurrent, payload)
+        : ExtinguisherInspectionsService.create(payload),
+    onSuccess: () => {
+      toast.success(
+        idCurrent
+          ? "Evaluaciones agregadas correctamente"
+          : "Inspección creada correctamente",
+      );
+      cancel();
+    },
+    // El aviso lo muestra el interceptor; aquí se marca dónde corregir.
+    onError: (error) => {
+      failFromApi(error, inspectionApiField);
+      const byIndex = evaluationApiErrors(parseApiError(error).fieldErrors);
+      setEvaluationErrors({ byIndex, evaluations: form.evaluations });
+      const first = Object.keys(byIndex)[0];
+      if (first !== undefined) {
+        document
+          .getElementById(`evaluacion-${first}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    },
+  });
+  // Mientras carga la inspección o se guarda.
+  const isLoading = record.status === "loading" || saveMutation.isPending;
 
   const stopScanner = () => {
     scanningRef.current = false;
@@ -230,8 +283,12 @@ const ExtinguisherInspectionFormPage = () => {
     }
 
     try {
-      const emergencyTeam =
-        await EmergencyTeamsService.findOne(emergencyTeamId);
+      // Lectura al escanear: se pide en ese momento (sin caché vieja).
+      const emergencyTeam = await queryClient.fetchQuery({
+        queryKey: ["emergency-teams", emergencyTeamId],
+        queryFn: () => EmergencyTeamsService.findOne(emergencyTeamId),
+        staleTime: 0,
+      });
 
       if (!form.manufacturingPlantId) {
         toast.error("Seleccione una planta antes de crear una evaluación");
@@ -412,22 +469,6 @@ const ExtinguisherInspectionFormPage = () => {
     }
 
     setIdCurrent(id);
-    setIsLoading(true);
-
-    ExtinguisherInspectionsService.findOne(id)
-      .then((inspection: ExtinguisherInspection) => {
-        const firstEvaluation = inspection.evaluations?.[0];
-
-        setForm({
-          manufacturingPlantId: String(inspection.manufacturingPlant?.id || ""),
-          sharedNextRechargeDate: firstEvaluation?.nextRechargeDate
-            ? dayjs(firstEvaluation.nextRechargeDate).format("YYYY-MM-DD")
-            : defaultNextRechargeDate,
-          evaluations: (inspection.evaluations || []).map(mapEvaluationToLocal),
-        });
-      })
-      .finally(() => setIsLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   const removeEvaluation = (index: number) => {
@@ -531,8 +572,6 @@ const ExtinguisherInspectionFormPage = () => {
       return;
     }
 
-    setIsLoading(true);
-
     const payload = {
       manufacturingPlantId: Number(form.manufacturingPlantId),
       evaluations: form.evaluations.map((evaluation) => {
@@ -570,32 +609,7 @@ const ExtinguisherInspectionFormPage = () => {
       }),
     };
 
-    const request = idCurrent
-      ? ExtinguisherInspectionsService.update(idCurrent, payload)
-      : ExtinguisherInspectionsService.create(payload);
-
-    request
-      .then(() => {
-        toast.success(
-          idCurrent
-            ? "Evaluaciones agregadas correctamente"
-            : "Inspección creada correctamente",
-        );
-        cancel();
-      })
-      // El aviso lo muestra el interceptor; aquí se marca dónde corregir.
-      .catch((error) => {
-        failFromApi(error, inspectionApiField);
-        const byIndex = evaluationApiErrors(parseApiError(error).fieldErrors);
-        setEvaluationErrors({ byIndex, evaluations: form.evaluations });
-        const first = Object.keys(byIndex)[0];
-        if (first !== undefined) {
-          document
-            .getElementById(`evaluacion-${first}`)
-            ?.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      })
-      .finally(() => setIsLoading(false));
+    saveMutation.mutate(payload);
   };
 
   const evaluationsCount = form.evaluations.length;

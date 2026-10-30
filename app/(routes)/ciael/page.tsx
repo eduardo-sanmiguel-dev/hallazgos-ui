@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import AddIcon from "@mui/icons-material/Add";
 import { Button } from "@mui/material";
 
@@ -23,7 +25,9 @@ const CiaelPage = () => {
   const [filters, setFilters] = useState<IFiltersCiaels>(
     DEFAULT_FILTERS_CIAELS,
   );
-  const [isLoadingExcel, setIsLoadingExcel] = useState<boolean>(false);
+  const downloadExcel = useMutation({
+    mutationFn: () => CiaelsService.downloadExcel(),
+  });
 
   const {
     rows: ciaels,
@@ -52,13 +56,8 @@ const CiaelPage = () => {
         <Button
           variant="outlined"
           startIcon={<SimCardDownloadIcon />}
-          onClick={() => {
-            setIsLoadingExcel(true);
-            CiaelsService.downloadExcel().finally(() =>
-              setIsLoadingExcel(false),
-            );
-          }}
-          loading={isLoadingExcel}
+          onClick={() => downloadExcel.mutate()}
+          loading={downloadExcel.isPending}
         >
           Excel
         </Button>

@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { Button } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { Dialog } from "@mui/material";
@@ -42,7 +44,6 @@ export default function StartProcessEvidence({
   idRow,
 }: Props) {
   const [image, setImage] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const upload = useUploadProgress();
   // Borrador local por hallazgo (C3): la foto queda en el dispositivo hasta
@@ -57,6 +58,30 @@ export default function StartProcessEvidence({
     },
   });
   const isLocked = !!draft.lock;
+
+  // El estado "enviando" del borrador cuenta como parte del guardado.
+  const processMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      await draft.markSending();
+      return EvidencesService.processStart(idRow, formData, {
+        onUploadProgress: upload.onUploadProgress,
+        idempotencyKey: draft.key(),
+      });
+    },
+    onSuccess: async ({ replayed }) => {
+      await draft.settle();
+      notify(
+        replayed
+          ? `Ya se había guardado (hallazgo #${idRow})`
+          : "Estatus actualizado a En progreso",
+        true,
+      );
+      handleClose(true);
+    },
+    onError: (error) => draft.settle(error),
+    onSettled: () => upload.reset(),
+  });
+  const isLoading = processMutation.isPending;
   // En celular a pantalla completa: con la cámara adentro quedaba apretado.
   const isPhone = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
 
@@ -73,27 +98,7 @@ export default function StartProcessEvidence({
       formData.append("file", attachedFile, nameWithUuid);
     }
 
-    setIsLoading(true);
-    await draft.markSending();
-    EvidencesService.processStart(idRow, formData, {
-      onUploadProgress: upload.onUploadProgress,
-      idempotencyKey: draft.key(),
-    })
-      .then(async ({ replayed }) => {
-        await draft.settle();
-        notify(
-          replayed
-            ? `Ya se había guardado (hallazgo #${idRow})`
-            : "Estatus actualizado a En progreso",
-          true,
-        );
-        handleClose(true);
-      })
-      .catch(draft.settle)
-      .finally(() => {
-        setIsLoading(false);
-        upload.reset();
-      });
+    processMutation.mutate(formData);
   };
 
   // Descartar: si estaba en solo lectura se quita la foto.

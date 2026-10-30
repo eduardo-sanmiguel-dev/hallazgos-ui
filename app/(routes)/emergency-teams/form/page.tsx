@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
@@ -36,7 +38,6 @@ const extinguisherTypes = [
 ];
 
 const EmergencyTeamsFormPage = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [form, setForm] = useState({
     manufacturingPlantId: "",
     location: "",
@@ -59,6 +60,7 @@ const EmergencyTeamsFormPage = () => {
   });
 
   const record = useEditRecord(
+    "emergency-teams",
     idCurrent,
     EmergencyTeamsService.findOne,
     (data) => {
@@ -73,6 +75,24 @@ const EmergencyTeamsFormPage = () => {
       leave.markPristine(loaded);
     },
   );
+
+  const saveMutation = useMutation({
+    mutationFn: (
+      payload: Parameters<typeof EmergencyTeamsService.create>[0],
+    ) =>
+      idCurrent
+        ? EmergencyTeamsService.update(idCurrent, payload)
+        : EmergencyTeamsService.create(payload),
+    onSuccess: () => {
+      toast.success(
+        idCurrent
+          ? "Equipo de emergencia actualizado correctamente"
+          : "Equipo de emergencia creado correctamente",
+      );
+      router.push(LIST_HREF);
+    },
+    onError: (error) => failFromApi(error),
+  });
 
   const save = () => {
     const locationClean = form.location.trim();
@@ -99,8 +119,6 @@ const EmergencyTeamsFormPage = () => {
       return;
     }
 
-    setIsLoading(true);
-
     const payload = {
       location: locationClean,
       extinguisherNumber: extinguisherNumberClean,
@@ -109,23 +127,7 @@ const EmergencyTeamsFormPage = () => {
       manufacturingPlantId: Number(form.manufacturingPlantId),
     };
 
-    if (!idCurrent) {
-      EmergencyTeamsService.create(payload)
-        .then(() => {
-          toast.success("Equipo de emergencia creado correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
-    } else {
-      EmergencyTeamsService.update(idCurrent, payload)
-        .then(() => {
-          toast.success("Equipo de emergencia actualizado correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
-    }
+    saveMutation.mutate(payload);
   };
 
   const title = idCurrent
@@ -252,7 +254,7 @@ const EmergencyTeamsFormPage = () => {
       <FormActions
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
-        isSaving={isLoading}
+        isSaving={saveMutation.isPending}
       />
       {leave.confirmDialog}
     </FormContainer>

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
@@ -8,23 +10,20 @@ import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
 import DonutLargeIcon from "@mui/icons-material/DonutLarge";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlineOutlined";
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import {
   Box,
   Button,
-  Fab,
   Grid,
   Paper,
   SelectChangeEvent,
   Skeleton,
-  Zoom,
 } from "@mui/material";
 import "dayjs/locale/es";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { ResponseDashboardHeatmapByFilters, UserOption } from "@interfaces";
+import { UserOption } from "@interfaces";
 import { DashboardService, UsersService } from "@services";
 import { useUserSessionStore } from "@store";
 import { EMPTY_CATALOG, useAreas, useMainTypes } from "@hooks";
@@ -109,20 +108,9 @@ const DashboardPage = () => {
       mainTypeNames: [],
     };
   });
-  const [responsibles, setResponsibles] = useState<UserOption[]>([]);
   const [isHistoricalView, setIsHistoricalView] = useState(false);
   const [isHeatmapView, setIsHeatmapView] = useState(false);
-  const [isHeatmapLoading, setIsHeatmapLoading] = useState(false);
   const [isDownloadingPdfReport, setIsDownloadingPdfReport] = useState(false);
-  const [heatmapData, setHeatmapData] =
-    useState<ResponseDashboardHeatmapByFilters | null>(null);
-  const sortedResponsibles = useMemo(
-    () =>
-      [...responsibles].sort((a, b) =>
-        a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
-      ),
-    [responsibles],
-  );
   const shouldHideProjectionCharts =
     filters.areaIds.length > 1 || filters.responsibleIds.length > 1;
 
@@ -318,17 +306,12 @@ const DashboardPage = () => {
     }));
   }, [filters.manufacturingPlantId]);
 
-  useEffect(() => {
-    if (!filters.manufacturingPlantId) {
-      setResponsibles([]);
-      return;
-    }
-
-    const shouldLoadByArea =
-      filters.areaIds.length > 0 && !!filters.startDate && !!filters.endDate;
-
-    if (shouldLoadByArea) {
-      DashboardService.findResponsiblesByFilters({
+  // Responsables del filtro: con zonas y periodo, los que tienen hallazgos
+  // ahí; si no, todos los usuarios de la planta.
+  const shouldLoadResponsiblesByArea =
+    filters.areaIds.length > 0 && !!filters.startDate && !!filters.endDate;
+  const responsiblesParams = shouldLoadResponsiblesByArea
+    ? {
         manufacturingPlantId: filters.manufacturingPlantId,
         startDate: filters.startDate,
         endDate: filters.endDate,
@@ -336,80 +319,70 @@ const DashboardPage = () => {
         ...(filters.mainTypeIds.length > 0 && {
           mainTypeIds: filters.mainTypeIds,
         }),
-      }).then(setResponsibles);
-      return;
-    }
-
-    UsersService.findAll({
-      manufacturingPlantId: filters.manufacturingPlantId,
-    }).then(setResponsibles);
-  }, [
-    filters.manufacturingPlantId,
-    filters.areaIds,
-    filters.responsibleIds,
-    filters.startDate,
-    filters.endDate,
-    filters.mainTypeIds,
-  ]);
-
-  useEffect(() => {
-    if (!isHeatmapView) {
-      return;
-    }
-
-    if (
-      !filters.manufacturingPlantId ||
-      !filters.startDate ||
-      !filters.endDate
-    ) {
-      setHeatmapData(null);
-      return;
-    }
-
-    setIsHeatmapLoading(true);
-    DashboardService.findHeatmapByFilters({
-      manufacturingPlantId: filters.manufacturingPlantId,
-      startDate: filters.startDate,
-      endDate: filters.endDate,
-      areaIds: filters.areaIds,
-      responsibleIds: filters.responsibleIds,
-      ...(filters.mainTypeIds.length > 0 && {
-        mainTypeIds: filters.mainTypeIds,
-      }),
-    })
-      .then(setHeatmapData)
-      .finally(() => setIsHeatmapLoading(false));
-  }, [
-    isHeatmapView,
-    filters.manufacturingPlantId,
-    filters.startDate,
-    filters.endDate,
-    filters.areaIds,
-    filters.responsibleIds,
-    filters.mainTypeIds,
-  ]);
-
-  const handleScrollTop = () => {
-    const scrollableElements = Array.from(
-      document.querySelectorAll<HTMLElement>("*"),
-    ).filter((element) => {
-      const styles = window.getComputedStyle(element);
-      const overflowY = styles.overflowY;
-      const isScrollable = overflowY === "auto" || overflowY === "scroll";
-
-      return isScrollable && element.scrollHeight > element.clientHeight;
-    });
-
-    scrollableElements.forEach((element) => {
-      if (element.scrollTop > 0) {
-        element.scrollTo({ top: 0, behavior: "smooth" });
       }
-    });
+    : { manufacturingPlantId: filters.manufacturingPlantId };
+  const { data: responsibles = EMPTY_CATALOG } = useQuery<UserOption[]>({
+    queryKey: ["dashboard", "responsibles", responsiblesParams],
+    queryFn: () =>
+      shouldLoadResponsiblesByArea
+        ? DashboardService.findResponsiblesByFilters({
+            manufacturingPlantId: filters.manufacturingPlantId,
+            startDate: filters.startDate,
+            endDate: filters.endDate,
+            areaIds: filters.areaIds,
+            ...(filters.mainTypeIds.length > 0 && {
+              mainTypeIds: filters.mainTypeIds,
+            }),
+          })
+        : UsersService.findAll({
+            manufacturingPlantId: filters.manufacturingPlantId,
+          }),
+    enabled: !!filters.manufacturingPlantId,
+    placeholderData: keepPreviousData,
+  });
 
-    document.documentElement.scrollTo({ top: 0, behavior: "smooth" });
-    document.body.scrollTo({ top: 0, behavior: "smooth" });
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const sortedResponsibles = useMemo(
+    () =>
+      [...responsibles].sort((a, b) =>
+        a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
+      ),
+    [responsibles],
+  );
+
+  // Mapa de calor: solo mientras se ve esa vista y con planta y periodo.
+  const isHeatmapEnabled =
+    isHeatmapView &&
+    !!filters.manufacturingPlantId &&
+    !!filters.startDate &&
+    !!filters.endDate;
+  const heatmapQuery = useQuery({
+    queryKey: [
+      "dashboard",
+      "heatmap",
+      {
+        manufacturingPlantId: filters.manufacturingPlantId,
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+        areaIds: filters.areaIds,
+        responsibleIds: filters.responsibleIds,
+        mainTypeIds: filters.mainTypeIds,
+      },
+    ],
+    queryFn: () =>
+      DashboardService.findHeatmapByFilters({
+        manufacturingPlantId: filters.manufacturingPlantId,
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+        areaIds: filters.areaIds,
+        responsibleIds: filters.responsibleIds,
+        ...(filters.mainTypeIds.length > 0 && {
+          mainTypeIds: filters.mainTypeIds,
+        }),
+      }),
+    enabled: isHeatmapEnabled,
+  });
+  const heatmapData = isHeatmapEnabled ? (heatmapQuery.data ?? null) : null;
+  const isHeatmapLoading = isHeatmapEnabled && heatmapQuery.isFetching;
 
   const areAllAreasSelected =
     filters.areaIds.length === 0 ||
@@ -443,18 +416,12 @@ const DashboardPage = () => {
     setIsHistoricalView(false);
     setIsHeatmapView((prev) => {
       const next = !prev;
-      if (!next) {
-        setHeatmapData(null);
-        setIsHeatmapLoading(false);
-      }
       return next;
     });
   };
 
   const handleBackToInitialCharts = () => {
     setIsHeatmapView(false);
-    setHeatmapData(null);
-    setIsHeatmapLoading(false);
   };
 
   const handleGoToHallazgos = () => {
@@ -969,27 +936,6 @@ const DashboardPage = () => {
           )}
         </>
       )}
-
-      <Zoom in={true}>
-        <Fab
-          color="primary"
-          size="medium"
-          aria-label="Volver arriba"
-          onClick={handleScrollTop}
-          sx={{
-            position: "fixed",
-            right: { xs: 16, sm: 24 },
-            // Por encima de los botones del sistema (viewport-fit=cover).
-            bottom: {
-              xs: "calc(16px + env(safe-area-inset-bottom, 0px))",
-              sm: "calc(24px + env(safe-area-inset-bottom, 0px))",
-            },
-            zIndex: (theme) => theme.zIndex.modal + 1,
-          }}
-        >
-          <KeyboardArrowUpIcon />
-        </Fab>
-      </Zoom>
     </Grid>
   );
 };

@@ -2,7 +2,9 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useRouter } from "next/navigation";
 
@@ -85,7 +87,19 @@ const ElapsedTimer = ({ startedAt }: { startedAt: string }) => {
 
 const GembaWalkForm = () => {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { confirm, confirmDialog } = useConfirmDialog();
+
+  // Lecturas al elegir planta o al revalidar: siempre lo último (sin caché).
+  const fetchAvailableEvents = useCallback(
+    (plantId: string) =>
+      queryClient.fetchQuery({
+        queryKey: ["gemba-walk", "available-events", plantId],
+        queryFn: () => GembaWalksService.findAvailableEvents(plantId),
+        staleTime: 0,
+      }),
+    [queryClient],
+  );
 
   const [now, setNow] = useState(() => new Date());
   const [manufacturingPlantId, setManufacturingPlantId] = useState("");
@@ -95,9 +109,7 @@ const GembaWalkForm = () => {
   const [answers, setAnswers] = useState<Record<number, Answer>>({});
   const [isLoadingPlant, setIsLoadingPlant] = useState(false);
   const [loadError, setLoadError] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [started, setStarted] = useState<StartedWalk | null>(null);
-  const [isStarting, setIsStarting] = useState(false);
   // Eventos de hoy sin recorrido (null: aún no se sabe o no se pudo saber).
   const [availableIds, setAvailableIds] = useState<number[] | null>(null);
   // Evento del borrador recuperado, por si ya no está entre los disponibles.
@@ -133,8 +145,13 @@ const GembaWalkForm = () => {
     setIsLoadingPlant(true);
 
     Promise.all([
-      GembaWalksService.findAvailableEvents(manufacturingPlantId),
-      GembaWalkEvaluationsService.findAll({ manufacturingPlantId }),
+      fetchAvailableEvents(manufacturingPlantId),
+      queryClient.fetchQuery({
+        queryKey: ["gemba-walk-evaluations", "plant", manufacturingPlantId],
+        queryFn: () =>
+          GembaWalkEvaluationsService.findAll({ manufacturingPlantId }),
+        staleTime: 0,
+      }),
     ])
       .then(([eventsData, evaluationsData]) => {
         if (ignore) return;
@@ -155,7 +172,7 @@ const GembaWalkForm = () => {
     return () => {
       ignore = true;
     };
-  }, [manufacturingPlantId, loadCount]);
+  }, [manufacturingPlantId, loadCount, queryClient, fetchAvailableEvents]);
 
   const eventOptions = useMemo(
     () =>
@@ -221,57 +238,62 @@ const GembaWalkForm = () => {
 
   const canSave = !!started && evaluations.length > 0 && !isReadOnly;
 
-  const startWalk = () => {
-    setIsStarting(true);
+  const startMutation = useMutation({
+    mutationFn: (calendarId: number) => GembaWalksService.start(calendarId),
+    onSuccess: setStarted,
+  });
+  const isStarting = startMutation.isPending;
 
-    GembaWalksService.start(Number(gembaWalkCalendarId))
-      .then(setStarted)
-      .finally(() => setIsStarting(false));
-  };
+  const startWalk = () => startMutation.mutate(Number(gembaWalkCalendarId));
 
   // Vuelve a consultar los eventos disponibles sin tocar lo capturado.
   const refreshAvailability = () =>
-    GembaWalksService.findAvailableEvents(manufacturingPlantId)
+    fetchAvailableEvents(manufacturingPlantId)
       .then((eventsData) => setAvailableIds(eventsData.map(({ id }) => id)))
       .catch(() => undefined);
 
-  const send = async () => {
+  const createMutation = useMutation({
+    mutationFn: async (
+      payload: Parameters<typeof GembaWalksService.create>[0],
+    ) => {
+      // Queda como envío pendiente, con su clave: si se pierde la señal,
+      // reenviarlo no registra dos veces.
+      await draft.markSending();
+      return GembaWalksService.create(payload, {
+        idempotencyKey: draft.key(),
+      });
+    },
+    onSuccess: async ({ data, replayed }) => {
+      await draft.settle();
+      toast.success(
+        replayed
+          ? `Ya se había registrado (recorrido #${data.id})`
+          : "Recorrido registrado correctamente",
+      );
+      router.push("/gemba-walk");
+    },
+    onError: async (error) => {
+      await draft.settle(error);
+      // Quizá otro observador lo registró: si es así, se muestra el motivo.
+      refreshAvailability();
+    },
+  });
+  const isSaving = createMutation.isPending;
+
+  const send = () => {
     if (!started) return;
 
-    setIsSaving(true);
-    // Queda como envío pendiente, con su clave: si se pierde la señal,
-    // reenviarlo no registra dos veces.
-    await draft.markSending();
-
-    GembaWalksService.create(
-      {
-        gembaWalkCalendarId: Number(gembaWalkCalendarId),
-        startToken: started.startToken,
-        results: evaluations.map(({ id }) => ({
-          gembaWalkEvaluationId: id,
-          isCompliant: answers[id].isCompliant,
-          ...(answers[id].comments.trim() && {
-            comments: answers[id].comments.trim(),
-          }),
-        })),
-      },
-      { idempotencyKey: draft.key() },
-    )
-      .then(async ({ data, replayed }) => {
-        await draft.settle();
-        toast.success(
-          replayed
-            ? `Ya se había registrado (recorrido #${data.id})`
-            : "Recorrido registrado correctamente",
-        );
-        router.push("/gemba-walk");
-      })
-      .catch(async (error) => {
-        await draft.settle(error);
-        // Quizá otro observador lo registró: si es así, se muestra el motivo.
-        refreshAvailability();
-      })
-      .finally(() => setIsSaving(false));
+    createMutation.mutate({
+      gembaWalkCalendarId: Number(gembaWalkCalendarId),
+      startToken: started.startToken,
+      results: evaluations.map(({ id }) => ({
+        gembaWalkEvaluationId: id,
+        isCompliant: answers[id].isCompliant,
+        ...(answers[id].comments.trim() && {
+          comments: answers[id].comments.trim(),
+        }),
+      })),
+    });
   };
 
   const confirmSave = async () => {

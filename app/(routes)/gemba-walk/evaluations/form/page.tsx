@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
@@ -28,7 +30,6 @@ import EditRecordState from "@shared/components/EditRecordState";
 const LIST_HREF = "/gemba-walk/evaluations";
 
 const GembaWalkEvaluationsFormPage = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [form, setForm] = useState({
     manufacturingPlantId: "",
     category: "",
@@ -50,6 +51,7 @@ const GembaWalkEvaluationsFormPage = () => {
   });
 
   const record = useEditRecord(
+    "gemba-walk-evaluations",
     idCurrent,
     GembaWalkEvaluationsService.findOne,
     (data) => {
@@ -63,6 +65,24 @@ const GembaWalkEvaluationsFormPage = () => {
       leave.markPristine(loaded);
     },
   );
+
+  const saveMutation = useMutation({
+    mutationFn: (
+      payload: Parameters<typeof GembaWalkEvaluationsService.create>[0],
+    ) =>
+      idCurrent
+        ? GembaWalkEvaluationsService.update(idCurrent, payload)
+        : GembaWalkEvaluationsService.create(payload),
+    onSuccess: () => {
+      toast.success(
+        idCurrent
+          ? "Concepto actualizado correctamente"
+          : "Concepto creado correctamente",
+      );
+      router.push(LIST_HREF);
+    },
+    onError: (error) => failFromApi(error),
+  });
 
   const save = () => {
     const manufacturingPlantId = Number(form.manufacturingPlantId);
@@ -84,8 +104,6 @@ const GembaWalkEvaluationsFormPage = () => {
       return;
     }
 
-    setIsLoading(true);
-
     const payload = {
       manufacturingPlantId,
       category: form.category,
@@ -93,21 +111,7 @@ const GembaWalkEvaluationsFormPage = () => {
       description,
     };
 
-    const request = idCurrent
-      ? GembaWalkEvaluationsService.update(idCurrent, payload)
-      : GembaWalkEvaluationsService.create(payload);
-
-    request
-      .then(() => {
-        toast.success(
-          idCurrent
-            ? "Concepto actualizado correctamente"
-            : "Concepto creado correctamente",
-        );
-        router.push(LIST_HREF);
-      })
-      .catch(failFromApi)
-      .finally(() => setIsLoading(false));
+    saveMutation.mutate(payload);
   };
 
   const title = idCurrent
@@ -208,7 +212,7 @@ const GembaWalkEvaluationsFormPage = () => {
       <FormActions
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
-        isSaving={isLoading}
+        isSaving={saveMutation.isPending}
       />
       {leave.confirmDialog}
     </FormContainer>

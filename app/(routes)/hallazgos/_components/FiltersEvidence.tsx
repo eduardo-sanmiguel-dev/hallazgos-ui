@@ -1,4 +1,6 @@
 import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
+
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { Dayjs } from "dayjs";
 
@@ -58,12 +60,6 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
   const searchParams = useSearchParams();
 
   const [secondaryTypes, setSecondaryTypes] = useState<SecondaryType[]>([]);
-  // Responsables de la planta y, si hay zonas elegidas, de esas zonas (lo
-  // filtra la API). `key` dice para qué filtros se cargaron.
-  const [responsibles, setResponsibles] = useState<{
-    key: string;
-    users: UserOption[];
-  }>({ key: "", users: [] });
   const [localEvidenceId, setLocalEvidenceId] = useState(filters.evidenceId);
 
   const parseDate = (value: string): Dayjs | null => {
@@ -153,14 +149,36 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
     });
   }, [filters.areaIds, filters.manufacturingPlantId, zones]);
 
-  const responsiblesKey = `${filters.manufacturingPlantId}|${filters.zoneIds.join(",")}`;
-  // Mientras llega la lista de otros filtros se sigue mostrando la anterior,
-  // pero no se usa para depurar los responsables elegidos.
-  const responsiblesReady = responsibles.key === responsiblesKey;
+  // Responsables de la planta y, si hay zonas elegidas, de esas zonas (lo
+  // filtra la API). Mientras llega la lista de otros filtros se sigue
+  // mostrando la anterior, pero no se usa para depurar los elegidos.
+  const responsiblesQuery = useQuery<UserOption[]>({
+    queryKey: [
+      "catalogs",
+      "users",
+      {
+        manufacturingPlantId: filters.manufacturingPlantId,
+        zoneIds: filters.zoneIds,
+      },
+    ],
+    queryFn: () =>
+      UsersService.findAll({
+        manufacturingPlantId: filters.manufacturingPlantId,
+        zoneIds: filters.zoneIds,
+      }),
+    enabled: !!filters.manufacturingPlantId,
+    placeholderData: keepPreviousData,
+  });
+  const responsibles: UserOption[] = filters.manufacturingPlantId
+    ? (responsiblesQuery.data ?? EMPTY_CATALOG)
+    : EMPTY_CATALOG;
+  const responsiblesReady =
+    !filters.manufacturingPlantId ||
+    (responsiblesQuery.isSuccess && !responsiblesQuery.isPlaceholderData);
 
   const filteredResponsibles = useMemo(
     () =>
-      [...responsibles.users].sort((a, b) =>
+      [...responsibles].sort((a, b) =>
         a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
       ),
     [responsibles],
@@ -188,26 +206,6 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
 
     setSecondaryTypes(uniqueSecondaryTypes);
   }, [filters.mainTypeIds, mainTypes]);
-
-  useEffect(() => {
-    if (!filters.manufacturingPlantId) {
-      setResponsibles({ key: responsiblesKey, users: [] });
-      return;
-    }
-
-    let ignore = false;
-    UsersService.findAll({
-      manufacturingPlantId: filters.manufacturingPlantId,
-      zoneIds: filters.zoneIds,
-    }).then((users) => {
-      if (!ignore) setResponsibles({ key: responsiblesKey, users });
-    });
-    return () => {
-      ignore = true;
-    };
-    // responsiblesKey ya resume planta y zonas.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [responsiblesKey]);
 
   useEffect(() => {
     if (!filters.secondaryTypeIds.length) {

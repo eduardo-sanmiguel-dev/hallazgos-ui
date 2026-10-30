@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { TextField } from "@mui/material";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -69,8 +71,6 @@ interface Props {
 }
 
 export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
-  const [isLoading, setIsLoading] = useState(false);
-
   const [form, setForm] = useState<FormProps>(initialForm);
   const { confirm, confirmDialog } = useConfirmDialog();
 
@@ -153,6 +153,17 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
   // Cada error se quita al cambiar su campo; los demás siguen marcados.
   const { failAll, failFromApi, errorOf, fieldProps } =
     useFormFieldErrors(form);
+
+  const createMutation = useMutation({
+    mutationFn: CiaelsService.create,
+    onSuccess: () => {
+      getData();
+      toast.success("CIAEL creado con éxito");
+      handleClose();
+    },
+    onError: (error) => failFromApi(error, ciaelApiField),
+  });
+  const isLoading = createMutation.isPending;
 
   const manufacturingPlants = useUserSessionStore(
     (state) => state.manufacturingPlants,
@@ -269,15 +280,7 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
       ...(manager && { managerId: manager }),
     };
 
-    setIsLoading(true);
-    CiaelsService.create(payload)
-      .then(() => {
-        getData();
-        toast.success("CIAEL creado con éxito");
-        handleClose();
-      })
-      .catch((error) => failFromApi(error, ciaelApiField))
-      .finally(() => setIsLoading(false));
+    createMutation.mutate(payload);
   };
 
   return (

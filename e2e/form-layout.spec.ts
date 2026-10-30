@@ -93,3 +93,25 @@ test.describe("Diseño de los formularios de Configuración", () => {
     expect(save.y).toBeGreaterThan(calendar.y + calendar.height);
   });
 });
+
+// En una página corta el Copyright va al fondo del espacio disponible, no
+// pegado al formulario, y sin generar scroll.
+test("el Copyright queda al fondo en un formulario corto", async ({ page }) => {
+  await page.goto("/gemba-walk/zones/form");
+  const save = page.getByRole("button", { name: "Guardar" });
+  await expect(save).toBeVisible();
+
+  const main = page.locator("main#contenido");
+  const mainBox = (await main.boundingBox())!;
+  const copyright = (await page.getByText(/Copyright ©/).boundingBox())!;
+  const saveBox = (await save.boundingBox())!;
+
+  // Lejos del formulario y a no más del margen inferior (32 px) del fondo.
+  expect(copyright.y - (saveBox.y + saveBox.height)).toBeGreaterThan(100);
+  expect(
+    mainBox.y + mainBox.height - (copyright.y + copyright.height),
+  ).toBeLessThanOrEqual(40);
+  expect(
+    await main.evaluate((el) => el.scrollHeight - el.clientHeight),
+  ).toBeLessThanOrEqual(0);
+});

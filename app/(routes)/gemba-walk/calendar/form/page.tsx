@@ -2,7 +2,9 @@
 
 export const dynamic = "force-dynamic";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -52,6 +54,9 @@ interface DraftEvent {
 }
 
 const DEFAULT_TIME = "08:00";
+
+// Arreglo vacío estable (sin planta o rango todavía).
+const EMPTY_SAVED_EVENTS: GembaWalkCalendar[] = [];
 
 // Mantener presionado para seleccionar días o mover eventos en pantalla
 // táctil. Más corto que el de FullCalendar (1 s) sin confundirse con
@@ -114,13 +119,11 @@ const GembaWalkCalendarFormPage = () => {
   const [range, setRange] = useState<{ start: string; end: string } | null>(
     null,
   );
-  const [savedEvents, setSavedEvents] = useState<GembaWalkCalendar[]>([]);
   const [newEvents, setNewEvents] = useState<Record<string, DraftEvent>>({});
   const [modifiedEvents, setModifiedEvents] = useState<
     Record<number, DraftEvent>
   >({});
   const [dialogState, setDialogState] = useState<DialogState | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isCancelConfirmOpen, setIsCancelConfirmOpen] =
     useState<boolean>(false);
 
@@ -154,22 +157,26 @@ const GembaWalkCalendarFormPage = () => {
     [zones],
   );
 
-  const getSavedEvents = useCallback(() => {
-    if (!manufacturingPlantId || !range) {
-      setSavedEvents([]);
-      return;
-    }
-
-    GembaWalkCalendarService.findAll({
-      manufacturingPlantId,
-      startDate: range.start,
-      endDate: range.end,
-    }).then(setSavedEvents);
-  }, [manufacturingPlantId, range]);
-
-  useEffect(() => {
-    getSavedEvents();
-  }, [getSavedEvents]);
+  // Eventos ya guardados del rango visible.
+  const hasRange = !!manufacturingPlantId && !!range;
+  const savedEventsQuery = useQuery({
+    queryKey: [
+      "gemba-walk-calendar",
+      "range",
+      { manufacturingPlantId, startDate: range?.start, endDate: range?.end },
+    ],
+    queryFn: () =>
+      GembaWalkCalendarService.findAll({
+        manufacturingPlantId,
+        startDate: range!.start,
+        endDate: range!.end,
+      }),
+    enabled: hasRange,
+    // Se editan sobre ellos: sin recargar al volver a la pestaña.
+    refetchOnWindowFocus: false,
+  });
+  const savedEvents: GembaWalkCalendar[] =
+    (hasRange && savedEventsQuery.data) || EMPTY_SAVED_EVENTS;
 
   const savedById = useMemo(
     () => new Map(savedEvents.map((event) => [event.id, event])),
@@ -501,12 +508,10 @@ const GembaWalkCalendarFormPage = () => {
     goBack();
   };
 
-  const save = async () => {
-    if (!hasChanges) return;
-
-    setIsLoading(true);
-
-    try {
+  // Primero lo nuevo y luego lo modificado; lo que ya se guardó se quita de
+  // pendientes aunque lo siguiente falle (no se reenvía).
+  const saveMutation = useMutation({
+    mutationFn: async () => {
       if (newCount) {
         await GembaWalkCalendarService.create({
           events: Object.values(newEvents).map((event) => ({
@@ -529,15 +534,20 @@ const GembaWalkCalendarFormPage = () => {
         });
         setModifiedEvents({});
       }
-
+    },
+    onSuccess: () => {
       toast.success("Calendario guardado correctamente");
       goBack();
-    } catch {
-      // El error ya se notifica en axiosWrapper; lo guardado se refleja al recargar.
-      getSavedEvents();
-    } finally {
-      setIsLoading(false);
-    }
+    },
+    // El error ya se notifica en axiosWrapper; lo guardado se refleja al
+    // recargar.
+    onError: () => void savedEventsQuery.refetch(),
+  });
+  const isLoading = saveMutation.isPending;
+
+  const save = () => {
+    if (!hasChanges) return;
+    saveMutation.mutate();
   };
 
   // Como los demás formularios: la planta y cómo usar el calendario en una

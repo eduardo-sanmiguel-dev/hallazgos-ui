@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { Button, Grid } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 
@@ -79,6 +81,17 @@ export default function EppPage() {
     }
   }, [manufacturingPlants]);
 
+  const createMutation = useMutation({
+    mutationFn: (form: Parameters<typeof EppService.create>[0]) =>
+      EppService.create(form, { idempotencyKey: submission.key() }),
+    onSuccess: () => {
+      submission.settle();
+      setOpen(false);
+      getData();
+    },
+    onError: (error) => submission.settle(error),
+  });
+
   return (
     <>
       <DialogCreateEpp
@@ -90,16 +103,8 @@ export default function EppPage() {
             submission.settle();
             return setOpen(false);
           }
-          return EppService.create(form, { idempotencyKey: submission.key() })
-            .then(() => {
-              submission.settle();
-              setOpen(false);
-              getData();
-            })
-            .catch((error) => {
-              submission.settle(error);
-              throw error;
-            });
+          // El diálogo muestra el error: se propaga.
+          return createMutation.mutateAsync(form);
         }}
       />
       <PageHeader title="EPP - Equipos de protección personal">

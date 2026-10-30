@@ -2,7 +2,9 @@
 
 export const dynamic = "force-dynamic";
 
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
+
+import { useQuery } from "@tanstack/react-query";
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -112,38 +114,25 @@ const Kpi = ({
 const GembaWalkDetail = () => {
   const searchParams = useSearchParams();
   const id = Number(searchParams.get("id") || 0);
-  const [gembaWalk, setGembaWalk] = useState<GembaWalk | null>(null);
+  const query = useQuery({
+    queryKey: ["gemba-walk", "detail", id],
+    queryFn: () => GembaWalksService.findOne(id),
+    enabled: !!id,
+  });
+  const gembaWalk: GembaWalk | null = query.data ?? null;
   // Antes, si fallaba o no existía, la barra de carga quedaba para siempre (G5).
-  const [status, setStatus] = useState<
-    "loading" | "ready" | "notFound" | "error"
-  >(id ? "loading" : "notFound");
-  const [retryCount, setRetryCount] = useState(0);
+  const status: "loading" | "ready" | "notFound" | "error" = !id
+    ? "notFound"
+    : query.isFetching && !query.data
+      ? "loading"
+      : query.isError
+        ? parseApiError(query.error).kind === "notFound"
+          ? "notFound"
+          : "error"
+        : query.isSuccess
+          ? "ready"
+          : "loading";
   const [filter, setFilter] = useState<Filter>("all");
-
-  useEffect(() => {
-    if (!id) {
-      setStatus("notFound");
-      return;
-    }
-
-    let ignore = false;
-    setStatus("loading");
-    GembaWalksService.findOne(id)
-      .then((data) => {
-        if (ignore) return;
-        setGembaWalk(data);
-        setStatus("ready");
-      })
-      .catch((error) => {
-        if (ignore) return;
-        setStatus(
-          parseApiError(error).kind === "notFound" ? "notFound" : "error",
-        );
-      });
-    return () => {
-      ignore = true;
-    };
-  }, [id, retryCount]);
 
   const groups = useMemo(
     () => groupByCategory(gembaWalk?.results || []),
@@ -165,7 +154,7 @@ const GembaWalkDetail = () => {
     return (
       <ErrorState
         offline={typeof navigator !== "undefined" && !navigator.onLine}
-        onRetry={() => setRetryCount((count) => count + 1)}
+        onRetry={() => void query.refetch()}
       />
     );
   }
@@ -467,13 +456,14 @@ const GembaWalkDetail = () => {
         </DetailSection>
       </Box>
 
-      {/* Datos */}
+      {/* Datos: fijo bajo la barra superior (con 24 quedaba debajo de ella),
+          igual que en el detalle de un hallazgo. */}
       <Box
         sx={{
           gridArea: "data",
           minWidth: 0,
           position: { md: "sticky" },
-          top: { md: 24 },
+          top: { md: 88 },
         }}
       >
         <DetailSection title="Datos">

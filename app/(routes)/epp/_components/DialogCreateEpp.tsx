@@ -1,5 +1,7 @@
 import { ReactNode, useEffect, useMemo, useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import Image from "next/image";
 
 import { AppBar } from "@mui/material";
@@ -26,6 +28,7 @@ import { EmployeeOption, Equipment, PayloadCreateEpp } from "@interfaces";
 import { EmployeesService } from "_services/employees.service";
 import SelectDefault from "@components/SelectDefault";
 import { EppService, EquipmentsService } from "@services";
+import { EMPTY_CATALOG, useCatalog } from "@hooks";
 import DialogSignatureEpp from "./DialogSignatureEpp";
 import { useUserSessionStore } from "@store";
 import { notify } from "@shared/utils";
@@ -56,8 +59,6 @@ export default function DialogCreateEpp({ open, create }: Props) {
       notCanDeliver?: boolean;
     }[]
   >([]);
-  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
-  const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [form, setForm] = useState<{
     employee: string;
     equipment: string;
@@ -65,7 +66,6 @@ export default function DialogCreateEpp({ open, create }: Props) {
   }>(formInitial);
   const [openSignature, setOpenSignature] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [isAdding, setIsAdding] = useState<boolean>(false);
   const [manufacturingPlantId, setManufacturingPlantId] = useState<string>("");
 
   const manufacturingPlants = useUserSessionStore(
@@ -82,29 +82,46 @@ export default function DialogCreateEpp({ open, create }: Props) {
     if (!manufacturingPlantId) return;
 
     setForm(formInitial);
-    setEquipments([]);
-    setEmployees([]);
     setEquipmentsNew([]);
     setSignature("");
+  }, [manufacturingPlantId]);
 
-    // Si falla, el interceptor ya mostró el aviso; la lista queda vacía.
-    EquipmentsService.findAll({ manufacturingPlantId })
-      .then(setEquipments)
-      .catch(() => undefined);
+  // Equipos y colaboradores de la planta. Si falla, el interceptor ya mostró
+  // el aviso; la lista queda vacía.
+  const { data: plantEquipments } = useCatalog<Equipment[]>(
+    "equipments",
+    () => EquipmentsService.findAll({ manufacturingPlantId }),
+    { enabled: !!manufacturingPlantId, params: { manufacturingPlantId } },
+  );
+  const equipments: Equipment[] = manufacturingPlantId
+    ? (plantEquipments ?? EMPTY_CATALOG)
+    : EMPTY_CATALOG;
 
-    EmployeesService.findAll({
-      manufacturingPlantId: Number(manufacturingPlantId),
-    })
-      .then((data) => {
-        setEmployees(
-          data.map((employee) => ({
+  const employeesPlantId = Number(manufacturingPlantId);
+  const { data: plantEmployees } = useCatalog(
+    "employees",
+    () => EmployeesService.findAll({ manufacturingPlantId: employeesPlantId }),
+    {
+      enabled: !!manufacturingPlantId,
+      params: { manufacturingPlantId: employeesPlantId },
+    },
+  );
+  const employees = useMemo<EmployeeOption[]>(
+    () =>
+      manufacturingPlantId && plantEmployees
+        ? plantEmployees.map((employee) => ({
             ...employee,
             name: `${employee.code} - ${employee.name}`,
-          })),
-        );
-      })
-      .catch(() => undefined);
-  }, [manufacturingPlantId]);
+          }))
+        : EMPTY_CATALOG,
+    [manufacturingPlantId, plantEmployees],
+  );
+
+  // Al agregar un equipo con frecuencia de entrega se valida con la API.
+  const validateFrequency = useMutation({
+    mutationFn: EppService.validateDeliveryFrequency,
+  });
+  const isAdding = validateFrequency.isPending;
 
   const isDisabledSave = useMemo(() => {
     const employeeId = Number(form.employee || 0);
@@ -164,13 +181,13 @@ export default function DialogCreateEpp({ open, create }: Props) {
         let notCanDeliver = false;
 
         if (deliveryFrequency) {
-          setIsAdding(true);
           try {
-            const { canDeliver, message } =
-              await EppService.validateDeliveryFrequency({
+            const { canDeliver, message } = await validateFrequency.mutateAsync(
+              {
                 equipmentId: Number(equipment),
                 employeeId: Number(employee),
-              });
+              },
+            );
 
             if (!canDeliver) {
               notify(message);
@@ -179,8 +196,6 @@ export default function DialogCreateEpp({ open, create }: Props) {
           } catch {
             // El error ya lo notifica el servicio; el equipo no se agrega.
             return;
-          } finally {
-            setIsAdding(false);
           }
         }
 

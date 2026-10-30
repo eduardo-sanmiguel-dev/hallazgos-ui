@@ -8,6 +8,8 @@ import {
   type ReactElement,
 } from "react";
 
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -113,11 +115,6 @@ const EPPCharts = () => {
   const chartsMode = useHighchartsTheme();
   // Por nombre: al cambiar de planta pueden ocultarse pestañas de gasto.
   const [activeTitle, setActiveTitle] = useState(chartGroups[0].title);
-  const [data, setData] = useState<BiData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isError, setIsError] = useState(false);
-  // "Reintentar" vuelve a pedir lo mismo.
-  const [retryCount, setRetryCount] = useState(0);
   const [manufacturingPlantId, setManufacturingPlantId] = useState("");
   // Por omisión los últimos 30 días (M5); la API calcula la comparación.
   const [period, setPeriod] = useState<PeriodValue>(() => DEFAULT_PERIOD());
@@ -154,34 +151,27 @@ const EPPCharts = () => {
     if (plantId && userId) saveLastPlant(userId, "bi-epp", plantId);
   };
 
-  useEffect(() => {
-    if (!manufacturingPlantId || !isAdmin) return;
-
-    let ignore = false;
-    setIsLoading(true);
-    setIsError(false);
-
-    DashboardService.findBusinessIntelligenceEpp({
-      manufacturingPlantId,
-      startDate,
-      endDate,
-    })
-      .then((response) => {
-        if (!ignore) setData(response);
-      })
-      // El aviso lo muestra el interceptor. Antes, si fallaba la primera
-      // consulta, la pantalla se quedaba cargando para siempre.
-      .catch(() => {
-        if (!ignore) setIsError(true);
-      })
-      .finally(() => {
-        if (!ignore) setIsLoading(false);
-      });
-
-    return () => {
-      ignore = true;
-    };
-  }, [manufacturingPlantId, startDate, endDate, isAdmin, retryCount]);
+  // Al cambiar planta o periodo se conserva lo anterior hasta tener lo
+  // nuevo. Si falla, el aviso lo muestra el interceptor y la pantalla ofrece
+  // "Reintentar" (antes se quedaba cargando para siempre).
+  const query = useQuery({
+    queryKey: [
+      "business-intelligence",
+      "epp",
+      { manufacturingPlantId, startDate, endDate },
+    ],
+    queryFn: () =>
+      DashboardService.findBusinessIntelligenceEpp({
+        manufacturingPlantId,
+        startDate,
+        endDate,
+      }),
+    enabled: !!manufacturingPlantId && isAdmin,
+    placeholderData: keepPreviousData,
+  });
+  const data: BiData | null = query.data ?? null;
+  const isLoading = query.isFetching;
+  const isError = query.isError;
 
   const kpis = useMemo(() => (data ? computeKpis(data) : null), [data]);
   // Sin entregas en el periodo: un solo aviso en lugar de "Sin datos" en
@@ -268,7 +258,7 @@ const EPPCharts = () => {
           <Paper variant="outlined" sx={{ p: 2 }}>
             <ErrorState
               offline={typeof navigator !== "undefined" && !navigator.onLine}
-              onRetry={() => setRetryCount((count) => count + 1)}
+              onRetry={() => void query.refetch()}
               isRetrying={isLoading}
             />
           </Paper>

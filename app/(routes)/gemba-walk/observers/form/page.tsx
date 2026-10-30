@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { useMemo, useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
@@ -32,7 +34,6 @@ interface Option {
 }
 
 const GembaWalkObserversFormPage = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [form, setForm] = useState<{
     manufacturingPlantId: string;
     gembaWalkZoneId: string;
@@ -56,6 +57,7 @@ const GembaWalkObserversFormPage = () => {
   });
 
   const record = useEditRecord(
+    "gemba-walk-observers",
     idCurrent,
     GembaWalkObserversService.findOne,
     (data) => {
@@ -68,6 +70,30 @@ const GembaWalkObserversFormPage = () => {
       leave.markPristine(loaded);
     },
   );
+
+  // Alta: varios usuarios a la vez; edición: uno solo.
+  const createMutation = useMutation({
+    mutationFn: GembaWalkObserversService.create,
+    onSuccess: (data) => {
+      toast.success(
+        data.length === 1
+          ? "Observador creado correctamente"
+          : `${data.length} observadores creados correctamente`,
+      );
+      router.push(LIST_HREF);
+    },
+    onError: (error) => failFromApi(error),
+  });
+  const updateMutation = useMutation({
+    mutationFn: (
+      payload: Parameters<typeof GembaWalkObserversService.update>[1],
+    ) => GembaWalkObserversService.update(idCurrent, payload),
+    onSuccess: () => {
+      toast.success("Observador actualizado correctamente");
+      router.push(LIST_HREF);
+    },
+    onError: (error) => failFromApi(error),
+  });
 
   const save = () => {
     const manufacturingPlantId = Number(form.manufacturingPlantId);
@@ -92,36 +118,14 @@ const GembaWalkObserversFormPage = () => {
       return;
     }
 
-    setIsLoading(true);
-
     if (!idCurrent) {
-      GembaWalkObserversService.create({
-        manufacturingPlantId,
-        gembaWalkZoneId,
-        userIds,
-      })
-        .then((data) => {
-          toast.success(
-            data.length === 1
-              ? "Observador creado correctamente"
-              : `${data.length} observadores creados correctamente`,
-          );
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
+      createMutation.mutate({ manufacturingPlantId, gembaWalkZoneId, userIds });
     } else {
-      GembaWalkObserversService.update(idCurrent, {
+      updateMutation.mutate({
         manufacturingPlantId,
         gembaWalkZoneId,
         userId: userIds[0],
-      })
-        .then(() => {
-          toast.success("Observador actualizado correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
+      });
     }
   };
 
@@ -262,7 +266,7 @@ const GembaWalkObserversFormPage = () => {
       <FormActions
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
-        isSaving={isLoading}
+        isSaving={createMutation.isPending || updateMutation.isPending}
       />
       {leave.confirmDialog}
     </FormContainer>

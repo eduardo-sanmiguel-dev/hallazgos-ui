@@ -19,6 +19,8 @@ leen datos fijos con `mockGet`.
   criterio, procesos, lugares, zonas y plantas; validaciones de requeridos.
 - `people.spec.ts`: usuarios (supervisor con zonas, general, contraseña),
   colaboradores (fechas) y equipos de emergencia.
+- `scroll-top.spec.ts`: botón "Volver arriba" en todo el sistema (aparece al
+  bajar, no en formularios, por encima de la barra inferior en celular).
 - `gemba-walk.spec.ts`: registrar un recorrido (inicio, NC, confirmación),
   tolerancia vencida, acceso de no observadores, detalle, agenda, programación
   del calendario y catálogos (zonas, conceptos, observadores).

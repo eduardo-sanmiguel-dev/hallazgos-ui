@@ -122,3 +122,22 @@ export const sessionPlants = async (page: Page) => {
   );
   return (await handle.jsonValue()) as { id: number; name: string }[];
 };
+
+/**
+ * Baja el contenido (`main#contenido`, el que hace scroll) hasta `top`. Si la
+ * página es corta, antes le agrega alto para poder bajar.
+ */
+export const scrollContent = async (page: Page, top: number) => {
+  // Con la página aún cargando, el contenido cambia de alto y el scroll se
+  // recorta (o vuelve al inicio).
+  await page.waitForLoadState("networkidle");
+  const main = page.locator("main#contenido");
+  await main.evaluate((el, top) => {
+    if (el.scrollHeight - el.clientHeight < top) {
+      const spacer = document.createElement("div");
+      spacer.style.height = `${top + el.clientHeight}px`;
+      el.append(spacer);
+    }
+    el.scrollTo({ top });
+  }, top);
+};

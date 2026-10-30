@@ -1,9 +1,9 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode } from "react";
 
 import LoadingLinear from "@shared/components/LoadingLinear";
 import PageHeader from "@shared/components/PageHeader";
 import NoAccessState from "@shared/components/NoAccessState";
-import { GembaWalksService } from "@services";
+import { useGembaWalkAccessQuery } from "@hooks/useGembaWalkAccess";
 
 // La API valida el acceso en cada petición; esto solo evita mostrar la página
 // a quien no es observador. Con `title`, la página dibuja su propia cabecera
@@ -15,13 +15,9 @@ export default function GembaWalkAccessGuard({
   children: ReactNode;
   title?: string;
 }) {
-  const [isObserver, setIsObserver] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    GembaWalksService.access()
-      .then(({ isObserver }) => setIsObserver(isObserver))
-      .catch(() => setIsObserver(false));
-  }, []);
+  // Mientras se verifica, null; si falla, sin acceso.
+  const access = useGembaWalkAccessQuery();
+  const isObserver = access.isError ? false : (access.data ?? null);
 
   const header = title ? <PageHeader title={title} /> : null;
 

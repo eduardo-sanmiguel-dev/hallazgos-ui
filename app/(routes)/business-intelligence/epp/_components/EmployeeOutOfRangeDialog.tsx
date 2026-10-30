@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useId, useMemo } from "react";
+
+import { useQuery } from "@tanstack/react-query";
 
 import {
   Box,
@@ -60,26 +62,24 @@ export default function EmployeeOutOfRangeDialog({
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const colors = useBiColors();
   const titleId = useId();
-  const [detail, setDetail] = useState<BiEppEmployeeDetail | null>(null);
-
   const employeeId = employee?.employeeId;
 
-  useEffect(() => {
-    if (!employeeId) return;
-    let ignore = false;
-    setDetail(null);
-    DashboardService.findBusinessIntelligenceEppEmployee({
-      employeeId,
-      manufacturingPlantId,
-      startDate,
-      endDate,
-    }).then((response) => {
-      if (!ignore) setDetail(response);
-    });
-    return () => {
-      ignore = true;
-    };
-  }, [employeeId, manufacturingPlantId, startDate, endDate]);
+  // Otro colaborador: vacío hasta tener su detalle (sin mostrar el anterior).
+  const { data: detail = null } = useQuery<BiEppEmployeeDetail>({
+    queryKey: [
+      "business-intelligence",
+      "epp-employee",
+      { employeeId, manufacturingPlantId, startDate, endDate },
+    ],
+    queryFn: () =>
+      DashboardService.findBusinessIntelligenceEppEmployee({
+        employeeId: employeeId!,
+        manufacturingPlantId,
+        startDate,
+        endDate,
+      }),
+    enabled: !!employeeId,
+  });
 
   // Equipos que pide fuera de rango, de más a menos.
   const byEquipment = useMemo(() => {

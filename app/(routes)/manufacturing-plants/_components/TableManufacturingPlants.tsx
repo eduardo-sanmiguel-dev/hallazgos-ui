@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 
 import { useRouter } from "next/navigation";
 
@@ -75,20 +75,18 @@ export default function TableManufacturingPlants({
   getData,
   pagination,
 }: Props) {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
   const router = useRouter();
   const { confirm, confirmDialog } = useConfirmDialog();
 
-  const remove = (id: number) => {
-    setIsLoading(true);
-    return ManufacturingPlantsService.remove(id)
-      .then(() => {
-        notify("Planta eliminada correctamente", true);
-        getData();
-      })
-      .finally(() => setIsLoading(false));
-  };
+  const removeMutation = useMutation({
+    mutationFn: (id: number) => ManufacturingPlantsService.remove(id),
+    onSuccess: () => {
+      notify("Planta eliminada correctamente", true);
+      getData();
+    },
+  });
+
+  const remove = (id: number) => removeMutation.mutateAsync(id);
 
   const confirmRemove = async (row: ManufacturingPlant) => {
     await confirm({
@@ -119,7 +117,7 @@ export default function TableManufacturingPlants({
             />
             <DeleteAction
               onClick={() => confirmRemove(row)}
-              disabled={isLoading}
+              disabled={removeMutation.isPending}
             />
           </RowActions>
         )}

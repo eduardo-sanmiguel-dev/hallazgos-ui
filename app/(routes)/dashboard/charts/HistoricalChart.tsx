@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+
+import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import PauseIcon from "@mui/icons-material/Pause";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -11,7 +13,6 @@ import { Chart } from "@highcharts/react";
 
 import "highcharts/esm/modules/accessibility.src.js";
 
-import { ResponseDashboardHistoricalByMonth } from "@interfaces";
 import { DashboardService } from "@services";
 import { optionsChartDefault } from "@shared/libs";
 
@@ -24,14 +25,12 @@ const ANIMATION_DURATION = 1000;
 
 const HistoricalChart = () => {
   const theme = useTheme();
-  const [historicalData, setHistoricalData] =
-    useState<ResponseDashboardHistoricalByMonth | null>(null);
+  const { data: historicalData = null } = useQuery({
+    queryKey: ["dashboard", "historical-by-month"],
+    queryFn: () => DashboardService.findHistoricalByMonth(),
+  });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
-
-  useEffect(() => {
-    DashboardService.findHistoricalByMonth().then(setHistoricalData);
-  }, []);
 
   useEffect(() => {
     setCurrentIndex(0);

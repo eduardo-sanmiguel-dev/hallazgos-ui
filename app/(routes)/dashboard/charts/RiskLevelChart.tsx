@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import { Paper } from "@mui/material";
 
@@ -9,8 +9,8 @@ import { Chart } from "@highcharts/react";
 
 import "highcharts/esm/modules/accessibility.src.js";
 
-import { ResponseDashboardRiskLevelByFilters } from "@interfaces";
 import { DashboardService } from "@services";
+import { useDashboardQuery } from "../_components/useDashboardSummary";
 import { optionsChartDefault } from "@shared/libs";
 import { RISK_LEVEL_ORDER } from "@routes/hallazgos/_constants/priorityOptions";
 
@@ -33,39 +33,14 @@ const riskOrder = RISK_LEVEL_ORDER;
 
 const RiskLevelChart = ({ filters }: Props) => {
   const theme = useTheme();
-  const [riskData, setRiskData] =
-    useState<ResponseDashboardRiskLevelByFilters | null>(null);
+  const { data: riskData = null } = useDashboardQuery(
+    "risk-level",
+    DashboardService.findRiskLevelByFilters,
+    filters,
+  );
 
   const hasCompleteFilters =
     !!filters.manufacturingPlantId && !!filters.startDate && !!filters.endDate;
-
-  useEffect(() => {
-    if (!hasCompleteFilters) {
-      setRiskData(null);
-      return;
-    }
-
-    DashboardService.findRiskLevelByFilters({
-      manufacturingPlantId: filters.manufacturingPlantId,
-      startDate: filters.startDate,
-      endDate: filters.endDate,
-      ...(filters.areaIds.length > 0 && { areaIds: filters.areaIds }),
-      ...(filters.responsibleIds.length > 0 && {
-        responsibleIds: filters.responsibleIds,
-      }),
-      ...(filters.mainTypeIds.length > 0 && {
-        mainTypeIds: filters.mainTypeIds,
-      }),
-    }).then(setRiskData);
-  }, [
-    hasCompleteFilters,
-    filters.areaIds,
-    filters.responsibleIds,
-    filters.mainTypeIds,
-    filters.manufacturingPlantId,
-    filters.startDate,
-    filters.endDate,
-  ]);
 
   const orderedSeriesData = useMemo(() => {
     const dataMap = new Map(

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 
 import { notify } from "@shared/utils";
 import { ICSData } from "@interfaces";
@@ -86,19 +86,17 @@ const columns: ResponsiveColumn<ICSData>[] = [
 ];
 
 export default function TableIcs({ rows, getData, pagination }: Props) {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
   const { confirm, confirmDialog } = useConfirmDialog();
 
-  const remove = (id: number) => {
-    setIsLoading(true);
-    return IcsService.remove(id)
-      .then(() => {
-        notify("ICS eliminado correctamente", true);
-        getData();
-      })
-      .finally(() => setIsLoading(false));
-  };
+  const removeMutation = useMutation({
+    mutationFn: (id: number) => IcsService.remove(id),
+    onSuccess: () => {
+      notify("ICS eliminado correctamente", true);
+      getData();
+    },
+  });
+
+  const remove = (id: number) => removeMutation.mutateAsync(id);
 
   const confirmRemove = async (row: ICSData) => {
     await confirm({
@@ -124,7 +122,7 @@ export default function TableIcs({ rows, getData, pagination }: Props) {
           <RowActions>
             <DeleteAction
               onClick={() => confirmRemove(row)}
-              disabled={isLoading}
+              disabled={removeMutation.isPending}
             />
           </RowActions>
         )}

@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
@@ -30,7 +32,6 @@ import EditRecordState from "@shared/components/EditRecordState";
 const LIST_HREF = "/secondary-types";
 
 const SecondaryTypesFormPage = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [form, setForm] = useState({
     name: "",
     mainTypeId: "",
@@ -47,6 +48,7 @@ const SecondaryTypesFormPage = () => {
   const leave = useLeaveConfirm(form, { isEditing: !!idCurrent });
 
   const record = useEditRecord(
+    "secondary-types",
     idCurrent,
     SecondaryTypesService.findOne,
     (data) => {
@@ -60,6 +62,24 @@ const SecondaryTypesFormPage = () => {
       leave.markPristine(loaded);
     },
   );
+
+  const saveMutation = useMutation({
+    mutationFn: (
+      payload: Parameters<typeof SecondaryTypesService.create>[0],
+    ) =>
+      idCurrent
+        ? SecondaryTypesService.update(idCurrent, payload)
+        : SecondaryTypesService.create(payload),
+    onSuccess: () => {
+      toast.success(
+        idCurrent
+          ? "Tipo de criterio actualizado correctamente"
+          : "Tipo de criterio creado correctamente",
+      );
+      router.push(LIST_HREF);
+    },
+    onError: (error) => failFromApi(error),
+  });
 
   const save = () => {
     const nameClean = form.name.trim();
@@ -79,31 +99,13 @@ const SecondaryTypesFormPage = () => {
       return;
     }
 
-    setIsLoading(true);
-
     const payload = {
       name: nameClean,
       mainTypeId,
       typeResponsible,
     };
 
-    if (!idCurrent) {
-      SecondaryTypesService.create(payload)
-        .then(() => {
-          toast.success("Tipo de criterio creado correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
-    } else {
-      SecondaryTypesService.update(idCurrent, payload)
-        .then(() => {
-          toast.success("Tipo de criterio actualizado correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
-    }
+    saveMutation.mutate(payload);
   };
 
   const title = idCurrent
@@ -193,7 +195,7 @@ const SecondaryTypesFormPage = () => {
       <FormActions
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
-        isSaving={isLoading}
+        isSaving={saveMutation.isPending}
       />
       {leave.confirmDialog}
     </FormContainer>

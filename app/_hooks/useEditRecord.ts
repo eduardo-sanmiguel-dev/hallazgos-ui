@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
+import { useQuery } from "@tanstack/react-query";
+
 import { parseApiError } from "@services";
 
 export type EditRecordStatus =
@@ -9,54 +11,55 @@ export type EditRecordStatus =
 // llegaba se veía el formulario vacío (lo que se escribiera se pisaba) y, si
 // fallaba o no existía, quedaba vacío sin aviso. Sin id ("Nuevo …"), idle.
 //
-//   const record = useEditRecord(id, Service.findOne, (data) => setForm(…));
+//   const record = useEditRecord("areas", id, Service.findOne, (data) => setForm(…));
 //   if (isEditRecordPending(record.status)) return <EditRecordState … />;
+//
+// `key` nombra el módulo en la caché: ["edit-record", key, id].
 export function useEditRecord<T>(
+  key: string,
   id: number,
   load: (id: number) => Promise<T>,
   onLoad: (data: T) => void,
 ) {
-  const [status, setStatus] = useState<EditRecordStatus>(
-    id ? "loading" : "idle",
-  );
-  const [attempt, setAttempt] = useState(0);
+  const query = useQuery({
+    queryKey: ["edit-record", key, id],
+    queryFn: () => load(id),
+    enabled: !!id,
+    // Siempre lo último al abrir el formulario, y sin volver a pedirlo
+    // mientras se edita: una recarga pisaría lo que el usuario escribió.
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
 
-  // Lo último, sin volver a pedir el registro en cada render.
-  const loadRef = useRef(load);
+  // Lo último, sin volver a llenar el formulario en cada render.
   const onLoadRef = useRef(onLoad);
   useLayoutEffect(() => {
-    loadRef.current = load;
     onLoadRef.current = onLoad;
   });
 
+  // El formulario se llena una vez por respuesta (no en cada render); hasta
+  // entonces sigue "loading" para no mostrarlo vacío.
+  const [filledAt, setFilledAt] = useState(0);
   useEffect(() => {
-    if (!id) {
-      setStatus("idle");
-      return;
-    }
+    if (!query.data || query.dataUpdatedAt === filledAt) return;
+    onLoadRef.current(query.data);
+    setFilledAt(query.dataUpdatedAt);
+  }, [query.data, query.dataUpdatedAt, filledAt]);
 
-    let ignore = false;
-    setStatus("loading");
-    loadRef
-      .current(id)
-      .then((data) => {
-        if (ignore) return;
-        onLoadRef.current(data);
-        setStatus("ready");
-      })
-      // El aviso lo muestra el interceptor.
-      .catch((error) => {
-        if (ignore) return;
-        setStatus(
-          parseApiError(error).kind === "notFound" ? "notFound" : "error",
-        );
-      });
-    return () => {
-      ignore = true;
-    };
-  }, [id, attempt]);
+  const status: EditRecordStatus = !id
+    ? "idle"
+    : query.isError
+      ? // El aviso lo muestra el interceptor.
+        parseApiError(query.error).kind === "notFound"
+        ? "notFound"
+        : "error"
+      : query.isSuccess && filledAt === query.dataUpdatedAt
+        ? "ready"
+        : "loading";
 
-  return { status, retry: () => setAttempt((count) => count + 1) };
+  return { status, retry: () => void query.refetch() };
 }
 
 /** Todavía no se puede mostrar el formulario (cargando, no existe o falló). */

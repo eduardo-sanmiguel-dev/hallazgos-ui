@@ -12,11 +12,7 @@ test.use({ storageState: { cookies: [], origins: [] } });
 const respondMessage = { respond: () => ({ message: "E2E listo" }) };
 
 /** Envía el formulario con `email` y espera el aviso de validación. */
-const submitExpecting = async (
-  page: Page,
-  button: string,
-  message: string,
-) => {
+const submitExpecting = async (page: Page, button: string, message: string) => {
   await page.getByRole("button", { name: button }).click();
   await expect(toast(page, message).first()).toBeVisible();
 };
@@ -68,9 +64,17 @@ test.describe("Contraseña", () => {
     // Tras hidratar: el login ya responde.
     await expect(page.getByRole("button", { name: "Iniciar" })).toBeVisible();
     await page.waitForLoadState("networkidle");
-    await page.evaluate(() =>
-      window.history.pushState(null, "", "/?token=token-e2e"),
-    );
+    // "Iniciar" ya viene del servidor: si el pushState llega antes de que
+    // Next termine de hidratar, no lo ve. Se repite hasta que aparece el
+    // formulario de restablecer.
+    await expect(async () => {
+      await page.evaluate(() =>
+        window.history.pushState(null, "", "/?token=token-e2e"),
+      );
+      await expect(page.getByLabel("Nueva contraseña")).toBeVisible({
+        timeout: 1_000,
+      });
+    }).toPass();
 
     const email = page.getByLabel("Correo Electrónico");
     const password = page.getByLabel("Nueva contraseña");

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { TextField } from "@mui/material";
 import { Button } from "@mui/material";
 import { Box } from "@mui/material";
@@ -15,7 +17,14 @@ interface Props {
 }
 
 const FormForgotPassword = ({ setForgotPassword }: Props) => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const forgotMutation = useMutation({
+    mutationFn: AuthService.forgotPassword,
+    onSuccess: ({ message }) => {
+      notify(message, true);
+      setForgotPassword(false);
+    },
+  });
+  const isLoading = forgotMutation.isPending;
   const [email, setEmail] = useState(
     process.env.NODE_ENV === constants.environments.development
       ? "eduardo-266@hotmail.com"
@@ -35,14 +44,7 @@ const FormForgotPassword = ({ setForgotPassword }: Props) => {
       return;
     }
 
-    setIsLoading(true);
-
-    AuthService.forgotPassword(email)
-      .then(({ message }) => {
-        notify(message, true);
-        setForgotPassword(false);
-      })
-      .finally(() => setIsLoading(false));
+    forgotMutation.mutate(email);
   };
 
   return (

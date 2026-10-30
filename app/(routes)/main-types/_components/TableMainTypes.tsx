@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 
 import { useRouter } from "next/navigation";
 
@@ -46,20 +46,18 @@ const columns: ResponsiveColumn<MainType>[] = [
 ];
 
 export default function TableMainTypes({ rows, getData, pagination }: Props) {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
   const router = useRouter();
   const { confirm, confirmDialog } = useConfirmDialog();
 
-  const remove = (id: number) => {
-    setIsLoading(true);
-    return MainTypesService.remove(id)
-      .then(() => {
-        notify("Criterio eliminado correctamente", true);
-        getData();
-      })
-      .finally(() => setIsLoading(false));
-  };
+  const removeMutation = useMutation({
+    mutationFn: (id: number) => MainTypesService.remove(id),
+    onSuccess: () => {
+      notify("Criterio eliminado correctamente", true);
+      getData();
+    },
+  });
+
+  const remove = (id: number) => removeMutation.mutateAsync(id);
 
   const confirmRemove = async (row: MainType) => {
     await confirm({
@@ -88,7 +86,7 @@ export default function TableMainTypes({ rows, getData, pagination }: Props) {
             />
             <DeleteAction
               onClick={() => confirmRemove(row)}
-              disabled={isLoading}
+              disabled={removeMutation.isPending}
             />
           </RowActions>
         )}

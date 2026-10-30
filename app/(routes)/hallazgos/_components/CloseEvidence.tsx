@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { Button } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { Dialog } from "@mui/material";
@@ -18,7 +20,8 @@ import { dataURLtoFile, notify } from "@shared/utils";
 import { EvidencesService } from "@services";
 
 import ImageORCamera from "@shared/components/ImageORCamera";
-import { EvidenceGraphql, useUploadProgress } from "@hooks";
+import { useUploadProgress } from "@hooks";
+import type { EvidenceRow } from "@interfaces";
 import { useFormDraft } from "@hooks/useFormDraft";
 import DraftNotice from "@shared/components/DraftNotice";
 import { Grid, Paper, TextField } from "@mui/material";
@@ -55,7 +58,7 @@ interface Props {
   isOpen: boolean;
   handleClose: (refresh?: boolean) => void;
   idRow: number;
-  evidenceCurrent: EvidenceGraphql | null;
+  evidenceCurrent: EvidenceRow | null;
 }
 
 export default function CloseEvidence({
@@ -65,7 +68,6 @@ export default function CloseEvidence({
   evidenceCurrent,
 }: Props) {
   const [image, setImage] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [descriptionSolution, setDescriptionSolution] = useState<string>("");
   // La clasificación del hallazgo decide si la foto es obligatoria.
@@ -94,6 +96,31 @@ export default function CloseEvidence({
     [descriptionSolution],
   );
 
+  // El estado "enviando" del borrador cuenta como parte del guardado.
+  const solutionMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      await draft.markSending();
+      return EvidencesService.solution(idRow, formData, {
+        onUploadProgress: upload.onUploadProgress,
+        idempotencyKey: draft.key(),
+      });
+    },
+    onSuccess: async ({ replayed }) => {
+      await draft.settle();
+      notify(
+        replayed
+          ? `Ya se había guardado (hallazgo #${idRow})`
+          : "Hallazgo cerrado correctamente",
+        true,
+      );
+      if (!replayed) celebrateClose();
+      handleClose(true);
+    },
+    onError: (error) => draft.settle(error),
+    onSettled: () => upload.reset(),
+  });
+  const isLoading = solutionMutation.isPending;
+
   // También es "Reintentar envío" de un borrador en solo lectura: mismos
   // datos y misma clave, sin volver a confirmar.
   const saveSolution = async () => {
@@ -113,28 +140,8 @@ export default function CloseEvidence({
 
     formData.append("descriptionSolution", descriptionSolution);
 
-    setIsLoading(true);
-    await draft.markSending();
-    return EvidencesService.solution(idRow, formData, {
-      onUploadProgress: upload.onUploadProgress,
-      idempotencyKey: draft.key(),
-    })
-      .then(async ({ replayed }) => {
-        await draft.settle();
-        notify(
-          replayed
-            ? `Ya se había guardado (hallazgo #${idRow})`
-            : "Hallazgo cerrado correctamente",
-          true,
-        );
-        if (!replayed) celebrateClose();
-        handleClose(true);
-      })
-      .catch(draft.settle)
-      .finally(() => {
-        setIsLoading(false);
-        upload.reset();
-      });
+    // El aviso del error lo da el interceptor; aquí no se propaga.
+    return solutionMutation.mutateAsync(formData).catch(() => undefined);
   };
 
   // Descartar: si estaba en solo lectura se limpia lo capturado.

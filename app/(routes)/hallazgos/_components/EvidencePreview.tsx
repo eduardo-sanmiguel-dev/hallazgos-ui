@@ -9,7 +9,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { Slide } from "@mui/material";
 import { TransitionProps } from "@mui/material/transitions";
 
-import { EvidenceGraphql } from "@hooks";
+import type { EvidenceRow } from "@interfaces";
 import DetailsEvidence from "./DetailsEvidence";
 import {
   primaryAccentBorder,
@@ -27,7 +27,7 @@ export const Transition = forwardRef(function Transition(
 });
 
 interface Props {
-  evidenceCurrent: EvidenceGraphql | null;
+  evidenceCurrent: EvidenceRow | null;
   handleClose: (refreshData: boolean) => void;
 }
 

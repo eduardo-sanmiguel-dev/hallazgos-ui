@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
@@ -28,7 +30,6 @@ import AreaImageCoordinateSelector, {
 const LIST_HREF = "/areas";
 
 const AreasFormPage = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [pointToPersist, setPointToPersist] = useState<AreaMarkedPoint | null>(
     null,
   );
@@ -51,25 +52,46 @@ const AreasFormPage = () => {
     { isEditing: !!idCurrent, ignoreOnCreate: ["manufacturingPlantId"] },
   );
 
-  const record = useEditRecord(idCurrent, AreasService.findOne, (data) => {
-    const loaded = {
-      name: data.name,
-      manufacturingPlantId: `${data.manufacturingPlant?.id || ""}`,
-    };
-    const point =
-      data.coordinateX !== null &&
-      data.coordinateX !== undefined &&
-      data.coordinateY !== null &&
-      data.coordinateY !== undefined
-        ? {
-            x: data.coordinateX,
-            y: data.coordinateY,
-            zoom: data.zoomLevel || 1,
-          }
-        : null;
-    setForm(loaded);
-    setPointToPersist(point);
-    leave.markPristine({ ...loaded, point });
+  const record = useEditRecord(
+    "areas",
+    idCurrent,
+    AreasService.findOne,
+    (data) => {
+      const loaded = {
+        name: data.name,
+        manufacturingPlantId: `${data.manufacturingPlant?.id || ""}`,
+      };
+      const point =
+        data.coordinateX !== null &&
+        data.coordinateX !== undefined &&
+        data.coordinateY !== null &&
+        data.coordinateY !== undefined
+          ? {
+              x: data.coordinateX,
+              y: data.coordinateY,
+              zoom: data.zoomLevel || 1,
+            }
+          : null;
+      setForm(loaded);
+      setPointToPersist(point);
+      leave.markPristine({ ...loaded, point });
+    },
+  );
+
+  const saveMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof AreasService.create>[0]) =>
+      idCurrent
+        ? AreasService.update(idCurrent, payload)
+        : AreasService.create(payload),
+    onSuccess: () => {
+      toast.success(
+        idCurrent
+          ? "Zona actualizada correctamente"
+          : "Zona creada correctamente",
+      );
+      router.push(LIST_HREF);
+    },
+    onError: (error) => failFromApi(error),
   });
 
   const save = () => {
@@ -88,41 +110,15 @@ const AreasFormPage = () => {
       return;
     }
 
-    setIsLoading(true);
-
-    if (!idCurrent) {
-      AreasService.create({
-        name: nameClean,
-        manufacturingPlantId,
-        ...(pointToPersist && {
-          coordinateX: pointToPersist.x,
-          coordinateY: pointToPersist.y,
-          zoomLevel: pointToPersist.zoom,
-        }),
-      })
-        .then(() => {
-          toast.success("Zona creada correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
-    } else {
-      AreasService.update(idCurrent, {
-        name: nameClean,
-        manufacturingPlantId,
-        ...(pointToPersist && {
-          coordinateX: pointToPersist.x,
-          coordinateY: pointToPersist.y,
-          zoomLevel: pointToPersist.zoom,
-        }),
-      })
-        .then(() => {
-          toast.success("Zona actualizada correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
-    }
+    saveMutation.mutate({
+      name: nameClean,
+      manufacturingPlantId,
+      ...(pointToPersist && {
+        coordinateX: pointToPersist.x,
+        coordinateY: pointToPersist.y,
+        zoomLevel: pointToPersist.zoom,
+      }),
+    });
   };
 
   const title = idCurrent ? "Editar zona" : "Nueva zona";
@@ -190,7 +186,7 @@ const AreasFormPage = () => {
       <FormActions
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
-        isSaving={isLoading}
+        isSaving={saveMutation.isPending}
       />
       {leave.confirmDialog}
     </FormContainer>

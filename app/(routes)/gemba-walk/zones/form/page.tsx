@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
@@ -25,7 +27,6 @@ import EditRecordState from "@shared/components/EditRecordState";
 const LIST_HREF = "/gemba-walk/zones";
 
 const GembaWalkZonesFormPage = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [form, setForm] = useState({
     manufacturingPlantId: "",
     nameZone: "",
@@ -46,6 +47,7 @@ const GembaWalkZonesFormPage = () => {
   });
 
   const record = useEditRecord(
+    "gemba-walk-zones",
     idCurrent,
     GembaWalkZonesService.findOne,
     (data) => {
@@ -58,6 +60,24 @@ const GembaWalkZonesFormPage = () => {
       leave.markPristine(loaded);
     },
   );
+
+  const saveMutation = useMutation({
+    mutationFn: (
+      payload: Parameters<typeof GembaWalkZonesService.create>[0],
+    ) =>
+      idCurrent
+        ? GembaWalkZonesService.update(idCurrent, payload)
+        : GembaWalkZonesService.create(payload),
+    onSuccess: () => {
+      toast.success(
+        idCurrent
+          ? "Zona actualizada correctamente"
+          : "Zona creada correctamente",
+      );
+      router.push(LIST_HREF);
+    },
+    onError: (error) => failFromApi(error),
+  });
 
   const save = () => {
     const manufacturingPlantId = Number(form.manufacturingPlantId);
@@ -78,27 +98,9 @@ const GembaWalkZonesFormPage = () => {
       return;
     }
 
-    setIsLoading(true);
-
     const payload = { manufacturingPlantId, nameZone, nameLocation };
 
-    if (!idCurrent) {
-      GembaWalkZonesService.create(payload)
-        .then(() => {
-          toast.success("Zona creada correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
-    } else {
-      GembaWalkZonesService.update(idCurrent, payload)
-        .then(() => {
-          toast.success("Zona actualizada correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
-    }
+    saveMutation.mutate(payload);
   };
 
   const title = idCurrent
@@ -173,7 +175,7 @@ const GembaWalkZonesFormPage = () => {
       <FormActions
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
-        isSaving={isLoading}
+        isSaving={saveMutation.isPending}
       />
       {leave.confirmDialog}
     </FormContainer>

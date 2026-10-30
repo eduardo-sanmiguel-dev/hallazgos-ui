@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import {
   Box,
   Button,
@@ -19,10 +21,11 @@ import PersonRemoveIcon from "@mui/icons-material/PersonRemove";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 
 import SelectDefault from "@components/SelectDefault";
-import { EvidenceGraphql } from "@hooks";
+import type { EvidenceRow } from "@interfaces";
 import { UserOption } from "@interfaces";
 import { EvidencesService, UsersService } from "@services";
 import { notify } from "@shared/utils";
+import { EMPTY_CATALOG, useCatalog } from "@hooks";
 
 interface SimpleUser {
   id: number;
@@ -31,7 +34,7 @@ interface SimpleUser {
 
 interface Props {
   isOpen: boolean;
-  evidenceCurrent: EvidenceGraphql | null;
+  evidenceCurrent: EvidenceRow | null;
   handleClose: (refresh?: boolean) => void;
 }
 
@@ -55,16 +58,25 @@ export default function ReassignResponsiblesEvidence({
   evidenceCurrent,
   handleClose,
 }: Props) {
-  const [isLoading, setIsLoading] = useState(false);
   const [responsibleToAddId, setResponsibleToAddId] = useState("");
-  const [availableResponsibles, setAvailableResponsibles] = useState<
-    UserOption[]
-  >([]);
   const [selectedResponsibles, setSelectedResponsibles] = useState<
     SimpleUser[]
   >([]);
 
   const currentPlantId = evidenceCurrent?.manufacturingPlant?.id;
+
+  // Usuarios de la planta del hallazgo (se piden al abrir; si falla, vacío).
+  const manufacturingPlantId = String(currentPlantId ?? "");
+  const { data: plantUsers } = useCatalog<UserOption[]>(
+    "users",
+    () => UsersService.findAll({ manufacturingPlantId }),
+    {
+      enabled: isOpen && !!currentPlantId,
+      params: { manufacturingPlantId },
+    },
+  );
+  const availableResponsibles =
+    isOpen && currentPlantId ? (plantUsers ?? EMPTY_CATALOG) : EMPTY_CATALOG;
 
   const sortedAvailableResponsibles = useMemo(() => {
     return [...availableResponsibles].sort((a, b) =>
@@ -77,7 +89,6 @@ export default function ReassignResponsiblesEvidence({
   useEffect(() => {
     if (!isOpen || !evidenceCurrent) {
       setResponsibleToAddId("");
-      setAvailableResponsibles([]);
       setSelectedResponsibles([]);
       return;
     }
@@ -89,18 +100,7 @@ export default function ReassignResponsiblesEvidence({
 
     setSelectedResponsibles(toUniqueUsers(initialResponsibles));
     setResponsibleToAddId("");
-
-    if (!currentPlantId) {
-      setAvailableResponsibles([]);
-      return;
-    }
-
-    UsersService.findAll({
-      manufacturingPlantId: String(currentPlantId),
-    })
-      .then(setAvailableResponsibles)
-      .catch(() => setAvailableResponsibles([]));
-  }, [currentPlantId, evidenceCurrent, isOpen]);
+  }, [evidenceCurrent, isOpen]);
 
   const handleAddResponsible = (responsibleId: string) => {
     setResponsibleToAddId(responsibleId);
@@ -141,6 +141,21 @@ export default function ReassignResponsiblesEvidence({
     );
   };
 
+  const reassignMutation = useMutation({
+    mutationFn: ({
+      id,
+      responsibleIds,
+    }: {
+      id: number;
+      responsibleIds: number[];
+    }) => EvidencesService.reassignResponsibles(id, responsibleIds),
+    onSuccess: () => {
+      notify("Responsables reasignados correctamente", true);
+      handleClose(true);
+    },
+  });
+  const isLoading = reassignMutation.isPending;
+
   const handleSave = () => {
     if (!evidenceCurrent) {
       return;
@@ -151,17 +166,12 @@ export default function ReassignResponsiblesEvidence({
       return;
     }
 
-    setIsLoading(true);
-
-    EvidencesService.reassignResponsibles(
-      evidenceCurrent.id,
-      selectedResponsibles.map((responsible) => Number(responsible.id)),
-    )
-      .then(() => {
-        notify("Responsables reasignados correctamente", true);
-        handleClose(true);
-      })
-      .finally(() => setIsLoading(false));
+    reassignMutation.mutate({
+      id: evidenceCurrent.id,
+      responsibleIds: selectedResponsibles.map((responsible) =>
+        Number(responsible.id),
+      ),
+    });
   };
 
   return (

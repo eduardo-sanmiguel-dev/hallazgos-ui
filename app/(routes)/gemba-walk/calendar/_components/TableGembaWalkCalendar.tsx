@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 
 import { useRouter } from "next/navigation";
 
@@ -111,10 +111,16 @@ export default function TableGembaWalkCalendar({
   getData,
   pagination,
 }: Props) {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
   const router = useRouter();
   const { confirm, confirmDialog } = useConfirmDialog();
+
+  const removeMutation = useMutation({
+    mutationFn: (id: number) => GembaWalkCalendarService.remove(id),
+    onSuccess: () => {
+      notify("Evento eliminado correctamente", true);
+      getData();
+    },
+  });
 
   const remove = (row: GembaWalkCalendar) => {
     // La confirmación puede quedar abierta hasta que el evento pase.
@@ -123,13 +129,7 @@ export default function TableGembaWalkCalendar({
       return;
     }
 
-    setIsLoading(true);
-    return GembaWalkCalendarService.remove(row.id)
-      .then(() => {
-        notify("Evento eliminado correctamente", true);
-        getData();
-      })
-      .finally(() => setIsLoading(false));
+    return removeMutation.mutateAsync(row.id);
   };
 
   const confirmRemove = async (row: GembaWalkCalendar) => {
@@ -170,7 +170,7 @@ export default function TableGembaWalkCalendar({
               />
               <DeleteAction
                 onClick={() => confirmRemove(row)}
-                disabled={isLoading}
+                disabled={removeMutation.isPending}
               />
             </RowActions>
           )

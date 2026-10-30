@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { useMemo, useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
@@ -28,7 +30,6 @@ import EditRecordState from "@shared/components/EditRecordState";
 const LIST_HREF = "/zones";
 
 const ZonesFormPage = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [form, setForm] = useState({
     name: "",
     manufacturingPlantId: "",
@@ -44,14 +45,35 @@ const ZonesFormPage = () => {
     useFormFieldErrors(form);
   const leave = useLeaveConfirm(form, { isEditing: !!idCurrent });
 
-  const record = useEditRecord(idCurrent, ZonesService.findOne, (data) => {
-    const loaded = {
-      name: data.name,
-      manufacturingPlantId: `${data.manufacturingPlant.id}`,
-      areaId: data.area?.id ? `${data.area.id}` : "",
-    };
-    setForm(loaded);
-    leave.markPristine(loaded);
+  const record = useEditRecord(
+    "zones",
+    idCurrent,
+    ZonesService.findOne,
+    (data) => {
+      const loaded = {
+        name: data.name,
+        manufacturingPlantId: `${data.manufacturingPlant.id}`,
+        areaId: data.area?.id ? `${data.area.id}` : "",
+      };
+      setForm(loaded);
+      leave.markPristine(loaded);
+    },
+  );
+
+  const saveMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof ZonesService.create>[0]) =>
+      idCurrent
+        ? ZonesService.update(idCurrent, payload)
+        : ZonesService.create(payload),
+    onSuccess: () => {
+      toast.success(
+        idCurrent
+          ? "Lugar actualizado correctamente"
+          : "Lugar creado correctamente",
+      );
+      router.push(LIST_HREF);
+    },
+    onError: (error) => failFromApi(error),
   });
 
   const save = () => {
@@ -70,33 +92,11 @@ const ZonesFormPage = () => {
       return;
     }
 
-    setIsLoading(true);
-
-    if (!idCurrent) {
-      ZonesService.create({
-        name: nameClean,
-        manufacturingPlantId,
-        areaId: form.areaId ? Number(form.areaId) : null,
-      })
-        .then(() => {
-          toast.success("Lugar creado correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
-    } else {
-      ZonesService.update(idCurrent, {
-        name: nameClean,
-        manufacturingPlantId,
-        areaId: form.areaId ? Number(form.areaId) : null,
-      })
-        .then(() => {
-          toast.success("Lugar actualizado correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
-    }
+    saveMutation.mutate({
+      name: nameClean,
+      manufacturingPlantId,
+      areaId: form.areaId ? Number(form.areaId) : null,
+    });
   };
 
   const { data: allAreas } = useAreas();
@@ -180,7 +180,7 @@ const ZonesFormPage = () => {
       <FormActions
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
-        isSaving={isLoading}
+        isSaving={saveMutation.isPending}
       />
       {leave.confirmDialog}
     </FormContainer>

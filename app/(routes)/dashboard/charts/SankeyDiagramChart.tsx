@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 
 import Highcharts from "highcharts/esm/highcharts.src.js";
@@ -9,8 +9,8 @@ import { Chart } from "@highcharts/react";
 import "highcharts/esm/modules/accessibility.src.js";
 import "highcharts/esm/modules/sankey.src.js";
 
-import { ResponseDashboardSankeyByFilters } from "@interfaces";
 import { DashboardService } from "@services";
+import { useDashboardQuery } from "../_components/useDashboardSummary";
 import { optionsChartDefault } from "@shared/libs";
 
 interface Props {
@@ -30,39 +30,14 @@ interface Props {
 
 const SankeyDiagramChart = ({ filters }: Props) => {
   const theme = useTheme();
-  const [sankeyData, setSankeyData] =
-    useState<ResponseDashboardSankeyByFilters | null>(null);
+  const { data: sankeyData = null } = useDashboardQuery(
+    "sankey",
+    DashboardService.findSankeyByFilters,
+    filters,
+  );
 
   const hasCompleteFilters =
     !!filters.manufacturingPlantId && !!filters.startDate && !!filters.endDate;
-
-  useEffect(() => {
-    if (!hasCompleteFilters) {
-      setSankeyData(null);
-      return;
-    }
-
-    DashboardService.findSankeyByFilters({
-      manufacturingPlantId: filters.manufacturingPlantId,
-      startDate: filters.startDate,
-      endDate: filters.endDate,
-      ...(filters.areaIds.length > 0 && { areaIds: filters.areaIds }),
-      ...(filters.responsibleIds.length > 0 && {
-        responsibleIds: filters.responsibleIds,
-      }),
-      ...(filters.mainTypeIds.length > 0 && {
-        mainTypeIds: filters.mainTypeIds,
-      }),
-    }).then(setSankeyData);
-  }, [
-    hasCompleteFilters,
-    filters.manufacturingPlantId,
-    filters.startDate,
-    filters.endDate,
-    filters.areaIds,
-    filters.responsibleIds,
-    filters.mainTypeIds,
-  ]);
 
   const isDarkMode = theme.palette.mode === "dark";
   const chartTextColor = isDarkMode ? "#f1f5f9" : "#111827";

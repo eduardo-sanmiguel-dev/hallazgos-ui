@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
@@ -57,7 +59,6 @@ const EMPTY_FORM: UserForm = {
 };
 
 const UsersFormPage = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [form, setForm] = useState<UserForm>(EMPTY_FORM);
 
@@ -70,34 +71,56 @@ const UsersFormPage = () => {
     useFormFieldErrors(form);
   const leave = useLeaveConfirm(form, { isEditing: !!idCurrent });
 
-  const record = useEditRecord(idCurrent, UsersService.findOne, (data) => {
-    const zoneNames =
-      data.role === "Supervisor"
-        ? data.zones.map(
-            (zone) => `${zone.manufacturingPlant.name} - ${zone.name}`,
-          )
-        : [];
+  const record = useEditRecord(
+    "users",
+    idCurrent,
+    UsersService.findOne,
+    (data) => {
+      const zoneNames =
+        data.role === "Supervisor"
+          ? data.zones.map(
+              (zone) => `${zone.manufacturingPlant.name} - ${zone.name}`,
+            )
+          : [];
 
-    const processNames =
-      data.role === "Supervisor"
-        ? data.processes.map(
-            (process) => `${process.manufacturingPlant.name} - ${process.name}`,
-          )
-        : [];
+      const processNames =
+        data.role === "Supervisor"
+          ? data.processes.map(
+              (process) =>
+                `${process.manufacturingPlant.name} - ${process.name}`,
+            )
+          : [];
 
-    const loaded = {
-      name: data.name,
-      email: data.email,
-      password: "",
-      rule: data.role,
-      manufacturingPlantNames: data.manufacturingPlants.map(
-        (plant) => plant.name,
-      ),
-      zoneNames,
-      processNames,
-    };
-    setForm(loaded);
-    leave.markPristine(loaded);
+      const loaded = {
+        name: data.name,
+        email: data.email,
+        password: "",
+        rule: data.role,
+        manufacturingPlantNames: data.manufacturingPlants.map(
+          (plant) => plant.name,
+        ),
+        zoneNames,
+        processNames,
+      };
+      setForm(loaded);
+      leave.markPristine(loaded);
+    },
+  );
+
+  const saveMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof UsersService.create>[0]) =>
+      idCurrent
+        ? UsersService.update(idCurrent, payload)
+        : UsersService.create(payload),
+    onSuccess: () => {
+      toast.success(
+        idCurrent
+          ? "Usuario actualizado correctamente"
+          : "Usuario creado correctamente",
+      );
+      router.push(LIST_HREF);
+    },
+    onError: (error) => failFromApi(error),
   });
 
   const save = () => {
@@ -134,8 +157,6 @@ const UsersFormPage = () => {
       return;
     }
 
-    setIsLoading(true);
-
     const payload = {
       name: nameClean,
       email: emailClean,
@@ -146,23 +167,7 @@ const UsersFormPage = () => {
       processNames: form.rule === "Supervisor" ? form.processNames : [],
     };
 
-    if (!idCurrent) {
-      UsersService.create(payload)
-        .then(() => {
-          toast.success("Usuario creado correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
-    } else {
-      UsersService.update(idCurrent, payload)
-        .then(() => {
-          toast.success("Usuario actualizado correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
-    }
+    saveMutation.mutate(payload);
   };
 
   const title = idCurrent ? "Editar usuario" : "Nuevo usuario";
@@ -355,7 +360,7 @@ const UsersFormPage = () => {
       <FormActions
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
-        isSaving={isLoading}
+        isSaving={saveMutation.isPending}
       />
       {leave.confirmDialog}
     </FormContainer>

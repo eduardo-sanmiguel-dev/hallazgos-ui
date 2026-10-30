@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 
 import Highcharts from "highcharts/esm/highcharts.src.js";
@@ -9,8 +8,8 @@ import { Chart } from "@highcharts/react";
 import "highcharts/esm/highcharts-more.src.js";
 import "highcharts/esm/modules/accessibility.src.js";
 
-import { ResponseDashboardAreaRangeLineByFilters } from "@interfaces";
 import { DashboardService } from "@services";
+import { useDashboardQuery } from "../_components/useDashboardSummary";
 import { optionsChartDefault } from "@shared/libs";
 
 interface Props {
@@ -30,39 +29,14 @@ interface Props {
 
 const AreaRangeLineChart = ({ filters }: Props) => {
   const theme = useTheme();
-  const [chartData, setChartData] =
-    useState<ResponseDashboardAreaRangeLineByFilters | null>(null);
+  const { data: chartData = null } = useDashboardQuery(
+    "area-range-line",
+    DashboardService.findAreaRangeLineByFilters,
+    filters,
+  );
 
   const hasCompleteFilters =
     !!filters.manufacturingPlantId && !!filters.startDate && !!filters.endDate;
-
-  useEffect(() => {
-    if (!hasCompleteFilters) {
-      setChartData(null);
-      return;
-    }
-
-    DashboardService.findAreaRangeLineByFilters({
-      manufacturingPlantId: filters.manufacturingPlantId,
-      startDate: filters.startDate,
-      endDate: filters.endDate,
-      ...(filters.areaIds.length > 0 && { areaIds: filters.areaIds }),
-      ...(filters.responsibleIds.length > 0 && {
-        responsibleIds: filters.responsibleIds,
-      }),
-      ...(filters.mainTypeIds.length > 0 && {
-        mainTypeIds: filters.mainTypeIds,
-      }),
-    }).then(setChartData);
-  }, [
-    hasCompleteFilters,
-    filters.manufacturingPlantId,
-    filters.startDate,
-    filters.endDate,
-    filters.areaIds,
-    filters.responsibleIds,
-    filters.mainTypeIds,
-  ]);
 
   const isDarkMode = theme.palette.mode === "dark";
   const chartTextColor = isDarkMode ? "#f1f5f9" : "#111827";

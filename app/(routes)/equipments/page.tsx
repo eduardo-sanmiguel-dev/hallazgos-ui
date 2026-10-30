@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { useRouter } from "next/navigation";
 
 import { Grid } from "@mui/material";
@@ -142,17 +144,21 @@ export default function EquipmentsPage() {
     }
   }, [manufacturingPlants]);
 
+  const removeMutation = useMutation({
+    mutationFn: (id: number) => EquipmentsService.remove(id),
+    onSuccess: () => {
+      toast.success("Equipo eliminado correctamente");
+      getData();
+    },
+  });
+
   const confirmRemove = async (row: Equipment) => {
     await confirm({
       title: "Confirmar eliminación",
       description: `¿Está seguro de eliminar el equipo "${row.name}"?`,
       confirmLabel: "Confirmar",
       tone: "danger",
-      action: () =>
-        EquipmentsService.remove(row.id).then(() => {
-          toast.success("Equipo eliminado correctamente");
-          getData();
-        }),
+      action: () => removeMutation.mutateAsync(row.id),
     });
   };
 

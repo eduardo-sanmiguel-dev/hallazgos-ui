@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { ChangeEvent, useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
@@ -74,7 +76,6 @@ const dateError = (date: Dayjs | null, label: string) =>
       : undefined;
 
 const EmployeesFormPage = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const { data: catalogs } = useEmployeeCatalogs();
   const [form, setForm] = useState<EmployeeForm>(EMPTY_FORM);
 
@@ -87,21 +88,42 @@ const EmployeesFormPage = () => {
     useFormFieldErrors(form);
   const leave = useLeaveConfirm(form, { isEditing: !!idCurrent });
 
-  const record = useEditRecord(idCurrent, EmployeesService.findOne, (data) => {
-    const loaded = {
-      code: `${data.code}`,
-      name: data.name,
-      birthdate: data.birthdate ? dayjs(data.birthdate) : null,
-      dateOfAdmission: data.dateOfAdmission
-        ? dayjs(data.dateOfAdmission)
-        : null,
-      area: data.area?.id ? `${data.area.id}` : "",
-      position: data.position?.id ? `${data.position.id}` : "",
-      gender: data.gender?.id ? `${data.gender.id}` : "",
-      manufacturingPlantNames: data.manufacturingPlants.map((mp) => mp.name),
-    };
-    setForm(loaded);
-    leave.markPristine(loaded);
+  const record = useEditRecord(
+    "employees",
+    idCurrent,
+    EmployeesService.findOne,
+    (data) => {
+      const loaded = {
+        code: `${data.code}`,
+        name: data.name,
+        birthdate: data.birthdate ? dayjs(data.birthdate) : null,
+        dateOfAdmission: data.dateOfAdmission
+          ? dayjs(data.dateOfAdmission)
+          : null,
+        area: data.area?.id ? `${data.area.id}` : "",
+        position: data.position?.id ? `${data.position.id}` : "",
+        gender: data.gender?.id ? `${data.gender.id}` : "",
+        manufacturingPlantNames: data.manufacturingPlants.map((mp) => mp.name),
+      };
+      setForm(loaded);
+      leave.markPristine(loaded);
+    },
+  );
+
+  const saveMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof EmployeesService.create>[0]) =>
+      idCurrent
+        ? EmployeesService.update(idCurrent, payload)
+        : EmployeesService.create(payload),
+    onSuccess: () => {
+      toast.success(
+        idCurrent
+          ? "Colaborador actualizado correctamente"
+          : "Colaborador creado correctamente",
+      );
+      router.push(LIST_HREF);
+    },
+    onError: (error) => failFromApi(error, EMPLOYEE_API_FIELDS),
   });
 
   const save = () => {
@@ -134,8 +156,6 @@ const EmployeesFormPage = () => {
       return;
     }
 
-    setIsLoading(true);
-
     const payload = {
       code: codeClean,
       name: nameClean,
@@ -150,23 +170,7 @@ const EmployeesFormPage = () => {
           .map((mp) => mp.id) || [],
     };
 
-    if (!idCurrent) {
-      EmployeesService.create(payload)
-        .then(() => {
-          toast.success("Colaborador creado correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch((error) => failFromApi(error, EMPLOYEE_API_FIELDS))
-        .finally(() => setIsLoading(false));
-    } else {
-      EmployeesService.update(idCurrent, payload)
-        .then(() => {
-          toast.success("Colaborador actualizado correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch((error) => failFromApi(error, EMPLOYEE_API_FIELDS))
-        .finally(() => setIsLoading(false));
-    }
+    saveMutation.mutate(payload);
   };
 
   const onChangeSelect = (
@@ -356,7 +360,7 @@ const EmployeesFormPage = () => {
       <FormActions
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
-        isSaving={isLoading}
+        isSaving={saveMutation.isPending}
       />
       {leave.confirmDialog}
     </FormContainer>

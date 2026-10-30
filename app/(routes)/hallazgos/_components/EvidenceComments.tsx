@@ -1,19 +1,21 @@
 import { useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { Button } from "@mui/material";
 import { Stack } from "@mui/material";
 import { TextField } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 
-import { CommentEvidenceGraphql } from "@hooks";
+import type { EvidenceRowComment } from "@interfaces";
 import { EvidencesService } from "@services";
 import { notify } from "@shared/utils";
 import ListComments from "./ListComments";
 
 interface Props {
   evidenceId: number;
-  comments: CommentEvidenceGraphql[];
-  onCommentsChange: (comments: CommentEvidenceGraphql[]) => void;
+  comments: EvidenceRowComment[];
+  onCommentsChange: (comments: EvidenceRowComment[]) => void;
 }
 
 // Comentarios del hallazgo a la vista (antes, en una pestaña aparte) y el
@@ -24,22 +26,22 @@ export default function EvidenceComments({
   onCommentsChange,
 }: Props) {
   const [comment, setComment] = useState("");
-  const [isSending, setIsSending] = useState(false);
+  // Si falla, el aviso lo muestra el interceptor; el texto se conserva
+  // para reintentar.
+  const commentMutation = useMutation({
+    mutationFn: (text: string) => EvidencesService.addComment(evidenceId, text),
+    onSuccess: (data) => {
+      setComment("");
+      notify("Comentario agregado correctamente", true);
+      onCommentsChange(data.comments);
+    },
+  });
+  const isSending = commentMutation.isPending;
   const canSend = !!comment.trim() && !isSending;
 
   const send = () => {
     if (!canSend) return;
-    setIsSending(true);
-    EvidencesService.addComment(evidenceId, comment)
-      .then((data) => {
-        setComment("");
-        notify("Comentario agregado correctamente", true);
-        onCommentsChange(data.comments);
-      })
-      // El aviso lo muestra el interceptor; el texto se conserva para
-      // reintentar.
-      .catch(() => undefined)
-      .finally(() => setIsSending(false));
+    commentMutation.mutate(comment);
   };
 
   return (

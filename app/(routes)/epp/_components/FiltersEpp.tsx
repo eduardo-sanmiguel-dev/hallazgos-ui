@@ -1,11 +1,9 @@
-import { useEffect, useState } from "react";
-
 import { Grid } from "@mui/material";
 import { Paper } from "@mui/material";
 import { TextField } from "@mui/material";
 import dayjs from "dayjs";
 
-import { useEmployeeCatalogs } from "@hooks";
+import { EMPTY_CATALOG, useCatalog, useEmployeeCatalogs } from "@hooks";
 import SelectDefault from "@components/SelectDefault";
 import DateFieldDMY from "@routes/gemba-walk/calendar/_components/DateFieldDMY";
 import FilterBar, {
@@ -55,20 +53,16 @@ const FiltersEpp = ({
   count,
 }: Props) => {
   const { data: catalogs } = useEmployeeCatalogs();
-  const [equipments, setEquipments] = useState<Equipment[]>([]);
-
-  // Los equipos dependen de la planta.
-  useEffect(() => {
-    if (!manufacturingPlantId) {
-      setEquipments([]);
-      return;
-    }
-
-    // Si falla, el interceptor ya mostró el aviso; sin equipos que filtrar.
-    EquipmentsService.findAll({ manufacturingPlantId })
-      .then(setEquipments)
-      .catch(() => setEquipments([]));
-  }, [manufacturingPlantId]);
+  // Los equipos dependen de la planta. Si falla, el interceptor ya mostró
+  // el aviso; sin equipos que filtrar.
+  const { data: plantEquipments } = useCatalog<Equipment[]>(
+    "equipments",
+    () => EquipmentsService.findAll({ manufacturingPlantId }),
+    { enabled: !!manufacturingPlantId, params: { manufacturingPlantId } },
+  );
+  const equipments: Equipment[] = manufacturingPlantId
+    ? (plantEquipments ?? EMPTY_CATALOG)
+    : EMPTY_CATALOG;
 
   const hasFiltersToClear = (
     Object.keys(DEFAULT_FILTERS_EPP) as (keyof IFiltersEpp)[]

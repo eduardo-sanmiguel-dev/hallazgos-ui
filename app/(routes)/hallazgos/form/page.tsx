@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { useMutation, useQuery } from "@tanstack/react-query";
+
 import { useRouter } from "next/navigation";
 
 import ClearIcon from "@mui/icons-material/Clear";
@@ -72,6 +74,9 @@ interface EvidenceDraftFields {
 // Campos del API con otro nombre en el formulario (type es el tipo).
 const EVIDENCE_API_FIELDS = { type: "secondaryType", file: "photo" };
 
+// Arreglo vacío estable (sin lugar o mientras cargan los supervisores).
+const EMPTY_SUPERVISORS: ZoneSupervisor[] = [];
+
 /** Mensaje de error bajo un select (lo encuentra useFieldErrors para el foco). */
 const FieldError = ({ field, message }: { field: string; message?: string }) =>
   message ? (
@@ -88,13 +93,6 @@ export default function HallazgosFormPage() {
   const [zone, setZone] = useState<string>("");
   const [manufacturingPlantId, setManufacturingPlantId] = useState<string>("");
   const [secondaryTypes, setSecondaryTypes] = useState<SecondaryType[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [supervisorsCurrent, setSupervisorsCurrent] = useState<
-    ZoneSupervisor[]
-  >([]);
-  const [supervisorsStatus, setSupervisorsStatus] = useState<
-    "idle" | "loading" | "error"
-  >("idle");
   const [supervisor, setSupervisor] = useState<string>("");
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [description, setDescription] = useState<string>("");
@@ -236,38 +234,42 @@ export default function HallazgosFormPage() {
     }
   }, [typeHallazgo, mainTypes]);
 
-  // Supervisores del lugar elegido, pedidos a la API al elegirlo. Si el
-  // supervisor ya elegido no es de este lugar, se quita (antes quedaba
+  // Supervisores del lugar elegido, pedidos a la API al elegirlo.
+  const hasZone = !!manufacturingPlantId && !!zone;
+  const supervisorsQuery = useQuery({
+    queryKey: [
+      "users",
+      "zone-supervisors",
+      { manufacturingPlantId, zoneId: zone },
+    ],
+    queryFn: () =>
+      UsersService.findZoneSupervisors({ manufacturingPlantId, zoneId: zone }),
+    enabled: hasZone,
+  });
+  const supervisorsCurrent: ZoneSupervisor[] =
+    (hasZone && supervisorsQuery.data) || EMPTY_SUPERVISORS;
+  const supervisorsStatus: "idle" | "loading" | "error" = !hasZone
+    ? "idle"
+    : supervisorsQuery.isError
+      ? "error"
+      : supervisorsQuery.isFetching
+        ? "loading"
+        : "idle";
+
+  // Si el supervisor ya elegido no es de este lugar, se quita (antes quedaba
   // seleccionado y la API rechazaba el hallazgo al guardar).
+  const supervisorsList = supervisorsQuery.data;
+  const supervisorsFailed = supervisorsQuery.isError;
   useEffect(() => {
-    if (!manufacturingPlantId || !zone) {
-      setSupervisorsCurrent([]);
-      setSupervisorsStatus("idle");
+    if (!hasZone || supervisorsFailed) {
       setSupervisor("");
       return;
     }
-
-    let ignore = false;
-    setSupervisorsStatus("loading");
-    UsersService.findZoneSupervisors({ manufacturingPlantId, zoneId: zone })
-      .then((list) => {
-        if (ignore) return;
-        setSupervisorsCurrent(list);
-        setSupervisorsStatus("idle");
-        setSupervisor((current) =>
-          list.some(({ id }) => String(id) === current) ? current : "",
-        );
-      })
-      .catch(() => {
-        if (ignore) return;
-        setSupervisorsCurrent([]);
-        setSupervisorsStatus("error");
-        setSupervisor("");
-      });
-    return () => {
-      ignore = true;
-    };
-  }, [manufacturingPlantId, zone]);
+    if (!supervisorsList) return;
+    setSupervisor((current) =>
+      supervisorsList.some(({ id }) => String(id) === current) ? current : "",
+    );
+  }, [hasZone, supervisorsList, supervisorsFailed]);
 
   const currentDescription = useMemo(() => description.trim(), [description]);
 
@@ -297,6 +299,40 @@ export default function HallazgosFormPage() {
     }
     send();
   };
+
+  const createMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      // Antes de enviar queda como envío pendiente en el borrador, con su
+      // clave: si se pierde la señal o se cierra la app, reenviarlo no
+      // duplica.
+      await draft.markSending();
+      // Sin conexión o tiempo agotado: el aviso trae "Reintentar" y la foto
+      // y los datos siguen aquí; la misma clave evita un hallazgo duplicado.
+      return EvidencesService.create(formData, {
+        onUploadProgress: upload.onUploadProgress,
+        idempotencyKey: draft.key(),
+      });
+    },
+    onSuccess: async ({ data, replayed }) => {
+      await draft.settle();
+      if (userId) {
+        saveLastLocation(userId, { manufacturingPlantId, zoneId: zone });
+      }
+      notify(
+        replayed
+          ? `Ya se había guardado (hallazgo #${data.id})`
+          : "Hallazgo creado correctamente",
+        true,
+      );
+      router.push("/hallazgos");
+    },
+    onError: async (error) => {
+      await draft.settle(error);
+      failFromApi(error, EVIDENCE_API_FIELDS);
+    },
+    onSettled: () => upload.reset(),
+  });
+  const isLoading = createMutation.isPending;
 
   // También es "Reintentar envío" de un borrador en solo lectura: mismos
   // datos y misma clave.
@@ -330,37 +366,7 @@ export default function HallazgosFormPage() {
       formData.append("file", attachedFile, nameWithUuid);
     }
 
-    setIsLoading(true);
-    // Antes de enviar queda como envío pendiente en el borrador, con su clave:
-    // si se pierde la señal o se cierra la app, reenviarlo no duplica.
-    await draft.markSending();
-    // Sin conexión o tiempo agotado: el aviso trae "Reintentar" y la foto y
-    // los datos siguen aquí; la misma clave evita un hallazgo duplicado.
-    EvidencesService.create(formData, {
-      onUploadProgress: upload.onUploadProgress,
-      idempotencyKey: draft.key(),
-    })
-      .then(async ({ data, replayed }) => {
-        await draft.settle();
-        if (userId) {
-          saveLastLocation(userId, { manufacturingPlantId, zoneId: zone });
-        }
-        notify(
-          replayed
-            ? `Ya se había guardado (hallazgo #${data.id})`
-            : "Hallazgo creado correctamente",
-          true,
-        );
-        router.push("/hallazgos");
-      })
-      .catch(async (error) => {
-        await draft.settle(error);
-        failFromApi(error, EVIDENCE_API_FIELDS);
-      })
-      .finally(() => {
-        setIsLoading(false);
-        upload.reset();
-      });
+    createMutation.mutate(formData);
   };
 
   // Descartar el borrador. Si estaba en solo lectura, se limpia lo capturado

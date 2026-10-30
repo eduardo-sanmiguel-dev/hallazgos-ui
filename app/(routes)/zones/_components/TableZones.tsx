@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 
 import { useRouter } from "next/navigation";
 
@@ -64,20 +64,18 @@ const columns: ResponsiveColumn<Zone>[] = [
 ];
 
 export default function TableZones({ rows, getData, pagination }: Props) {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
   const router = useRouter();
   const { confirm, confirmDialog } = useConfirmDialog();
 
-  const remove = (id: number) => {
-    setIsLoading(true);
-    return ZonesService.remove(id)
-      .then(() => {
-        notify("Lugar eliminado correctamente", true);
-        getData();
-      })
-      .finally(() => setIsLoading(false));
-  };
+  const removeMutation = useMutation({
+    mutationFn: (id: number) => ZonesService.remove(id),
+    onSuccess: () => {
+      notify("Lugar eliminado correctamente", true);
+      getData();
+    },
+  });
+
+  const remove = (id: number) => removeMutation.mutateAsync(id);
 
   const confirmRemove = async (row: Zone) => {
     await confirm({
@@ -106,7 +104,7 @@ export default function TableZones({ rows, getData, pagination }: Props) {
             />
             <DeleteAction
               onClick={() => confirmRemove(row)}
-              disabled={isLoading}
+              disabled={removeMutation.isPending}
             />
           </RowActions>
         )}

@@ -94,8 +94,6 @@ test.describe("Dashboard", () => {
     await page.waitForLoadState("networkidle");
     await back.click();
     await expect(page.getByRole("button", { name: "Histórico" })).toBeVisible();
-
-    await page.getByRole("button", { name: "Volver arriba" }).click();
     expect(errors).toEqual([]);
   });
 

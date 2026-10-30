@@ -335,8 +335,9 @@ test.describe("Borrador de nuevo hallazgo", () => {
       .getByRole("button", { name: "Reintentar envío" })
       .click();
 
+    // Exacto: el aviso del interceptor dice "Descripción: debe tener…".
     await expect(
-      page.getByText("Debe tener máximo 5 caracteres."),
+      page.getByText("Debe tener máximo 5 caracteres.", { exact: true }),
     ).toBeVisible();
     await expect(notice(page)).toHaveCount(0);
     await expect(createButton(page)).toBeVisible();

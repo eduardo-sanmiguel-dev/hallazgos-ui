@@ -26,7 +26,6 @@ export const viewport: Viewport = {
 
 export const dynamic = "force-dynamic";
 
-import { ApolloWrapper } from "@shared/libs/apollo-wrapper";
 import QueryProvider from "@shared/components/QueryProvider";
 
 import "@fontsource/roboto/300.css";
@@ -44,9 +43,7 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         {/* Cada layout o página define su propio <main>. */}
         <ThemeRegistry options={{ key: "mui" }}>
-          <QueryProvider>
-            <ApolloWrapper>{children}</ApolloWrapper>
-          </QueryProvider>
+          <QueryProvider>{children}</QueryProvider>
         </ThemeRegistry>
         {/* Debajo de la barra superior (64px; 56px en móvil): encima tapaban
             el menú de usuario y el botón Guardar de los diálogos de pantalla

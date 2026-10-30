@@ -5,10 +5,10 @@ import { Typography } from "@mui/material";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
 
 import { stringToDateWithTime } from "@shared/utils";
-import { CommentEvidenceGraphql } from "@hooks";
+import type { EvidenceRowComment } from "@interfaces";
 
 interface Props {
-  comments: CommentEvidenceGraphql[];
+  comments: EvidenceRowComment[];
 }
 
 /** Iniciales para el avatar: "Ana María López" → "AL". */

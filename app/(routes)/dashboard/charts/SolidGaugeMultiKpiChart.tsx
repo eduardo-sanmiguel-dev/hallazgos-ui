@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 
 import Highcharts from "highcharts/esm/highcharts.src.js";
@@ -10,8 +10,8 @@ import "highcharts/esm/modules/accessibility.src.js";
 import "highcharts/esm/highcharts-more.src.js";
 import "highcharts/esm/modules/solid-gauge.src.js";
 
-import { ResponseDashboardSolidGaugeKpiByFilters } from "@interfaces";
 import { DashboardService } from "@services";
+import { useDashboardQuery } from "../_components/useDashboardSummary";
 import { optionsChartDefault } from "@shared/libs";
 
 interface Props {
@@ -31,39 +31,14 @@ interface Props {
 
 const SolidGaugeMultiKpiChart = ({ filters }: Props) => {
   const theme = useTheme();
-  const [kpiData, setKpiData] =
-    useState<ResponseDashboardSolidGaugeKpiByFilters | null>(null);
+  const { data: kpiData = null } = useDashboardQuery(
+    "solid-gauge-kpi",
+    DashboardService.findSolidGaugeKpiByFilters,
+    filters,
+  );
 
   const hasCompleteFilters =
     !!filters.manufacturingPlantId && !!filters.startDate && !!filters.endDate;
-
-  useEffect(() => {
-    if (!hasCompleteFilters) {
-      setKpiData(null);
-      return;
-    }
-
-    DashboardService.findSolidGaugeKpiByFilters({
-      manufacturingPlantId: filters.manufacturingPlantId,
-      startDate: filters.startDate,
-      endDate: filters.endDate,
-      ...(filters.areaIds.length > 0 && { areaIds: filters.areaIds }),
-      ...(filters.responsibleIds.length > 0 && {
-        responsibleIds: filters.responsibleIds,
-      }),
-      ...(filters.mainTypeIds.length > 0 && {
-        mainTypeIds: filters.mainTypeIds,
-      }),
-    }).then(setKpiData);
-  }, [
-    hasCompleteFilters,
-    filters.manufacturingPlantId,
-    filters.startDate,
-    filters.endDate,
-    filters.areaIds,
-    filters.responsibleIds,
-    filters.mainTypeIds,
-  ]);
 
   const isDarkMode = theme.palette.mode === "dark";
   const chartTextColor = isDarkMode ? "#f1f5f9" : "#111827";

@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+
+import { useMutation } from "@tanstack/react-query";
 
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -37,11 +39,13 @@ export default function HallazgosPage() {
     endDate: "",
   });
 
-  const [isLoadingPdf, setIsLoadingPdf] = useState<boolean>(false);
-  const [isLoadingExcel, setIsLoadingExcel] = useState<boolean>(false);
+  // Hallazgo a abrir al cargar (?evidenceId=, el botón "Ver hallazgo" de
+  // los correos). En la página: sobrevive a que la tabla se vuelva a montar
+  // mientras carga; se olvida al cerrar su detalle.
+  const [linkedEvidenceId, setLinkedEvidenceId] = useState(0);
 
   const {
-    findEvidences,
+    refresh: getData,
     evidences,
     isLoading,
     isError,
@@ -50,13 +54,14 @@ export default function HallazgosPage() {
     setPage,
     rowsPerPage,
     setRowsPerPage,
-  } = useEvidences();
+  } = useEvidences(filters);
 
   const router = useRouter();
 
-  const getData = useCallback(() => {
-    findEvidences(filters);
-  }, [filters, findEvidences]);
+  const downloadExcel = useMutation({
+    mutationFn: EvidencesService.downloadExcel,
+  });
+  const downloadPdf = useMutation({ mutationFn: EvidencesService.downloadPdf });
 
   const createPdf = () => {
     if (!filters.manufacturingPlantId) {
@@ -69,9 +74,7 @@ export default function HallazgosPage() {
       return;
     }
 
-    setIsLoadingPdf(true);
-
-    EvidencesService.downloadPdf(filters).finally(() => setIsLoadingPdf(false));
+    downloadPdf.mutate(filters);
   };
 
   useEffect(() => {
@@ -80,6 +83,26 @@ export default function HallazgosPage() {
         .split(",")
         .map((item) => item.trim())
         .filter((item) => /^\d+$/.test(item));
+
+    // Enlace a un hallazgo: la lista solo con él y su detalle abierto.
+    const evidenceId = searchParams.get("evidenceId") || "";
+    if (/^\d+$/.test(evidenceId)) {
+      setFilters((prev) => ({
+        ...prev,
+        evidenceId,
+        manufacturingPlantId: "",
+        mainTypeIds: [],
+        secondaryTypeIds: [],
+        areaIds: [],
+        zoneIds: [],
+        responsibleIds: [],
+        states: [],
+        startDate: "",
+        endDate: "",
+      }));
+      setLinkedEvidenceId(Number(evidenceId));
+      return;
+    }
 
     const manufacturingPlantId = searchParams.get("manufacturingPlantId") || "";
     const mainTypeIds = parseIds(searchParams.get("mainTypeIds"));
@@ -115,10 +138,6 @@ export default function HallazgosPage() {
     }));
   }, [searchParams]);
 
-  useEffect(() => {
-    getData();
-  }, [getData]);
-
   return (
     <>
       <PageHeader title="Hallazgos">
@@ -133,13 +152,8 @@ export default function HallazgosPage() {
         <Button
           variant="outlined"
           startIcon={<SimCardDownloadIcon />}
-          onClick={() => {
-            setIsLoadingExcel(true);
-            EvidencesService.downloadExcel(filters).finally(() =>
-              setIsLoadingExcel(false),
-            );
-          }}
-          loading={isLoadingExcel}
+          onClick={() => downloadExcel.mutate(filters)}
+          loading={downloadExcel.isPending}
         >
           Excel
         </Button>
@@ -147,7 +161,7 @@ export default function HallazgosPage() {
           variant="outlined"
           startIcon={<SimCardDownloadIcon />}
           onClick={() => createPdf()}
-          loading={isLoadingPdf}
+          loading={downloadPdf.isPending}
         >
           PDF
         </Button>
@@ -189,6 +203,8 @@ export default function HallazgosPage() {
               rowsPerPage={rowsPerPage}
               setRowsPerPage={setRowsPerPage}
               countEvidence={countEvidence}
+              openEvidenceId={linkedEvidenceId}
+              onCloseLinkedEvidence={() => setLinkedEvidenceId(0)}
             />
           )}
         </Grid>

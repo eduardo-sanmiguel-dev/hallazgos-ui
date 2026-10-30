@@ -1,4 +1,6 @@
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
+
+import { useMutation } from "@tanstack/react-query";
 
 import { Menu } from "@mui/material";
 import { MenuItem } from "@mui/material";
@@ -34,7 +36,7 @@ import ReassignResponsiblesEvidence from "./ReassignResponsiblesEvidence";
 import EvidenceCards, { responsiblesLabel } from "./EvidenceCards";
 import { useEvidenceActions } from "./useEvidenceActions";
 import { EvidencesService } from "@services";
-import { EvidenceGraphql } from "@hooks";
+import type { EvidenceRow } from "@interfaces";
 import TableDefaultServer from "@shared/components/TableDefaultServer";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import StatusChip, { EvidenceStatusChip } from "@shared/components/StatusChip";
@@ -64,13 +66,17 @@ const columns = [
 ];
 
 interface Props {
-  rows: EvidenceGraphql[];
+  rows: EvidenceRow[];
   getData: () => void;
   page: number;
   setPage: Dispatch<SetStateAction<number>>;
   rowsPerPage: number;
   setRowsPerPage: (rowsPerPage: number) => void;
   countEvidence: number;
+  /** Hallazgo cuyo detalle se abre al aparecer en la lista (enlace). */
+  openEvidenceId?: number;
+  /** Al cerrar ese detalle: ya no se vuelve a abrir. */
+  onCloseLinkedEvidence?: () => void;
 }
 
 export default function TableEvidences({
@@ -81,32 +87,43 @@ export default function TableEvidences({
   rowsPerPage,
   setRowsPerPage,
   countEvidence,
+  openEvidenceId = 0,
+  onCloseLinkedEvidence,
 }: Props) {
-  const [evidenceCurrent, setEvidenceCurrent] =
-    useState<EvidenceGraphql | null>(null);
+  const [evidenceCurrent, setEvidenceCurrent] = useState<EvidenceRow | null>(
+    null,
+  );
   const [idRow, setIdRow] = useState<number>(0);
   const [idRowProcess, setIdRowProcess] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const { confirm, confirmDialog } = useConfirmDialog();
   const [evidenceReassignCurrent, setEvidenceReassignCurrent] =
-    useState<EvidenceGraphql | null>(null);
+    useState<EvidenceRow | null>(null);
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [menuRowId, setMenuRowId] = useState<number | null>(null);
   const actions = useEvidenceActions();
   const isPhone = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
 
-  const removeEvidence = (id: number) => {
-    setIsLoading(true);
-    return EvidencesService.remove(id)
-      .then(() => {
-        notify("Hallazgo eliminado correctamente", true);
-        getData();
-      })
-      .finally(() => setIsLoading(false));
-  };
+  // Enlace a un hallazgo (?evidenceId=): abre su detalle cuando llega en la
+  // lista. Se vuelve a abrir si la tabla se monta de nuevo (al aplicar el
+  // filtro) hasta que el usuario lo cierra.
+  useEffect(() => {
+    if (!openEvidenceId) return;
+    const row = rows.find(({ id }) => id === openEvidenceId);
+    if (row) setEvidenceCurrent(row);
+  }, [openEvidenceId, rows]);
+
+  const removeMutation = useMutation({
+    mutationFn: (id: number) => EvidencesService.remove(id),
+    onSuccess: () => {
+      notify("Hallazgo eliminado correctamente", true);
+      getData();
+    },
+  });
+
+  const removeEvidence = (id: number) => removeMutation.mutateAsync(id);
 
   // Antes los dos botones del aviso decían "Cancelar".
-  const confirmRemoveEvidence = async (row: EvidenceGraphql) => {
+  const confirmRemoveEvidence = async (row: EvidenceRow) => {
     await confirm({
       title: "Confirmar cancelación",
       description: `¿Desea cancelar/eliminar el hallazgo #${row.id}?`,
@@ -151,6 +168,9 @@ export default function TableEvidences({
         <EvidencePreview
           evidenceCurrent={evidenceCurrent}
           handleClose={(refreshData) => {
+            if (evidenceCurrent?.id === openEvidenceId) {
+              onCloseLinkedEvidence?.();
+            }
             if (refreshData) {
               getData();
             }
@@ -195,7 +215,7 @@ export default function TableEvidences({
           }}
           onReassign={(row) => setEvidenceReassignCurrent(row)}
           onCancel={(row) => confirmRemoveEvidence(row)}
-          isBusy={isLoading}
+          isBusy={removeMutation.isPending}
           page={page}
           setPage={setPage}
           rowsPerPage={rowsPerPage}
@@ -206,7 +226,7 @@ export default function TableEvidences({
         <TableDefaultServer
           rows={rows}
           columns={columns}
-          paintRows={(row: EvidenceGraphql) => (
+          paintRows={(row: EvidenceRow) => (
             <StyledTableRow
               key={row.id}
               hover
@@ -597,7 +617,7 @@ export default function TableEvidences({
                         closeActionsMenu();
                         confirmRemoveEvidence(row);
                       }}
-                      disabled={isLoading}
+                      disabled={removeMutation.isPending}
                     >
                       <ListItemIcon sx={{ color: "error.main" }}>
                         <DeleteIcon fontSize="small" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import { Paper } from "@mui/material";
 
@@ -9,8 +9,8 @@ import { Chart } from "@highcharts/react";
 
 import "highcharts/esm/modules/accessibility.src.js";
 
-import { ResponseDashboardPriorityInterventionByFilters } from "@interfaces";
 import { DashboardService } from "@services";
+import { useDashboardQuery } from "../_components/useDashboardSummary";
 import { optionsChartDefault } from "@shared/libs";
 import { priorityOptions } from "@routes/hallazgos/_constants/priorityOptions";
 
@@ -33,39 +33,14 @@ const priorityOrder = priorityOptions.map((option) => option.name);
 
 const PriorityInterventionChart = ({ filters }: Props) => {
   const theme = useTheme();
-  const [priorityData, setPriorityData] =
-    useState<ResponseDashboardPriorityInterventionByFilters | null>(null);
+  const { data: priorityData = null } = useDashboardQuery(
+    "priority-intervention",
+    DashboardService.findPriorityInterventionByFilters,
+    filters,
+  );
 
   const hasCompleteFilters =
     !!filters.manufacturingPlantId && !!filters.startDate && !!filters.endDate;
-
-  useEffect(() => {
-    if (!hasCompleteFilters) {
-      setPriorityData(null);
-      return;
-    }
-
-    DashboardService.findPriorityInterventionByFilters({
-      manufacturingPlantId: filters.manufacturingPlantId,
-      startDate: filters.startDate,
-      endDate: filters.endDate,
-      ...(filters.areaIds.length > 0 && { areaIds: filters.areaIds }),
-      ...(filters.responsibleIds.length > 0 && {
-        responsibleIds: filters.responsibleIds,
-      }),
-      ...(filters.mainTypeIds.length > 0 && {
-        mainTypeIds: filters.mainTypeIds,
-      }),
-    }).then(setPriorityData);
-  }, [
-    hasCompleteFilters,
-    filters.areaIds,
-    filters.responsibleIds,
-    filters.mainTypeIds,
-    filters.manufacturingPlantId,
-    filters.startDate,
-    filters.endDate,
-  ]);
 
   const orderedSeriesData = useMemo(() => {
     const dataMap = new Map(

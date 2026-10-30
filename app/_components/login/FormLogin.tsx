@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 
-import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
+
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@mui/material";
 import { TextField } from "@mui/material";
@@ -20,6 +22,7 @@ import { Grid } from "@mui/material";
 import { AuthService } from "@services";
 import { constants } from "@constants";
 import { notify, isValidEmail } from "@shared/utils";
+import { NEXT_PARAM, safeNextPath } from "@shared/utils/nextPath";
 
 interface Props {
   setForgotPassword: (value: boolean) => void;
@@ -50,10 +53,21 @@ const FormLogin = ({ setForgotPassword }: Props) => {
   );
 
   const router = useRouter();
+  // Ruta pedida antes de iniciar sesión (enlace de un correo); si no, el
+  // dashboard.
+  const nextPath = safeNextPath(useSearchParams().get(NEXT_PARAM));
 
   const handleClickShowPassword = () => setShowPassword((show) => !show);
 
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const loginMutation = useMutation({
+    mutationFn: AuthService.login,
+    onSuccess: ({ message }) => {
+      notify(message, true);
+      router.push(nextPath ?? "/dashboard");
+    },
+  });
+  // El spinner sigue mientras navega.
+  const isLoading = loginMutation.isPending || loginMutation.isSuccess;
 
   const login = async () => {
     const emailClear = email.trim();
@@ -74,18 +88,7 @@ const FormLogin = ({ setForgotPassword }: Props) => {
       return;
     }
 
-    setIsLoading(true);
-
-    AuthService.login({
-      email,
-      password,
-    })
-      .then(({ message }) => {
-        notify(message, true);
-        // El spinner sigue mientras navega al dashboard.
-        router.push("/dashboard");
-      })
-      .catch(() => setIsLoading(false));
+    loginMutation.mutate({ email, password });
   };
 
   // El margen negativo compensa el espacio transparente bajo el logo, que

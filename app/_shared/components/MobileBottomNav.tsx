@@ -67,10 +67,12 @@ const MAX_DESTINATIONS = 3;
 export const bottomNavDestinations = (ctx: RouteAccessContext) =>
   DESTINATIONS_BY_PRIORITY.filter((item) => canAccessPath(item.url, ctx))
     .slice(0, MAX_DESTINATIONS)
-    .sort((a, b) => DISPLAY_ORDER.indexOf(a.url) - DISPLAY_ORDER.indexOf(b.url));
+    .sort(
+      (a, b) => DISPLAY_ORDER.indexOf(a.url) - DISPLAY_ORDER.indexOf(b.url),
+    );
 
 // Formularios: la barra estorba (y el botón "Nuevo" no aplica).
-const isFormPath = (pathname: string) => /\/form(\/|$)/.test(pathname);
+export const isFormPath = (pathname: string) => /\/form(\/|$)/.test(pathname);
 
 const NON_TEXT_INPUTS = new Set([
   "checkbox",
@@ -170,33 +172,50 @@ function NavItem({
   );
 }
 
+function useRouteAccessContext(): RouteAccessContext {
+  const isGembaWalkObserver = useGembaWalkAccess();
+  const role = useUserSessionStore((state) => state.role);
+  const email = useUserSessionStore((state) => state.email);
+
+  return {
+    isAdmin: role === ROLE_ADMINISTRADOR,
+    email,
+    isGembaWalkObserver,
+  };
+}
+
+/**
+ * Si la barra se muestra (sin contar el teclado). También la usa el botón
+ * "Volver arriba" para quedar por encima de ella.
+ */
+export function useBottomNavVisible() {
+  const isPhone = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
+  const pathname = usePathname();
+  const userId = useUserSessionStore((state) => state.id);
+  const ctx = useRouteAccessContext();
+
+  // Sin "Nuevo hallazgo" (p. ej. el usuario solo-HDS) no hay barra.
+  return (
+    isPhone &&
+    !!userId &&
+    canAccessPath(NEW_EVIDENCE_PATH, ctx) &&
+    !isFormPath(pathname)
+  );
+}
+
 // Navegación inferior en celular (A8): accesos de campo según el rol y
 // "Nuevo hallazgo" al centro como acción principal. Se oculta en
 // formularios y con el teclado abierto; los diálogos (también a pantalla
 // completa) quedan por encima y la cubren.
 export default function MobileBottomNav() {
-  const isPhone = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
   const pathname = usePathname();
   const isKeyboardOpen = useKeyboardOpen();
-  const isGembaWalkObserver = useGembaWalkAccess();
-
-  const userId = useUserSessionStore((state) => state.id);
-  const role = useUserSessionStore((state) => state.role);
-  const email = useUserSessionStore((state) => state.email);
-
-  const ctx: RouteAccessContext = {
-    isAdmin: role === ROLE_ADMINISTRADOR,
-    email,
-    isGembaWalkObserver,
-  };
-
-  const canCreate = canAccessPath(NEW_EVIDENCE_PATH, ctx);
-  const destinations = bottomNavDestinations(ctx);
-
-  // Sin "Nuevo hallazgo" (p. ej. el usuario solo-HDS) no hay barra.
-  const isVisible = isPhone && !!userId && canCreate && !isFormPath(pathname);
+  const ctx = useRouteAccessContext();
+  const isVisible = useBottomNavVisible();
 
   if (!isVisible) return null;
+
+  const destinations = bottomNavDestinations(ctx);
 
   const half = Math.ceil(destinations.length / 2);
   const left = destinations.slice(0, half);

@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
@@ -54,7 +56,6 @@ const normalizeCoordinate = (value: string) =>
   value.replace(",", ".").replace(/\s/g, "");
 
 const ManufacturingPlantsFormPage = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [form, setForm] = useState<PlantForm>(EMPTY_FORM);
 
   const router = useRouter();
@@ -66,6 +67,7 @@ const ManufacturingPlantsFormPage = () => {
   const leave = useLeaveConfirm(form, { isEditing: !!idCurrent });
 
   const record = useEditRecord(
+    "manufacturing-plants",
     idCurrent,
     ManufacturingPlantsService.findOne,
     (data) => {
@@ -79,6 +81,24 @@ const ManufacturingPlantsFormPage = () => {
       leave.markPristine(loaded);
     },
   );
+
+  const saveMutation = useMutation({
+    mutationFn: (
+      payload: Parameters<typeof ManufacturingPlantsService.create>[0],
+    ) =>
+      idCurrent
+        ? ManufacturingPlantsService.update(idCurrent, payload)
+        : ManufacturingPlantsService.create(payload),
+    onSuccess: () => {
+      toast.success(
+        idCurrent
+          ? "Planta actualizada correctamente"
+          : "Planta creada correctamente",
+      );
+      router.push(LIST_HREF);
+    },
+    onError: (error) => failFromApi(error),
+  });
 
   const save = () => {
     const nameClean = form.name.trim();
@@ -98,8 +118,6 @@ const ManufacturingPlantsFormPage = () => {
       return;
     }
 
-    setIsLoading(true);
-
     const payload = {
       name: nameClean,
       link: linkClean,
@@ -107,23 +125,7 @@ const ManufacturingPlantsFormPage = () => {
       lng: Number(lngClean),
     };
 
-    if (!idCurrent) {
-      ManufacturingPlantsService.create(payload)
-        .then(() => {
-          toast.success("Planta creada correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
-    } else {
-      ManufacturingPlantsService.update(idCurrent, payload)
-        .then(() => {
-          toast.success("Planta actualizada correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
-    }
+    saveMutation.mutate(payload);
   };
 
   const title = idCurrent ? "Editar planta" : "Nueva planta";
@@ -228,7 +230,7 @@ const ManufacturingPlantsFormPage = () => {
       <FormActions
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
-        isSaving={isLoading}
+        isSaving={saveMutation.isPending}
       />
       {leave.confirmDialog}
     </FormContainer>

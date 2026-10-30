@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@mui/material";
@@ -29,7 +31,15 @@ const FormRestorePassword = () => {
   // Token del enlace del correo (?token=...): el API lo exige.
   const token = useSearchParams().get("token") || "";
 
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const restoreMutation = useMutation({
+    mutationFn: AuthService.loginRestorePassword,
+    onSuccess: ({ message }) => {
+      notify(message, true);
+      router.push("/dashboard");
+    },
+  });
+  // El spinner sigue mientras navega al dashboard.
+  const isLoading = restoreMutation.isPending || restoreMutation.isSuccess;
 
   const login = async () => {
     const emailClear = email.trim();
@@ -56,19 +66,7 @@ const FormRestorePassword = () => {
       return;
     }
 
-    setIsLoading(true);
-
-    AuthService.loginRestorePassword({
-      email,
-      password,
-      token,
-    })
-      .then(({ message }) => {
-        notify(message, true);
-        // El spinner sigue mientras navega al dashboard.
-        router.push("/dashboard");
-      })
-      .catch(() => setIsLoading(false));
+    restoreMutation.mutate({ email, password, token });
   };
 
   return (

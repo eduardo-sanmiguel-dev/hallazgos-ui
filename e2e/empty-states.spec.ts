@@ -71,7 +71,7 @@ test.describe("Sin datos", () => {
     let queries = 0;
     let permissions = 0;
     await page.route(
-      (url) => url.pathname.endsWith("/graphql"),
+      (url) => url.pathname.endsWith("/api/v1/evidences"),
       (route) => {
         queries++;
         return fail

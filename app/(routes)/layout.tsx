@@ -2,6 +2,8 @@
 
 import { ReactNode, useEffect, useMemo, useState } from "react";
 
+import { useQuery } from "@tanstack/react-query";
+
 import {
   AppBar as MuiAppBar,
   AppBarProps as MuiAppBarProps,
@@ -35,6 +37,7 @@ import {
 import ThemeSelector from "@shared/components/ThemeSelector";
 import RouteAccessGuard from "@shared/components/RouteAccessGuard";
 import MobileBottomNav from "@shared/components/MobileBottomNav";
+import ScrollTopButton from "@shared/components/ScrollTopButton";
 import SessionEndedDialog from "@shared/components/SessionEndedDialog";
 import { purgeExpiredDrafts } from "@shared/drafts/draftStore";
 import { useUserSessionStore } from "@store";
@@ -169,18 +172,25 @@ export default function MainLayout({ children }: { children: ReactNode }) {
   const userId = useUserSessionStore((state) => state.id);
   const setSession = useUserSessionStore((state) => state.setSession);
 
+  // Usuario en sesión: se pide al entrar (sin sesión en el store). Sin caché
+  // (gcTime 0): tras cerrar sesión y entrar con otra cuenta nunca se reusa.
+  const { data: currentUser } = useQuery({
+    queryKey: ["current-user"],
+    queryFn: UsersService.getInformationCurrentUser,
+    enabled: !userId,
+    staleTime: 0,
+    gcTime: 0,
+  });
+
   useEffect(() => {
-    if (!userId) {
-      UsersService.getInformationCurrentUser().then((user) => {
-        const { manufacturingPlants } = user;
-        setSession({
-          ...user,
-          manufacturingPlantsCurrent:
-            manufacturingPlants.length === 1 ? [manufacturingPlants[0].id] : [],
-        });
-      });
-    }
-  }, [userId, setSession]);
+    if (userId || !currentUser) return;
+    const { manufacturingPlants } = currentUser;
+    setSession({
+      ...currentUser,
+      manufacturingPlantsCurrent:
+        manufacturingPlants.length === 1 ? [manufacturingPlants[0].id] : [],
+    });
+  }, [userId, currentUser, setSession]);
 
   // Borradores locales de más de 7 días, de cualquier usuario del
   // dispositivo, al abrir la app.
@@ -387,12 +397,32 @@ export default function MainLayout({ children }: { children: ReactNode }) {
           }}
         >
           <HalloweenBackdrop />
-          <Toolbar />
-          <Container maxWidth={false} sx={{ mt: 4, mb: 4 }}>
-            <RouteAccessGuard>{children}</RouteAccessGuard>
-            <Copyright sx={{ pt: 4 }} />
-          </Container>
-          <MobileBottomNav />
+          {/* Ocupa al menos el alto visible: en páginas cortas el contenido
+              crece y el Copyright queda al fondo, no pegado al formulario.
+              `main` no es flex: el fondo de Halloween (overflow hidden) se
+              encogería al desplazar. */}
+          <Box
+            sx={{ minHeight: "100%", display: "flex", flexDirection: "column" }}
+          >
+            <Toolbar sx={{ flexShrink: 0 }} />
+            <Container
+              maxWidth={false}
+              sx={{
+                mt: 4,
+                mb: 4,
+                flexGrow: 1,
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <Box sx={{ flexGrow: 1 }}>
+                <RouteAccessGuard>{children}</RouteAccessGuard>
+              </Box>
+              <Copyright />
+            </Container>
+            <MobileBottomNav />
+          </Box>
+          <ScrollTopButton />
           <HalloweenFlyers />
           <SessionEndedDialog />
         </Box>

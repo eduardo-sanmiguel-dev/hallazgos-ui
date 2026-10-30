@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 import Image from "next/image";
 
@@ -91,37 +93,37 @@ function useEmployeeHistory({
   onHistoryEmptied,
   open,
 }: Omit<HistoryProps, "currentUserId"> & { open: boolean }) {
-  // null = todavía no se ha cargado (se pide al expandir la fila).
-  const [history, setHistory] = useState<EppHistoryItem[] | null>(null);
-  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
-  const lastRequest = useRef(0);
   const { confirm, confirmDialog } = useConfirmDialog();
 
-  // Devuelve el historial cargado, o null si falló o lo reemplazó otra
-  // petición más reciente.
-  const loadHistory = useCallback(async () => {
-    const request = ++lastRequest.current;
-    setStatus("loading");
-    try {
-      const items = await EppService.findEmployeeHistory(
-        epp.id,
-        manufacturingPlantId,
-      );
-      if (request !== lastRequest.current) return null;
-      setHistory(items);
-      setStatus("idle");
-      return items;
-    } catch {
-      if (request === lastRequest.current) setStatus("error");
-      return null;
-    }
-  }, [epp.id, manufacturingPlantId]);
+  // Se pide al expandir la fila (antes no); mientras se recarga se muestra
+  // lo último cargado.
+  const query = useQuery({
+    queryKey: ["epp", "employee-history", epp.id, manufacturingPlantId],
+    queryFn: () => EppService.findEmployeeHistory(epp.id, manufacturingPlantId),
+    enabled: open,
+    staleTime: 0,
+  });
+  const { refetch } = query;
 
-  // Se pide al expandir y cada vez que la tabla se recarga con la fila
-  // abierta (`epp` cambia); mientras llega se muestra lo último cargado.
+  // Y otra vez cada vez que la tabla se recarga con la fila abierta (`epp`
+  // es otro objeto); la primera vez ya lo pide `enabled`.
+  const shownEpp = useRef(epp);
   useEffect(() => {
-    if (open) void loadHistory();
-  }, [open, epp, loadHistory]);
+    if (shownEpp.current === epp) return;
+    shownEpp.current = epp;
+    if (open) void refetch();
+  }, [open, epp, refetch]);
+
+  // Devuelve el historial cargado, o null si falló.
+  const loadHistory = async () => {
+    const result = await refetch();
+    return result.isSuccess ? result.data : null;
+  };
+
+  const removeHistoryMutation = useMutation({
+    mutationFn: (equipmentHistoryId: number) =>
+      EppService.removeHistory(equipmentHistoryId),
+  });
 
   const confirmRemoveHistory = async (equipmentHistoryId: number) => {
     await confirm({
@@ -130,7 +132,7 @@ function useEmployeeHistory({
       confirmLabel: "Eliminar",
       tone: "danger",
       action: async () => {
-        await EppService.removeHistory(equipmentHistoryId);
+        await removeHistoryMutation.mutateAsync(equipmentHistoryId);
         // Sin entregas el colaborador sale de la lista: se recarga la tabla.
         const items = await loadHistory();
         if (!items?.length) onHistoryEmptied();
@@ -138,6 +140,13 @@ function useEmployeeHistory({
     });
   };
 
+  // null = todavía no se ha cargado (se pide al expandir la fila).
+  const history: EppHistoryItem[] | null = query.data ?? null;
+  const status: "idle" | "loading" | "error" = query.isError
+    ? "error"
+    : query.isFetching
+      ? "loading"
+      : "idle";
   const isFirstLoad = history === null && status !== "error";
 
   return {
@@ -150,6 +159,13 @@ function useEmployeeHistory({
   };
 }
 
+// Archivo de entregas del colaborador (Excel). Deshabilita el botón mientras
+// se descarga: antes un doble clic lo pedía dos veces.
+const useDownloadEppFile = (epp: Epp) =>
+  useMutation({
+    mutationFn: () => EppService.downloadFile(epp.id, epp.code),
+  });
+
 function Row({
   epp,
   manufacturingPlantId,
@@ -157,6 +173,7 @@ function Row({
   onHistoryEmptied,
 }: HistoryProps) {
   const [open, setOpen] = useState(false);
+  const download = useDownloadEppFile(epp);
   const {
     history,
     status,
@@ -198,7 +215,8 @@ function Row({
           <IconButton
             color="primary"
             aria-label={`Descargar archivo de ${epp.name}`}
-            onClick={() => EppService.downloadFile(epp.id, epp.code)}
+            onClick={() => download.mutate()}
+            disabled={download.isPending}
           >
             <SimCardDownloadIcon fontSize="large" />
           </IconButton>
@@ -358,6 +376,7 @@ function EppCard({
   onHistoryEmptied,
 }: HistoryProps) {
   const [open, setOpen] = useState(false);
+  const download = useDownloadEppFile(epp);
   const {
     history,
     status,
@@ -389,7 +408,8 @@ function EppCard({
         </Box>
         <IconButton
           aria-label={`Descargar archivo de ${epp.name}`}
-          onClick={() => EppService.downloadFile(epp.id, epp.code)}
+          onClick={() => download.mutate()}
+          disabled={download.isPending}
           sx={{ color: "text.brand" }}
         >
           <SimCardDownloadIcon />

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+import { loginPathFor } from "./app/_shared/utils/nextPath";
+
 let idx = 0;
 const PUBLIC_PATHS = new Set(["/", "/privacy"]);
 
@@ -24,7 +26,11 @@ export async function proxy(request: NextRequest) {
     if (PUBLIC_PATHS.has(pathname)) {
       return NextResponse.next();
     }
-    return NextResponse.redirect(new URL("/", request.url));
+    // Al login con la ruta pedida: después de entrar regresa a ella (p. ej.
+    // el enlace "Ver hallazgo" de un correo).
+    return NextResponse.redirect(
+      new URL(loginPathFor(pathname, url.search), request.url),
+    );
   }
 
   const headersDefault = {
@@ -87,7 +93,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  return NextResponse.redirect(new URL("/", request.url));
+  // Sesión vencida: igual, regresa a la ruta pedida al volver a entrar.
+  return NextResponse.redirect(
+    new URL(loginPathFor(pathname, url.search), request.url),
+  );
 }
 
 export const config = {

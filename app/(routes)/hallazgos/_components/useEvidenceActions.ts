@@ -9,7 +9,7 @@ import {
 } from "@shared/constants";
 import { useUserSessionStore } from "@store";
 import { EvidencesService } from "@services";
-import { EvidenceGraphql } from "@hooks";
+import type { EvidenceRow } from "@interfaces";
 
 // Qué acciones ve el usuario en cada hallazgo. Es la misma regla que tenía el
 // menú de la tabla, en un solo lugar para la tabla y las tarjetas de celular.
@@ -34,11 +34,11 @@ export function useEvidenceActions() {
 
   // Cerrado y Cancelado son finales: el API responde 409 a cerrar, cancelar o
   // reasignar fuera de Abierto / En progreso.
-  const isActive = (row: EvidenceGraphql) =>
+  const isActive = (row: EvidenceRow) =>
     row.status === STATUS_OPEN || row.status === STATUS_IN_PROGRESS;
 
   // !Atention: Force close evidence if the user is a supervisor
-  const validateSupervisor = (row: EvidenceGraphql) => {
+  const validateSupervisor = (row: EvidenceRow) => {
     if (supervisorOverrideEmails.includes(email)) {
       return true;
     }
@@ -54,15 +54,15 @@ export function useEvidenceActions() {
     );
   };
 
-  const canStart = (row: EvidenceGraphql) =>
+  const canStart = (row: EvidenceRow) =>
     (role === ROLE_ADMINISTRADOR || validateSupervisor(row)) &&
     row.status === STATUS_OPEN &&
     !row.imgProcess;
 
-  const canClose = (row: EvidenceGraphql) =>
+  const canClose = (row: EvidenceRow) =>
     validateSupervisor(row) && isActive(row);
 
-  const canReassign = (row: EvidenceGraphql) => {
+  const canReassign = (row: EvidenceRow) => {
     if (!isActive(row)) return false;
     if (role === ROLE_ADMINISTRADOR) return true;
     if (supervisorOverrideEmails.includes(email)) return true;
@@ -77,7 +77,7 @@ export function useEvidenceActions() {
     );
   };
 
-  const canCancel = (row: EvidenceGraphql) =>
+  const canCancel = (row: EvidenceRow) =>
     isActive(row) &&
     (role === ROLE_ADMINISTRADOR || cancelEvidenceEmails.includes(email));
 

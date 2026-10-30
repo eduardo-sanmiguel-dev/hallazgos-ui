@@ -2,6 +2,10 @@
 
 import { MouseEvent, useId, useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
+import { getQueryClient } from "@shared/libs/queryClient";
+
 import { useRouter } from "next/navigation";
 
 import { Avatar } from "@mui/material";
@@ -79,6 +83,19 @@ export default function HeaderUserMenu() {
   // Cerrar sesión a propósito borra los borradores del usuario en este
   // dispositivo (hay celulares compartidos); si tiene alguno, se avisa antes.
   // Si la sesión vence, en cambio, se conservan para recuperarlos.
+  const logoutMutation = useMutation({
+    mutationFn: AuthService.logout,
+    onSuccess: ({ message }) => {
+      notify(message, true);
+      // Nada de la cuenta que sale queda en memoria para la siguiente.
+      getQueryClient().clear();
+      router.push("/");
+      setTimeout(() => {
+        resetSession();
+      }, 1000);
+    },
+  });
+
   const logout = async () => {
     setAnchorEl(null);
     if (userId) {
@@ -98,13 +115,7 @@ export default function HeaderUserMenu() {
       }
       await deleteUserDrafts(userId);
     }
-    AuthService.logout().then(({ message }) => {
-      notify(message, true);
-      router.push("/");
-      setTimeout(() => {
-        resetSession();
-      }, 1000);
-    });
+    logoutMutation.mutate();
   };
 
   const installApp = async () => {

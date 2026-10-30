@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
@@ -96,7 +98,6 @@ const FieldError = ({ field, message }: { field: string; message?: string }) =>
   ) : null;
 
 const IcsFormPage = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [idCurrent, setIdCurrent] = useState<number>(0);
   const [image, setImage] = useState<string>("");
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
@@ -141,6 +142,36 @@ const IcsFormPage = () => {
     },
   });
   const isLocked = !!draft.lock;
+
+  const createMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      // Antes de enviar queda como envío pendiente en el borrador, con su
+      // clave: si se pierde la señal o se cierra la app, reenviarlo no
+      // duplica.
+      await draft.markSending();
+      return IcsService.create(formData, {
+        onUploadProgress: upload.onUploadProgress,
+        idempotencyKey: draft.key(),
+      });
+    },
+    onSuccess: async ({ data, replayed }) => {
+      await draft.settle();
+      notify(
+        replayed
+          ? `Ya se había guardado (ICS #${data.id})`
+          : "ICS creado correctamente",
+        true,
+      );
+      router.push("/ics");
+    },
+    // El aviso lo muestra el interceptor; aquí se marcan los campos.
+    onError: async (error) => {
+      await draft.settle(error);
+      failFromApi(error, icsApiField);
+    },
+    onSettled: () => upload.reset(),
+  });
+  const isLoading = createMutation.isPending;
 
   // Cada error se quita al cambiar su campo; los demás siguen marcados.
   const { failAll, failFromApi, errorOf, fieldProps } =
@@ -231,33 +262,7 @@ const IcsFormPage = () => {
       formData.append("file", attachedFile, nameWithUuid);
     }
 
-    setIsLoading(true);
-    // Antes de enviar queda como envío pendiente en el borrador, con su clave:
-    // si se pierde la señal o se cierra la app, reenviarlo no duplica.
-    await draft.markSending();
-    IcsService.create(formData, {
-      onUploadProgress: upload.onUploadProgress,
-      idempotencyKey: draft.key(),
-    })
-      .then(async ({ data, replayed }) => {
-        await draft.settle();
-        notify(
-          replayed
-            ? `Ya se había guardado (ICS #${data.id})`
-            : "ICS creado correctamente",
-          true,
-        );
-        router.push("/ics");
-      })
-      // El aviso lo muestra el interceptor; aquí se marcan los campos.
-      .catch(async (error) => {
-        await draft.settle(error);
-        failFromApi(error, icsApiField);
-      })
-      .finally(() => {
-        setIsLoading(false);
-        upload.reset();
-      });
+    createMutation.mutate(formData);
     /* else {
       IcsService.update(idCurrent, payload)
         .then(() => {
@@ -304,12 +309,9 @@ const IcsFormPage = () => {
     const id = Number(searchParams.get("id") || 0);
     if (!id) return;
 
+    // La edición aún no llena el formulario (antes se pedía el registro y
+    // se ignoraba la respuesta).
     setIdCurrent(id);
-    IcsService.findOne(id).then(() => {
-      /* setForm({
-        totalPeople: `${data.totalPeople}`,
-      }); */
-    });
   }, [searchParams]);
 
   const employeesHelper = !form.manufacturingPlant

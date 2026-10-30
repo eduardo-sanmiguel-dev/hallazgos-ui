@@ -10,7 +10,7 @@ import {
   getBrowserTimeZone,
   resolveDownloadFileName,
 } from "@shared/utils/downloadFileName";
-import { Evidence } from "_interfaces/evicences.interfaces";
+import { Evidence, EvidenceRow } from "_interfaces/evicences.interfaces";
 import { FiltersEvidences } from "(routes)/hallazgos/_components/FiltersEvidence";
 
 const baseURL = "/evidences";
@@ -81,9 +81,13 @@ interface PermissionsConfigResponse {
   cancelEvidenceEmails: string[];
 }
 
-const findAll = async (params: FiltersEvidences) => {
-  const { data } = await api.get<Evidence[]>("", {
-    params: paramsFilter(params),
+/** Lista de hallazgos paginada con los filtros (`page` empieza en 1). */
+const findPaginated = async (
+  filters: FiltersEvidences,
+  { page, limit }: { page: number; limit: number },
+) => {
+  const { data } = await api.get<{ data: EvidenceRow[]; count: number }>("", {
+    params: { page, limit, ...paramsFilter(filters) },
   });
   return data;
 };
@@ -213,7 +217,7 @@ const downloadPdf = async (filters: FiltersEvidences) => {
 };
 
 export const EvidencesService = {
-  findAll,
+  findPaginated,
   create,
   remove,
   solution,

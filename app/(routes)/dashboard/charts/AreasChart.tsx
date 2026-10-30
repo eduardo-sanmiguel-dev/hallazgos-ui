@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 
 import Highcharts from "highcharts/esm/highcharts.src.js";
@@ -8,8 +8,8 @@ import { Chart } from "@highcharts/react";
 
 import "highcharts/esm/modules/accessibility.src.js";
 
-import { ResponseDashboardStatusByFilters } from "@interfaces";
 import { DashboardService } from "@services";
+import { useDashboardQuery } from "../_components/useDashboardSummary";
 import { optionsChartDefault } from "@shared/libs";
 import { donutResponsive } from "./donutResponsive";
 
@@ -34,39 +34,14 @@ interface Props {
 
 const AreasChart = ({ filters }: Props) => {
   const theme = useTheme();
-  const [areasData, setAreasData] =
-    useState<ResponseDashboardStatusByFilters | null>(null);
+  const { data: areasData = null } = useDashboardQuery(
+    "areas",
+    DashboardService.findAreasByFilters,
+    filters,
+  );
 
   const hasCompleteFilters =
     !!filters.manufacturingPlantId && !!filters.startDate && !!filters.endDate;
-
-  useEffect(() => {
-    if (!hasCompleteFilters) {
-      setAreasData(null);
-      return;
-    }
-
-    DashboardService.findAreasByFilters({
-      manufacturingPlantId: filters.manufacturingPlantId,
-      startDate: filters.startDate,
-      endDate: filters.endDate,
-      ...(filters.areaIds.length > 0 && { areaIds: filters.areaIds }),
-      ...(filters.responsibleIds.length > 0 && {
-        responsibleIds: filters.responsibleIds,
-      }),
-      ...(filters.mainTypeIds.length > 0 && {
-        mainTypeIds: filters.mainTypeIds,
-      }),
-    }).then(setAreasData);
-  }, [
-    hasCompleteFilters,
-    filters.manufacturingPlantId,
-    filters.startDate,
-    filters.endDate,
-    filters.areaIds,
-    filters.responsibleIds,
-    filters.mainTypeIds,
-  ]);
 
   const seriesData = useMemo(() => {
     return areasData?.seriesData || [];

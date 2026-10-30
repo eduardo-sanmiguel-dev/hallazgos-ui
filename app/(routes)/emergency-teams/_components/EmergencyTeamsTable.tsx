@@ -1,4 +1,6 @@
-import { ChangeEvent, MouseEvent, useState } from "react";
+import { ChangeEvent, MouseEvent } from "react";
+
+import { useMutation } from "@tanstack/react-query";
 
 import { useRouter } from "next/navigation";
 
@@ -59,7 +61,6 @@ export default function EmergencyTeamsTable({
   pagination,
 }: Props) {
   const { page, setPage, rowsPerPage, setRowsPerPage, count } = pagination;
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   // En celular, tarjetas (ResponsiveTable) con su casilla para imprimir.
   const isPhone = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
 
@@ -71,15 +72,15 @@ export default function EmergencyTeamsTable({
   const emptyRows =
     page > 0 && rowsPerPage > 0 ? Math.max(0, rowsPerPage - rows.length) : 0;
 
-  const remove = (id: number) => {
-    setIsLoading(true);
-    return EmergencyTeamsService.remove(id)
-      .then(() => {
-        notify("Equipo de emergencia eliminado correctamente", true);
-        getData();
-      })
-      .finally(() => setIsLoading(false));
-  };
+  const removeMutation = useMutation({
+    mutationFn: (id: number) => EmergencyTeamsService.remove(id),
+    onSuccess: () => {
+      notify("Equipo de emergencia eliminado correctamente", true);
+      getData();
+    },
+  });
+
+  const remove = (id: number) => removeMutation.mutateAsync(id);
 
   const confirmRemove = async (row: EmergencyTeam) => {
     await confirm({
@@ -149,7 +150,10 @@ export default function EmergencyTeamsTable({
       <EditAction
         onClick={() => router.push("/emergency-teams/form?id=" + row.id)}
       />
-      <DeleteAction onClick={() => confirmRemove(row)} disabled={isLoading} />
+      <DeleteAction
+        onClick={() => confirmRemove(row)}
+        disabled={removeMutation.isPending}
+      />
     </RowActions>
   );
 

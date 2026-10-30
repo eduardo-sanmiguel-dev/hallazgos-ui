@@ -5,8 +5,8 @@ import { expect, test } from "./support/fixtures";
 import { pickOption, toast, trackPageErrors } from "./support/ui";
 
 // Acciones sobre hallazgos de la tabla: detalle, comentarios, en progreso,
-// cierre, reasignación y cancelación. La lista viene de GraphQL con datos
-// fijos (un hallazgo por estado); las escrituras se interceptan.
+// cierre, reasignación y cancelación. La lista (GET /evidences) viene con
+// datos fijos (un hallazgo por estado); las escrituras se interceptan.
 
 const PNG_1X1 = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
@@ -21,7 +21,6 @@ const daysAgo = (days: number) =>
   new Date(Date.now() - days * 24 * 60 * 60_000).toISOString();
 
 const evidence = (id: number, overrides: Record<string, unknown>) => ({
-  __typename: "Evidence",
   id,
   status: "Abierto",
   priorityDays: 3,
@@ -34,32 +33,29 @@ const evidence = (id: number, overrides: Record<string, unknown>) => ({
   imgSolution: "",
   description: "E2E descripción del hallazgo",
   descriptionSolution: "",
-  manufacturingPlant: { __typename: "ManufacturingPlant", ...PLANT },
-  user: { __typename: "User", name: "E2E Autor" },
+  manufacturingPlant: { ...PLANT },
+  user: { name: "E2E Autor" },
   mainType: {
-    __typename: "MainType",
     name: "Condición insegura",
     requiresEvidence: true,
   },
-  secondaryType: { __typename: "SecondaryType", name: "E2E Tipo" },
-  supervisors: [{ __typename: "User", ...SUPERVISOR }],
+  secondaryType: { name: "E2E Tipo" },
+  supervisors: [{ ...SUPERVISOR }],
   responsibles: [],
   zone: {
-    __typename: "Zone",
     name: "E2E Lugar",
-    area: { __typename: "Area", name: "E2E Zona" },
+    area: { name: "E2E Zona" },
   },
-  process: { __typename: "Process", name: "E2E Proceso" },
+  process: { name: "E2E Proceso" },
   // Quién lo inició y quién lo cerró: nulos, como en los hallazgos anteriores
   // a que se registrara.
   startedBy: null,
   closedBy: null,
   comments: [
     {
-      __typename: "Comment",
       id: 1,
       comment: "E2E comentario previo",
-      user: { __typename: "User", name: "E2E Autor" },
+      user: { name: "E2E Autor" },
       createdAt: daysAgo(2),
     },
   ],
@@ -70,7 +66,6 @@ const EVIDENCES = [
   // Abierto, vencido, comportamiento inseguro, sin responsables asignados.
   evidence(9001, {
     mainType: {
-      __typename: "MainType",
       name: "Comportamiento inseguro",
       requiresEvidence: false,
     },
@@ -82,7 +77,7 @@ const EVIDENCES = [
     createdAt: daysAgo(2),
     startProcessDate: daysAgo(1),
     imgProcess: "e2e-process.png",
-    responsibles: [{ __typename: "User", ...OTHER }],
+    responsibles: [{ ...OTHER }],
     process: null,
   }),
   // Cerrado a tiempo, con imágenes de las tres etapas.
@@ -94,9 +89,9 @@ const EVIDENCES = [
     solutionDate: daysAgo(3),
     imgProcess: "e2e-process.png",
     imgSolution: "e2e-solution.png",
-    zone: { __typename: "Zone", name: "E2E Lugar", area: null },
-    startedBy: { __typename: "User", name: "E2E Quien inició" },
-    closedBy: { __typename: "User", name: "E2E Quien cerró" },
+    zone: { name: "E2E Lugar", area: null },
+    startedBy: { name: "E2E Quien inició" },
+    closedBy: { name: "E2E Quien cerró" },
   }),
   // Cancelado, sin prioridad ni imágenes.
   evidence(9004, {
@@ -115,15 +110,7 @@ const openList = async (
   page: Page,
   { asSupervisor = false, data = EVIDENCES } = {},
 ) => {
-  await page.route("**/graphql", (route) =>
-    route.fulfill({
-      json: {
-        data: {
-          evidences: { __typename: "Evidences", count: 12, data },
-        },
-      },
-    }),
-  );
+  await mockGet(page, "/evidences", { count: 12, data });
   // Las imágenes del API no existen para estos datos: se sirve un PNG.
   await page.route("**/static/images/**", (route) =>
     route.fulfill({ contentType: "image/png", body: PNG_1X1 }),
@@ -417,7 +404,6 @@ test.describe("Hallazgos: acciones", () => {
         data: [
           evidence(9001, {
             mainType: {
-              __typename: "MainType",
               name: "Comportamiento inseguro",
               ...mainType,
             },
@@ -544,7 +530,8 @@ test.describe("Hallazgos: acciones", () => {
     await openList(page);
     const request = page.waitForRequest(
       (r) =>
-        r.url().includes("/graphql") && r.postDataJSON()?.variables?.page === 2,
+        new URL(r.url()).pathname.endsWith("/api/v1/evidences") &&
+        new URL(r.url()).searchParams.get("page") === "2",
     );
     await page.getByRole("button", { name: "Página siguiente" }).click();
     await request;

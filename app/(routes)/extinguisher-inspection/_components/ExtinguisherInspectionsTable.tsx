@@ -1,3 +1,5 @@
+import { useMutation } from "@tanstack/react-query";
+
 import SimCardDownloadIcon from "@mui/icons-material/SimCardDownload";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutlineOutlined";
 import IconButton from "@mui/material/IconButton";
@@ -80,6 +82,10 @@ export default function ExtinguisherInspectionsTable({
   pagination,
 }: Props) {
   const router = useRouter();
+  // Una a la vez: el botón se deshabilita mientras se descarga.
+  const download = useMutation({
+    mutationFn: (id: number) => ExtinguisherInspectionsService.downloadFile(id),
+  });
 
   return (
     <ResponsiveTable
@@ -95,9 +101,8 @@ export default function ExtinguisherInspectionsTable({
             <IconButton
               aria-label={`Descargar Excel de la inspección ${row.id}`}
               sx={{ color: "text.brand" }}
-              onClick={() =>
-                ExtinguisherInspectionsService.downloadFile(row.id)
-              }
+              onClick={() => download.mutate(row.id)}
+              disabled={download.isPending}
             >
               <SimCardDownloadIcon />
             </IconButton>

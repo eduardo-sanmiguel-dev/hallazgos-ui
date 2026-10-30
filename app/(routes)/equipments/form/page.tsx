@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
@@ -50,7 +52,6 @@ const EMPTY_FORM: EquipmentForm = {
 // Antes era un diálogo sobre la lista; ahora es su propia ruta, como el
 // resto de los catálogos de Configuración.
 const EquipmentsFormPage = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [form, setForm] = useState<EquipmentForm>(EMPTY_FORM);
 
   const router = useRouter();
@@ -70,18 +71,25 @@ const EquipmentsFormPage = () => {
     ignoreOnCreate: ["manufacturingPlantId"],
   });
 
-  const record = useEditRecord(idCurrent, EquipmentsService.findOne, (data) => {
-    const loaded = {
-      name: data.name,
-      deliveryFrequency: data?.deliveryFrequency
-        ? String(data.deliveryFrequency)
-        : "",
-      manufacturingPlantId: String(data.manufacturingPlant.id),
-      price: data?.costHistory.length ? String(data.costHistory[0].price) : "",
-    };
-    setForm(loaded);
-    leave.markPristine(loaded);
-  });
+  const record = useEditRecord(
+    "equipments",
+    idCurrent,
+    EquipmentsService.findOne,
+    (data) => {
+      const loaded = {
+        name: data.name,
+        deliveryFrequency: data?.deliveryFrequency
+          ? String(data.deliveryFrequency)
+          : "",
+        manufacturingPlantId: String(data.manufacturingPlant.id),
+        price: data?.costHistory.length
+          ? String(data.costHistory[0].price)
+          : "",
+      };
+      setForm(loaded);
+      leave.markPristine(loaded);
+    },
+  );
 
   useEffect(() => {
     if (!idCurrent && manufacturingPlants.length === 1) {
@@ -91,6 +99,22 @@ const EquipmentsFormPage = () => {
       }));
     }
   }, [manufacturingPlants, idCurrent]);
+
+  const saveMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof EquipmentsService.create>[0]) =>
+      idCurrent
+        ? EquipmentsService.update(idCurrent, payload)
+        : EquipmentsService.create(payload),
+    onSuccess: () => {
+      toast.success(
+        idCurrent
+          ? "Equipo actualizado correctamente"
+          : "Equipo creado correctamente",
+      );
+      router.push(LIST_HREF);
+    },
+    onError: (error) => failFromApi(error),
+  });
 
   const save = () => {
     const nameClean = form.name.trim();
@@ -117,25 +141,7 @@ const EquipmentsFormPage = () => {
       price: priceClean > 0 ? priceClean : null,
     };
 
-    setIsLoading(true);
-
-    if (!idCurrent) {
-      EquipmentsService.create(payload)
-        .then(() => {
-          toast.success("Equipo creado correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
-    } else {
-      EquipmentsService.update(idCurrent, payload)
-        .then(() => {
-          toast.success("Equipo actualizado correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
-    }
+    saveMutation.mutate(payload);
   };
 
   const title = idCurrent ? "Editar equipo" : "Nuevo equipo";
@@ -245,7 +251,7 @@ const EquipmentsFormPage = () => {
       <FormActions
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
-        isSaving={isLoading}
+        isSaving={saveMutation.isPending}
       />
       {leave.confirmDialog}
     </FormContainer>

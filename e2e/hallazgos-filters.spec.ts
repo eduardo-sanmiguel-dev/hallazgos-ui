@@ -12,17 +12,17 @@ import {
 } from "./support/ui";
 
 // Filtros de la lista de hallazgos con los catálogos reales. Cada filtro
-// viaja como variable de la consulta GraphQL.
+// viaja como parámetro de GET /evidences (listas separadas por comas).
 
-/** Espera la siguiente consulta de hallazgos cuyas variables cumplan `match`. */
+/** Espera la siguiente consulta de hallazgos cuyos parámetros cumplan `match`. */
 const nextQuery = (
   page: Page,
-  match: (variables: Record<string, unknown>) => boolean,
+  match: (params: Record<string, string>) => boolean,
 ) =>
   page.waitForRequest((request) => {
-    if (!request.url().includes("/graphql")) return false;
-    const variables = request.postDataJSON()?.variables;
-    return !!variables && match(variables);
+    const url = new URL(request.url());
+    if (!url.pathname.endsWith("/api/v1/evidences")) return false;
+    return match(Object.fromEntries(url.searchParams));
   });
 
 const chip = (page: Page, text: string | RegExp) =>
@@ -37,41 +37,42 @@ test.describe("Hallazgos: filtros", () => {
     await expect(chip(page, "Sin filtros seleccionados")).toBeVisible();
 
     // IDs: se normalizan las comas y se aplican tras una pausa.
-    const byIds = nextQuery(page, (v) => Array.isArray(v.ids));
+    const byIds = nextQuery(page, (v) => v.ids === "1,2");
     await page.getByLabel("ID(s)").fill("1,,2,");
     await byIds;
     await expect(chip(page, "IDs: 1,2")).toBeVisible();
-    const byId = nextQuery(page, (v) => v.id === 1);
+    const byId = nextQuery(page, (v) => v.id === "1");
     await page.getByLabel("ID(s)").fill("1");
     await byId;
     await page.getByLabel("ID(s)").fill("");
 
     const [plant] = await sessionPlants(page);
-    const byPlant = nextQuery(page, (v) => v.manufacturingPlantId === plant.id);
+    const byPlant = nextQuery(
+      page,
+      (v) => v.manufacturingPlantId === String(plant.id),
+    );
     await pickOption(page, "Planta", plant.name);
     await byPlant;
     await expect(chip(page, `Planta: ${plant.name}`)).toBeVisible();
 
-    const byMainTypes = nextQuery(page, (v) => Array.isArray(v.mainTypeIds));
+    const byMainTypes = nextQuery(page, (v) => !!v.mainTypeIds);
     await pickMany(page, "Clasificación", 3);
     await byMainTypes;
     await expect(chip(page, /^Clasificación: .+ \+1$/)).toBeVisible();
 
-    const bySecondary = nextQuery(page, (v) =>
-      Array.isArray(v.secondaryTypeIds),
-    );
+    const bySecondary = nextQuery(page, (v) => !!v.secondaryTypeIds);
     await pickMany(page, "Tipo");
     await bySecondary;
 
-    const byAreas = nextQuery(page, (v) => Array.isArray(v.areaIds));
+    const byAreas = nextQuery(page, (v) => !!v.areaIds);
     await pickMany(page, "Zonas");
     await byAreas;
 
-    const byZones = nextQuery(page, (v) => Array.isArray(v.zoneIds));
+    const byZones = nextQuery(page, (v) => !!v.zoneIds);
     await pickMany(page, "Lugar");
     await byZones;
 
-    const byStatuses = nextQuery(page, (v) => Array.isArray(v.statuses));
+    const byStatuses = nextQuery(page, (v) => !!v.statuses);
     await pickMany(page, "Estatus", 2);
     await byStatuses;
 
@@ -93,9 +94,7 @@ test.describe("Hallazgos: filtros", () => {
     await page.goto("/hallazgos");
     const [plant] = await sessionPlants(page);
     await pickOption(page, "Planta", plant.name);
-    const byResponsibles = nextQuery(page, (v) =>
-      Array.isArray(v.responsibleIds),
-    );
+    const byResponsibles = nextQuery(page, (v) => !!v.responsibleIds);
     await pickMany(page, "Responsables", 3);
     await byResponsibles;
     await expect(chip(page, /^Responsables: /)).toBeVisible();
@@ -163,9 +162,9 @@ test.describe("Hallazgos: filtros", () => {
     const query = nextQuery(
       page,
       (v) =>
-        v.manufacturingPlantId === plant.id &&
-        Array.isArray(v.mainTypeIds) &&
-        Array.isArray(v.areaIds) &&
+        v.manufacturingPlantId === String(plant.id) &&
+        !!v.mainTypeIds &&
+        !!v.areaIds &&
         v.startDate === "01/01/2026",
     );
     await page.goto(

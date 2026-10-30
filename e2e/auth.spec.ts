@@ -8,9 +8,11 @@ import { toast } from "./support/ui";
 test.use({ storageState: { cookies: [], origins: [] } });
 
 test.describe("Sesión", () => {
-  test("una ruta protegida sin sesión regresa al inicio", async ({ page }) => {
+  test("una ruta protegida sin sesión regresa al inicio (con la ruta pedida)", async ({
+    page,
+  }) => {
     await page.goto("/hallazgos");
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/\?next=%2Fhallazgos$/);
     await expect(page.getByRole("button", { name: "Iniciar" })).toBeVisible();
   });
 
@@ -56,6 +58,6 @@ test.describe("Sesión", () => {
     await expect(page).toHaveURL(/\/$/);
     // La cookie ya no da acceso.
     await page.goto("/dashboard");
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/\?next=%2Fdashboard$/);
   });
 });

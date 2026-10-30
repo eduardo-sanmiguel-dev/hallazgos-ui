@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 
@@ -51,6 +53,10 @@ const columns: ResponsiveColumn<Hds>[] = [
 
 const HdsPage = () => {
   const [filters, setFilters] = useState<IFiltersHds>(DEFAULT_FILTERS_HDS);
+  // Una a la vez: el botón se deshabilita mientras se descarga.
+  const download = useMutation({
+    mutationFn: (name: string) => HdsService.downloadFile(name),
+  });
 
   const {
     rows: data,
@@ -148,7 +154,8 @@ const HdsPage = () => {
             <RowActions>
               <ViewAction
                 label="Ver archivo"
-                onClick={() => HdsService.downloadFile(row.name)}
+                onClick={() => download.mutate(row.name)}
+                disabled={download.isPending}
               />
             </RowActions>
           )}

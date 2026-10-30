@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 
 import { useRouter } from "next/navigation";
 
@@ -86,20 +86,18 @@ export default function TableGembaWalkZones({
   getData,
   pagination,
 }: Props) {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
   const router = useRouter();
   const { confirm, confirmDialog } = useConfirmDialog();
 
-  const remove = (id: number) => {
-    setIsLoading(true);
-    return GembaWalkZonesService.remove(id)
-      .then(() => {
-        notify("Zona eliminada correctamente", true);
-        getData();
-      })
-      .finally(() => setIsLoading(false));
-  };
+  const removeMutation = useMutation({
+    mutationFn: (id: number) => GembaWalkZonesService.remove(id),
+    onSuccess: () => {
+      notify("Zona eliminada correctamente", true);
+      getData();
+    },
+  });
+
+  const remove = (id: number) => removeMutation.mutateAsync(id);
 
   const confirmRemove = async (row: GembaWalkZone) => {
     await confirm({
@@ -128,7 +126,7 @@ export default function TableGembaWalkZones({
             />
             <DeleteAction
               onClick={() => confirmRemove(row)}
-              disabled={isLoading}
+              disabled={removeMutation.isPending}
             />
           </RowActions>
         )}

@@ -1,167 +1,20 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 
-import { gql } from "@apollo/client";
-import { useLazyQuery } from "@apollo/client/react";
+import { useQuery } from "@tanstack/react-query";
 
 import { FiltersEvidences } from "@routes/hallazgos/_components/FiltersEvidence";
+import { EvidencesService } from "@services";
+import type { EvidenceRow } from "@interfaces";
 import { useRowsPerPage } from "./useRowsPerPage";
 
-const query = gql`
-  query Evidences(
-    $page: Int!
-    $limit: Int!
-    $id: Int
-    $ids: [Int!]
-    $manufacturingPlantId: Float
-    $mainTypeIds: [Int!]
-    $secondaryTypeIds: [Int!]
-    $areaIds: [Int!]
-    $zoneIds: [Int!]
-    $responsibleIds: [Int!]
-    $statuses: [String!]
-    $startDate: String
-    $endDate: String
-  ) {
-    evidences(
-      page: $page
-      limit: $limit
-      id: $id
-      ids: $ids
-      manufacturingPlantId: $manufacturingPlantId
-      mainTypeIds: $mainTypeIds
-      secondaryTypeIds: $secondaryTypeIds
-      areaIds: $areaIds
-      zoneIds: $zoneIds
-      responsibleIds: $responsibleIds
-      statuses: $statuses
-      startDate: $startDate
-      endDate: $endDate
-    ) {
-      count
-      data {
-        id
-        status
-        priorityDays
-        createdAt
-        updatedAt
-        solutionDate
-        startProcessDate
-        imgEvidence
-        imgProcess
-        imgSolution
-        description
-        descriptionSolution
-        manufacturingPlant {
-          id
-          name
-        }
-        user {
-          name
-        }
-        mainType {
-          name
-          requiresEvidence
-        }
-        secondaryType {
-          name
-        }
-        supervisors {
-          id
-          name
-        }
-        responsibles {
-          id
-          name
-        }
-        zone {
-          name
-          area {
-            name
-          }
-        }
-        process {
-          name
-        }
-        comments {
-          id
-          comment
-          user {
-            name
-          }
-          createdAt
-        }
-        user {
-          name
-        }
-        # Quién lo inició y quién lo cerró (nulos en hallazgos anteriores).
-        startedBy {
-          name
-        }
-        closedBy {
-          name
-        }
-      }
-    }
-  }
-`;
+const EMPTY_ROWS: EvidenceRow[] = [];
 
-interface ResponseEvidences {
-  evidences: Evidences;
-}
-
-interface Evidences {
-  count: number;
-  data: EvidenceGraphql[];
-}
-
-export interface CommentEvidenceGraphql {
-  id: number;
-  comment: string;
-  user: { name: string };
-  createdAt: Date;
-}
-
-export interface EvidenceGraphql {
-  id: number;
-  status: string;
-  priorityDays?: number | null;
-  createdAt: Date;
-  updatedAt: Date;
-  solutionDate: Date | null;
-  startProcessDate: Date | null;
-  /** Quién lo pasó a "En progreso" (null: anterior a que se registrara). */
-  startedBy?: OnlyName | null;
-  /** Quién lo cerró (null: anterior a que se registrara). */
-  closedBy?: OnlyName | null;
-  imgEvidence: string;
-  imgProcess: string;
-  imgSolution: string;
-  manufacturingPlant: IdAndName;
-  user: OnlyName;
-  mainType: OnlyName & { requiresEvidence?: boolean | null };
-  secondaryType: OnlyName;
-  supervisors: { id: number; name: string }[];
-  responsibles: { id: number; name: string }[];
-  comments: CommentEvidenceGraphql[];
-  zone: {
-    name: string;
-    area?: OnlyName | null;
-  };
-  process: OnlyName | null;
-  description?: string;
-  descriptionSolution?: string;
-}
-
-interface OnlyName {
-  name: string;
-}
-
-interface IdAndName {
-  id: number;
-  name: string;
-}
-
-export const useEvidences = () => {
+/**
+ * Lista de hallazgos (GET /evidences) con los filtros, la página y las filas
+ * por página. Se vuelve a pedir sola al cambiar cualquiera de ellos; una
+ * respuesta vieja que llegue tarde no pisa a la vigente.
+ */
+export const useEvidences = (filters: FiltersEvidences) => {
   const [page, setPage] = useState(0);
   // Sin "Todos": son miles de hallazgos.
   const {
@@ -170,70 +23,29 @@ export const useEvidences = () => {
     ready: rowsPerPageReady,
   } = useRowsPerPage("evidences");
 
-  const [findEvidences, { called, loading, data, error }] =
-    useLazyQuery<ResponseEvidences>(query, { fetchPolicy: "no-cache" });
-
-  // Memorizada: la página la usa en un efecto. Antes se creaba en cada
-  // render y, si la consulta fallaba, cada error provocaba otra consulta sin
-  // fin (sin señal: decenas de peticiones y avisos por segundo). Cambia, y
-  // vuelve a consultar, con la página o las filas por página, como antes.
-  const handleFindEvidences = useCallback(
-    (filters: FiltersEvidences) => {
-      // Hasta leer las filas por página guardadas: evita pedir dos veces.
-      if (!rowsPerPageReady) return;
-
-      const evidenceIds = filters.evidenceId
-        .split(",")
-        .map((value) => Number(value.trim()))
-        .filter((value) => Number.isInteger(value) && value > 0);
-
-      const variables = {
-        ...(evidenceIds.length === 1 && {
-          id: evidenceIds[0],
-        }),
-        ...(evidenceIds.length > 1 && {
-          ids: evidenceIds,
-        }),
-        ...(filters.manufacturingPlantId && {
-          manufacturingPlantId: Number(filters.manufacturingPlantId),
-        }),
-        ...(filters.mainTypeIds.length > 0 && {
-          mainTypeIds: filters.mainTypeIds.map((id) => Number(id)),
-        }),
-        ...(filters.secondaryTypeIds.length > 0 && {
-          secondaryTypeIds: filters.secondaryTypeIds.map((id) => Number(id)),
-        }),
-        ...(filters.areaIds.length > 0 && {
-          areaIds: filters.areaIds.map((id) => Number(id)),
-        }),
-        ...(filters.zoneIds.length > 0 && {
-          zoneIds: filters.zoneIds.map((id) => Number(id)),
-        }),
-        ...(filters.responsibleIds.length > 0 && {
-          responsibleIds: filters.responsibleIds.map((id) => Number(id)),
-        }),
-        ...(filters.states.length > 0 && {
-          statuses: filters.states,
-        }),
-        ...(filters.startDate && { startDate: filters.startDate }),
-        ...(filters.endDate && { endDate: filters.endDate }),
-      };
-
-      return findEvidences({
-        variables: { page: page + 1, limit: rowsPerPage, ...variables },
-      }).catch(() => undefined);
-    },
-    [rowsPerPageReady, page, rowsPerPage, findEvidences],
-  );
+  const query = useQuery({
+    queryKey: ["list", "evidences", filters, page, rowsPerPage],
+    queryFn: () =>
+      EvidencesService.findPaginated(filters, {
+        page: page + 1,
+        limit: rowsPerPage,
+      }),
+    // Hasta leer las filas por página guardadas: evita pedir dos veces.
+    enabled: rowsPerPageReady,
+    // Siempre lo último al volver a la pantalla, sin recargar (ni mostrar el
+    // esqueleto) al regresar a la pestaña.
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+  });
 
   return {
-    findEvidences: handleFindEvidences,
-    isCalled: called,
-    isLoading: loading,
+    /** Vuelve a pedir la página actual (botón Recargar, tras una acción). */
+    refresh: () => void query.refetch(),
+    isLoading: query.isFetching,
     // La consulta falló: la página muestra ErrorState con "Reintentar".
-    isError: !!error && !loading,
-    evidences: (data?.evidences.data || []) as EvidenceGraphql[],
-    countEvidence: data?.evidences.count || 0,
+    isError: query.isError && !query.isFetching,
+    evidences: query.data?.data ?? EMPTY_ROWS,
+    countEvidence: query.data?.count ?? 0,
     page,
     setPage,
     rowsPerPage,

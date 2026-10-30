@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 
@@ -33,7 +35,6 @@ interface ProcessForm {
 const EMPTY_FORM: ProcessForm = { name: "", manufacturingPlantId: "" };
 
 const ProcessesFormPage = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [form, setForm] = useState<ProcessForm>(EMPTY_FORM);
 
   const router = useRouter();
@@ -45,13 +46,34 @@ const ProcessesFormPage = () => {
     useFormFieldErrors(form);
   const leave = useLeaveConfirm(form, { isEditing: !!idCurrent });
 
-  const record = useEditRecord(idCurrent, ProcessesService.findOne, (data) => {
-    const loaded = {
-      name: data.name,
-      manufacturingPlantId: `${data.manufacturingPlant.id}`,
-    };
-    setForm(loaded);
-    leave.markPristine(loaded);
+  const record = useEditRecord(
+    "processes",
+    idCurrent,
+    ProcessesService.findOne,
+    (data) => {
+      const loaded = {
+        name: data.name,
+        manufacturingPlantId: `${data.manufacturingPlant.id}`,
+      };
+      setForm(loaded);
+      leave.markPristine(loaded);
+    },
+  );
+
+  const saveMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof ProcessesService.create>[0]) =>
+      idCurrent
+        ? ProcessesService.update(idCurrent, payload)
+        : ProcessesService.create(payload),
+    onSuccess: () => {
+      toast.success(
+        idCurrent
+          ? "Proceso actualizado correctamente"
+          : "Proceso creado correctamente",
+      );
+      router.push(LIST_HREF);
+    },
+    onError: (error) => failFromApi(error),
   });
 
   const save = () => {
@@ -71,31 +93,10 @@ const ProcessesFormPage = () => {
       return;
     }
 
-    setIsLoading(true);
-
-    if (!idCurrent) {
-      ProcessesService.create({
-        name: nameClean,
-        manufacturingPlantId,
-      })
-        .then(() => {
-          toast.success("Proceso creado correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
-    } else {
-      ProcessesService.update(idCurrent, {
-        name: nameClean,
-        manufacturingPlantId,
-      })
-        .then(() => {
-          toast.success("Proceso actualizado correctamente");
-          router.push(LIST_HREF);
-        })
-        .catch(failFromApi)
-        .finally(() => setIsLoading(false));
-    }
+    saveMutation.mutate({
+      name: nameClean,
+      manufacturingPlantId,
+    });
   };
 
   const title = idCurrent ? "Editar proceso" : "Nuevo proceso";
@@ -156,7 +157,7 @@ const ProcessesFormPage = () => {
       <FormActions
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
-        isSaving={isLoading}
+        isSaving={saveMutation.isPending}
       />
       {leave.confirmDialog}
     </FormContainer>

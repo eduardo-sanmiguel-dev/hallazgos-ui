@@ -27,7 +27,7 @@ import StatusChip, { EvidenceStatusChip } from "@shared/components/StatusChip";
 import { riskLevelTone } from "@shared/constants/semanticTones";
 import { STATUS_CANCELLED } from "@shared/constants/semanticTones";
 import { STATUS_CLOSED } from "@shared/constants";
-import { CommentEvidenceGraphql, EvidenceGraphql } from "@hooks";
+import type { EvidenceRow, EvidenceRowComment } from "@interfaces";
 import { requiresPhotoEvidence } from "@routes/hallazgos/_constants/mainTypes";
 import DetailSection, {
   DetailField,
@@ -38,7 +38,7 @@ import EvidenceComments from "./EvidenceComments";
 import EvidencePhotoViewer, { EvidencePhoto } from "./EvidencePhotoViewer";
 
 interface Props {
-  evidenceCurrent: EvidenceGraphql;
+  evidenceCurrent: EvidenceRow;
   setRefreshData: (refreshData: boolean) => void;
 }
 
@@ -174,7 +174,7 @@ export default function DetailsEvidence({
   evidenceCurrent,
   setRefreshData,
 }: Props) {
-  const [comments, setComments] = useState<CommentEvidenceGraphql[]>(
+  const [comments, setComments] = useState<EvidenceRowComment[]>(
     evidenceCurrent.comments,
   );
   const [photoIndex, setPhotoIndex] = useState<number | null>(null);

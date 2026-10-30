@@ -1,4 +1,4 @@
-import { EvidenceGraphql } from "@hooks";
+import type { EvidenceRow } from "@interfaces";
 import { STATUS_CLOSED } from "@shared/constants";
 import dayjs from "@shared/libs/dayjs";
 import { toast } from "sonner";
@@ -56,7 +56,7 @@ export const baseUrlImage = (image: string, path?: string) => {
 
 export { stringToDate, stringToDateWithTime, updatedDateLabel } from "./dates";
 
-export const durantionToTime = (row: EvidenceGraphql) => {
+export const durantionToTime = (row: EvidenceRow) => {
   const { createdAt, solutionDate, status } = row;
 
   if (!solutionDate || status !== STATUS_CLOSED) return "";

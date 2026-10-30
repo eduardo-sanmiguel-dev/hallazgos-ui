@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useState } from "react";
 
+import { useMutation } from "@tanstack/react-query";
+
 import { Button } from "@mui/material";
 import { Dialog } from "@mui/material";
 import { DialogActions } from "@mui/material";
@@ -28,7 +30,14 @@ const DRAFTS_UNAVAILABLE_SESSION =
 // con Escape ni tocando fuera: la única salida es iniciar sesión.
 export default function SessionEndedDialog() {
   const [open, setOpen] = useState(false);
-  const [isLeaving, setIsLeaving] = useState(false);
+  // Primero se borra la cookie: con un usuario desactivado el token sigue
+  // siendo válido y "/" lo mandaría de vuelta al dashboard. Falle o no, sale.
+  const logoutMutation = useMutation({
+    mutationFn: AuthService.logout,
+    onSettled: () => window.location.replace("/"),
+  });
+  // Ya va de salida (también si falló: está navegando).
+  const isLeaving = !logoutMutation.isIdle;
   const [drafts, setDrafts] = useState<"saved" | "none" | "unavailable">(
     "none",
   );
@@ -84,15 +93,10 @@ export default function SessionEndedDialog() {
           autoFocus
           disabled={isLeaving}
           onClick={() => {
-            setIsLeaving(true);
             // Este diálogo ya dijo qué pasa con lo capturado: el aviso nativo
             // de "salir de la página" sobraría.
             allowUnload();
-            // Primero se borra la cookie: con un usuario desactivado el token
-            // sigue siendo válido y "/" lo mandaría de vuelta al dashboard.
-            AuthService.logout()
-              .catch(() => undefined)
-              .finally(() => window.location.replace("/"));
+            logoutMutation.mutate();
           }}
         >
           Iniciar sesión
