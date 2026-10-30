@@ -148,10 +148,14 @@ test.describe("Tablas con casos extremos", () => {
     await page.goto("/equipments");
 
     await page.getByRole("button", { name: "Editar" }).first().click();
-    const dialog = page.getByRole("dialog", { name: "Editar equipo" });
-    await expect(dialog.getByLabel("Nombre")).toHaveValue("E2E Sin precio");
-    await expect(dialog.getByLabel("Precio")).toHaveValue("");
-    await dialog.getByRole("button", { name: "Guardar" }).click();
+    // El formulario es su propia ruta (antes, un diálogo sobre la lista).
+    await expect(page).toHaveURL(/\/equipments\/form\?id=9701$/);
+    await expect(page.getByLabel("Nombre")).toHaveValue("E2E Sin precio");
+    await expect(page.getByLabel("Frecuencia de entrega (días)")).toHaveValue(
+      "",
+    );
+    await expect(page.getByLabel("Precio")).toHaveValue("");
+    await page.getByRole("button", { name: "Guardar" }).click();
     await expect(toast(page, "Equipo actualizado correctamente")).toBeVisible();
     expect(writes[0]).toMatchObject({
       method: "PATCH",
