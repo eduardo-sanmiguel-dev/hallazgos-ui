@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "check-deps": "node scripts/check-deps.mjs",
-    "build": "node scripts/check-deps.mjs && next build",
+    "build": "node scripts/check-deps.mjs && node scripts/build.mjs",
     "start": "next start",
     "lint": "eslint .",
     "test:e2e": "playwright test",

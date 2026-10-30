@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  generateBuildId: async () => process.env.NEXT_PUBLIC_APP_VERSION ?? null,
   compiler: {
     removeConsole: process.env.NODE_ENV !== "development", // Remove console.log in production
   },

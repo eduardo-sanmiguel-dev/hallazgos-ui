@@ -27,6 +27,7 @@ export const viewport: Viewport = {
 export const dynamic = "force-dynamic";
 
 import QueryProvider from "@shared/components/QueryProvider";
+import DeploymentUpdates from "@shared/components/DeploymentUpdates";
 
 import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
@@ -41,6 +42,7 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body suppressHydrationWarning>
+        <DeploymentUpdates />
         {/* Cada layout o página define su propio <main>. */}
         <ThemeRegistry options={{ key: "mui" }}>
           <QueryProvider>{children}</QueryProvider>
