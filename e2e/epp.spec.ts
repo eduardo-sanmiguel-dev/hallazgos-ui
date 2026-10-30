@@ -949,3 +949,117 @@ test.describe("EPP: firma en celular", () => {
     ).toBeInViewport();
   });
 });
+
+// El 201 de la API debe cerrar el diálogo antes de borrar su contenido.
+// Limpiarlo durante Slide desmonta la firma y los equipos con el modal vivo.
+test("EPP: conserva el contenido hasta terminar el cierre tras un 201", async ({
+  page,
+}) => {
+  const errors = trackPageErrors(page);
+  const consoleErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") consoleErrors.push(message.text());
+  });
+  const writes = await captureWrites(page);
+  let failSave = true;
+  let attempts = 0;
+  let releaseSave: () => void = () => {};
+  const held = new Promise<void>((resolve) => (releaseSave = resolve));
+  await page.route("**/api/v1/epps", async (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    attempts++;
+    if (failSave) {
+      return route.fulfill({
+        status: 500,
+        json: { message: "Fallo de prueba" },
+      });
+    }
+    await held;
+    return route.fallback();
+  });
+  await mockGet(page, "/equipments", EQUIPMENTS);
+  await mockGet(page, "/employees", [
+    { id: 9801, code: 501, name: "E2E Colaborador" },
+  ]);
+  await page.goto("/epp");
+  await page.getByRole("button", { name: "Crear registro" }).click();
+  const dialog = page.getByRole("dialog");
+  const [plant] = await sessionPlants(page);
+  await pickOption(page, "Planta", plant.name);
+  await pickOption(page, "Colaborador", "501 - E2E Colaborador");
+  await pickOption(page, "Equipo", "E2E Guantes");
+  await dialog.getByRole("button", { name: "Agregar" }).click();
+  await dialog.getByRole("button", { name: "Firmar", exact: true }).click();
+  const signature = page
+    .getByRole("dialog")
+    .filter({ hasText: "Firma del colaborador" });
+  await sign(page, signature.locator("canvas"));
+  await signature.getByRole("button", { name: "Guardar", exact: true }).click();
+  const preview = dialog.getByAltText("Firma del colaborador");
+  await expect(preview).toBeVisible();
+
+  const save = dialog.getByRole("button", { name: "Guardar", exact: true });
+  await save.click();
+  await expect.poll(() => attempts).toBe(1);
+  await expect(save).toBeEnabled();
+  await expect(preview).toBeVisible();
+  await expect(
+    dialog.getByRole("list", { name: "Equipos a entregar" }),
+  ).toContainText("E2E Guantes");
+  await expect(
+    dialog.locator(".MuiAutocomplete-root", {
+      has: page.getByRole("combobox", { name: "Colaborador", exact: true }),
+    }),
+  ).toContainText("501 - E2E Colaborador");
+  expect(writes).toHaveLength(0);
+  failSave = false;
+
+  await dialog.evaluate((element) => {
+    const image = element.querySelector('img[alt="Firma del colaborador"]')!;
+    const state = window as unknown as { eppClearedBeforeExit: boolean };
+    state.eppClearedBeforeExit = false;
+    const observer = new MutationObserver(() => {
+      if (element.isConnected && !element.contains(image)) {
+        state.eppClearedBeforeExit = true;
+      }
+      if (!element.isConnected || !element.contains(image))
+        observer.disconnect();
+    });
+    observer.observe(element, { childList: true, subtree: true });
+  });
+  // Dos clics en el mismo turno solo pueden iniciar un envío.
+  await save.evaluate((button: HTMLButtonElement) => {
+    button.click();
+    button.click();
+  });
+  await expect.poll(() => attempts).toBe(2);
+  await expect(save).toBeDisabled();
+  await dialog.getByRole("button", { name: "Cancelar", exact: true }).click();
+  await expect(preview).toBeVisible();
+  releaseSave();
+  await expect(dialog).toHaveCount(0);
+  expect(writes).toHaveLength(1);
+  expect(
+    await page.evaluate(
+      () =>
+        (window as unknown as { eppClearedBeforeExit: boolean })
+          .eppClearedBeforeExit,
+    ),
+  ).toBe(false);
+
+  // Otra entrega empieza vacía, después de terminar el cierre anterior.
+  await page.getByRole("button", { name: "Crear registro" }).click();
+  await expect(dialog.getByAltText("Firma del colaborador")).toHaveCount(0);
+  await expect(
+    dialog.getByRole("list", { name: "Equipos a entregar" }),
+  ).toHaveCount(0);
+  await expect(
+    dialog.getByRole("button", { name: "Guardar", exact: true }),
+  ).toBeDisabled();
+  expect(errors).toEqual([]);
+  expect(
+    consoleErrors.filter((message) =>
+      /NotFoundError|removeChild/.test(message),
+    ),
+  ).toEqual([]);
+});

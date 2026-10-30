@@ -9,12 +9,30 @@ import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 //import { FormHelperText } from "@mui/material";
 
+/** Círculo de referencia del color de una opción (el nombre ya lo dice). */
+const ColorDot = ({ color }: { color: string }) => (
+  <Box
+    component="span"
+    aria-hidden
+    sx={{
+      width: 12,
+      height: 12,
+      borderRadius: "50%",
+      flexShrink: 0,
+      mr: 1.25,
+      backgroundColor: color,
+    }}
+  />
+);
+
 const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
 const checkedIcon = <CheckBoxIcon fontSize="small" />;
 
 interface Props {
   value: string | string[];
   onChange: (event: any, newValue: any) => void;
+  // Una opción con `color` muestra un círculo de ese color antes del nombre
+  // (p. ej. estatus de hallazgo).
   data: any[];
   label: string;
   multiple?: boolean;
@@ -91,6 +109,7 @@ export default function SelectDefault({
                   sx={{ mr: 1 }}
                 />
               )}
+              {option.color && <ColorDot color={option.color} />}
               {option.name || ""}
             </li>
           );

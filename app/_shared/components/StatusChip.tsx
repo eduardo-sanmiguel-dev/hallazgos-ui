@@ -13,7 +13,7 @@ import {
   STATUS_OPEN,
 } from "@shared/constants";
 import {
-  evidenceStatusTone,
+  EVIDENCE_STATUS_COLOR,
   SemanticTone,
   STATUS_CANCELLED,
 } from "@shared/constants/semanticTones";
@@ -41,16 +41,28 @@ export default function StatusChip({
   return <Chip label={label} color={tone} {...props} />;
 }
 
-// Estatus de un hallazgo (Abierto, En progreso, Cerrado, Cancelado).
+// Estatus de un hallazgo (Abierto, En progreso, Cerrado, Cancelado), con el
+// color del estatus de todo el sistema (relleno con texto blanco, AA en los
+// tres temas).
 export function EvidenceStatusChip({
   status,
+  sx,
   ...props
 }: Omit<StatusChipProps, "label" | "tone"> & { status: string }) {
+  const color = EVIDENCE_STATUS_COLOR[status];
+
   return (
-    <StatusChip
+    <Chip
       label={status}
-      tone={evidenceStatusTone(status)}
       icon={STATUS_ICON[status] ?? <CancelOutlinedIcon />}
+      sx={[
+        !!color && {
+          backgroundColor: color.main,
+          color: "#fff",
+          "& .MuiChip-icon": { color: "inherit" },
+        },
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
       {...props}
     />
   );

@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
 
@@ -66,6 +66,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
   }>(formInitial);
   const [openSignature, setOpenSignature] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const savingRef = useRef(false);
   const [manufacturingPlantId, setManufacturingPlantId] = useState<string>("");
 
   const manufacturingPlants = useUserSessionStore(
@@ -138,18 +139,20 @@ export default function DialogCreateEpp({ open, create }: Props) {
     });
   };
 
-  const handleClose = (save: boolean) => {
-    if (isSaving) return;
+  const handleClose = async (save: boolean) => {
+    // Bloqueo inmediato: dos clics antes del siguiente render no duplican el envío.
+    if (savingRef.current) return;
 
-    if (!(save && isDisabledSave)) {
+    if (!save) {
       create({} as PayloadCreateEpp);
-      resetForm();
       return;
     }
+    if (!isDisabledSave) return;
 
+    savingRef.current = true;
     setIsSaving(true);
-    Promise.resolve(
-      create({
+    try {
+      await create({
         employeeId: Number(form.employee || 0),
         equipments: equipmentsNew.map(({ id, observations, quantity }) => ({
           id,
@@ -157,12 +160,15 @@ export default function DialogCreateEpp({ open, create }: Props) {
           quantity,
         })),
         signature,
-      }),
-    )
-      .then(resetForm)
-      // El error ya lo notifica el servicio; se conservan los datos capturados.
-      .catch(() => {})
-      .finally(() => setIsSaving(false));
+      });
+      // La página cierra el diálogo tras el 201. Se limpia en onExited,
+      // cuando Slide terminó y el modal ya puede desmontar su contenido.
+    } catch {
+      // El servicio notifica el error; se conservan los datos para reintentar.
+    } finally {
+      savingRef.current = false;
+      setIsSaving(false);
+    }
   };
 
   const handleAddEquipment = async () => {
@@ -243,7 +249,10 @@ export default function DialogCreateEpp({ open, create }: Props) {
         open={open}
         onClose={() => handleClose(false)}
         slots={{ transition: Transition }}
-        slotProps={{ paper: { sx: { backgroundColor: "background.default" } } }}
+        slotProps={{
+          paper: { sx: { backgroundColor: "background.default" } },
+          transition: { onExited: resetForm },
+        }}
       >
         <AppBar sx={{ position: "sticky", top: 0 }}>
           <Toolbar>

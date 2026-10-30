@@ -6,6 +6,7 @@ import { Dayjs } from "dayjs";
 
 import ClearAllIcon from "@mui/icons-material/ClearAll";
 import { Box } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { Paper } from "@mui/material";
 import { Chip } from "@mui/material";
 import { Grid } from "@mui/material";
@@ -23,6 +24,15 @@ import { EMPTY_CATALOG, useMainTypes, useZones } from "@hooks";
 import SelectDefault from "@components/SelectDefault";
 import { SecondaryType, UserOption } from "@interfaces";
 import { UsersService } from "@services";
+import {
+  STATUS_CLOSED,
+  STATUS_IN_PROGRESS,
+  STATUS_OPEN,
+} from "@shared/constants";
+import {
+  evidenceStatusColor,
+  STATUS_CANCELLED,
+} from "@shared/constants/semanticTones";
 import FilterBar, {
   ActiveFilter,
   joinNames,
@@ -47,14 +57,25 @@ interface Props {
   count: number;
 }
 
-const STATUS_OPTIONS = [
-  { id: "Abierto", name: "Abierto" },
-  { id: "En progreso", name: "En progreso" },
-  { id: "Cerrado", name: "Cerrado" },
-  { id: "Cancelado", name: "Cancelado" },
+const STATUSES = [
+  STATUS_OPEN,
+  STATUS_IN_PROGRESS,
+  STATUS_CLOSED,
+  STATUS_CANCELLED,
 ];
 
 const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
+  // Cada estatus con su color (círculo en la lista), legible en el tema.
+  const themeMode = useTheme().palette.mode;
+  const STATUS_OPTIONS = useMemo(
+    () =>
+      STATUSES.map((status) => ({
+        id: status,
+        name: status,
+        color: evidenceStatusColor(status, themeMode),
+      })),
+    [themeMode],
+  );
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -434,6 +455,7 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
     manufacturingPlants,
     secondaryTypes,
     setFilters,
+    STATUS_OPTIONS,
   ]);
 
   const hasFiltersToClear = useMemo(
