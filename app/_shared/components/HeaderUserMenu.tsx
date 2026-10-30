@@ -40,6 +40,8 @@ import { deleteUserDrafts, listUserDrafts } from "@shared/drafts/draftStore";
 import { useConfirmDialog } from "./ConfirmDialog";
 import { TOUCH_MEDIA } from "../../theme";
 
+const appVersion = process.env.NEXT_PUBLIC_APP_VERSION;
+
 const initialsOf = (name: string, email: string) => {
   const words = name.trim().split(/\s+/).filter(Boolean);
 
@@ -299,6 +301,16 @@ export default function HeaderUserMenu() {
           </ListItemIcon>
           Cerrar sesión
         </MenuItem>
+        <Divider />
+        <Typography
+          component="li"
+          role="none"
+          variant="caption"
+          title={appVersion ? `Versión completa: ${appVersion}` : undefined}
+          sx={{ px: 2, pt: 1, pb: 0.5, color: "text.secondary" }}
+        >
+          Versión: {appVersion ? appVersion.slice(0, 8) : "desarrollo"}
+        </Typography>
       </Menu>
 
       {/* Safari de iPhone/iPad no tiene diálogo de instalación. */}
