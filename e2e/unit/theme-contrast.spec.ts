@@ -46,8 +46,8 @@ test.describe("Contraste del tema claro", () => {
     });
   }
 
-  test("en oscuro y halloween el texto de marca también se lee", () => {
-    for (const name of ["dark", "halloween"] as const) {
+  test("en oscuro el texto de marca también se lee", () => {
+    for (const name of ["dark"] as const) {
       const theme = createAppTheme(name);
       expect(
         getContrastRatio(
@@ -60,12 +60,12 @@ test.describe("Contraste del tema claro", () => {
   });
 });
 
-test.describe("Contraste de los temas oscuros", () => {
+test.describe("Contraste del tema oscuro", () => {
   // Papel de un diálogo en oscuro: MUI lo aclara con la elevación 24 (16 %
   // de blanco encima del fondo).
   const dialogPaper = (paper: string) => lighten(paper, 0.16);
 
-  for (const name of ["dark", "halloween"] as const) {
+  for (const name of ["dark"] as const) {
     const theme = createAppTheme(name);
     const paper = theme.palette.background.paper;
 
@@ -109,7 +109,7 @@ const blend = (base: string, top: string) => {
 };
 
 test.describe("Encabezados (tablas y barra del detalle de hallazgo)", () => {
-  for (const name of ["light", "dark", "halloween"] as const) {
+  for (const name of ["light", "dark"] as const) {
     test(`${name}: el texto verde se lee sobre el verde tenue`, () => {
       const theme = createAppTheme(name);
       // El tono es semitransparente: se compone sobre el papel.

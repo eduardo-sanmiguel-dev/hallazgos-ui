@@ -1,6 +1,5 @@
 import { mockGet } from "./support/api";
 import { expect, test } from "./support/fixtures";
-import { FORCED_THEME } from "../app/seasonalTheme";
 
 // Menú lateral (colapsado, expandido y móvil), tema claro/oscuro y menú
 // según el rol del usuario.
@@ -62,10 +61,6 @@ test.describe("Navegación", () => {
   });
 
   test("el tema elegido se conserva al recargar", async ({ page }) => {
-    test.skip(
-      !!FORCED_THEME,
-      "Tema forzado temporal (app/seasonalTheme.ts): no hay selector de tema.",
-    );
     const themeButton = (label: string) =>
       page.getByRole("button", { name: `Cambiar tema (actual: ${label})` });
     const chooseTheme = async (from: string, to: string) => {
@@ -79,18 +74,9 @@ test.describe("Navegación", () => {
     await page.reload();
     await expect(themeButton("Oscuro")).toBeVisible();
 
-    // Halloween agrega la araña al header.
-    await chooseTheme("Oscuro", "Halloween");
-    await expect(
-      page.getByRole("img", { name: "Araña de Halloween" }),
-    ).toBeVisible();
+    await chooseTheme("Oscuro", "Claro");
     await page.reload();
-    await expect(themeButton("Halloween")).toBeVisible();
-
-    await chooseTheme("Halloween", "Claro");
-    await expect(
-      page.getByRole("img", { name: "Araña de Halloween" }),
-    ).toHaveCount(0);
+    await expect(themeButton("Claro")).toBeVisible();
   });
 
   for (const role of ["General", "Supervisor"]) {

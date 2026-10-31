@@ -2,7 +2,6 @@ import type { Page } from "@playwright/test";
 
 import { mockGet } from "./support/api";
 import { expect, test } from "./support/fixtures";
-import { FORCED_THEME } from "../app/seasonalTheme";
 import { trackPageErrors } from "./support/ui";
 
 // Análisis de datos EPP: solo administradores; sin precios capturados en la
@@ -293,10 +292,6 @@ test.describe("Análisis de datos EPP", () => {
   test("indicadores: variación en pastilla y comparación corta", async ({
     page,
   }) => {
-    test.skip(
-      !!FORCED_THEME,
-      "Tema forzado temporal (app/seasonalTheme.ts): la prueba es del tema claro u oscuro.",
-    );
     await openAnalysis(page, true);
     const units = kpi(page, "Unidades entregadas");
     // 10 contra 6: +66.7 %. El rango ya está bajo el título; en la tarjeta,

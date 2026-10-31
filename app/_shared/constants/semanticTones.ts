@@ -5,7 +5,7 @@ import {
 } from "@shared/constants";
 
 // Colores semánticos del sistema. Son nombres de la paleta de MUI, así que
-// respetan el tema elegido (claro, oscuro, halloween) y el contraste AA del
+// respetan el tema elegido (claro, oscuro) y el contraste AA del
 // tema claro (ver app/theme.tsx).
 export type SemanticTone = "success" | "warning" | "info" | "error" | "default";
 

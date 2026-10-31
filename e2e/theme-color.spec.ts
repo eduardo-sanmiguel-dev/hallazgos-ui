@@ -1,7 +1,6 @@
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "./support/fixtures";
-import { FORCED_THEME } from "../app/seasonalTheme";
 
 // Color de las barras del sistema (<meta name="theme-color">): sigue al tema
 // elegido y coincide con la barra superior de la app. Si no, en la app
@@ -10,7 +9,6 @@ import { FORCED_THEME } from "../app/seasonalTheme";
 const EXPECTED = {
   light: { color: "#ffffff", label: "Claro" },
   dark: { color: "#121212", label: "Oscuro" },
-  halloween: { color: "#1C1426", label: "Halloween" },
 } as const;
 
 /** "#FFF" / "#ffffff" → "#ffffff", para comparar colores y no el texto. */
@@ -45,10 +43,6 @@ test.describe("Color de las barras del sistema", () => {
     test(`tema ${name}: una sola etiqueta, igual a la barra de la app`, async ({
       page,
     }) => {
-      test.skip(
-        !!FORCED_THEME && name !== FORCED_THEME,
-        "Tema forzado temporal (app/seasonalTheme.ts): la prueba es del tema claro u oscuro.",
-      );
       await page.addInitScript((name) => {
         localStorage.setItem("colorMode", name);
       }, name);
@@ -60,10 +54,6 @@ test.describe("Color de las barras del sistema", () => {
   }
 
   test("cambia al momento al elegir otro tema", async ({ page }) => {
-    test.skip(
-      !!FORCED_THEME,
-      "Tema forzado temporal (app/seasonalTheme.ts): no hay selector de tema.",
-    );
     await page.goto("/dashboard");
     await expect
       .poll(() => themeColors(page))

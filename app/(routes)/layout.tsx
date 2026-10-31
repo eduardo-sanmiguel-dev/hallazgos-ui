@@ -27,13 +27,6 @@ import Image from "next/image";
 import { MainListItems } from "@shared/components/menu";
 import HeaderUserMenu from "@shared/components/HeaderUserMenu";
 import Copyright from "@shared/components/Copyright";
-import HalloweenSpider from "@shared/components/HalloweenSpider";
-import {
-  HalloweenBackdrop,
-  HalloweenCobweb,
-  HalloweenFlyers,
-  HalloweenHeaderScene,
-} from "@shared/components/HalloweenDecor";
 import ThemeSelector from "@shared/components/ThemeSelector";
 import RouteAccessGuard from "@shared/components/RouteAccessGuard";
 import MobileBottomNav from "@shared/components/MobileBottomNav";
@@ -42,7 +35,6 @@ import SessionEndedDialog from "@shared/components/SessionEndedDialog";
 import { purgeExpiredDrafts } from "@shared/drafts/draftStore";
 import { useUserSessionStore } from "@store";
 import { AppThemeName, createAppTheme, isAppThemeName } from "../theme";
-import { FORCED_THEME } from "../seasonalTheme";
 import { UsersService } from "@services";
 
 // Ancho suficiente para que ninguna etiqueta del menú se corte.
@@ -107,9 +99,7 @@ const Drawer = styled(MuiDrawer, {
   },
 }));
 
-// Clave de localStorage con el tema elegido ("light" | "dark" | "halloween").
-// Con FORCED_THEME (temporal, ver seasonalTheme.ts) no se lee ni se escribe:
-// la preferencia de cada usuario queda intacta para cuando se quite.
+// Clave de localStorage con el tema elegido ("light" | "dark").
 const THEME_STORAGE_KEY = "colorMode";
 
 // Marca: logo y nombre del producto. En modo oscuro el logo va en blanco
@@ -163,9 +153,7 @@ function Brand() {
 }
 
 export default function MainLayout({ children }: { children: ReactNode }) {
-  const [themeName, setThemeName] = useState<AppThemeName>(
-    FORCED_THEME ?? "light",
-  );
+  const [themeName, setThemeName] = useState<AppThemeName>("light");
   const [open, setOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -263,12 +251,10 @@ export default function MainLayout({ children }: { children: ReactNode }) {
       >
         <MainListItems expanded={expanded} onNavigate={closeMobileDrawer} />
       </Box>
-      {expanded && <HalloweenCobweb />}
     </>
   );
 
   useEffect(() => {
-    if (FORCED_THEME) return;
     const saved = localStorage.getItem(THEME_STORAGE_KEY);
     if (isAppThemeName(saved)) {
       setThemeName(saved);
@@ -328,17 +314,8 @@ export default function MainLayout({ children }: { children: ReactNode }) {
             </IconButton>
             {/* Con el menú lateral abierto la marca vive arriba del menú. */}
             {!(open && !isMobile) && <Brand />}
-            {themeName === "halloween" && <HalloweenSpider />}
-            {/* Espacio libre del header (en Halloween, luna y estrellas). */}
-            <Box
-              sx={{ flexGrow: 1, alignSelf: "stretch", position: "relative" }}
-            >
-              <HalloweenHeaderScene />
-            </Box>
-            {/* Con un tema forzado es el único disponible: sin selector. */}
-            {!FORCED_THEME && (
-              <ThemeSelector value={themeName} onChange={changeTheme} />
-            )}
+            <Box sx={{ flexGrow: 1 }} />
+            <ThemeSelector value={themeName} onChange={changeTheme} />
             <Divider
               orientation="vertical"
               flexItem
@@ -378,15 +355,10 @@ export default function MainLayout({ children }: { children: ReactNode }) {
           tabIndex={-1}
           sx={{
             "&:focus": { outline: "none" },
-            // En Halloween, la noche de fondo (z-index -1) va encima de este
-            // fondo y debajo del contenido.
-            isolation: (theme) =>
-              theme.appTheme === "halloween" ? "isolate" : undefined,
             backgroundColor: (theme) =>
               ({
                 light: theme.palette.grey[100],
                 dark: theme.palette.grey[900],
-                halloween: theme.palette.background.default,
               })[theme.appTheme],
             flexGrow: 1,
             height: "100vh",
@@ -396,11 +368,8 @@ export default function MainLayout({ children }: { children: ReactNode }) {
             pb: "env(safe-area-inset-bottom, 0px)",
           }}
         >
-          <HalloweenBackdrop />
           {/* Ocupa al menos el alto visible: en páginas cortas el contenido
-              crece y el Copyright queda al fondo, no pegado al formulario.
-              `main` no es flex: el fondo de Halloween (overflow hidden) se
-              encogería al desplazar. */}
+              crece y el Copyright queda al fondo, no pegado al formulario. */}
           <Box
             sx={{ minHeight: "100%", display: "flex", flexDirection: "column" }}
           >
@@ -423,7 +392,6 @@ export default function MainLayout({ children }: { children: ReactNode }) {
             <MobileBottomNav />
           </Box>
           <ScrollTopButton />
-          <HalloweenFlyers />
           <SessionEndedDialog />
         </Box>
       </Box>

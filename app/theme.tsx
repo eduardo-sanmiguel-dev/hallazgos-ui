@@ -6,43 +6,12 @@ import type { Theme, ThemeOptions } from "@mui/material/styles";
 export const BRAND_PRIMARY = "#71BF44";
 
 // Temas que el usuario puede elegir en el header.
-export type AppThemeName = "light" | "dark" | "halloween";
+export type AppThemeName = "light" | "dark";
 
-export const APP_THEME_NAMES: readonly AppThemeName[] = [
-  "light",
-  "dark",
-  "halloween",
-];
+export const APP_THEME_NAMES: readonly AppThemeName[] = ["light", "dark"];
 
 export const isAppThemeName = (value: unknown): value is AppThemeName =>
   APP_THEME_NAMES.includes(value as AppThemeName);
-
-// Halloween es un tema oscuro: gráficas, logo y demás piezas que revisan
-// `palette.mode` se adaptan solas. Calabaza, morado y fondo de noche.
-const HALLOWEEN_PALETTE: ThemeOptions["palette"] = {
-  mode: "dark",
-  primary: {
-    main: "#FF7A1A",
-    light: "#FFA057",
-    dark: "#D45A00",
-    contrastText: "#1A0F00",
-  },
-  secondary: {
-    main: "#A66BFF",
-    light: "#C29BFF",
-    dark: "#7A3FD6",
-    contrastText: "#0F0816",
-  },
-  background: {
-    default: "#120C1A",
-    paper: "#1C1426",
-  },
-  text: {
-    primary: "#F6EBDD",
-    secondary: "rgba(246, 235, 221, 0.72)",
-  },
-  divider: "rgba(255, 122, 26, 0.18)",
-};
 
 // Radios y transiciones propios del sistema de diseño. `shape.borderRadius`
 // se deja en el valor por defecto (4) porque los `sx={{ borderRadius: n }}`
@@ -102,7 +71,7 @@ export const primaryTextColor = (theme: Theme) =>
 
 // Fondo tenue en color primario de los encabezados (tablas y barra del
 // detalle de hallazgo). 16 % en claro y 24 % en oscuro: con su texto
-// (`primaryTextColor`) da 5.7:1 o más en los tres temas.
+// (`primaryTextColor`) da 5.7:1 o más en ambos temas.
 export const primarySoftBackground = (theme: Theme) =>
   alpha(
     theme.palette.primary.main,
@@ -130,15 +99,13 @@ const errorTextOnDark = ({ theme }: { theme: Theme }) =>
   theme.palette.mode === "dark" ? { color: ERROR_TEXT_ON_DARK } : {};
 
 const paletteFor = (appTheme: AppThemeName): ThemeOptions["palette"] =>
-  appTheme === "halloween"
-    ? HALLOWEEN_PALETTE
-    : appTheme === "light"
-      ? {
-          mode: "light",
-          primary: { main: BRAND_PRIMARY },
-          ...LIGHT_SEMANTIC_PALETTE,
-        }
-      : { mode: "dark", primary: { main: BRAND_PRIMARY } };
+  appTheme === "light"
+    ? {
+        mode: "light",
+        primary: { main: BRAND_PRIMARY },
+        ...LIGHT_SEMANTIC_PALETTE,
+      }
+    : { mode: "dark", primary: { main: BRAND_PRIMARY } };
 
 export const createAppTheme = (appTheme: AppThemeName) => {
   const theme = createTheme(appThemeOptions(appTheme));

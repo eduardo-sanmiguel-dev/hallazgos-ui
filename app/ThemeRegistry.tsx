@@ -9,12 +9,7 @@ import { CacheProvider } from "@emotion/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { CssBaseline } from "@mui/material";
 
-import defaultTheme, { createAppTheme } from "./theme";
-import { FORCED_THEME } from "./seasonalTheme";
-
-// Login, recuperar contraseña y 404 (fuera del layout principal). Con un tema
-// forzado (temporal, ver seasonalTheme.ts) también lo usan.
-const theme = FORCED_THEME ? createAppTheme(FORCED_THEME) : defaultTheme;
+import theme from "./theme";
 
 interface ThemeRegistryProps {
   options: EmotionCacheOptions;
