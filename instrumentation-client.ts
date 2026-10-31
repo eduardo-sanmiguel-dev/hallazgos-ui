@@ -32,6 +32,9 @@ const common = {
   organizationIdentifier,
   service: "ui-comportarte",
   env: "production",
+  // La misma versión del build que muestra el menú: permite verificar si
+  // un error pertenece a una UI anterior o reapareció después de corregirlo.
+  version: process.env.NEXT_PUBLIC_APP_VERSION,
   apiVersion: "v1",
   insecureHTTP: false,
 };
