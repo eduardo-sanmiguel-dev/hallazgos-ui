@@ -1,10 +1,62 @@
 import { expect, test } from "@playwright/test";
+import { createStore } from "zustand/vanilla";
+
+import { syncRumUser } from "../../app/_shared/utils/rumUser";
 
 import {
   isBotNavigator,
   isLocalHostname,
   shouldSendRumEvent,
 } from "../../app/_shared/utils/rum";
+
+test.describe("RUM: identidad del usuario", () => {
+  test("restaura la identidad y actualiza nombre y correo con el mismo ID", () => {
+    const store = createStore(() => ({
+      id: 1,
+      name: "Nombre anterior",
+      email: "anterior@example.com",
+      role: "usuario",
+    }));
+    const users: { id: string; name: string; email: string }[] = [];
+    let clears = 0;
+    const unsubscribe = syncRumUser(store, {
+      setUser: (user) => users.push(user),
+      clearUser: () => { clears++; },
+    });
+
+    expect(users).toEqual([
+      { id: "1", name: "Nombre anterior", email: "anterior@example.com" },
+    ]);
+    store.setState({ name: "Nombre actualizado" });
+    expect(users.at(-1)?.name).toBe("Nombre actualizado");
+    store.setState({ email: "actual@example.com" });
+    expect(users.at(-1)?.email).toBe("actual@example.com");
+    store.setState({ role: "administrador" });
+    expect(users).toHaveLength(3);
+    store.setState({ id: 0, name: "", email: "" });
+    expect(clears).toBe(1);
+    unsubscribe();
+    store.setState({ id: 2 });
+    expect(users).toHaveLength(3);
+  });
+
+  test("identifica al usuario al iniciar sesión después de una visita anónima", () => {
+    const store = createStore(() => ({ id: 0, name: "", email: "" }));
+    const users: { id: string; name: string; email: string }[] = [];
+    let clears = 0;
+    const unsubscribe = syncRumUser(store, {
+      setUser: (user) => users.push(user),
+      clearUser: () => { clears++; },
+    });
+    expect(clears).toBe(1);
+    expect(users).toHaveLength(0);
+    store.setState({ id: 2, name: "Usuario", email: "user@example.com" });
+    expect(users).toEqual([
+      { id: "2", name: "Usuario", email: "user@example.com" },
+    ]);
+    unsubscribe();
+  });
+});
 
 // Regla `beforeSend` del RUM (instrumentation-client.ts). Solo corre en
 // producción, así que se prueba la función directamente, sin navegador.

@@ -14,6 +14,7 @@ import {
   shouldSendRumEvent,
 } from "@shared/utils/rum";
 import { listenInstallPrompt } from "@shared/utils/installPrompt";
+import { syncRumUser } from "@shared/utils/rumUser";
 
 // Botón "Instalar app": el navegador avisa una sola vez al cargar, así que
 // se escucha aquí, antes que cualquier componente (en todos los ambientes).
@@ -76,23 +77,8 @@ if (
 
     openobserveLogs.init({ ...common, forwardErrorsToLogs: true });
 
-    // Cada sesión queda asociada al usuario que inició sesión.
-    const identify = ({
-      id,
-      name,
-      email,
-    }: {
-      id: number;
-      name: string;
-      email: string;
-    }) => {
-      if (id) openobserveRum.setUser({ id: String(id), name, email });
-      else openobserveRum.clearUser();
-    };
-    identify(useUserSessionStore.getState());
-    useUserSessionStore.subscribe((state, previous) => {
-      if (state.id !== previous.id) identify(state);
-    });
+    // También actualiza nombre y correo cuando cambia el perfil del mismo ID.
+    syncRumUser(useUserSessionStore, openobserveRum);
   } catch (error) {
     console.error("No se pudo iniciar el monitoreo de OpenObserve", error);
   }
