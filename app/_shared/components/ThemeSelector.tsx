@@ -7,23 +7,25 @@ import { Menu } from "@mui/material";
 import { MenuItem } from "@mui/material";
 import { SvgIconProps } from "@mui/material";
 import { Tooltip } from "@mui/material";
+import SettingsBrightnessOutlinedIcon from "@mui/icons-material/SettingsBrightnessOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 
-import type { AppThemeName } from "../../theme";
+import type { ThemePreference } from "../../theme";
 
 const OPTIONS: Record<
-  AppThemeName,
+  ThemePreference,
   { label: string; icon: ReactElement<SvgIconProps> }
 > = {
+  system: { label: "Sistema", icon: <SettingsBrightnessOutlinedIcon /> },
   light: { label: "Claro", icon: <LightModeOutlinedIcon /> },
   dark: { label: "Oscuro", icon: <DarkModeOutlinedIcon /> },
 };
 
 interface Props {
-  value: AppThemeName;
-  onChange: (value: AppThemeName) => void;
+  value: ThemePreference;
+  onChange: (value: ThemePreference) => void;
 }
 
 // Menú del header para elegir el tema de la aplicación.
@@ -34,7 +36,7 @@ export default function ThemeSelector({ value, onChange }: Props) {
   const open = !!anchorEl;
   const current = OPTIONS[value];
 
-  const select = (name: AppThemeName) => {
+  const select = (name: ThemePreference) => {
     onChange(name);
     setAnchorEl(null);
   };
@@ -68,7 +70,7 @@ export default function ThemeSelector({ value, onChange }: Props) {
           paper: { sx: { minWidth: 200, mt: 0.5 } },
         }}
       >
-        {(Object.keys(OPTIONS) as AppThemeName[]).map((name) => {
+        {(Object.keys(OPTIONS) as ThemePreference[]).map((name) => {
           const selected = name === value;
           return (
             <MenuItem

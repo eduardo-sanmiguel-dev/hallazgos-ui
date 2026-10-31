@@ -70,7 +70,7 @@ test.describe("Navegación", () => {
     };
 
     await page.goto("/dashboard");
-    await chooseTheme("Claro", "Oscuro");
+    await chooseTheme("Sistema", "Oscuro");
     await page.reload();
     await expect(themeButton("Oscuro")).toBeVisible();
 

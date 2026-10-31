@@ -6,10 +6,9 @@ import createCache from "@emotion/cache";
 import type { Options as EmotionCacheOptions } from "@emotion/cache";
 import { useServerInsertedHTML } from "next/navigation";
 import { CacheProvider } from "@emotion/react";
-import { ThemeProvider } from "@mui/material/styles";
 import { CssBaseline } from "@mui/material";
 
-import theme from "./theme";
+import ThemePreferenceProvider from "./ThemePreferenceProvider";
 
 interface ThemeRegistryProps {
   options: EmotionCacheOptions;
@@ -60,10 +59,10 @@ export default function ThemeRegistry({ options, children }: ThemeRegistryProps)
 
   return (
     <CacheProvider value={cache}>
-      <ThemeProvider theme={theme}>
+      <ThemePreferenceProvider>
         <CssBaseline />
         {children}
-      </ThemeProvider>
+      </ThemePreferenceProvider>
     </CacheProvider>
   );
 }

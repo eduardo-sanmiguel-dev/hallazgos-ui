@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 
@@ -8,7 +8,7 @@ import {
   AppBar as MuiAppBar,
   AppBarProps as MuiAppBarProps,
 } from "@mui/material";
-import { alpha, useTheme, ThemeProvider } from "@mui/material/styles";
+import { alpha, useTheme } from "@mui/material/styles";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import { CssBaseline } from "@mui/material";
 import { IconButton } from "@mui/material";
@@ -34,7 +34,7 @@ import ScrollTopButton from "@shared/components/ScrollTopButton";
 import SessionEndedDialog from "@shared/components/SessionEndedDialog";
 import { purgeExpiredDrafts } from "@shared/drafts/draftStore";
 import { useUserSessionStore } from "@store";
-import { AppThemeName, createAppTheme, isAppThemeName } from "../theme";
+import { useThemePreference } from "../ThemePreferenceProvider";
 import { UsersService } from "@services";
 
 // Ancho suficiente para que ninguna etiqueta del menú se corte.
@@ -99,9 +99,6 @@ const Drawer = styled(MuiDrawer, {
   },
 }));
 
-// Clave de localStorage con el tema elegido ("light" | "dark").
-const THEME_STORAGE_KEY = "colorMode";
-
 // Marca: logo y nombre del producto. En modo oscuro el logo va en blanco
 // monocromo; sus partes grises no se distinguen sobre fondo oscuro.
 function Brand() {
@@ -153,7 +150,8 @@ function Brand() {
 }
 
 export default function MainLayout({ children }: { children: ReactNode }) {
-  const [themeName, setThemeName] = useState<AppThemeName>("light");
+  const { preference, changePreference } = useThemePreference();
+  const theme = useTheme();
   const [open, setOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -185,14 +183,6 @@ export default function MainLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     purgeExpiredDrafts();
   }, []);
-
-  const changeTheme = (name: AppThemeName) => {
-    setThemeName(name);
-    localStorage.setItem(THEME_STORAGE_KEY, name);
-  };
-
-  // El theme solo se crea de nuevo al cambiar de tema.
-  const theme = useMemo(() => createAppTheme(themeName), [themeName]);
 
   // En móvil y tablet el menú es temporal (se superpone al contenido).
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -254,147 +244,133 @@ export default function MainLayout({ children }: { children: ReactNode }) {
     </>
   );
 
-  useEffect(() => {
-    const saved = localStorage.getItem(THEME_STORAGE_KEY);
-    if (isAppThemeName(saved)) {
-      setThemeName(saved);
-    }
-  }, []);
-
   return (
-    <ThemeProvider theme={theme}>
-      {/* Color de las barras del sistema (arriba y abajo en la app
-          instalada; la barra del navegador en móvil). Sigue al tema, igual
-          que la barra superior de la app, para que Android elija iconos
-          oscuros en claro y claros en oscuro. React lo coloca en <head>. */}
-      <meta name="theme-color" content={theme.palette.background.paper} />
+    <Box
+      sx={{
+        display: "flex",
+        height: "100vh",
+        overflow: "hidden",
+        // Scrollbars y controles nativos acordes al modo (se hereda).
+        colorScheme: theme.palette.mode,
+      }}
+    >
+      <CssBaseline />
       <Box
-        sx={{
-          display: "flex",
-          height: "100vh",
-          overflow: "hidden",
-          // Scrollbars y controles nativos acordes al modo (se hereda).
-          colorScheme: theme.palette.mode,
-        }}
+        component="a"
+        href="#contenido"
+        sx={(theme) => ({
+          position: "absolute",
+          left: 8,
+          top: -64,
+          zIndex: theme.zIndex.tooltip,
+          px: 2,
+          py: 1,
+          borderRadius: `${theme.tokens.radius.md}px`,
+          backgroundColor: "background.paper",
+          color: "text.primary",
+          boxShadow: 3,
+          textDecoration: "none",
+          fontWeight: 600,
+          "&:focus": { top: 8 },
+        })}
       >
-        <CssBaseline />
-        <Box
-          component="a"
-          href="#contenido"
-          sx={(theme) => ({
-            position: "absolute",
-            left: 8,
-            top: -64,
-            zIndex: theme.zIndex.tooltip,
-            px: 2,
-            py: 1,
-            borderRadius: `${theme.tokens.radius.md}px`,
-            backgroundColor: "background.paper",
-            color: "text.primary",
-            boxShadow: 3,
-            textDecoration: "none",
-            fontWeight: 600,
-            "&:focus": { top: 8 },
-          })}
-        >
-          Saltar al contenido
-        </Box>
-        <AppBar position="absolute" open={open && !isMobile}>
-          <Toolbar sx={{ gap: 1, px: { xs: 1.5, sm: 2.5 } }}>
-            <IconButton
-              edge="start"
-              aria-label="Abrir menú"
-              onClick={toggleDrawer}
-              sx={{
-                color: "text.secondary",
-                ...(open && !isMobile && { display: "none" }),
-              }}
-            >
-              <MenuIcon />
-            </IconButton>
-            {/* Con el menú lateral abierto la marca vive arriba del menú. */}
-            {!(open && !isMobile) && <Brand />}
-            <Box sx={{ flexGrow: 1 }} />
-            <ThemeSelector value={themeName} onChange={changeTheme} />
-            <Divider
-              orientation="vertical"
-              flexItem
-              sx={{ my: 1.5, mx: 0.5 }}
-            />
-            <HeaderUserMenu />
-          </Toolbar>
-        </AppBar>
-        {isMobile ? (
-          <MuiDrawer
-            variant="temporary"
-            open={mobileOpen}
-            onClose={closeMobileDrawer}
-            keepMounted
-            slotProps={{
-              paper: {
-                sx: {
-                  width: drawerWidth,
-                  maxWidth: "85vw",
-                  display: "flex",
-                  flexDirection: "column",
-                  overflow: "hidden",
-                },
-              },
+        Saltar al contenido
+      </Box>
+      <AppBar position="absolute" open={open && !isMobile}>
+        <Toolbar sx={{ gap: 1, px: { xs: 1.5, sm: 2.5 } }}>
+          <IconButton
+            edge="start"
+            aria-label="Abrir menú"
+            onClick={toggleDrawer}
+            sx={{
+              color: "text.secondary",
+              ...(open && !isMobile && { display: "none" }),
             }}
           >
-            {drawerContent}
-          </MuiDrawer>
-        ) : (
-          <Drawer variant="permanent" open={open}>
-            {drawerContent}
-          </Drawer>
-        )}
-        <Box
-          component="main"
-          id="contenido"
-          tabIndex={-1}
-          sx={{
-            "&:focus": { outline: "none" },
-            backgroundColor: (theme) =>
-              ({
-                light: theme.palette.grey[100],
-                dark: theme.palette.grey[900],
-              })[theme.appTheme],
-            flexGrow: 1,
-            height: "100vh",
-            overflow: "auto",
-            // Lo último de la página se puede desplazar por encima de los
-            // botones del sistema; el fondo del tema queda debajo de ellos.
-            pb: "env(safe-area-inset-bottom, 0px)",
-          }}
-        >
-          {/* Ocupa al menos el alto visible: en páginas cortas el contenido
-              crece y el Copyright queda al fondo, no pegado al formulario. */}
-          <Box
-            sx={{ minHeight: "100%", display: "flex", flexDirection: "column" }}
-          >
-            <Toolbar sx={{ flexShrink: 0 }} />
-            <Container
-              maxWidth={false}
-              sx={{
-                mt: 4,
-                mb: 4,
-                flexGrow: 1,
+            <MenuIcon />
+          </IconButton>
+          {/* Con el menú lateral abierto la marca vive arriba del menú. */}
+          {!(open && !isMobile) && <Brand />}
+          <Box sx={{ flexGrow: 1 }} />
+          <ThemeSelector value={preference} onChange={changePreference} />
+          <Divider
+            orientation="vertical"
+            flexItem
+            sx={{ my: 1.5, mx: 0.5 }}
+          />
+          <HeaderUserMenu />
+        </Toolbar>
+      </AppBar>
+      {isMobile ? (
+        <MuiDrawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={closeMobileDrawer}
+          keepMounted
+          slotProps={{
+            paper: {
+              sx: {
+                width: drawerWidth,
+                maxWidth: "85vw",
                 display: "flex",
                 flexDirection: "column",
-              }}
-            >
-              <Box sx={{ flexGrow: 1 }}>
-                <RouteAccessGuard>{children}</RouteAccessGuard>
-              </Box>
-              <Copyright />
-            </Container>
-            <MobileBottomNav />
-          </Box>
-          <ScrollTopButton />
-          <SessionEndedDialog />
+                overflow: "hidden",
+              },
+            },
+          }}
+        >
+          {drawerContent}
+        </MuiDrawer>
+      ) : (
+        <Drawer variant="permanent" open={open}>
+          {drawerContent}
+        </Drawer>
+      )}
+      <Box
+        component="main"
+        id="contenido"
+        tabIndex={-1}
+        sx={{
+          "&:focus": { outline: "none" },
+          backgroundColor: (theme) =>
+            ({
+              light: theme.palette.grey[100],
+              dark: theme.palette.grey[900],
+            })[theme.appTheme],
+          flexGrow: 1,
+          height: "100vh",
+          overflow: "auto",
+          // Lo último de la página se puede desplazar por encima de los
+          // botones del sistema; el fondo del tema queda debajo de ellos.
+          pb: "env(safe-area-inset-bottom, 0px)",
+        }}
+      >
+        {/* Ocupa al menos el alto visible: en páginas cortas el contenido
+            crece y el Copyright queda al fondo, no pegado al formulario. */}
+        <Box
+          sx={{ minHeight: "100%", display: "flex", flexDirection: "column" }}
+        >
+          <Toolbar sx={{ flexShrink: 0 }} />
+          <Container
+            maxWidth={false}
+            sx={{
+              mt: 4,
+              mb: 4,
+              flexGrow: 1,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Box sx={{ flexGrow: 1 }}>
+              <RouteAccessGuard>{children}</RouteAccessGuard>
+            </Box>
+            <Copyright />
+          </Container>
+          <MobileBottomNav />
         </Box>
+        <ScrollTopButton />
+        <SessionEndedDialog />
       </Box>
-    </ThemeProvider>
+    </Box>
   );
 }

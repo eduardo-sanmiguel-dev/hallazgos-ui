@@ -54,6 +54,7 @@ test.describe("Color de las barras del sistema", () => {
   }
 
   test("cambia al momento al elegir otro tema", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
     await page.goto("/dashboard");
     await expect
       .poll(() => themeColors(page))
@@ -76,4 +77,62 @@ test.describe("Color de las barras del sistema", () => {
     expect(manifest.theme_color).toBe("#ffffff");
     expect(manifest.background_color).toBe("#ffffff");
   });
+});
+
+
+test.describe("Preferencia de tema del sistema sin sesión", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  for (const colorScheme of ["light", "dark"] as const) {
+    test(`sin preferencia guardada sigue el sistema ${colorScheme}`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme });
+      await page.goto("/");
+      await expect.poll(() => themeColors(page)).toEqual([EXPECTED[colorScheme].color]);
+      expect(await page.evaluate(() => localStorage.getItem("colorMode"))).toBeNull();
+
+      const next = colorScheme === "light" ? "dark" : "light";
+      await page.emulateMedia({ colorScheme: next });
+      await expect.poll(() => themeColors(page)).toEqual([EXPECTED[next].color]);
+    });
+  }
+
+  for (const preference of ["light", "dark", "system"] as const) {
+    test(`restaura la preferencia guardada ${preference}`, async ({ page }) => {
+      await page.addInitScript((value) => localStorage.setItem("colorMode", value), preference);
+      const opposite = preference === "dark" ? "light" : "dark";
+      await page.emulateMedia({ colorScheme: opposite });
+      await page.goto("/");
+      const resolved = preference === "system" ? opposite : preference;
+      await expect.poll(() => themeColors(page)).toEqual([EXPECTED[resolved].color]);
+      await page.reload();
+      await expect.poll(() => themeColors(page)).toEqual([EXPECTED[resolved].color]);
+    });
+  }
+});
+
+test("permite volver al sistema y conserva la selección manual", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/dashboard");
+  const choose = async (label: string) => {
+    await page.getByRole("button", { name: /^Cambiar tema/ }).click();
+    await page.getByRole("menuitemradio", { name: label, exact: true }).click();
+    await expect(page.getByRole("button", { name: `Cambiar tema (actual: ${label})` })).toBeVisible();
+  };
+
+  await choose("Claro");
+  await expect.poll(() => themeColors(page)).toEqual([EXPECTED.light.color]);
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Cambiar tema (actual: Claro)" })).toBeVisible();
+  await expect.poll(() => themeColors(page)).toEqual([EXPECTED.light.color]);
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect.poll(() => themeColors(page)).toEqual([EXPECTED.light.color]);
+
+  await choose("Sistema");
+  await expect.poll(() => themeColors(page)).toEqual([EXPECTED.dark.color]);
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Cambiar tema (actual: Sistema)" })).toBeVisible();
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect.poll(() => themeColors(page)).toEqual([EXPECTED.light.color]);
+  expect(await page.evaluate(() => localStorage.getItem("colorMode"))).toBe("system");
 });

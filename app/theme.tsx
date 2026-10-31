@@ -5,10 +5,15 @@ import type { Theme, ThemeOptions } from "@mui/material/styles";
 // demás se deriva del theme.
 export const BRAND_PRIMARY = "#71BF44";
 
-// Temas que el usuario puede elegir en el header.
+// Paletas disponibles. La preferencia "system" se resuelve antes de crear el tema.
 export type AppThemeName = "light" | "dark";
 
 export const APP_THEME_NAMES: readonly AppThemeName[] = ["light", "dark"];
+
+export type ThemePreference = AppThemeName | "system";
+
+export const isThemePreference = (value: unknown): value is ThemePreference =>
+  value === "system" || isAppThemeName(value);
 
 export const isAppThemeName = (value: unknown): value is AppThemeName =>
   APP_THEME_NAMES.includes(value as AppThemeName);
