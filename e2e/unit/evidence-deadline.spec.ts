@@ -33,16 +33,49 @@ test.describe("getDeadline", () => {
     ).toEqual({ state: "overdue", days: 7 });
   });
 
-  test("cerrado: en cuántos días se resolvió y si fue a tiempo", () => {
-    expect(
-      getDeadline({
-        status: "Cerrado",
-        createdAt: daysAgo(6),
-        solutionDate: daysAgo(3),
-        priorityDays: 2,
-      }),
-    ).toEqual({ state: "resolved", days: 3, isOnTime: false, daysLate: 1 });
-  });
+  // Fechas fijas: dos llamadas a Date.now() pueden diferir por 1 ms y
+  // convertir tres días exactos en cuatro al redondear días parciales.
+  for (const { label, solutionDate, days, isOnTime, daysLate } of [
+    {
+      label: "cierre justo al vencer el plazo",
+      solutionDate: "2026-10-22T12:00:00.000Z",
+      days: 2,
+      isOnTime: true,
+      daysLate: 0,
+    },
+    {
+      label: "un milisegundo después del plazo",
+      solutionDate: "2026-10-22T12:00:00.001Z",
+      days: 3,
+      isOnTime: false,
+      daysLate: 1,
+    },
+    {
+      label: "tres días exactos",
+      solutionDate: "2026-10-23T12:00:00.000Z",
+      days: 3,
+      isOnTime: false,
+      daysLate: 1,
+    },
+    {
+      label: "tres días y un milisegundo",
+      solutionDate: "2026-10-23T12:00:00.001Z",
+      days: 4,
+      isOnTime: false,
+      daysLate: 2,
+    },
+  ]) {
+    test(`cerrado: ${label}`, () => {
+      expect(
+        getDeadline({
+          status: "Cerrado",
+          createdAt: "2026-10-20T12:00:00.000Z",
+          solutionDate,
+          priorityDays: 2,
+        }),
+      ).toEqual({ state: "resolved", days, isOnTime, daysLate });
+    });
+  }
 
   test("sin prioridad o cancelado: sin plazo", () => {
     expect(
