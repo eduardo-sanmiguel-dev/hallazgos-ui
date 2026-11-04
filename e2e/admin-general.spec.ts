@@ -116,11 +116,14 @@ test.describe("Plantas", () => {
     await expect(page.getByText(/La latitud debe ser un número entre -90 y 90/)).toBeVisible();
     await expect(page.getByText(/La longitud debe ser un número entre -180 y 180/)).toBeVisible();
     expect(writes).toEqual([]);
+    await expect(lat).toBeFocused();
 
     // La coma decimal se cambia por punto.
     await lat.fill("19,4326");
     await expect(lat).toHaveValue("19.4326");
     await lng.fill("-99.1332");
+    await expect(lng).toHaveValue("-99.1332");
+    await expect(lat).toHaveValue("19.4326");
     await saveButton(page).click();
     await expect(toast(page, "Planta creada correctamente")).toBeVisible();
     expect(writes[0].body).toMatchObject({ lat: 19.4326, lng: -99.1332 });

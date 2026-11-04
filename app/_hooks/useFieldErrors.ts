@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 
 import { toast } from "sonner";
 
@@ -9,6 +9,7 @@ const fieldId = (field: string) => `campo-${field}`;
 interface FailedState<F extends string, S> {
   // Campo → mensaje. `fail` marca uno; `failAll` y las del API, varios.
   fields: Partial<Record<F, string>>;
+  first: F;
   // Valores del formulario cuando falló la validación.
   snapshot: S;
 }
@@ -45,10 +46,6 @@ const focusField = (field: string) => {
 
   target?.focus();
 };
-
-// Dos frames: el mensaje de error se pinta después de este render.
-const focusAfterRender = (field: string) =>
-  requestAnimationFrame(() => requestAnimationFrame(() => focusField(field)));
 
 const sameValues = (a: unknown[], b: unknown[]) =>
   a.length === b.length && a.every((value, index) => Object.is(value, b[index]));
@@ -96,9 +93,15 @@ function useErrorState<F extends string, S>(
 ) {
   const [failed, setFailed] = useState<FailedState<F, S> | null>(null);
 
+  // El DOM de los errores ya está confirmado y todavía no se ha pintado.
+  // No dejar frames pendientes que puedan robar el foco al empezar a escribir
+  // en otro campo. Cambiar valores no vuelve a enfocar: solo una validación nueva.
+  useLayoutEffect(() => {
+    if (failed) focusField(failed.first);
+  }, [failed]);
+
   const mark = (fields: Partial<Record<F, string>>, first: F) => {
-    setFailed({ fields, snapshot: current });
-    focusAfterRender(first);
+    setFailed({ fields, snapshot: current, first });
   };
 
   const fail = (field: F, message: string) => {
