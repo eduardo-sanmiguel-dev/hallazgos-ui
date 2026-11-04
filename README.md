@@ -9,6 +9,8 @@ NestJS sigue siendo la autoridad para autenticación y permisos.
 Node ^22.18, ^24.11 o >=26 y pnpm 12.16.1.
 `pnpm install --frozen-lockfile`, luego `pnpm dev` (http://localhost:3000).
 La API local debe estar en http://localhost:4000 con su base de desarrollo.
+Abrir la UI en `http://localhost:3000`: `127.0.0.1:3000` es otro origen
+y la API lo rechaza tanto en CORS como en el WebSocket de actualizaciones.
 Copiar `.env.example` a `.env.development` y configurar la clave pública del API.
 Los nombres anteriores NEXT_PUBLIC_URL_API, NEXT_PUBLIC_URL_API_RAW y
 NEXT_PUBLIC_APP_KEY se aceptan como respaldo para conservar los .env existentes.

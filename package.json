@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node scripts/toolchain.mjs dev --host 127.0.0.1 --port 3000 --strictPort",
+    "dev": "node scripts/toolchain.mjs dev --host localhost --port 3000 --strictPort",
     "check-deps": "node scripts/check-deps.mjs",
     "build": "pnpm check-deps && pnpm typecheck && node scripts/build.mjs",
     "start": "node scripts/serve.mjs",
@@ -15,7 +15,7 @@
     "typecheck": "node node_modules/typescript7/bin/tsc --noEmit",
     "typecheck:ts6": "node node_modules/typescript/bin/tsc --noEmit",
     "prepare": "husky",
-    "preview": "node scripts/toolchain.mjs preview --host 127.0.0.1 --port 3000 --strictPort",
+    "preview": "node scripts/toolchain.mjs preview --host localhost --port 3000 --strictPort",
     "check": "node scripts/toolchain.mjs check",
     "format": "node scripts/toolchain.mjs fmt",
     "format:check": "node scripts/toolchain.mjs fmt --check",
