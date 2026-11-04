@@ -824,7 +824,7 @@ test.describe("Gemba Walk: catálogos", () => {
 
     await page.goto("/gemba-walk/zones/form");
     await choosePlant(page);
-    await page.getByLabel("Zona").fill("E2E Zona (no se guarda)");
+    await page.getByRole("textbox", { name: "Zona", exact: true }).fill("E2E Zona (no se guarda)");
     await page.getByLabel("Ubicación").fill("E2E Pasillo");
     await saveButton(page).click();
     await expect(toast(page, "Zona creada correctamente")).toBeVisible();
@@ -846,8 +846,8 @@ test.describe("Gemba Walk: catálogos", () => {
     const writes = await captureWrites(page);
 
     const id = await editFirstRow(page, "/gemba-walk/zones");
-    await expect(page.getByLabel("Zona")).toHaveValue(/\S/);
-    const nameZone = await page.getByLabel("Zona").inputValue();
+    await expect(page.getByRole("textbox", { name: "Zona", exact: true })).toHaveValue(/\S/);
+    const nameZone = await page.getByRole("textbox", { name: "Zona", exact: true }).inputValue();
     await saveButton(page).click();
     await expect(toast(page, "Zona actualizada correctamente")).toBeVisible();
 
