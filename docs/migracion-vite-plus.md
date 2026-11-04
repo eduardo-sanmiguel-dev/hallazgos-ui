@@ -47,11 +47,25 @@ fuera de la lista pública. La clave pública del navegador no sustituye la auto
 
 PM2 puede mantener `ui-comp` y el puerto 3000 usando `scripts/serve.mjs`.
 Como alternativa, `deploy/nginx.conf.example` sirve el sitio estático directamente.
-Antes del primer deploy hay que adaptar la invocación del script del VPS y verificar
-que PM2 ejecute el servidor nuevo. Esta tarea no modificó el VPS ni la API.
-El nuevo deploy construye `dist.next` antes de intercambiar los directorios.
-Para revertir a Next se restaura el commit anterior, su lockfile, dependencias, build
-`.next` y configuración PM2 anterior; no basta con renombrar un directorio `dist`.
+El deploy usa releases independientes en `~/hallazgos-ui-releases/`: no instala
+las dependencias nuevas en el directorio del Next que todavía está atendiendo tráfico.
+Antes del primer cambio se respalda íntegramente Next (incluidos `.next`, dependencias,
+variables y configuración PM2) y se guarda una definición de recuperación que apunta
+al respaldo en `~/.local/state/hallazgos/ui-next-rollback.json`.
+
+El dispatcher `~/scripts/hallazgos-ui.sh` sincroniza main y ejecuta el script del repo
+bajo un lock compartido. Así un deploy manual y GitHub Actions no compiten. El mismo
+commit ya activo y comprobado por HTTPS no se vuelve a desplegar.
+
+Cada release valida dependencias congeladas, formato, lint, tipos, unitarias y build.
+Después se sustituye únicamente el proceso `ui-comp`, con su cwd absoluto en la release.
+La verificación comprueba el ID del build por localhost y por HTTPS antes de publicar
+la actualización para las pestañas abiertas y persistir PM2. Un fallo tras el cambio
+restaura la definición PM2 y el ID anterior. Las releases previas se conservan.
+
+Para restaurar manualmente el primer Next se usa el `rollback-pm2.json` del respaldo:
+contiene la ruta al código, build y dependencias anteriores. No basta con renombrar dist.
+Nginx conserva el proxy a 127.0.0.1:3000 y su configuración HTTPS.
 
 ## Verificación
 

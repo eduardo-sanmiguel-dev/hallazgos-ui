@@ -1,227 +1,118 @@
 #!/usr/bin/env bash
-# Deploy de hallazgos-ui
-#
-# Todo vive dentro de funciones y main se llama en la última línea:
-# bash termina de leer el archivo antes de ejecutar, así que si `git`
-# actualiza este mismo script a mitad del deploy no se rompe la ejecución.
-
+# Build an immutable release before changing the active UI process.
 APP_DIR="$HOME/hallazgos-ui"
+RELEASES_DIR="$HOME/hallazgos-ui-releases"
+STATE_DIR="$HOME/.local/state/hallazgos"
+UI_URL="${UI_URL:-http://127.0.0.1:3000}"
+PUBLIC_UI_URL="${PUBLIC_UI_URL:-https://comportarte.com}"
 PM2_NAME="ui-comp"
-UI_URL="${UI_URL:-http://localhost:${PORT:-3000}/}"
-LOG_DIR="$HOME/deploy-logs"
-LOG_FILE="$LOG_DIR/hallazgos-ui-$(date +%Y%m%d-%H%M%S).log"
-LOCK_FILE="/tmp/hallazgos-ui-deploy.lock"
+RELEASE=""
+SWITCHED=0
+PREVIOUS_VERSION=""
 
-declare -a NOMBRES=()
-declare -a TIEMPOS=()
-PASO="inicio"
-COMMIT_ANTES=""
-COMMIT_DESPUES=""
-# anterior | detenida | nueva | revertida
-ESTADO="anterior"
-
-medir() {
-  local nombre="$1"; shift
-  PASO="$nombre"
-  echo
-  echo "▶ $nombre"
-  local inicio=$SECONDS
-  "$@"
-  NOMBRES+=("$nombre")
-  TIEMPOS+=("$((SECONDS - inicio))")
+version_matches() {
+  local base="$1" expected="$2" actual
+  actual=$(curl -fsS -m 10 "$base/deployment-version.json" 2>/dev/null) || return 1
+  node -e 'try { process.exit(JSON.parse(process.argv[1]).version === process.argv[2] ? 0 : 1) } catch { process.exit(1) }' "$actual" "$expected"
 }
 
-al_fallar() {
+restore_previous() {
+  echo "Restaurando únicamente la UI anterior..." >&2
+  pm2 delete "$PM2_NAME" >/dev/null 2>&1 || true
+  if node -e 'process.exit(require(process.argv[1]).apps.length ? 0 : 1)' "$RELEASE/previous-pm2.json"; then
+    pm2 start "$RELEASE/previous-pm2.json" --only "$PM2_NAME" --update-env
+    pm2 save
+  fi
+  if [ -f "$RELEASE/previous-ui-version.json" ]; then
+    cp "$RELEASE/previous-ui-version.json" "$STATE_DIR/ui-version.json.tmp"
+    mv "$STATE_DIR/ui-version.json.tmp" "$STATE_DIR/ui-version.json"
+  fi
+}
+
+on_error() {
   local rc=$?
-  # Si falla un comando dentro de $(...), el subshell también hereda el
-  # trap; solo el shell principal imprime el mensaje (evita duplicados).
-  if [ "$BASHPID" != "$$" ]; then
-    return 0
-  fi
-  echo
-  echo "✗ Falló el paso \"$PASO\" (código $rc). Log completo: $LOG_FILE"
-  case "$ESTADO" in
-    anterior)  echo "hallazgos-ui sigue corriendo con la versión anterior." ;;
-    revertida) echo "Se restauró y reinició el build anterior. Corrige el error y vuelve a ejecutar." ;;
-    nueva)     echo "hallazgos-ui corre la versión nueva pero no pasó la verificación. Revisa: pm2 logs $PM2_NAME" ;;
-    detenida)  echo "!! hallazgos-ui quedó DETENIDA. Revisa el error y vuelve a ejecutar el script." ;;
-  esac
-} >&2
-
-# fetch + reset en vez de pull: nunca se queda en un merge a medias
-# y el servidor queda exactamente igual al remoto.
-actualizar_codigo() {
-  git fetch --prune origin
-  COMMIT_ANTES=$(git rev-parse HEAD)
-  git reset --hard '@{u}'
-  COMMIT_DESPUES=$(git rev-parse HEAD)
-  echo "Commit: ${COMMIT_ANTES:0:7} → ${COMMIT_DESPUES:0:7}"
-  git log --oneline "$COMMIT_ANTES..$COMMIT_DESPUES" | head -20 || true
-}
-
-# Avisa si se commiteó package.json sin pnpm-lock.yaml.
-revisar_lockfile() {
-  local cambios
-  cambios=$(git diff --name-only "$COMMIT_ANTES" "$COMMIT_DESPUES")
-  if grep -qx 'package.json' <<<"$cambios" && ! grep -qx 'pnpm-lock.yaml' <<<"$cambios"; then
-    echo "⚠ package.json cambió pero pnpm-lock.yaml no. ¿Se quedó sin commitear el lockfile?" >&2
+  trap - ERR
+  echo "Falló el deploy (código $rc). Release: $RELEASE" >&2
+  if [ "$SWITCHED" = 1 ]; then
+    restore_previous || echo "ERROR: revisar inmediatamente pm2 logs $PM2_NAME" >&2
   else
-    echo "Lockfile OK"
+    echo "El proceso de producción anterior sigue activo." >&2
   fi
-}
-
-# El pnpm que corre aquí debe ser el mismo de "packageManager" en
-# package.json. Si no, puede no saber leer el lockfile que generó
-# desarrollo (ERR_PNPM_BROKEN_LOCKFILE).
-verificar_versiones() {
-  local esperado actual
-  esperado=$(node -p '((require("./package.json").packageManager || "").split("@")[1] || "").split("+")[0]')
-  if ! actual=$(pnpm --version 2>&1); then
-    echo "pnpm no pudo ejecutarse:" >&2
-    echo "$actual" | tail -15 >&2
-    echo "Ejecutable usado: $(command -v pnpm || echo 'no encontrado')" >&2
-    return 1
-  fi
-  echo "node $(node --version) | pnpm $actual ($(command -v pnpm))"
-  if [ -z "$esperado" ]; then
-    echo "⚠ package.json no define packageManager; no se puede comparar la versión de pnpm." >&2
-    return 0
-  fi
-  if [ "$actual" != "$esperado" ]; then
-    echo "pnpm $actual no coincide con packageManager ($esperado)." >&2
-    echo "Alinea el servidor: sudo npm install -g pnpm@$esperado" >&2
-    echo "Instalaciones de pnpm encontradas:" >&2
-    which -a pnpm >&2 || true
-    return 1
-  fi
-}
-
-instalar() {
-  # CI=true: pnpm no se queda esperando confirmación (sin TTY aborta)
-  # cuando decide que tiene que reconstruir node_modules.
-  # Solo se reintenta en fallas transitorias (red); un lockfile roto o
-  # desactualizado falla igual cada vez, así que se corta de inmediato.
-  local salida n
-  salida=$(mktemp)
-  for n in 1 2 3; do
-    if env CI=true pnpm install --frozen-lockfile 2>&1 | tee "$salida"; then
-      rm -f "$salida"
-      return 0
-    fi
-    if grep -qE 'ERR_PNPM_(BROKEN|OUTDATED)_LOCKFILE|ERR_PNPM_LOCKFILE' "$salida"; then
-      echo "Error del lockfile: no tiene caso reintentar." >&2
-      rm -f "$salida"
-      return 1
-    fi
-    echo "Intento $n/3 falló." >&2
-    if [ "$n" -lt 3 ]; then
-      sleep 5
-    fi
-  done
-  rm -f "$salida"
-  return 1
-}
-
-# Compila en otro directorio mientras se sigue sirviendo el dist anterior.
-construir() {
-  env VITE_BUILD_OUT_DIR=dist.next pnpm build
-}
-
-restaurar_build() {
-  if [ ! -d dist.prev ]; then
-    echo "No hay dist anterior; para el primer cambio desde Next restaura el commit y lockfile anteriores." >&2
-    return 1
-  fi
-  rm -rf dist.failed
-  if [ -d dist ]; then mv dist dist.failed; fi
-  mv dist.prev dist
-  pm2 startOrReload ecosystem.config.js --only "$PM2_NAME" --update-env
-  ESTADO="revertida"
-}
-
-arrancar() {
-  rm -rf dist.prev
-  if [ -d dist ]; then mv dist dist.prev; fi
-  mv dist.next dist
-  pm2 startOrReload ecosystem.config.js --only "$PM2_NAME" --update-env
-  ESTADO="nueva"
-}
-
-esperar_app() {
-  local _
-  for _ in $(seq 1 30); do
-    if curl -fsS -m 5 -o /dev/null "$UI_URL"; then
-      echo "hallazgos-ui responde en $UI_URL"
-      return 0
-    fi
-    sleep 2
-  done
-  echo "hallazgos-ui no respondió en $UI_URL tras 60 s. Últimos logs:" >&2
-  pm2 logs "$PM2_NAME" --lines 40 --nostream >&2 || true
-  return 1
-}
-
-# Si la versión nueva no responde, regresa al build anterior.
-verificar_app() {
-  if esperar_app; then
-    rm -rf dist.prev
-    return 0
-  fi
-  restaurar_build
-  return 1
-}
-
-resumen() {
-  echo
-  echo "-----------------------------------"
-  echo "Resumen de tiempos:"
-  local i total=0
-  for i in "${!NOMBRES[@]}"; do
-    echo "${NOMBRES[$i]}: ${TIEMPOS[$i]} s"
-    total=$((total + TIEMPOS[i]))
-  done
-  echo "-----------------------------------"
-  echo "Tiempo total: $total s"
-  echo "Desplegado: $(git log -1 --format='%h %s')"
-  echo "Log: $LOG_FILE"
+  exit "$rc"
 }
 
 main() {
   set -Eeuo pipefail
-
-  mkdir -p "$LOG_DIR"
-  exec > >(tee -a "$LOG_FILE") 2>&1
-
-  # Evita dos deploys simultáneos.
-  exec 9> "$LOCK_FILE"
-  if ! flock -n 9; then
-    echo "Ya hay un deploy en curso." >&2
-    exit 1
+  umask 077
+  mkdir -p "$HOME/deploy-logs" "$RELEASES_DIR" "$STATE_DIR"
+  local log="$HOME/deploy-logs/hallazgos-ui-$(date -u +%Y%m%d-%H%M%S).log"
+  exec > >(tee -a "$log") 2>&1
+  if [ "${UI_DEPLOY_LOCK_HELD:-}" != 1 ]; then
+    exec 9> /tmp/hallazgos-ui-deploy.lock
+    flock -w 900 9
   fi
-
-  # Sin preguntas interactivas de corepack si llegara a usarse.
-  export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-
-  trap al_fallar ERR
-
+  trap on_error ERR
   cd "$APP_DIR"
+  git fetch --prune origin
+  git reset --hard origin/main
+  local commit expected_pnpm active version
+  commit=$(git rev-parse HEAD)
+  expected_pnpm=$(node -p 'require("./package.json").packageManager.split("@")[1]')
+  [ "$(pnpm --version)" = "$expected_pnpm" ] || { echo "Se requiere pnpm $expected_pnpm" >&2; return 1; }
 
-  medir "actualizar código"       actualizar_codigo
-  medir "verificar versiones"     verificar_versiones
-  medir "revisar lockfile"        revisar_lockfile
-  medir "pnpm install"            instalar
-  # Si falla la compilación, el dist anterior continúa disponible.
-  medir "verificar dependencias"  pnpm check-deps
-  medir "validar tipos"           pnpm typecheck
-  medir "pnpm build"              construir
-  medir "pm2 restart"             arrancar
-  medir "verificar app"           verificar_app
-  # Compatible con la versión previa mientras se despliega esta funcionalidad.
-  if [ -f scripts/publish-ui-version.mjs ]; then
-    medir "publicar versión UI"    node scripts/publish-ui-version.mjs
+  # A push can trigger GitHub Actions while a manual deploy holds the lock.
+  if [ -f "$STATE_DIR/ui-current-release" ]; then
+    active=$(cat "$STATE_DIR/ui-current-release")
+    if [[ "$active" == "$RELEASES_DIR/"* ]] && [ -f "$active/.release-commit" ] && [ "$(cat "$active/.release-commit")" = "$commit" ]; then
+      version=$(node -p 'require(process.argv[1]).version' "$active/dist/deployment-version.json")
+      if version_matches "$UI_URL" "$version" && version_matches "$PUBLIC_UI_URL" "$version"; then
+        echo "El commit $commit ya está desplegado y verificado. Log: $log"
+        return 0
+      fi
+    fi
   fi
 
-  resumen
+  RELEASE="$RELEASES_DIR/$(date -u +%Y%m%d-%H%M%S)-${commit:0:12}"
+  mkdir "$RELEASE"
+  git archive HEAD | tar -x -C "$RELEASE"
+  printf '%s\n' "$commit" > "$RELEASE/.release-commit"
+  local file
+  for file in .env .env.local .env.production .env.production.local; do
+    if [ -f "$APP_DIR/$file" ]; then cp "$APP_DIR/$file" "$RELEASE/$file"; fi
+  done
+  pm2 jlist | node "$RELEASE/scripts/pm2-ui-snapshot.mjs" > "$RELEASE/previous-pm2.json"
+  if grep -q '/node_modules/next/' "$RELEASE/previous-pm2.json"; then
+    # This full backup must exist before the first migration is published.
+    test -f "$STATE_DIR/ui-next-rollback.json"
+    cp "$STATE_DIR/ui-next-rollback.json" "$RELEASE/previous-pm2.json"
+  fi
+  if [ -f "$STATE_DIR/ui-version.json" ]; then cp "$STATE_DIR/ui-version.json" "$RELEASE/previous-ui-version.json"; fi
+
+  cd "$RELEASE"
+  echo "Preparando $commit en $RELEASE; la UI anterior sigue activa."
+  env CI=true pnpm install --frozen-lockfile
+  pnpm check
+  pnpm test
+  pnpm build
+  version=$(node -p 'require("./dist/deployment-version.json").version')
+
+  # PM2 cannot reliably change a Next executable into a different script on reload.
+  # Replace only this app after its new release has passed all build checks.
+  SWITCHED=1
+  if pm2 describe "$PM2_NAME" >/dev/null 2>&1; then pm2 delete "$PM2_NAME"; fi
+  pm2 start "$RELEASE/ecosystem.config.js" --only "$PM2_NAME" --update-env
+  local ready=0 i
+  for i in $(seq 1 20); do
+    if version_matches "$UI_URL" "$version" && version_matches "$PUBLIC_UI_URL" "$version"; then ready=1; break; fi
+    sleep 1
+  done
+  [ "$ready" = 1 ] || { echo "La UI nueva no pasó la verificación local/HTTPS" >&2; return 1; }
+  node scripts/publish-ui-version.mjs
+  pm2 save
+  printf '%s\n' "$RELEASE" > "$STATE_DIR/ui-current-release.tmp"
+  mv "$STATE_DIR/ui-current-release.tmp" "$STATE_DIR/ui-current-release"
+  SWITCHED=0
+  echo "Deploy OK: $commit | versión $version | $PUBLIC_UI_URL | log $log"
 }
 
-main "$@"; exit
+main "$@"

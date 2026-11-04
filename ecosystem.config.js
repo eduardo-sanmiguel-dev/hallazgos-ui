@@ -4,7 +4,7 @@ module.exports = {
       name: "ui-comp",
       namespace: "comportarte",
       script: "scripts/serve.mjs",
-      cwd: "./",
+      cwd: __dirname,
       instances: 1,
       exec_mode: "fork",
       env: { NODE_ENV: "production", PORT: 3000 },

@@ -65,12 +65,17 @@ Se conservan eventos WebSocket ui-version/api-version, verificación previa a
 recargar y publicación atómica con `scripts/publish-ui-version.mjs`.
 El servidor también conserva `/api/deployment-version` para pestañas anteriores.
 
-El script de despliegue prepara `dist.next`, conserva `dist.prev` y cambia el
-proceso a `ecosystem.config.js` después de compilar. En el primer despliegue
-desde Next, revisar que el script del VPS invoque esta versión del script y que
-PM2 adopte `scripts/serve.mjs`. Para volver a Next hay que restaurar el commit,
-instalar su lockfile, compilar y arrancar su configuración PM2; un dist no es
-intercambiable con un build .next. Esta migración local no despliega ni modifica el VPS.
+El despliegue construye una release independiente en `~/hallazgos-ui-releases/`,
+conserva las variables de producción y verifica formato, lint, tipos, pruebas y build
+antes de reemplazar únicamente `ui-comp`. Verifica el ID publicado tanto en localhost
+como por HTTPS antes de notificar la versión y guardar PM2. Un fallo después del cambio
+restaura la definición PM2 y la versión anterior. Las releases anteriores se conservan.
+
+`~/scripts/hallazgos-ui.sh` debe ser el dispatcher que sincroniza main bajo el mismo
+lock y ejecuta `scripts/deploy-production.sh`. El primer cambio desde Next requiere
+un respaldo completo de su código, `.next`, dependencias y definición PM2, registrado
+en `~/.local/state/hallazgos/ui-next-rollback.json`. No ejecutar el script antiguo de Next.
+El proxy HTTPS existente puede seguir enviando al puerto 3000, sin cambios de Nginx.
 
 ## Validación
 
