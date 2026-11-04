@@ -62,9 +62,20 @@ Antes de cada `git push`, el hook `.husky/pre-push` corre typecheck, lint y
 estas pruebas; si algo falla, no se sube. Necesita el API levantado. En una
 emergencia: `git push --no-verify`.
 
-Corren en paralelo con 3 workers. Si el API o el dev server se saturan,
-`E2E_WORKERS=1 pnpm test:e2e` las corre una a la vez (en Windows con Git
-Bash, `npx cross-env E2E_WORKERS=1 pnpm test:e2e`).
+Corren en paralelo con **6 workers** por omisión, también en el hook del push.
+En el equipo local de 16 hilos, las 449 pruebas pasaron en unos 2 min 32 s,
+frente a aproximadamente 3 min 42 s con tres workers (una medición local).
+
+`E2E_WORKERS` permite ajustar la concurrencia; usar 3 para reducir carga o 1
+para depurar. En PowerShell, por ejemplo:
+
+```powershell
+$env:E2E_WORKERS = "3"
+pnpm test:e2e
+Remove-Item Env:E2E_WORKERS
+```
+
+La misma variable se aplica al ejecutar `git push`.
 
 ## Coverage
 

@@ -19,9 +19,9 @@ export default defineConfig({
   outputDir: "./test-results",
   // Las pruebas son independientes (las escrituras se interceptan), así que
   // corren en paralelo. E2E_WORKERS=1 vuelve a una a la vez si el API o el
-  // dev server no aguantan la carga.
+  // equipo no aguanta la carga. Seis workers se validaron con la suite completa.
   fullyParallel: true,
-  workers: Number(process.env.E2E_WORKERS) || 3,
+  workers: Number(process.env.E2E_WORKERS) || 6,
   retries: 0,
   timeout: 60_000,
   expect: { timeout: 15_000 },
