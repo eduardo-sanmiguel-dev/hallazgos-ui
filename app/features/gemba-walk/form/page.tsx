@@ -1,3 +1,5 @@
+import { Alert } from "@mui/material";
+import PoliteAlert from "@shared/components/PoliteAlert";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -8,7 +10,6 @@ import { Grid } from "@mui/material";
 import { Paper } from "@mui/material";
 import { Box } from "@mui/material";
 import { Stack } from "@mui/material";
-import { Alert } from "@mui/material";
 import { AlertTitle } from "@mui/material";
 import { TextField } from "@mui/material";
 import { ToggleButton } from "@mui/material";
@@ -118,6 +119,8 @@ const GembaWalkForm = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Inicia una carga externa cancelable y restaura el borrador antes de consultar; el reinicio forma parte de esa transición.
+  /* oxlint-disable react/set-state-in-effect */
   useEffect(() => {
     const restoring = restoreRef.current;
     let ignore = false;
@@ -164,6 +167,7 @@ const GembaWalkForm = () => {
       ignore = true;
     };
   }, [manufacturingPlantId, loadCount, queryClient, fetchAvailableEvents]);
+  /* oxlint-enable react/set-state-in-effect */
 
   const eventOptions = useMemo(
     () => events.map((event) => ({ id: event.id, name: eventLabel(event, now) })),
@@ -258,7 +262,7 @@ const GembaWalkForm = () => {
     onError: async (error) => {
       await draft.settle(error);
       // Quizá otro observador lo registró: si es así, se muestra el motivo.
-      refreshAvailability();
+      await refreshAvailability();
     },
   });
   const isSaving = createMutation.isPending;
@@ -336,7 +340,7 @@ const GembaWalkForm = () => {
           />
         )}
         {blocked && !draft.lock && (
-          <Alert severity="warning" role="status">
+          <PoliteAlert severity="warning">
             <AlertTitle>Este recorrido ya no se puede registrar</AlertTitle>
             {draftEvent && <strong>{draftEvent.label}. </strong>}
             {blocked} Lo capturado queda solo para consulta.
@@ -345,7 +349,7 @@ const GembaWalkForm = () => {
                 Descartar recorrido
               </Button>
             </Box>
-          </Alert>
+          </PoliteAlert>
         )}
 
         <DetailSection
@@ -421,7 +425,8 @@ const GembaWalkForm = () => {
             <Box sx={{ mt: 2 }}>
               {started ? (
                 <Box
-                  role="status"
+                  component="output"
+
                   sx={(theme) => ({
                     p: { xs: 2, sm: 2.5 },
                     borderRadius: 2,

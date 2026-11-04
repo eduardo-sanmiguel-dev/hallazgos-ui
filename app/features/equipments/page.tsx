@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
 
@@ -91,18 +91,19 @@ const columns: ResponsiveColumn<Equipment>[] = [
 export default function EquipmentsPage() {
   const router = useRouter();
 
+  const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
   const [filters, setFilters] = useState<{
     name: string;
     manufacturingPlantId: string;
   }>({
-    manufacturingPlantId: "",
+    manufacturingPlantId: manufacturingPlants.length === 1 ? String(manufacturingPlants[0].id) : "",
     name: "",
   });
 
   const { confirm, confirmDialog } = useConfirmDialog();
 
   const {
-    rows: rows,
+    rows,
     count,
     pagination,
     isLoading,
@@ -119,22 +120,11 @@ export default function EquipmentsPage() {
       }),
   });
 
-  const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
-
-  useEffect(() => {
-    if (manufacturingPlants.length === 1) {
-      setFilters((prev) => ({
-        ...prev,
-        manufacturingPlantId: String(manufacturingPlants[0].id),
-      }));
-    }
-  }, [manufacturingPlants]);
-
   const removeMutation = useMutation({
     mutationFn: (id: number) => EquipmentsService.remove(id),
     onSuccess: () => {
       toast.success("Equipo eliminado correctamente");
-      getData();
+      return getData();
     },
   });
 

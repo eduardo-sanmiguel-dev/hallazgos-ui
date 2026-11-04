@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
@@ -67,12 +67,15 @@ const DashboardPage = () => {
   const email = useUserSessionStore((state) => state.email);
   const userId = useUserSessionStore((state) => state.id);
 
-  // Periodo por omisión (M5): los últimos 30 días, hoy incluido.
+  // La sesión ya está restaurada: proponer planta y periodo una vez, sin pisar
+  // lo que el usuario elija o borre después. Los últimos 30 días incluyen hoy.
   const [filters, setFilters] = useState<DashboardFilters>(() => {
     const { preset, startDate, endDate } = DEFAULT_PERIOD();
+    const plantId = proposedPlantId(manufacturingPlants, userId, "dashboard");
+    const plant = manufacturingPlants.find((item) => String(item.id) === plantId);
     return {
-      manufacturingPlantId: "",
-      manufacturingPlantName: "",
+      manufacturingPlantId: plantId,
+      manufacturingPlantName: plant?.name ?? "",
       periodPreset: preset,
       startDate,
       endDate,
@@ -115,31 +118,6 @@ const DashboardPage = () => {
       responsibleNames: [],
     }));
   };
-
-  // Al entrar ya se ven datos (M5): la única planta del usuario o la última
-  // que eligió aquí en este dispositivo. Una sola vez; si el usuario ya eligió
-  // una (o la quitó), no se toca.
-  const plantProposed = useRef(false);
-  useEffect(() => {
-    if (plantProposed.current || !userId || !manufacturingPlants.length) {
-      return;
-    }
-    plantProposed.current = true;
-
-    const plantId = proposedPlantId(manufacturingPlants, userId, "dashboard");
-    const plant = manufacturingPlants.find((item) => String(item.id) === plantId);
-    if (!plant) return;
-
-    setFilters((prev) =>
-      prev.manufacturingPlantId
-        ? prev
-        : {
-            ...prev,
-            manufacturingPlantId: plantId,
-            manufacturingPlantName: plant.name,
-          },
-    );
-  }, [userId, manufacturingPlants]);
 
   // Estado de la pantalla: un solo aviso (sin planta, sin periodo, sin
   // hallazgos o error) en lugar de uno por gráfica. Las gráficas se montan
@@ -261,18 +239,6 @@ const DashboardPage = () => {
       { manufacturingPlantId: filters.manufacturingPlantId },
       { enabled: !!filters.manufacturingPlantId },
     ).data ?? EMPTY_CATALOG;
-
-  useEffect(() => {
-    if (!filters.manufacturingPlantId) return;
-
-    setFilters((prev) => ({
-      ...prev,
-      areaIds: [],
-      areaNames: [],
-      responsibleIds: [],
-      responsibleNames: [],
-    }));
-  }, [filters.manufacturingPlantId]);
 
   // Responsables del filtro: con zonas y periodo, los que tienen hallazgos
   // ahí; si no, todos los usuarios de la planta.
@@ -613,7 +579,7 @@ const DashboardPage = () => {
           {!showCharts && (
             <Grid size={{ xs: 12 }}>
               {screenState === "loading" ? (
-                <Box role="status" aria-label="Cargando gráficas">
+                <Box component="output" aria-label="Cargando gráficas">
                   <Grid container spacing={2}>
                     {[0, 1].map((index) => (
                       <Grid key={index} size={{ xs: 12, md: 6 }}>

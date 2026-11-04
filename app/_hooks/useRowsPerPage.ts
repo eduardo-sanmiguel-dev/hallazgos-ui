@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { constants } from "@constants";
 import {
@@ -16,30 +16,26 @@ interface Options {
 
 /**
  * Filas por página de una tabla: empieza en 10 y recuerda en este navegador
- * lo que eligió el usuario, por tabla. La preferencia se lee tras montar (en
- * el servidor no hay localStorage y rompería la hidratación); hasta entonces
- * `ready` es false y las listas esperan, para no pedir primero 10 filas y
- * luego las guardadas.
+ * lo que eligió el usuario, por tabla. En la SPA la preferencia se lee al
+ * inicializar el estado, antes de consultar: no se pide primero 10 filas y
+ * luego el valor guardado.
  */
 export function useRowsPerPage(
   table: string,
   { allowAll = false, initial = constants.pagination.defaultRowsPerPage }: Options = {},
 ) {
-  const [rowsPerPage, setRowsPerPageState] = useState(initial);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
+  const [rowsPerPage, setRowsPerPageState] = useState(() => {
     try {
       const saved = parseSavedRowsPerPage(
         localStorage.getItem(rowsPerPageStorageKey(table)),
         allowAll,
       );
-      if (saved !== null) setRowsPerPageState(saved);
+      return saved ?? initial;
     } catch {
       // Sin acceso a localStorage: se queda el valor inicial.
     }
-    setReady(true);
-  }, [table, allowAll]);
+    return initial;
+  });
 
   const setRowsPerPage = (next: number) => {
     if (next === rowsPerPage) return;
@@ -55,7 +51,7 @@ export function useRowsPerPage(
   return {
     rowsPerPage,
     setRowsPerPage,
-    ready,
+    ready: true,
     rowsPerPageOptions: getRowsPerPageOptions(allowAll),
   };
 }

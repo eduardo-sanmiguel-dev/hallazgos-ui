@@ -94,15 +94,20 @@ export function useFormDraft<T>({ form, content, hasContent, onRestore }: Option
     lastSendAtRef.current = null;
   };
 
-  useEffect(() => {
-    let ignore = false;
+  const identity = `${userId}:${form ?? ""}`;
+  const [previousIdentity, setPreviousIdentity] = useState(identity);
+  if (previousIdentity !== identity) {
+    setPreviousIdentity(identity);
     setOfferRecord(null);
     setLock(null);
     setReady(false);
+  }
+  useEffect(() => {
+    let ignore = false;
     reset();
     if (!form || !userId) return;
 
-    getDraft<T>(userId, form).then((draft) => {
+    void getDraft<T>(userId, form).then((draft) => {
       if (ignore) return;
       if (draft && (hasContentRef.current(toContent(draft)) || draft.sendState !== "none")) {
         setOfferRecord(draft);
@@ -145,11 +150,11 @@ export function useFormDraft<T>({ form, content, hasContent, onRestore }: Option
     if (!ready || lock || !form || !userId) return;
     const timer = setTimeout(() => {
       if (hasContentRef.current(contentRef.current)) {
-        save("none");
+        void save("none");
       } else if (createdAtRef.current) {
         // Se borró todo lo capturado: ya no hay borrador.
         reset();
-        deleteDraft(userId, form);
+        void deleteDraft(userId, form);
       }
     }, AUTOSAVE_MS);
     return () => clearTimeout(timer);

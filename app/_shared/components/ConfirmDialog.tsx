@@ -66,7 +66,7 @@ export default function ConfirmDialog({
         </DialogContent>
       )}
       <DialogActions sx={{ px: 3, pb: 2.5 }}>
-        <Button ref={cancelRef} onClick={onClose} autoFocus disabled={isBusy}>
+        <Button ref={cancelRef} onClick={onClose} disabled={isBusy}>
           {cancelLabel}
         </Button>
         <Button

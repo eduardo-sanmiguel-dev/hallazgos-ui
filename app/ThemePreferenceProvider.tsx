@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, ReactNode, useContext, useMemo, useState } from "react";
 import { useMediaQuery } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -18,19 +18,25 @@ export function useThemePreference() {
 }
 
 export default function ThemePreferenceProvider({ children }: { children: ReactNode }) {
-  const [preference, setPreference] = useState<ThemePreference>("system");
+  const [preference, setPreference] = useState<ThemePreference>(() => {
+    try {
+      const saved = localStorage.getItem(THEME_STORAGE_KEY);
+      return isThemePreference(saved) ? saved : "system";
+    } catch {
+      return "system";
+    }
+  });
   const prefersDark = useMediaQuery("(prefers-color-scheme: dark)");
   const resolvedTheme = preference === "system" ? (prefersDark ? "dark" : "light") : preference;
   const theme = useMemo(() => createAppTheme(resolvedTheme), [resolvedTheme]);
 
-  useEffect(() => {
-    const saved = localStorage.getItem(THEME_STORAGE_KEY);
-    if (isThemePreference(saved)) setPreference(saved);
-  }, []);
-
   const changePreference = (value: ThemePreference) => {
     setPreference(value);
-    localStorage.setItem(THEME_STORAGE_KEY, value);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, value);
+    } catch {
+      /* La preferencia sigue activa en esta visita. */
+    }
   };
 
   return (

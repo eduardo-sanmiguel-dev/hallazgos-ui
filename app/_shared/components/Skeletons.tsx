@@ -13,7 +13,7 @@ import FormContainer from "./FormContainer";
 
 function SkeletonRoot({ label = "Cargando…", children }: { label?: string; children: ReactNode }) {
   return (
-    <Box role="status" aria-live="polite" aria-label={label}>
+    <Box component="output" aria-live="polite" aria-label={label}>
       {children}
     </Box>
   );

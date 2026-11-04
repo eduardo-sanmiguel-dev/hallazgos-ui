@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
 
@@ -37,6 +37,7 @@ export default function SessionEndedDialog() {
   const userId = useUserSessionStore((state) => state.id);
   const titleId = useId();
   const descriptionId = useId();
+  const actionRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const show = () => {
@@ -44,7 +45,7 @@ export default function SessionEndedDialog() {
       // Los borradores se conservan al vencer la sesión (no al cerrarla a
       // propósito): se avisa que lo capturado no se perdió. Sin almacén de
       // borradores (modo privado), que se perderá.
-      isDraftStorageAvailable().then(async (available) => {
+      void isDraftStorageAvailable().then(async (available) => {
         if (!available) return setDrafts("unavailable");
         if (!userId) return;
         const saved = await listUserDrafts(userId);
@@ -58,6 +59,7 @@ export default function SessionEndedDialog() {
   return (
     <Dialog
       open={open}
+      slotProps={{ transition: { onEntering: () => actionRef.current?.focus() } }}
       maxWidth="xs"
       fullWidth
       role="alertdialog"
@@ -83,7 +85,7 @@ export default function SessionEndedDialog() {
       <DialogActions>
         <Button
           variant="contained"
-          autoFocus
+          ref={actionRef}
           disabled={isLeaving}
           onClick={() => {
             // Este diálogo ya dijo qué pasa con lo capturado: el aviso nativo

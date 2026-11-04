@@ -40,7 +40,7 @@ export const BootstrapDialog = styled(Dialog)(({ theme }) => ({
 // Celebración sutil al cerrar: una sola ráfaga corta desde abajo al centro.
 // zIndex por encima de los diálogos de MUI (1300).
 const celebrateClose = () => {
-  confetti({
+  void confetti({
     particleCount: 60,
     spread: 60,
     startVelocity: 30,
@@ -263,7 +263,7 @@ export default function CloseEvidence({ isOpen, handleClose, idRow, evidenceCurr
               confirmLabel: "Cerrar hallazgo",
               cancelLabel: "Revisar",
             });
-            if (confirmed) saveSolution();
+            if (confirmed) await saveSolution();
           }}
           variant="contained"
           loading={isLoading}

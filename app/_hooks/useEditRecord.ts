@@ -41,11 +41,14 @@ export function useEditRecord<T>(
   // El formulario se llena una vez por respuesta (no en cada render); hasta
   // entonces sigue "loading" para no mostrarlo vacío.
   const [filledAt, setFilledAt] = useState(0);
+  // Sincroniza una respuesta externa con el formulario del padre una vez; hacerlo durante render actualizaría otro componente.
+  /* oxlint-disable react/set-state-in-effect */
   useEffect(() => {
     if (!query.data || query.dataUpdatedAt === filledAt) return;
     onLoadRef.current(query.data);
     setFilledAt(query.dataUpdatedAt);
   }, [query.data, query.dataUpdatedAt, filledAt]);
+  /* oxlint-enable react/set-state-in-effect */
 
   const status: EditRecordStatus = !id
     ? "idle"

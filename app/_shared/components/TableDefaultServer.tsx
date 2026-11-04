@@ -35,7 +35,7 @@ export interface ServerPagination {
 interface Props<T> {
   rows: T[];
   // Firma de método para aceptar los `paintRows={(row: X) => ...}` existentes.
-  paintRows(value: T, index: number, array: T[]): ReactNode;
+  paintRows(this: void, value: T, index: number, array: T[]): ReactNode;
   columns: string[];
   // Con setPage/setRowsPerPage la paginación es controlada por el padre;
   // sin ellos, la tabla la maneja internamente.

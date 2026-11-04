@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Dialog } from "@mui/material";
 import { DialogTitle } from "@mui/material";
@@ -70,25 +70,29 @@ export default function DialogCalendarEvent({
   onRemoveNew,
 }: Props) {
   const [zoneIds, setZoneIds] = useState<string[]>([]);
-  const [zoneId, setZoneId] = useState<string>("");
-  const [date, setDate] = useState<string>("");
-  const [time, setTime] = useState<string>("");
-  const [isAdditional, setIsAdditional] = useState<boolean>(false);
+  const [zoneId, setZoneId] = useState<string>(state?.mode === "edit" ? state.gembaWalkZoneId : "");
+  const [date, setDate] = useState<string>(state?.mode === "edit" ? state.date : "");
+  const [time, setTime] = useState<string>(state?.time ?? "");
+  const [isAdditional, setIsAdditional] = useState<boolean>(
+    state?.mode === "edit" && state.isAdditional,
+  );
 
-  useEffect(() => {
-    if (!state) return;
+  const [previousState, setPreviousState] = useState(state);
+  if (previousState !== state) {
+    setPreviousState(state);
+    if (state) {
+      setTime(state.time);
 
-    setTime(state.time);
-
-    if (state.mode === "create") {
-      setZoneIds([]);
-      setIsAdditional(false);
-    } else {
-      setZoneId(state.gembaWalkZoneId);
-      setDate(state.date);
-      setIsAdditional(state.isAdditional);
+      if (state.mode === "create") {
+        setZoneIds([]);
+        setIsAdditional(false);
+      } else {
+        setZoneId(state.gembaWalkZoneId);
+        setDate(state.date);
+        setIsAdditional(state.isAdditional);
+      }
     }
-  }, [state]);
+  }
 
   const isCreate = state?.mode === "create";
   const isInvalid = isCreate ? !zoneIds.length || !time : !zoneId || !date || !time;

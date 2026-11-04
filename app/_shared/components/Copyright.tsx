@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Link } from "@mui/material";
 import { Typography } from "@mui/material";
 
 export default function Copyright(props: any) {
+  const [year] = useState(() => new Date().getFullYear());
   return (
     <Typography
       variant="body2"
@@ -17,7 +19,7 @@ export default function Copyright(props: any) {
       <Link color="inherit" href="https://grupohada.com" target="_blank">
         Hada international
       </Link>{" "}
-      {new Date().getFullYear()}
+      {year}
       {"."}
     </Typography>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { Theme, useTheme } from "@mui/material/styles";
 import { Box } from "@mui/material";
@@ -40,12 +40,8 @@ interface Props {
   onChange: (values: string[]) => void;
 }
 
-export default function MultiSelectManufacturingPlants({
-  values,
-  onChange,
-}: Props) {
+export default function MultiSelectManufacturingPlants({ values, onChange }: Props) {
   const theme = useTheme();
-  const [labelSelectAll, setLabelSelectAll] = useState("Todos");
 
   const { data: manufacturingPlants } = useManufacturingPlants();
 
@@ -54,19 +50,9 @@ export default function MultiSelectManufacturingPlants({
     [manufacturingPlants],
   );
 
-  useEffect(() => {
-    if (!values.length) {
-      setLabelSelectAll("Todos");
-    } else if (values.length === names.length) {
-      setLabelSelectAll("Ninguno");
-    } else {
-      setLabelSelectAll("Todos");
-    }
-  }, [values, names]);
+  const labelSelectAll = values.length > 0 && values.length === names.length ? "Ninguno" : "Todos";
 
-  const handleChange = ({
-    target: { value },
-  }: SelectChangeEvent<typeof values>) => {
+  const handleChange = ({ target: { value } }: SelectChangeEvent<typeof values>) => {
     if (value.includes("none-all")) {
       if (values.length === names.length) {
         onChange([]);
@@ -76,17 +62,13 @@ export default function MultiSelectManufacturingPlants({
         return;
       }
     }
-    onChange(
-      typeof value === "string" ? value.split(",") : (value as string[]),
-    );
+    onChange(typeof value === "string" ? value.split(",") : (value as string[]));
   };
 
   return (
     <div>
       <FormControl sx={{ width: "100%" }}>
-        <InputLabel id="manufacturing-plants-multiple-chip-label">
-          Plantas
-        </InputLabel>
+        <InputLabel id="manufacturing-plants-multiple-chip-label">Plantas</InputLabel>
         <Select
           labelId="manufacturing-plants-multiple-chip-label"
           id="manufacturing-plants-multiple-chip"
@@ -107,11 +89,7 @@ export default function MultiSelectManufacturingPlants({
           {names
             .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }))
             .map((name) => (
-              <MenuItem
-                key={name}
-                value={name}
-                style={getStyles(name, values, theme)}
-              >
+              <MenuItem key={name} value={name} style={getStyles(name, values, theme)}>
                 {name}
               </MenuItem>
             ))}

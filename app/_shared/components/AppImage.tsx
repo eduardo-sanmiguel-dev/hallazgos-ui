@@ -1,6 +1,7 @@
 import { forwardRef, type ImgHTMLAttributes } from "react";
 
 type Props = ImgHTMLAttributes<HTMLImageElement> & {
+  alt: string;
   fill?: boolean;
   priority?: boolean;
   unoptimized?: boolean;
@@ -8,12 +9,13 @@ type Props = ImgHTMLAttributes<HTMLImageElement> & {
 
 // Original API/file URLs preserve authenticated evidence, blobs and signatures.
 const AppImage = forwardRef<HTMLImageElement, Props>(function AppImage(
-  { fill, priority, unoptimized: _unoptimized, style, loading, ...props },
+  { alt, fill, priority, unoptimized: _unoptimized, style, loading, ...props },
   ref,
 ) {
   return (
     <img
       ref={ref}
+      alt={alt}
       loading={priority ? "eager" : (loading ?? "lazy")}
       fetchPriority={priority ? "high" : undefined}
       style={{

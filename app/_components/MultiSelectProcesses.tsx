@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 
 import { Theme, useTheme } from "@mui/material/styles";
 import { Box } from "@mui/material";
@@ -43,7 +43,6 @@ interface Props {
 
 export default function MultiSelectProcesses({ values, onChange, manufacturingPlantNames }: Props) {
   const theme = useTheme();
-  const [labelSelectAll, setLabelSelectAll] = useState("Todos");
 
   const { data: processes } = useProcesses({ manufacturingPlantNames });
 
@@ -53,26 +52,16 @@ export default function MultiSelectProcesses({ values, onChange, manufacturingPl
     [processes],
   );
 
-  useEffect(() => {
-    if (!values.length) {
-      setLabelSelectAll("Todos");
-    } else if (values.length === names.length) {
-      setLabelSelectAll("Ninguno");
-    } else {
-      setLabelSelectAll("Todos");
-    }
-  }, [values, names]);
+  const labelSelectAll = values.length > 0 && values.length === names.length ? "Ninguno" : "Todos";
 
   useEffect(() => {
-    if (!manufacturingPlantNames.length) return onChange([]);
-
     const processesFiltered = values.filter((value) => {
       const [manufacturingPlantName] = value.split(" - ");
       return manufacturingPlantNames.includes(manufacturingPlantName);
     });
 
-    onChange(processesFiltered);
-  }, [manufacturingPlantNames]);
+    if (processesFiltered.length !== values.length) onChange(processesFiltered);
+  }, [manufacturingPlantNames, values, onChange]);
 
   const handleChange = ({ target: { value } }: SelectChangeEvent<typeof values>) => {
     if (value.includes("none-all")) {

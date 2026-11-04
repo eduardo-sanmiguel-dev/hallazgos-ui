@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useRouter } from "@shared/navigation";
 
@@ -43,18 +43,16 @@ const EmergencyTeamsPage = () => {
   });
 
   // Cada página recibida se agrega al caché de filas para imprimir.
-  useEffect(() => {
-    setRowsById((prev) => ({
-      ...prev,
-      ...Object.fromEntries(data.map((row) => [row.id, row])),
-    }));
-  }, [data]);
-
-  // Al cambiar los filtros la selección se limpia (la página vuelve a la 1 en
-  // usePaginatedList).
-  useEffect(() => {
+  const [previousRows, setPreviousRows] = useState(data);
+  if (previousRows !== data) {
+    setPreviousRows(data);
+    setRowsById((prev) => ({ ...prev, ...Object.fromEntries(data.map((row) => [row.id, row])) }));
+  }
+  const [previousFilters, setPreviousFilters] = useState(filters);
+  if (previousFilters !== filters) {
+    setPreviousFilters(filters);
     setSelectedIds([]);
-  }, [filters]);
+  }
 
   const printQrs = async (rowsToPrint: EmergencyTeam[]) => {
     if (!rowsToPrint.length) {

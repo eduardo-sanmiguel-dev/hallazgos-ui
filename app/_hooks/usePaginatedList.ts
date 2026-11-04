@@ -120,7 +120,7 @@ export function usePaginatedList<TFilters, TItem>({
       isFetching: query.isFetching && !query.isPending,
       isError: query.isError,
       onRetry: () => {
-        if (isEnabled) query.refetch();
+        if (isEnabled) void query.refetch();
       },
     } satisfies ServerPagination,
     /** Primera carga (aún no hay datos que mostrar). */

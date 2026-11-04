@@ -103,17 +103,21 @@ const EPPCharts = () => {
   const chartsMode = useHighchartsTheme();
   // Por nombre: al cambiar de planta pueden ocultarse pestañas de gasto.
   const [activeTitle, setActiveTitle] = useState(chartGroups[0].title);
-  const [manufacturingPlantId, setManufacturingPlantId] = useState("");
+  const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
+  const userId = useUserSessionStore((state) => state.id);
+  const [manufacturingPlantId, setManufacturingPlantId] = useState(
+    () =>
+      proposedPlantId(manufacturingPlants, userId, "bi-epp") ||
+      String(manufacturingPlants[0]?.id ?? ""),
+  );
   // Por omisión los últimos 30 días (M5); la API calcula la comparación.
   const [period, setPeriod] = useState<PeriodValue>(() => DEFAULT_PERIOD());
   const { startDate, endDate } = period;
 
-  const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
   // Solo administradores (la API también lo exige). El rol llega vacío
   // mientras carga la sesión: no se redirige ni se piden datos hasta tenerlo.
   const router = useRouter();
   const role = useUserSessionStore((state) => state.role);
-  const userId = useUserSessionStore((state) => state.id);
   const isAdmin = role === ROLE_ADMINISTRADOR;
 
   useEffect(() => {
@@ -123,14 +127,6 @@ const EPPCharts = () => {
   // La planta es obligatoria: los indicadores se calculan por planta. Se
   // propone la única del usuario o la última que eligió aquí en este
   // dispositivo (M5); si no hay, la primera, como antes.
-  useEffect(() => {
-    if (manufacturingPlants.length && !manufacturingPlantId) {
-      setManufacturingPlantId(
-        proposedPlantId(manufacturingPlants, userId, "bi-epp") ||
-          manufacturingPlants[0].id.toString(),
-      );
-    }
-  }, [manufacturingPlants, manufacturingPlantId, userId]);
 
   const changePlant = (plantId: string) => {
     setManufacturingPlantId(plantId);

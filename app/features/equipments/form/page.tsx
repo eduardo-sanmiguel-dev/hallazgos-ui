@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
 
@@ -48,13 +48,16 @@ const EMPTY_FORM: EquipmentForm = {
 // Antes era un diálogo sobre la lista; ahora es su propia ruta, como el
 // resto de los catálogos de Configuración.
 const EquipmentsFormPage = () => {
-  const [form, setForm] = useState<EquipmentForm>(EMPTY_FORM);
-
   const router = useRouter();
   const searchParams = useSearchParams();
   const idCurrent = Number(searchParams.get("id") || 0);
 
   const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
+  const [form, setForm] = useState<EquipmentForm>(() => ({
+    ...EMPTY_FORM,
+    manufacturingPlantId:
+      !idCurrent && manufacturingPlants.length === 1 ? String(manufacturingPlants[0].id) : "",
+  }));
 
   // Cada error se quita al cambiar su campo; los demás siguen marcados.
   const { failAll, failFromApi, errorOf, fieldProps } = useFormFieldErrors(form);
@@ -74,15 +77,6 @@ const EquipmentsFormPage = () => {
     setForm(loaded);
     leave.markPristine(loaded);
   });
-
-  useEffect(() => {
-    if (!idCurrent && manufacturingPlants.length === 1) {
-      setForm((prev) => ({
-        ...prev,
-        manufacturingPlantId: String(manufacturingPlants[0].id),
-      }));
-    }
-  }, [manufacturingPlants, idCurrent]);
 
   const saveMutation = useMutation({
     mutationFn: (payload: Parameters<typeof EquipmentsService.create>[0]) =>

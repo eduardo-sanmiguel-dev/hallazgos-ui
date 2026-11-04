@@ -13,7 +13,7 @@ describe("Foto obligatoria por clasificación", () => {
 
   test("sin la bandera en la respuesta se exige la foto", () => {
     for (const mainType of [{}, { requiresEvidence: null }, null, undefined]) {
-      expect(requiresPhotoEvidence(mainType), String(mainType)).toBe(true);
+      expect(requiresPhotoEvidence(mainType), JSON.stringify(mainType) ?? "undefined").toBe(true);
     }
   });
 

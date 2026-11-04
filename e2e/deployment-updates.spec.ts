@@ -18,7 +18,7 @@ test("recarga una sola vez con una versión distinta e ignora mensajes inválido
   page,
 }) => {
   let send: (message: string) => void = () => {};
-  await page.routeWebSocket("wss://api.example/deployments/ws", (socket) => {
+  await page.routeWebSocket("wss://api.example/deployments/ws", async (socket) => {
     send = (message) => socket.send(message);
   });
   await page.goto("about:blank");
@@ -54,9 +54,9 @@ test("recarga una sola vez con una versión distinta e ignora mensajes inválido
 
 test("reconecta tras una caída y recibe la versión que se perdió", async ({ page }) => {
   let connections = 0;
-  await page.routeWebSocket("wss://api.example/deployments/ws", (socket) => {
+  await page.routeWebSocket("wss://api.example/deployments/ws", async (socket) => {
     connections++;
-    if (connections === 1) socket.close();
+    if (connections === 1) await socket.close();
     else socket.send(JSON.stringify({ type: "ui-version", version: "build-B" }));
   });
   await page.goto("about:blank");

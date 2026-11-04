@@ -16,14 +16,7 @@ export default async function globalSetup(config: FullConfig) {
   const browser = await chromium.launch({ channel: "chrome" });
   try {
     const page = await browser.newPage({ baseURL });
-    const [response] = await Promise.all([
-      page.waitForResponse(
-        (response) =>
-          response.request().method() === "POST" &&
-          new URL(response.url()).pathname.endsWith("/auth/login"),
-      ),
-      loginWithForm(page, email, password),
-    ]);
+    const response = await loginWithForm(page, email, password);
     if (!response.ok()) {
       throw new Error(
         `No se pudo iniciar sesión con el usuario E2E (HTTP ${response.status()}). ` +

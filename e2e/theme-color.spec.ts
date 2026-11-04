@@ -14,7 +14,13 @@ const EXPECTED = {
 /** "#FFF" / "#ffffff" → "#ffffff", para comparar colores y no el texto. */
 const normalize = (color: string | null) => {
   const hex = (color ?? "").trim().toLowerCase();
-  return /^#[0-9a-f]{3}$/.test(hex) ? `#${[...hex.slice(1)].map((c) => c + c).join("")}` : hex;
+  return /^#[0-9a-f]{3}$/.test(hex)
+    ? `#${hex
+        .slice(1)
+        .split("")
+        .map((c) => c + c)
+        .join("")}`
+    : hex;
 };
 
 const themeColors = async (page: Page) =>

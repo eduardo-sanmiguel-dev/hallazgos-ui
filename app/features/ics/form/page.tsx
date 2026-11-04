@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
 
@@ -83,7 +83,6 @@ const FieldError = ({ field, message }: { field: string; message?: string }) =>
   ) : null;
 
 const IcsFormPage = () => {
-  const [idCurrent, setIdCurrent] = useState<number>(0);
   const [image, setImage] = useState<string>("");
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [form, setForm] = useState<IcsForm>(EMPTY_FORM);
@@ -109,6 +108,7 @@ const IcsFormPage = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const idCurrent = Number(searchParams.get("id") || 0);
 
   const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
 
@@ -195,7 +195,7 @@ const IcsFormPage = () => {
 
   const save = () => {
     if (failAll(missingFields())) return;
-    send();
+    void send();
   };
 
   // También es "Reintentar envío" de un borrador en solo lectura: mismos
@@ -278,15 +278,6 @@ const IcsFormPage = () => {
     setImage("");
     setAttachedFile(null);
   };
-
-  useEffect(() => {
-    const id = Number(searchParams.get("id") || 0);
-    if (!id) return;
-
-    // La edición aún no llena el formulario (antes se pedía el registro y
-    // se ignoraba la respuesta).
-    setIdCurrent(id);
-  }, [searchParams]);
 
   const employeesHelper = !form.manufacturingPlant
     ? "Elige una planta para ver a sus colaboradores."

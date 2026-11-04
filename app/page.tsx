@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import Image from "@shared/components/AppImage";
 import { useSearchParams } from "@shared/navigation";
@@ -15,11 +15,7 @@ import FormRestorePassword from "@components/login/FormRestorePassword";
 export default function SignIn() {
   const [forgotPassword, setForgotPassword] = useState(false);
   const searchParams = useSearchParams();
-  const [token, setToken] = useState<string>("");
-
-  useEffect(() => {
-    setToken(searchParams.get("token") || "");
-  }, [searchParams]);
+  const token = searchParams.get("token") || "";
 
   return (
     <Container

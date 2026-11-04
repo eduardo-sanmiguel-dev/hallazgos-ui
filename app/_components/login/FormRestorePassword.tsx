@@ -1,3 +1,4 @@
+import { useInitialFocus } from "@hooks/useInitialFocus";
 import { useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
@@ -13,6 +14,7 @@ import { AuthService } from "@services";
 import { constants } from "@constants";
 
 const FormRestorePassword = () => {
+  const initialFocus = useInitialFocus<HTMLInputElement>();
   const [email, setEmail] = useState(
     import.meta.env.MODE === constants.environments.development ? "eduardo-266@hotmail.com" : "",
   );
@@ -72,7 +74,7 @@ const FormRestorePassword = () => {
         fullWidth
         label="Correo Electrónico"
         autoComplete="email"
-        autoFocus
+        inputRef={initialFocus}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />

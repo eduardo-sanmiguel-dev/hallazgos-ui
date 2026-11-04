@@ -1,10 +1,10 @@
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-// Coverage owns its server: a dev terminal or HMR restart cannot interrupt it.
+// E2E owns its server: a dev terminal or HMR restart cannot interrupt it.
 const url = new URL(process.env.E2E_BASE_URL || "http://localhost:3000");
 if (url.protocol !== "http:" || !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)) {
-  throw new Error("El servidor de cobertura requiere una URL HTTP local en E2E_BASE_URL.");
+  throw new Error("El servidor de pruebas requiere una URL HTTP local en E2E_BASE_URL.");
 }
 const build = spawnSync(
   process.execPath,

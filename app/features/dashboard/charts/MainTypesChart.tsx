@@ -72,7 +72,7 @@ const MainTypesChart = ({ filters }: Props) => {
                 if (!series) return;
 
                 let customLabel = chart.customLabel;
-                const centerLabelHtml = `<div style="text-align:center; color:${chartTextColor};"><span style=\"display:block;\">Total</span><strong style=\"display:block;\">${total.toLocaleString("es-MX")}</strong></div>`;
+                const centerLabelHtml = `<div style="text-align:center; color:${chartTextColor};"><span style="display:block;">Total</span><strong style="display:block;">${total.toLocaleString("es-MX")}</strong></div>`;
 
                 if (!customLabel) {
                   customLabel = chart.customLabel = chart.renderer

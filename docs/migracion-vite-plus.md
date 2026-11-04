@@ -75,7 +75,8 @@ Se agregaron pruebas del servidor estático, recorte de firma y navegación SPA.
 Las pruebas de navegador usan autenticación y lecturas reales de la API local de desarrollo;
 las escrituras habituales están interceptadas para evitar modificar registros de negocio.
 
-Resultados finales en esta máquina:
+Resultados de la validación inicial de la migración (referencia histórica).
+La limpieza posterior de advertencias y el arreglo del push están en `docs/validacion-push.md`:
 
 - 119 pruebas unitarias en 20 archivos: pasan.
 - 449 pruebas de navegador sobre el build estático con API de desarrollo: pasan (4.2 min).

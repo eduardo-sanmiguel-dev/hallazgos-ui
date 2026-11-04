@@ -10,8 +10,8 @@ const baseURL = process.env.E2E_BASE_URL || "http://localhost:3000";
  * Pruebas e2e del UI contra el API local (base de DESARROLLO).
  *
  * Requisitos: API corriendo (pnpm start:dev en hallazgos-api) y el usuario
- * de pruebas creado (ver e2e/README.md). El UI se levanta solo si no está
- * corriendo. Se usa el Chrome instalado: no descarga navegadores.
+ * de pruebas creado (ver e2e/README.md). La suite prepara su propio build
+ * y servidor; el puerto 3000 debe estar libre. Se usa el Chrome instalado: no descarga navegadores.
  */
 export default defineConfig({
   testDir: "./e2e",
@@ -41,9 +41,9 @@ export default defineConfig({
     viewport: { width: 1440, height: 900 },
   },
   webServer: {
-    command: "pnpm dev",
+    command: "node scripts/serve-e2e.mjs",
     url: baseURL,
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     timeout: 180_000,
   },
 });

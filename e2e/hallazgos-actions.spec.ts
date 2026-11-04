@@ -690,9 +690,12 @@ test.describe("Hallazgos en celular", () => {
     // Con la red interceptada el navegador no emite progreso de subida: se
     // simula un 40 % en cada envío con cuerpo (como lo reportaría la red).
     await page.addInitScript(() => {
-      const send = XMLHttpRequest.prototype.send;
+      const originalSend = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, "send")!
+        .value as (this: XMLHttpRequest, body?: Document | XMLHttpRequestBodyInit | null) => void;
+      const send = (target: XMLHttpRequest, body?: Document | XMLHttpRequestBodyInit | null) =>
+        originalSend.call(target, body);
       XMLHttpRequest.prototype.send = function (body) {
-        send.call(this, body);
+        send(this, body);
         if (body instanceof FormData) {
           setTimeout(() =>
             this.upload.dispatchEvent(

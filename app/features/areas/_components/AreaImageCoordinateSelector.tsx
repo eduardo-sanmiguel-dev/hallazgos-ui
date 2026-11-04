@@ -166,22 +166,22 @@ const AreaImageCoordinateSelector = ({
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const isDraggingRef = useRef(false);
 
-  useEffect(() => {
-    if (!initialPoint) {
-      setSelectedPoint(null);
-      return;
+  const [pointSource, setPointSource] = useState({ initialPoint, ...imageNaturalSize });
+  if (
+    pointSource.initialPoint !== initialPoint ||
+    pointSource.width !== imageNaturalSize.width ||
+    pointSource.height !== imageNaturalSize.height
+  ) {
+    setPointSource({ initialPoint, ...imageNaturalSize });
+    if (!initialPoint) setSelectedPoint(null);
+    else if (imageNaturalSize.width && imageNaturalSize.height) {
+      setSelectedPoint({
+        ...initialPoint,
+        percentX: (initialPoint.x / imageNaturalSize.width) * 100,
+        percentY: (initialPoint.y / imageNaturalSize.height) * 100,
+      });
     }
-
-    if (!imageNaturalSize.width || !imageNaturalSize.height) {
-      return;
-    }
-
-    setSelectedPoint({
-      ...initialPoint,
-      percentX: (initialPoint.x / imageNaturalSize.width) * 100,
-      percentY: (initialPoint.y / imageNaturalSize.height) * 100,
-    });
-  }, [imageNaturalSize.height, imageNaturalSize.width, initialPoint]);
+  }
 
   const selectPointFromPointer = (target: HTMLDivElement, clientX: number, clientY: number) => {
     const rect = target.getBoundingClientRect();

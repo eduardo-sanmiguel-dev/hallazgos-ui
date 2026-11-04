@@ -30,10 +30,13 @@ const HistoricalChart = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
 
-  useEffect(() => {
+  const categoryCount = historicalData?.categories?.length;
+  const [previousCount, setPreviousCount] = useState(categoryCount);
+  if (previousCount !== categoryCount) {
+    setPreviousCount(categoryCount);
     setCurrentIndex(0);
     setIsPlaying(true);
-  }, [historicalData?.categories?.length]);
+  }
 
   const isDarkMode = theme.palette.mode === "dark";
   const chartTextColor = isDarkMode ? "#f1f5f9" : "#111827";

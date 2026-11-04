@@ -11,4 +11,9 @@ if ! curl -s -o /dev/null -m 5 http://localhost:4000/; then
   exit 1
 fi
 
+# El servidor aislado usa el origen permitido por la API local.
+if curl -s -o /dev/null -m 2 http://localhost:3000/; then
+  echo "pre-push: deja libre el puerto 3000; detén pnpm dev antes de ejecutar las e2e."
+  exit 1
+fi
 pnpm test:e2e

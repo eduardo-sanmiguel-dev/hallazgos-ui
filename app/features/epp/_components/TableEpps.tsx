@@ -64,8 +64,8 @@ function HistorySkeleton() {
 function ListRowsSkeleton() {
   return (
     <StyledTableRow>
-      <StyledTableCell colSpan={6} role="status" aria-label="Cargando…">
-        <Stack spacing={1.25} sx={{ py: 1 }}>
+      <StyledTableCell colSpan={6}>
+        <Stack component="output" aria-label="Cargando…" spacing={1.25} sx={{ py: 1 }}>
           {Array.from({ length: 8 }, (_, row) => (
             <Skeleton key={row} variant="rounded" height={36} />
           ))}
@@ -212,7 +212,7 @@ function Row({ epp, manufacturingPlantId, currentUserId, onHistoryEmptied }: His
                   Historial de entrega
                 </Typography>
                 {/* Anunciado por lectores de pantalla (role="status"). */}
-                <Box role="status" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Box component="output" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   {isFirstLoad && (
                     <>
                       <CircularProgress size={16} aria-hidden />
@@ -402,7 +402,7 @@ function EppCard({ epp, manufacturingPlantId, currentUserId, onHistoryEmptied }:
       <Collapse in={open} timeout="auto" unmountOnExit>
         <Box sx={{ mt: 1.5 }} aria-busy={status === "loading"}>
           {isFirstLoad && (
-            <Stack direction="row" spacing={1} role="status" sx={{ alignItems: "center" }}>
+            <Stack component="output" direction="row" spacing={1} sx={{ alignItems: "center" }}>
               <CircularProgress size={16} aria-hidden />
               <Typography variant="body2" color="text.secondary">
                 Cargando historial…

@@ -77,18 +77,19 @@ interfaces (solo tipos) y el generador estático `app/manifest.ts`. La configura
 - `coverage/index.html`: reporte navegable por archivo.
 - `coverage/lcov.info`: para VS Code (Coverage Gutters) o CI.
 
-Cobertura compila primero en `dist.e2e` usando `.env.development` y levanta su
+Tanto E2E como cobertura compilan primero en `dist.e2e` usando `.env.development` y levanta su
 propio servidor estático en `http://localhost:3000`. No usa `dist` de producción,
 ni depende de una terminal con `pnpm dev`, HMR o recompilaciones durante la suite.
 Playwright cierra su servidor al terminar, incluso si falla una prueba.
 
-Antes de ejecutar cobertura, detén `pnpm dev` para dejar libre el puerto 3000:
+Antes de ejecutar E2E o hacer un push, detén `pnpm dev` para dejar libre el puerto 3000:
 la API permite ese origen para CORS y WebSocket. Si el puerto está ocupado,
 Playwright falla al inicio en lugar de reutilizar silenciosamente otro proceso.
 La API debe permanecer levantada durante toda la ejecución.
 
-`pnpm test:e2e` conserva el servidor de desarrollo y puede reutilizarlo si ya está
-corriendo. Ambos comandos usan el Chrome instalado (no descargan navegadores).
+Ambos comandos usan el mismo servidor aislado y el Chrome instalado (no descargan navegadores).
+El timeout de la respuesta del login empieza después de cargar y rellenar el formulario,
+inmediatamente antes del clic; el arranque de la UI no consume ese tiempo.
 
 Si restauras o migras la base de desarrollo, reinicia la API para recrear el usuario
 E2E. El setup informa el estado HTTP si la autenticación falla y cierra Chrome al salir.

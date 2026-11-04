@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
 
@@ -95,11 +95,15 @@ export default function TableEvidences({
   // Enlace a un hallazgo (?evidenceId=): abre su detalle cuando llega en la
   // lista. Se vuelve a abrir si la tabla se monta de nuevo (al aplicar el
   // filtro) hasta que el usuario lo cierra.
-  useEffect(() => {
-    if (!openEvidenceId) return;
-    const row = rows.find(({ id }) => id === openEvidenceId);
+  const [linkedSource, setLinkedSource] = useState<{
+    id: number | undefined;
+    rows: EvidenceRow[] | null;
+  }>({ id: undefined, rows: null });
+  if (linkedSource.id !== openEvidenceId || linkedSource.rows !== rows) {
+    setLinkedSource({ id: openEvidenceId, rows });
+    const row = openEvidenceId ? rows.find(({ id }) => id === openEvidenceId) : undefined;
     if (row) setEvidenceCurrent(row);
-  }, [openEvidenceId, rows]);
+  }
 
   const removeMutation = useMutation({
     mutationFn: (id: number) => EvidencesService.remove(id),
@@ -585,7 +589,7 @@ export default function TableEvidences({
                     <MenuItem
                       onClick={() => {
                         closeActionsMenu();
-                        confirmRemoveEvidence(row);
+                        void confirmRemoveEvidence(row);
                       }}
                       disabled={removeMutation.isPending}
                     >

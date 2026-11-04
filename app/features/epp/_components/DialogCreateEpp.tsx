@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { ReactNode, useMemo, useRef, useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
 
@@ -49,6 +49,7 @@ interface Props {
 }
 
 export default function DialogCreateEpp({ open, create }: Props) {
+  const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
   const [signature, setSignature] = useState<string>("");
   const [equipmentsNew, setEquipmentsNew] = useState<
     {
@@ -67,23 +68,19 @@ export default function DialogCreateEpp({ open, create }: Props) {
   const [openSignature, setOpenSignature] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const savingRef = useRef(false);
-  const [manufacturingPlantId, setManufacturingPlantId] = useState<string>("");
+  const [manufacturingPlantId, setManufacturingPlantId] = useState<string>(() =>
+    manufacturingPlants.length === 1 ? String(manufacturingPlants[0].id) : "",
+  );
 
-  const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
-
-  useEffect(() => {
-    if (manufacturingPlants.length === 1) {
-      setManufacturingPlantId(manufacturingPlants[0].id.toString());
+  const [previousPlant, setPreviousPlant] = useState(manufacturingPlantId);
+  if (previousPlant !== manufacturingPlantId) {
+    setPreviousPlant(manufacturingPlantId);
+    if (manufacturingPlantId) {
+      setForm(formInitial);
+      setEquipmentsNew([]);
+      setSignature("");
     }
-  }, [manufacturingPlants]);
-
-  useEffect(() => {
-    if (!manufacturingPlantId) return;
-
-    setForm(formInitial);
-    setEquipmentsNew([]);
-    setSignature("");
-  }, [manufacturingPlantId]);
+  }
 
   // Equipos y colaboradores de la planta. Si falla, el interceptor ya mostró
   // el aviso; la lista queda vacía.
@@ -142,7 +139,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
     if (savingRef.current) return;
 
     if (!save) {
-      create({} as PayloadCreateEpp);
+      await create({} as PayloadCreateEpp);
       return;
     }
     if (!isDisabledSave) return;

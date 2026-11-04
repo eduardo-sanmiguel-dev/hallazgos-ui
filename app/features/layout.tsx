@@ -173,10 +173,12 @@ export default function MainLayout({ children }: { children: ReactNode }) {
     });
   }, [userId, currentUser, setSession]);
 
+  const [scrollTarget, setScrollTarget] = useState<HTMLElement | null>(null);
+
   // Borradores locales de más de 7 días, de cualquier usuario del
   // dispositivo, al abrir la app.
   useEffect(() => {
-    purgeExpiredDrafts();
+    void purgeExpiredDrafts();
   }, []);
 
   // En móvil y tablet el menú es temporal (se superpone al contenido).
@@ -320,6 +322,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
       <Box
         component="main"
         id="contenido"
+        ref={setScrollTarget}
         tabIndex={-1}
         sx={{
           "&:focus": { outline: "none" },
@@ -357,7 +360,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
           </Container>
           <MobileBottomNav />
         </Box>
-        <ScrollTopButton />
+        <ScrollTopButton target={scrollTarget} />
         <SessionEndedDialog />
       </Box>
     </Box>

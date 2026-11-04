@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
 
@@ -18,6 +18,70 @@ import { useEvidences } from "@hooks";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { EvidencesService } from "@services";
+
+const filtersFromSearch = (
+  searchParams: URLSearchParams,
+): { filters: Partial<FiltersEvidences>; linkedId?: number } | null => {
+  const parseIds = (value: string | null) =>
+    (value || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => /^\d+$/.test(item));
+
+  // Enlace a un hallazgo: la lista solo con él y su detalle abierto.
+  const evidenceId = searchParams.get("evidenceId") || "";
+  if (/^\d+$/.test(evidenceId)) {
+    return {
+      filters: {
+        evidenceId,
+        manufacturingPlantId: "",
+        mainTypeIds: [],
+        secondaryTypeIds: [],
+        areaIds: [],
+        zoneIds: [],
+        responsibleIds: [],
+        states: [],
+        startDate: "",
+        endDate: "",
+      },
+      linkedId: Number(evidenceId),
+    };
+  }
+
+  const manufacturingPlantId = searchParams.get("manufacturingPlantId") || "";
+  const mainTypeIds = parseIds(searchParams.get("mainTypeIds"));
+  const areaIds = parseIds(searchParams.get("areaIds"));
+  const responsibleIds = parseIds(searchParams.get("responsibleIds"));
+  const startDate = searchParams.get("startDate") || "";
+  const endDate = searchParams.get("endDate") || "";
+
+  const hasAnyDashboardFilter =
+    !!manufacturingPlantId ||
+    !!startDate ||
+    !!endDate ||
+    mainTypeIds.length > 0 ||
+    areaIds.length > 0 ||
+    responsibleIds.length > 0;
+
+  if (!hasAnyDashboardFilter) {
+    return null;
+  }
+
+  return {
+    filters: {
+      manufacturingPlantId,
+      mainTypeIds,
+      areaIds,
+      responsibleIds,
+      startDate,
+      endDate,
+      secondaryTypeIds: [],
+      zoneIds: [],
+      states: [],
+      evidenceId: "",
+    },
+  };
+};
 
 export default function HallazgosPage() {
   const searchParams = useSearchParams();
@@ -73,66 +137,16 @@ export default function HallazgosPage() {
     downloadPdf.mutate(filters);
   };
 
-  useEffect(() => {
-    const parseIds = (value: string | null) =>
-      (value || "")
-        .split(",")
-        .map((item) => item.trim())
-        .filter((item) => /^\d+$/.test(item));
-
-    // Enlace a un hallazgo: la lista solo con él y su detalle abierto.
-    const evidenceId = searchParams.get("evidenceId") || "";
-    if (/^\d+$/.test(evidenceId)) {
-      setFilters((prev) => ({
-        ...prev,
-        evidenceId,
-        manufacturingPlantId: "",
-        mainTypeIds: [],
-        secondaryTypeIds: [],
-        areaIds: [],
-        zoneIds: [],
-        responsibleIds: [],
-        states: [],
-        startDate: "",
-        endDate: "",
-      }));
-      setLinkedEvidenceId(Number(evidenceId));
-      return;
+  const query = searchParams.toString();
+  const [previousQuery, setPreviousQuery] = useState<string | null>(null);
+  if (previousQuery !== query) {
+    setPreviousQuery(query);
+    const restored = filtersFromSearch(searchParams);
+    if (restored) {
+      setFilters((prev) => ({ ...prev, ...restored.filters }));
+      if (restored.linkedId !== undefined) setLinkedEvidenceId(restored.linkedId);
     }
-
-    const manufacturingPlantId = searchParams.get("manufacturingPlantId") || "";
-    const mainTypeIds = parseIds(searchParams.get("mainTypeIds"));
-    const areaIds = parseIds(searchParams.get("areaIds"));
-    const responsibleIds = parseIds(searchParams.get("responsibleIds"));
-    const startDate = searchParams.get("startDate") || "";
-    const endDate = searchParams.get("endDate") || "";
-
-    const hasAnyDashboardFilter =
-      !!manufacturingPlantId ||
-      !!startDate ||
-      !!endDate ||
-      mainTypeIds.length > 0 ||
-      areaIds.length > 0 ||
-      responsibleIds.length > 0;
-
-    if (!hasAnyDashboardFilter) {
-      return;
-    }
-
-    setFilters((prev) => ({
-      ...prev,
-      manufacturingPlantId,
-      mainTypeIds,
-      areaIds,
-      responsibleIds,
-      startDate,
-      endDate,
-      secondaryTypeIds: [],
-      zoneIds: [],
-      states: [],
-      evidenceId: "",
-    }));
-  }, [searchParams]);
+  }
 
   return (
     <>

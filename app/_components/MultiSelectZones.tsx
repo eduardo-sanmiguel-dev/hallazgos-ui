@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 
 import { Theme, useTheme } from "@mui/material/styles";
 import { Box } from "@mui/material";
@@ -43,7 +43,6 @@ interface Props {
 
 export default function MultiSelectZones({ values, onChange, manufacturingPlantNames }: Props) {
   const theme = useTheme();
-  const [labelSelectAll, setLabelSelectAll] = useState("Todos");
 
   const { data: zones } = useZones({ manufacturingPlantNames });
 
@@ -52,26 +51,16 @@ export default function MultiSelectZones({ values, onChange, manufacturingPlantN
     [zones],
   );
 
-  useEffect(() => {
-    if (!values.length) {
-      setLabelSelectAll("Todos");
-    } else if (values.length === names.length) {
-      setLabelSelectAll("Ninguno");
-    } else {
-      setLabelSelectAll("Todos");
-    }
-  }, [values, names]);
+  const labelSelectAll = values.length > 0 && values.length === names.length ? "Ninguno" : "Todos";
 
   useEffect(() => {
-    if (!manufacturingPlantNames.length) return onChange([]);
-
     const zonesFiltered = values.filter((value) => {
       const [manufacturingPlantName] = value.split(" - ");
       return manufacturingPlantNames.includes(manufacturingPlantName);
     });
 
-    onChange(zonesFiltered);
-  }, [manufacturingPlantNames]);
+    if (zonesFiltered.length !== values.length) onChange(zonesFiltered);
+  }, [manufacturingPlantNames, values, onChange]);
 
   const handleChange = ({ target: { value } }: SelectChangeEvent<typeof values>) => {
     if (value.includes("none-all")) {

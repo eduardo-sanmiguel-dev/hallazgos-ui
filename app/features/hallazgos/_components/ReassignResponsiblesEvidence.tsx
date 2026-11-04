@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
 
@@ -84,21 +84,21 @@ export default function ReassignResponsiblesEvidence({
 
   const hasAtLeastOneResponsible = selectedResponsibles.length > 0;
 
-  useEffect(() => {
-    if (!isOpen || !evidenceCurrent) {
-      setResponsibleToAddId("");
-      setSelectedResponsibles([]);
-      return;
-    }
-
-    const initialResponsibles =
-      evidenceCurrent.responsibles.length > 0
-        ? evidenceCurrent.responsibles
-        : evidenceCurrent.supervisors;
-
-    setSelectedResponsibles(toUniqueUsers(initialResponsibles));
+  const [previousSelection, setPreviousSelection] = useState<{
+    evidence: EvidenceRow | null;
+    open: boolean;
+  }>({ evidence: null, open: false });
+  if (previousSelection.evidence !== evidenceCurrent || previousSelection.open !== isOpen) {
+    setPreviousSelection({ evidence: evidenceCurrent, open: isOpen });
     setResponsibleToAddId("");
-  }, [evidenceCurrent, isOpen]);
+    const initial =
+      isOpen && evidenceCurrent
+        ? evidenceCurrent.responsibles.length
+          ? evidenceCurrent.responsibles
+          : evidenceCurrent.supervisors
+        : [];
+    setSelectedResponsibles(toUniqueUsers(initial));
+  }
 
   const handleAddResponsible = (responsibleId: string) => {
     setResponsibleToAddId(responsibleId);

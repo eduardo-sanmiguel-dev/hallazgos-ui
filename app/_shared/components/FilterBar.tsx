@@ -213,9 +213,13 @@ export default function FilterBar({
       {!expanded && hasActive && (
         <Fade in>
           <Box
-            role="group"
+            component="fieldset"
             aria-label="Filtros aplicados"
             sx={{
+              border: 0,
+              minWidth: 0,
+              m: 0,
+              p: 0,
               display: "flex",
               flexWrap: "wrap",
               alignItems: "center",

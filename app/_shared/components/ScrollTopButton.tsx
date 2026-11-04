@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react";
-
 import { usePathname } from "@shared/navigation";
 
 import { Fab } from "@mui/material";
@@ -18,17 +16,12 @@ const SAFE_AREA_BOTTOM = "env(safe-area-inset-bottom, 0px)";
 // visible). Aparece al bajar en el contenido (`main#contenido`, que es el que
 // hace scroll, no la ventana). En formularios no: la barra fija de acciones
 // ocupa esa esquina. En celular va por encima de la navegación inferior.
-export default function ScrollTopButton() {
+export default function ScrollTopButton({ target }: { target: HTMLElement | null }) {
   const pathname = usePathname();
   const isBottomNavVisible = useBottomNavVisible();
-  const [target, setTarget] = useState<HTMLElement | undefined>();
-
-  useEffect(() => {
-    setTarget(document.getElementById("contenido") ?? undefined);
-  }, []);
 
   const scrolled = useScrollTrigger({
-    target,
+    target: target ?? undefined,
     disableHysteresis: true,
     threshold: SCROLL_TOP_THRESHOLD,
   });

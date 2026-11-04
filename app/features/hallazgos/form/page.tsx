@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 
@@ -72,13 +72,24 @@ const FieldError = ({ field, message }: { field: string; message?: string }) =>
   ) : null;
 
 export default function HallazgosFormPage() {
+  const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
+  const manufacturingPlantsCurrent = useUserSessionStore(
+    (state) => state.manufacturingPlantsCurrent,
+  );
+  const userId = useUserSessionStore((state) => state.id);
+  const [lastLocation] = useState(() => (userId ? readLastLocation(userId) : null));
   const [typeHallazgo, setTypeHallazgo] = useState<string>("");
   const [process, setProcess] = useState<string>("");
   const [secondaryType, setSecondaryType] = useState<string>("");
   const [image, setImage] = useState<string>("");
   const [zone, setZone] = useState<string>("");
-  const [manufacturingPlantId, setManufacturingPlantId] = useState<string>("");
-  const [secondaryTypes, setSecondaryTypes] = useState<SecondaryType[]>([]);
+  const [manufacturingPlantId, setManufacturingPlantId] = useState<string>(() => {
+    if (manufacturingPlantsCurrent.length === 1) return String(manufacturingPlantsCurrent[0]);
+    return lastLocation &&
+      manufacturingPlants.some(({ id }) => String(id) === lastLocation.manufacturingPlantId)
+      ? lastLocation.manufacturingPlantId
+      : "";
+  });
   const [supervisor, setSupervisor] = useState<string>("");
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [description, setDescription] = useState<string>("");
@@ -89,16 +100,10 @@ export default function HallazgosFormPage() {
   const mainTypesQuery = useMainTypes();
   const zonesQuery = useZones();
   const mainTypes = mainTypesQuery.data ?? EMPTY_CATALOG;
+  const secondaryTypes: SecondaryType[] =
+    mainTypes.find((data) => data.id === Number(typeHallazgo))?.secondaryTypes ?? EMPTY_CATALOG;
   const zones = zonesQuery.data ?? EMPTY_CATALOG;
   const processes = useProcesses().data ?? EMPTY_CATALOG;
-
-  const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
-
-  const manufacturingPlantsCurrent = useUserSessionStore(
-    (state) => state.manufacturingPlantsCurrent,
-  );
-
-  const userId = useUserSessionStore((state) => state.id);
 
   const router = useRouter();
   const upload = useUploadProgress();
@@ -140,7 +145,7 @@ export default function HallazgosFormPage() {
       ].some(Boolean),
     onRestore: ({ fields, photo }) => {
       // El lugar recuperado gana al último usado.
-      lastZoneRestored.current = true;
+      setLastZoneRestored(true);
       setManufacturingPlantId(fields.manufacturingPlantId);
       setTypeHallazgo(fields.typeHallazgo);
       setSecondaryType(fields.secondaryType);
@@ -168,50 +173,21 @@ export default function HallazgosFormPage() {
     attachedFile,
   );
 
-  // Por contenido y no por referencia: cada setSession trae un arreglo nuevo
-  // (aunque sea igual) y no debe borrar la planta ya elegida.
-  const plantsCurrentKey = manufacturingPlantsCurrent.join(",");
-
-  // Ids de las plantas del usuario, por contenido (mismo motivo).
-  const userPlantsKey = manufacturingPlants.map(({ id }) => id).join(",");
-
-  // Con una sola planta, esa; si no, la última que usó en este dispositivo
-  // (si todavía la tiene asignada).
-  useEffect(() => {
-    const plants = plantsCurrentKey ? plantsCurrentKey.split(",") : [];
-    if (plants.length === 1) {
-      setManufacturingPlantId(plants[0]);
-      return;
+  // El catálogo puede llegar después del formulario; restaurar el lugar una vez.
+  const [lastZoneRestored, setLastZoneRestored] = useState(false);
+  if (!lastZoneRestored && userId && manufacturingPlantId && zones.length) {
+    setLastZoneRestored(true);
+    if (
+      lastLocation?.manufacturingPlantId === manufacturingPlantId &&
+      zones.some(
+        (data) =>
+          String(data.id) === lastLocation.zoneId &&
+          data.manufacturingPlant.id === Number(manufacturingPlantId),
+      )
+    ) {
+      setZone(lastLocation.zoneId);
     }
-    const last = userId ? readLastLocation(userId) : null;
-    const isUserPlant = !!last && userPlantsKey.split(",").includes(last.manufacturingPlantId);
-    setManufacturingPlantId(isUserPlant ? last.manufacturingPlantId : "");
-  }, [plantsCurrentKey, userPlantsKey, userId]);
-
-  // El último lugar, una sola vez y solo si es de la planta propuesta.
-  const lastZoneRestored = useRef(false);
-  useEffect(() => {
-    if (lastZoneRestored.current) return;
-    if (!userId || !manufacturingPlantId || !zones.length) return;
-    lastZoneRestored.current = true;
-
-    const last = readLastLocation(userId);
-    if (last?.manufacturingPlantId !== manufacturingPlantId) return;
-    const exists = zones.some(
-      (data) =>
-        String(data.id) === last.zoneId &&
-        data.manufacturingPlant.id === Number(manufacturingPlantId),
-    );
-    if (exists) setZone(last.zoneId);
-  }, [userId, manufacturingPlantId, zones]);
-
-  useEffect(() => {
-    if (typeHallazgo) {
-      setSecondaryTypes(
-        mainTypes.find((data) => data.id === Number(typeHallazgo))?.secondaryTypes || [],
-      );
-    }
-  }, [typeHallazgo, mainTypes]);
+  }
 
   // Supervisores del lugar elegido, pedidos a la API al elegirlo.
   const hasZone = !!manufacturingPlantId && !!zone;
@@ -234,16 +210,24 @@ export default function HallazgosFormPage() {
   // seleccionado y la API rechazaba el hallazgo al guardar).
   const supervisorsList = supervisorsQuery.data;
   const supervisorsFailed = supervisorsQuery.isError;
-  useEffect(() => {
-    if (!hasZone || supervisorsFailed) {
+  const [supervisorsSource, setSupervisorsSource] = useState({
+    hasZone,
+    list: supervisorsList,
+    failed: supervisorsFailed,
+  });
+  if (
+    supervisorsSource.hasZone !== hasZone ||
+    supervisorsSource.list !== supervisorsList ||
+    supervisorsSource.failed !== supervisorsFailed
+  ) {
+    setSupervisorsSource({ hasZone, list: supervisorsList, failed: supervisorsFailed });
+    if (
+      !hasZone ||
+      supervisorsFailed ||
+      (supervisorsList && !supervisorsList.some(({ id }) => String(id) === supervisor))
+    )
       setSupervisor("");
-      return;
-    }
-    if (!supervisorsList) return;
-    setSupervisor((current) =>
-      supervisorsList.some(({ id }) => String(id) === current) ? current : "",
-    );
-  }, [hasZone, supervisorsList, supervisorsFailed]);
+  }
 
   const currentDescription = useMemo(() => description.trim(), [description]);
 
@@ -269,7 +253,7 @@ export default function HallazgosFormPage() {
       fail(...missing);
       return;
     }
-    send();
+    void send();
   };
 
   const createMutation = useMutation({

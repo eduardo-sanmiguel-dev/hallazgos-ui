@@ -65,7 +65,6 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [secondaryTypes, setSecondaryTypes] = useState<SecondaryType[]>([]);
   const [localEvidenceId, setLocalEvidenceId] = useState(filters.evidenceId);
 
   const parseDate = (value: string): Dayjs | null => {
@@ -183,10 +182,9 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
     [responsibles],
   );
 
-  useEffect(() => {
+  const secondaryTypes = useMemo<SecondaryType[]>(() => {
     if (!filters.mainTypeIds.length) {
-      setSecondaryTypes([]);
-      return;
+      return [];
     }
 
     const selectedMainTypeIds = new Set(filters.mainTypeIds.map(Number));
@@ -200,7 +198,7 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
       ).values(),
     );
 
-    setSecondaryTypes(uniqueSecondaryTypes);
+    return uniqueSecondaryTypes;
   }, [filters.mainTypeIds, mainTypes]);
 
   useEffect(() => {
@@ -250,9 +248,11 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
     }
   }, [filteredResponsibles, filters, responsiblesReady, setFilters]);
 
-  useEffect(() => {
+  const [previousEvidenceId, setPreviousEvidenceId] = useState(filters.evidenceId);
+  if (previousEvidenceId !== filters.evidenceId) {
+    setPreviousEvidenceId(filters.evidenceId);
     setLocalEvidenceId(filters.evidenceId);
-  }, [filters.evidenceId]);
+  }
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {

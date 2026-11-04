@@ -1,4 +1,5 @@
-import { Alert, AlertTitle, Button, Stack } from "@mui/material";
+import PoliteAlert from "@shared/components/PoliteAlert";
+import { AlertTitle, Button, Stack } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import RestoreIcon from "@mui/icons-material/Restore";
 import SendIcon from "@mui/icons-material/Send";
@@ -37,7 +38,7 @@ export default function DraftNotice({
 }: Props) {
   if (lock) {
     return (
-      <Alert severity="warning" role="status">
+      <PoliteAlert severity="warning">
         <AlertTitle>Envío sin confirmar</AlertTitle>
         Se intentó enviar el {formatWhen(lock.lastSendAt)} y no sabemos si llegó
         {lock.sendState === "unconfirmed" ? " (el servidor falló)" : ""}. Para no duplicarlo ni
@@ -61,7 +62,7 @@ export default function DraftNotice({
             Descartar
           </Button>
         </Stack>
-      </Alert>
+      </PoliteAlert>
     );
   }
 
@@ -70,7 +71,7 @@ export default function DraftNotice({
   const isPending = offer.sendState !== "none";
 
   return (
-    <Alert severity={isPending ? "warning" : "info"} role="status">
+    <PoliteAlert severity={isPending ? "warning" : "info"}>
       <AlertTitle>{isPending ? "Tienes un envío sin confirmar" : "Tienes un borrador"}</AlertTitle>
       {isPending
         ? `Se intentó enviar el ${formatWhen(offer.lastSendAt ?? offer.savedAt)}${offer.hasPhoto ? ", con foto" : ""}. Recupéralo para reintentar el envío.`
@@ -83,6 +84,6 @@ export default function DraftNotice({
           Descartar
         </Button>
       </Stack>
-    </Alert>
+    </PoliteAlert>
   );
 }

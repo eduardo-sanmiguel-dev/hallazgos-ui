@@ -17,15 +17,16 @@ import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 
 export default function EppPage() {
+  const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
   const [open, setOpen] = useState<boolean>(false);
-  const [manufacturingPlantId, setManufacturingPlantId] = useState<string>("");
+  const [manufacturingPlantId, setManufacturingPlantId] = useState<string>(() =>
+    manufacturingPlants.length === 1 ? String(manufacturingPlants[0].id) : "",
+  );
   const [order, setOrder] = useState<SortOrder>("asc");
   const [orderBy, setOrderBy] = useState<EppSortableColumn | null>(null);
   const [filters, setFilters] = useState<IFiltersEpp>(DEFAULT_FILTERS_EPP);
   // Una clave por entrega: un reintento tras un corte no la duplica.
   const submission = useIdempotencyKey();
-
-  const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
 
   // Planta, filtros y orden forman la consulta: cualquier cambio vuelve a la
   // página 1 y las respuestas viejas se descartan (usePaginatedList).
@@ -59,12 +60,6 @@ export default function EppPage() {
     }
   }, [rows, count, page, rowsPerPage, setPage]);
 
-  useEffect(() => {
-    if (manufacturingPlants.length === 1) {
-      setManufacturingPlantId(manufacturingPlants[0].id.toString());
-    }
-  }, [manufacturingPlants]);
-
   const createMutation = useMutation({
     mutationFn: (form: Parameters<typeof EppService.create>[0]) =>
       EppService.create(form, { idempotencyKey: submission.key() }),
@@ -73,7 +68,7 @@ export default function EppPage() {
       // Antes se cerraba sin avisar: no quedaba claro si se guardó.
       notify("Entrega de EPP registrada correctamente", true);
       setOpen(false);
-      getData();
+      return getData();
     },
     onError: (error) => submission.settle(error),
   });

@@ -75,6 +75,8 @@ export default function PhotoCapture({
   const [isDragging, setIsDragging] = useState(false);
   const isTouch = useMediaQuery(TOUCH_MEDIA, { noSsr: true });
 
+  // El efecto adquiere y libera un object URL del navegador; no se debe crear ese recurso durante render.
+  /* oxlint-disable react/set-state-in-effect */
   useEffect(() => {
     if (!file) {
       setPreviewUrl("");
@@ -84,6 +86,7 @@ export default function PhotoCapture({
     setPreviewUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [file]);
+  /* oxlint-enable react/set-state-in-effect */
 
   const process = async (source: Blob) => {
     setError("");
@@ -106,12 +109,12 @@ export default function PhotoCapture({
     const selected = event.target.files?.[0];
     // Permite volver a elegir la misma foto después de quitarla.
     event.target.value = "";
-    if (selected) process(selected);
+    if (selected) void process(selected);
   };
 
   const handleBrowserPhoto = async (dataUri: string) => {
     const blob = await (await fetch(dataUri)).blob();
-    process(blob);
+    await process(blob);
   };
 
   const isUploading = uploadProgress !== null && uploadProgress !== undefined;
@@ -130,7 +133,7 @@ export default function PhotoCapture({
           event.preventDefault();
           setIsDragging(false);
           const dropped = event.dataTransfer.files?.[0];
-          if (dropped && !isBusy) process(dropped);
+          if (dropped && !isBusy) void process(dropped);
         },
       };
 
@@ -251,7 +254,7 @@ export default function PhotoCapture({
       )}
 
       {isProcessing && (
-        <Stack direction="row" spacing={1.5} role="status" sx={{ alignItems: "center" }}>
+        <Stack component="output" direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
           <CircularProgress size={20} aria-hidden />
           <Typography variant="body2">Procesando imagen…</Typography>
         </Stack>
@@ -314,7 +317,7 @@ export default function PhotoCapture({
             )}
           </Stack>
           {isUploading && (
-            <Box sx={{ px: 2, pb: 2 }} role="status">
+            <Box component="output" sx={{ px: 2, pb: 2 }}>
               <Typography variant="body2" sx={{ mb: 0.5 }}>
                 Subiendo foto… {Math.round(uploadProgress)}%
               </Typography>

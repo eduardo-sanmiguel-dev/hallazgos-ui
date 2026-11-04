@@ -39,9 +39,11 @@ export default function DialogSignatureEpp({ open, setOpen, setSignature }: Prop
   const [hasStroke, setHasStroke] = useState(false);
 
   // Cada vez que se abre, el lienzo empieza vacío.
-  useEffect(() => {
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
     if (open) setHasStroke(false);
-  }, [open]);
+  }
 
   // Al girar o cambiar el tamaño, la librería limpia el lienzo.
   useEffect(() => {
