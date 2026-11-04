@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { createReadStream } from "node:fs";
 import { createGzip } from "node:zlib";
-import { pipeline } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { realpath, stat } from "node:fs/promises";
 import { resolve, extname, sep } from "node:path";
 
@@ -26,6 +26,13 @@ const mime = {
 };
 const server = createServer(async (req, res) => {
   const fail = (status) => {
+    // Navegar/cerrar una pestaña puede cancelar el stream mientras leemos el disco.
+    // Una respuesta iniciada o cerrada no admite otro juego de cabeceras.
+    if (res.destroyed || res.writableEnded) return;
+    if (res.headersSent) {
+      res.destroy();
+      return;
+    }
     res.writeHead(status);
     res.end();
   };
@@ -57,6 +64,7 @@ const server = createServer(async (req, res) => {
     const actual = await realpath(file);
     if (!actual.startsWith(root + sep)) return fail(403);
     const info = await stat(actual);
+    if (res.destroyed || res.writableEnded) return;
     res.setHeader("Content-Type", mime[extname(actual)] || "application/octet-stream");
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader(
@@ -73,11 +81,8 @@ const server = createServer(async (req, res) => {
     res.writeHead(200);
     if (req.method === "HEAD") return res.end();
     const stream = createReadStream(actual);
-    const done = (error) => {
-      if (error) res.destroy();
-    };
-    if (compress) pipeline(stream, createGzip(), res, done);
-    else pipeline(stream, res, done);
+    if (compress) await pipeline(stream, createGzip(), res);
+    else await pipeline(stream, res);
   } catch {
     fail(404);
   }

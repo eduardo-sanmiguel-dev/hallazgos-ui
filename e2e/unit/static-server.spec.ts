@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { spawn, type ChildProcess } from "node:child_process";
+import { get } from "node:http";
+import { randomBytes } from "node:crypto";
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -7,11 +9,13 @@ import { join, resolve } from "node:path";
 let child: ChildProcess;
 let directory: string;
 let origin: string;
+const serverErrors: string[] = [];
 beforeAll(async () => {
   directory = await mkdtemp(join(tmpdir(), "hallazgos-ui-static-"));
   await mkdir(join(directory, "assets"));
   await writeFile(join(directory, "index.html"), '<div id="root">ComportArte</div>');
   await writeFile(join(directory, "assets/main-test.js"), 'console.log("UI")');
+  await writeFile(join(directory, "assets/cancel-test.js"), randomBytes(4 * 1024 * 1024));
   await writeFile(
     join(directory, "deployment-version.json"),
     JSON.stringify({ version: "test-build" }),
@@ -22,7 +26,10 @@ beforeAll(async () => {
   });
   origin = await new Promise<string>((resolveOrigin, reject) => {
     child.on("error", reject);
-    child.stderr!.on("data", (data) => reject(new Error(String(data))));
+    child.stderr!.on("data", (data) => {
+      serverErrors.push(String(data));
+      reject(new Error(String(data)));
+    });
     child.stdout!.on("data", (data) => {
       const match = String(data).match(/http:\/\/127\.0\.0\.1:\d+/);
       if (match) resolveOrigin(match[0]);
@@ -71,4 +78,36 @@ test("rechaza escrituras, Server Actions antiguas y rutas con separadores invál
   const head = await fetch(origin, { method: "HEAD" });
   expect(head.status).toBe(200);
   expect(await head.text()).toBe("");
+});
+
+test("mantiene el servidor activo cuando clientes cancelan descargas simultáneas", async () => {
+  await Promise.all(
+    Array.from(
+      { length: 48 },
+      (_, index) =>
+        new Promise<void>((resolveAbort) => {
+          const request = get(
+            `${origin}/assets/cancel-test.js`,
+            {
+              headers: index % 2 ? { "Accept-Encoding": "gzip" } : {},
+            },
+            (response) => {
+              if (index % 3 === 1) response.destroy();
+              else response.once("data", () => response.destroy());
+            },
+          );
+          if (index % 3 === 0) request.once("finish", () => request.destroy());
+          request.once("error", () => resolveAbort());
+          request.once("close", () => resolveAbort());
+        }),
+    ),
+  );
+  // También debe seguir atendiendo nuevas peticiones después de los abortos.
+  for (let index = 0; index < 5; index++) {
+    const response = await fetch(`${origin}/deployment-version.json`);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ version: "test-build" });
+  }
+  expect(child.exitCode).toBeNull();
+  expect(serverErrors.join("")).not.toContain("ERR_HTTP_HEADERS_SENT");
 });
