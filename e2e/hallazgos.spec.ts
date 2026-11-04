@@ -3,13 +3,7 @@ import type { Page } from "@playwright/test";
 import { captureWrites } from "./support/api";
 import { expect, test } from "./support/fixtures";
 
-import {
-  pickOption,
-  recordCount,
-  sessionPlants,
-  toast,
-  trackPageErrors,
-} from "./support/ui";
+import { pickOption, recordCount, sessionPlants, toast, trackPageErrors } from "./support/ui";
 
 /** Descripción del hallazgo (campo con contorno, con su etiqueta). */
 const descriptionField = (page: Page) =>
@@ -26,23 +20,17 @@ test.describe("Hallazgos", () => {
     const errors = trackPageErrors(page);
     await page.goto("/hallazgos");
 
-    await expect
-      .poll(() => recordCount(page), { timeout: 30_000 })
-      .toBeGreaterThan(0);
+    await expect.poll(() => recordCount(page), { timeout: 30_000 }).toBeGreaterThan(0);
     const total = await recordCount(page);
 
     await pickOption(page, "Planta");
-    await expect
-      .poll(() => recordCount(page), { timeout: 30_000 })
-      .toBeLessThanOrEqual(total);
+    await expect.poll(() => recordCount(page), { timeout: 30_000 }).toBeLessThanOrEqual(total);
     await expect(page.getByText("Limpiar filtros")).toBeVisible();
 
     expect(errors).toEqual([]);
   });
 
-  test("crea un hallazgo con evidencia (sin guardar en la base)", async ({
-    page,
-  }) => {
+  test("crea un hallazgo con evidencia (sin guardar en la base)", async ({ page }) => {
     const errors = trackPageErrors(page);
 
     // El alta se intercepta: se valida lo que el UI envía y se responde
@@ -127,15 +115,9 @@ test.describe("Hallazgos", () => {
     await pickOption(page, "Lugar");
     await pickOption(page, "Proceso");
     await pickOption(page, "Supervisor");
-    const priority = await pickOption(
-      page,
-      "Prioridad (opcional)",
-      /Corto plazo/,
-    );
+    const priority = await pickOption(page, "Prioridad (opcional)", /Corto plazo/);
     expect(priority).toMatch(/Corto plazo/);
-    await descriptionField(page).fill(
-      "Comportamiento inseguro e2e (no se guarda)",
-    );
+    await descriptionField(page).fill("Comportamiento inseguro e2e (no se guarda)");
 
     await expect(create).toBeEnabled();
     await create.click();
@@ -162,9 +144,7 @@ test.describe("Hallazgos", () => {
     await pickOption(page, "Lugar");
     await pickOption(page, "Proceso");
     await pickOption(page, "Supervisor");
-    await descriptionField(page).fill(
-      "Clasificación cambiada e2e (no se guarda)",
-    );
+    await descriptionField(page).fill("Clasificación cambiada e2e (no se guarda)");
     await expect(create).toBeEnabled();
 
     await pickOption(page, "Hallazgo", /^Condición insegura$/);
@@ -181,8 +161,7 @@ test.describe("Hallazgos", () => {
     name: `E2E Supervisor del lugar ${zoneId}`,
     email: `e2e-${zoneId}@example.com`,
   });
-  const escapeRegex = (text: string) =>
-    text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escapeRegex = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   // El valor elegido se dibuja fuera del <input> (renderValue de
   // SelectDefault): se revisa el texto del campo completo.
   const supervisorField = (page: Page) =>
@@ -205,14 +184,11 @@ test.describe("Hallazgos", () => {
     // El catálogo de lugares se pide en su versión ligera.
     const zonesRequest = page.waitForRequest(
       (request) =>
-        new URL(request.url()).pathname.endsWith("/api/v1/zones") &&
-        request.method() === "GET",
+        new URL(request.url()).pathname.endsWith("/api/v1/zones") && request.method() === "GET",
     );
     await page.goto("/hallazgos/form");
     await sessionPlants(page);
-    expect(new URL((await zonesRequest).url()).searchParams.get("view")).toBe(
-      "options",
-    );
+    expect(new URL((await zonesRequest).url()).searchParams.get("view")).toBe("options");
 
     const plant = await pickOption(page, "Planta");
     // Nada se pide hasta elegir planta y lugar (antes: todos al abrir).
@@ -227,11 +203,7 @@ test.describe("Hallazgos", () => {
     expect(plant).toBeTruthy();
 
     // Otro lugar: el supervisor anterior ya no aplica y se quita.
-    await pickOption(
-      page,
-      "Lugar",
-      new RegExp(`^(?!${escapeRegex(firstZone)}$)`),
-    );
+    await pickOption(page, "Lugar", new RegExp(`^(?!${escapeRegex(firstZone)}$)`));
     await expect(supervisorField(page)).not.toContainText("E2E Supervisor");
     const second = await pickOption(page, "Supervisor", /E2E Supervisor/);
     expect(second).not.toBe(first);
@@ -263,51 +235,34 @@ test.describe("Hallazgos", () => {
 
     release();
     await expect(
-      page.getByText(
-        "No se pudieron cargar los supervisores; vuelva a elegir el lugar",
-      ),
+      page.getByText("No se pudieron cargar los supervisores; vuelva a elegir el lugar"),
     ).toBeVisible();
 
-    await pickOption(
-      page,
-      "Lugar",
-      new RegExp(`^(?!${escapeRegex(firstZone)}$)`),
-    );
-    await expect(
-      page.getByText("Este lugar no tiene supervisores asignados"),
-    ).toBeVisible();
+    await pickOption(page, "Lugar", new RegExp(`^(?!${escapeRegex(firstZone)}$)`));
+    await expect(page.getByText("Este lugar no tiene supervisores asignados")).toBeVisible();
     // El aviso del lugar sin supervisores no se acompaña de errores en rojo
     // hasta intentar guardar.
     await expect(page.getByText("Selecciona el supervisor.")).toHaveCount(0);
     expect(errors).toEqual([]);
   });
 
-  test("al guardar incompleto marca el primer campo que falta y lo enfoca", async ({
-    page,
-  }) => {
+  test("al guardar incompleto marca el primer campo que falta y lo enfoca", async ({ page }) => {
     const writes = await captureWrites(page);
     await page.goto("/hallazgos/form");
     const plants = await sessionPlants(page);
     // Con una sola planta ya viene elegida: falta la clasificación.
-    const expected =
-      plants.length === 1 ? "Selecciona el hallazgo." : "Selecciona la planta.";
+    const expected = plants.length === 1 ? "Selecciona el hallazgo." : "Selecciona la planta.";
     const field = plants.length === 1 ? "Hallazgo" : "Planta";
 
     await page.getByRole("button", { name: "Crear hallazgo" }).click();
 
-    await expect(
-      page.locator("#contenido").getByText(expected, { exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("combobox", { name: field, exact: true }),
-    ).toBeFocused();
+    await expect(page.locator("#contenido").getByText(expected, { exact: true })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: field, exact: true })).toBeFocused();
     expect(writes).toEqual([]);
 
     // Al corregir, el error se quita.
     await pickOption(page, field);
-    await expect(
-      page.locator("#contenido").getByText(expected, { exact: true }),
-    ).toHaveCount(0);
+    await expect(page.locator("#contenido").getByText(expected, { exact: true })).toHaveCount(0);
   });
 
   test("recuerda la última planta y el último lugar del usuario en este dispositivo", async ({
@@ -330,9 +285,7 @@ test.describe("Hallazgos", () => {
 
     // Ligado al usuario con sesión (hay celulares compartidos).
     const stored = await page.evaluate(() =>
-      Object.keys(localStorage).filter((key) =>
-        key.startsWith("hallazgos:ultimo-lugar:"),
-      ),
+      Object.keys(localStorage).filter((key) => key.startsWith("hallazgos:ultimo-lugar:")),
     );
     expect(stored).toHaveLength(1);
 
@@ -354,9 +307,7 @@ test("Nuevo hallazgo con señal lenta: 'Cargando…' en Hallazgo y Lugar mientra
   let release!: () => void;
   const held = new Promise<void>((resolve) => (release = resolve));
   await page.route(
-    (url) =>
-      url.pathname.endsWith("/api/v1/main-types") ||
-      url.pathname.endsWith("/api/v1/zones"),
+    (url) => url.pathname.endsWith("/api/v1/main-types") || url.pathname.endsWith("/api/v1/zones"),
     async (route) => {
       await held;
       await route.fallback();

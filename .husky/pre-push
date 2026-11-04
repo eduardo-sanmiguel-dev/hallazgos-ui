@@ -1,5 +1,6 @@
 pnpm typecheck
 pnpm lint
+pnpm test
 
 # Las e2e corren contra el API local; sin él fallarían en el login.
 if ! curl -s -o /dev/null -m 5 http://localhost:4000/; then

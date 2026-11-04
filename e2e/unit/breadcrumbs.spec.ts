@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { describe, expect, test } from "vite-plus/test";
 
 import { breadcrumbTrail } from "../../app/_shared/components/menu";
 
@@ -9,7 +9,7 @@ const labels = (pathname: string) => {
   return trail && [...trail.parents, trail.list.title].join(" › ");
 };
 
-test.describe("Breadcrumbs: ruta desde el menú", () => {
+describe("Breadcrumbs: ruta desde el menú", () => {
   test("formularios de Configuración, sin el subgrupo General", () => {
     expect(labels("/processes/form")).toBe("Configuración › Procesos");
     expect(labels("/zones/form")).toBe("Configuración › Lugares");
@@ -19,19 +19,11 @@ test.describe("Breadcrumbs: ruta desde el menú", () => {
   });
 
   test("el subgrupo distingue las dos Zonas y se omite si repite la lista", () => {
-    expect(labels("/gemba-walk/zones/form")).toBe(
-      "Configuración › Gemba Walk › Zonas",
-    );
-    expect(labels("/gemba-walk/calendar/form")).toBe(
-      "Configuración › Gemba Walk › Calendario",
-    );
+    expect(labels("/gemba-walk/zones/form")).toBe("Configuración › Gemba Walk › Zonas");
+    expect(labels("/gemba-walk/calendar/form")).toBe("Configuración › Gemba Walk › Calendario");
     expect(labels("/main-types/form")).toBe("Configuración › Criterios");
-    expect(labels("/secondary-types/form")).toBe(
-      "Configuración › Criterios › Tipos de criterios",
-    );
-    expect(labels("/emergency-teams/form")).toBe(
-      "Configuración › Equipos › Equipos de emergencia",
-    );
+    expect(labels("/secondary-types/form")).toBe("Configuración › Criterios › Tipos de criterios");
+    expect(labels("/emergency-teams/form")).toBe("Configuración › Equipos › Equipos de emergencia");
   });
 
   test("sin ruta en las listas y fuera del menú", () => {

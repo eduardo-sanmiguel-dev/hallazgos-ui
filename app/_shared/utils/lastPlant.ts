@@ -17,11 +17,7 @@ export const readLastPlant = (userId: number, screen: PlantScreen) => {
   }
 };
 
-export const saveLastPlant = (
-  userId: number,
-  screen: PlantScreen,
-  plantId: string,
-) => {
+export const saveLastPlant = (userId: number, screen: PlantScreen, plantId: string) => {
   try {
     localStorage.setItem(storageKey(userId, screen), plantId);
   } catch {

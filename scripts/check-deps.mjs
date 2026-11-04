@@ -5,9 +5,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const root = process.cwd();
-const { dependencies = {} } = JSON.parse(
-  readFileSync(join(root, "package.json"), "utf8"),
-);
+const { dependencies = {} } = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 
 const EXACT_VERSION = /^\d+\.\d+\.\d+(-[\w.]+)?$/;
 const problems = [];

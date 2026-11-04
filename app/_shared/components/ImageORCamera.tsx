@@ -1,5 +1,3 @@
-"use client";
-
 import PhotoCapture from "./PhotoCapture";
 
 interface Props {

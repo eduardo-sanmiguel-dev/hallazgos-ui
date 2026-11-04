@@ -1,17 +1,13 @@
 import type { AxiosProgressEvent } from "axios";
 
-import axiosWrapper, {
-  idempotencyHeaders,
-  submitResult,
-  type SubmitResult,
-} from "./axiosWrapper";
+import axiosWrapper, { idempotencyHeaders, submitResult, type SubmitResult } from "./axiosWrapper";
 import {
   buildLocalFileNameTimestamp,
   getBrowserTimeZone,
   resolveDownloadFileName,
 } from "@shared/utils/downloadFileName";
 import { Evidence, EvidenceRow } from "_interfaces/evicences.interfaces";
-import { FiltersEvidences } from "(routes)/hallazgos/_components/FiltersEvidence";
+import { FiltersEvidences } from "features/hallazgos/_components/FiltersEvidence";
 
 const baseURL = "/evidences";
 
@@ -99,31 +95,21 @@ const create = async (
   formData: FormData,
   options: UploadOptions = {},
 ): Promise<SubmitResult<{ id: number }>> =>
-  submitResult(
-    await api.post<{ id: number }>("", formData, uploadConfig(options)),
-  );
+  submitResult(await api.post<{ id: number }>("", formData, uploadConfig(options)));
 
 const solution = async (
   id: number,
   formData: FormData,
   options: UploadOptions = {},
 ): Promise<SubmitResult<Evidence>> =>
-  submitResult(
-    await api.post<Evidence>(
-      `/solution/${id}`,
-      formData,
-      uploadConfig(options),
-    ),
-  );
+  submitResult(await api.post<Evidence>(`/solution/${id}`, formData, uploadConfig(options)));
 
 const processStart = async (
   id: number,
   formData: FormData,
   options: UploadOptions = {},
 ): Promise<SubmitResult<Evidence>> =>
-  submitResult(
-    await api.post<Evidence>(`/process/${id}`, formData, uploadConfig(options)),
-  );
+  submitResult(await api.post<Evidence>(`/process/${id}`, formData, uploadConfig(options)));
 
 // Cancelar, comentar y reasignar mandan correos o crean registros: también
 // llevan clave para que "Reintentar" no los repita.
@@ -144,8 +130,7 @@ const addComment = async (id: number, comment: string) => {
 };
 
 const getPermissionsConfig = async () => {
-  const { data } =
-    await api.get<PermissionsConfigResponse>(`/permissions/config`);
+  const { data } = await api.get<PermissionsConfigResponse>(`/permissions/config`);
   return data;
 };
 

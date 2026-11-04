@@ -16,8 +16,7 @@ const latestEvidenceId = async (page: Page) => {
   return Number(await firstId.textContent());
 };
 
-const detail = (page: Page, id: number) =>
-  page.getByRole("dialog", { name: `Hallazgo #${id}` });
+const detail = (page: Page, id: number) => page.getByRole("dialog", { name: `Hallazgo #${id}` });
 
 test("abre el detalle del hallazgo enlazado una sola vez", async ({ page }) => {
   const id = await latestEvidenceId(page);
@@ -44,9 +43,7 @@ test.describe("sin sesión", () => {
     await context.close();
 
     await page.goto(`/hallazgos?evidenceId=${id}`);
-    await expect(page).toHaveURL(
-      `/?next=${encodeURIComponent(`/hallazgos?evidenceId=${id}`)}`,
-    );
+    await expect(page).toHaveURL(`/?next=${encodeURIComponent(`/hallazgos?evidenceId=${id}`)}`);
 
     const { email, password } = e2eCredentials();
     await page.getByLabel("Correo Electrónico").fill(email);

@@ -68,13 +68,7 @@ export default function DetailSection({
 }
 
 /** Par etiqueta/valor de una lista de datos (`DetailFieldList`). */
-export function DetailField({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
+export function DetailField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <Box sx={{ minWidth: 0 }}>
       <Typography
@@ -84,11 +78,7 @@ export function DetailField({
       >
         {label}
       </Typography>
-      <Typography
-        component="dd"
-        variant="body2"
-        sx={{ m: 0, overflowWrap: "anywhere" }}
-      >
+      <Typography component="dd" variant="body2" sx={{ m: 0, overflowWrap: "anywhere" }}>
         {children}
       </Typography>
     </Box>

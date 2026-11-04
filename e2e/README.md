@@ -46,6 +46,9 @@ leen datos fijos con `mockGet`.
 
 ## Ejecutar
 
+`pnpm test` ejecuta las pruebas unitarias (`e2e/unit`) con Vitest mediante Vite+,
+sin API ni navegador. `pnpm test:e2e` ejecuta las pruebas de navegador con Playwright.
+
 Con el API corriendo (`pnpm start:dev` en hallazgos-api):
 
 ```bash
@@ -68,8 +71,7 @@ Bash, `npx cross-env E2E_WORKERS=1 pnpm test:e2e`).
 `test:e2e:coverage` graba el coverage JS del navegador en cada prueba (V8) y
 lo lleva a los `.tsx` de `app/` con los source maps del dev server. Los
 archivos que ninguna prueba cargó cuentan con 0%. Quedan fuera las
-interfaces (solo tipos) y lo que corre solo en el servidor (`app/layout.tsx`,
-`manifest.ts`, `not-found.tsx`, `privacy/page.tsx`). La configuración está en
+interfaces (solo tipos) y el generador estático `app/manifest.ts`. La configuración está en
 `e2e/support/coverage.ts`.
 
 - `coverage/index.html`: reporte navegable por archivo.

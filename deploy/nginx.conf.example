@@ -1,0 +1,31 @@
+# Inside the existing HTTPS server block; keep TLS and API proxy settings.
+root /home/eduardo/hallazgos-ui/dist;
+index index.html;
+if ($http_next_action != "") { return 400; }
+add_header X-Content-Type-Options nosniff always;
+
+location /assets/ {
+    try_files $uri =404;
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+}
+location = /deployment-version.json {
+    add_header Cache-Control "no-store" always;
+    try_files $uri =404;
+}
+# Old tabs check this URL before reloading into the new SPA.
+location = /api/deployment-version {
+    add_header Cache-Control "no-store" always;
+    rewrite ^ /deployment-version.json last;
+}
+location /api/ {
+    return 404;
+}
+location ~* \.(?:js|css|map|json|png|jpe?g|svg|ico|webp|woff2?|pdf|webmanifest)$ {
+    try_files $uri =404;
+    add_header Cache-Control "no-store" always;
+}
+location / {
+    add_header Cache-Control "no-store" always;
+    try_files $uri $uri/ /index.html;
+}

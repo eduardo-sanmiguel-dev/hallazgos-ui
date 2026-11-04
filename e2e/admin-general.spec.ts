@@ -2,12 +2,7 @@ import type { Page } from "@playwright/test";
 
 import { captureWrites, mockGet } from "./support/api";
 import { expect, test } from "./support/fixtures";
-import {
-  pickOption,
-  sessionPlants,
-  toast,
-  trackPageErrors,
-} from "./support/ui";
+import { pickOption, sessionPlants, toast, trackPageErrors } from "./support/ui";
 
 // Panel administrativo, grupo 2 (General): Usuarios, Colaboradores, Plantas,
 // Lugares y Zonas. Lo común (marcar lo que falta, confirmar al salir, carga
@@ -15,12 +10,9 @@ import {
 // propio de cada pantalla. Escrituras interceptadas; lecturas simuladas donde
 // hace falta un registro fijo.
 
-const saveButton = (page: Page) =>
-  page.getByRole("button", { name: "Guardar" });
-const cancelButton = (page: Page) =>
-  page.getByRole("button", { name: "Cancelar" });
-const trail = (page: Page) =>
-  page.getByRole("navigation", { name: "Ruta de navegación" });
+const saveButton = (page: Page) => page.getByRole("button", { name: "Guardar" });
+const cancelButton = (page: Page) => page.getByRole("button", { name: "Cancelar" });
+const trail = (page: Page) => page.getByRole("navigation", { name: "Ruta de navegación" });
 
 test.describe("Usuarios", () => {
   test("Guardar marca nombre, correo, contraseña y rol (antes el rol no se marcaba)", async ({
@@ -95,9 +87,7 @@ test.describe("Colaboradores", () => {
 
     await name.fill("E2E Colaborador editado");
     await cancelButton(page).click();
-    await expect(
-      page.getByRole("dialog", { name: "¿Descartar los cambios?" }),
-    ).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "¿Descartar los cambios?" })).toBeVisible();
     await page.getByRole("button", { name: "Descartar" }).click();
     await expect(page).toHaveURL(/\/employees$/);
   });
@@ -123,12 +113,8 @@ test.describe("Plantas", () => {
     await lat.fill("95");
     await lng.fill("abc");
     await saveButton(page).click();
-    await expect(
-      page.getByText(/La latitud debe ser un número entre -90 y 90/),
-    ).toBeVisible();
-    await expect(
-      page.getByText(/La longitud debe ser un número entre -180 y 180/),
-    ).toBeVisible();
+    await expect(page.getByText(/La latitud debe ser un número entre -90 y 90/)).toBeVisible();
+    await expect(page.getByText(/La longitud debe ser un número entre -180 y 180/)).toBeVisible();
     expect(writes).toEqual([]);
 
     // La coma decimal se cambia por punto.
@@ -148,9 +134,7 @@ test.describe("Plantas", () => {
 });
 
 test.describe("Lugares y Zonas", () => {
-  test("Zonas: la planta sola no cuenta como captura al salir (como en ICS)", async ({
-    page,
-  }) => {
+  test("Zonas: la planta sola no cuenta como captura al salir (como en ICS)", async ({ page }) => {
     await page.goto("/areas/form");
     const plants = await sessionPlants(page);
     // Con una sola planta el selector la elige solo; con varias, a mano.
@@ -161,14 +145,10 @@ test.describe("Lugares y Zonas", () => {
     await page.goto("/areas/form");
     await page.getByLabel("Nombre").fill("E2E Zona a medias");
     await cancelButton(page).click();
-    await expect(
-      page.getByRole("dialog", { name: "¿Descartar el registro?" }),
-    ).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "¿Descartar el registro?" })).toBeVisible();
   });
 
-  test("Zonas: el punto del plano cuenta como cambio al editar", async ({
-    page,
-  }) => {
+  test("Zonas: el punto del plano cuenta como cambio al editar", async ({ page }) => {
     await mockGet(page, "/areas/9901", {
       id: 9901,
       name: "E2E Zona ubicada",
@@ -178,9 +158,7 @@ test.describe("Lugares y Zonas", () => {
       zoomLevel: 2,
     });
     await page.goto("/areas/form?id=9901");
-    await expect(
-      page.getByText("Punto seleccionado: X 320, Y 240, Zoom 2.00x"),
-    ).toBeVisible();
+    await expect(page.getByText("Punto seleccionado: X 320, Y 240, Zoom 2.00x")).toBeVisible();
 
     // Sin cambios: sale directo.
     await cancelButton(page).click();
@@ -194,9 +172,7 @@ test.describe("Lugares y Zonas", () => {
     ["/employees/form", "Colaboradores", "Nuevo colaborador"],
     ["/users/form", "Usuarios", "Nuevo usuario"],
   ] as const) {
-    test(`breadcrumbs: Configuración › ${list} › ${title}`, async ({
-      page,
-    }) => {
+    test(`breadcrumbs: Configuración › ${list} › ${title}`, async ({ page }) => {
       await page.goto(route);
       await expect(trail(page)).toHaveText(`Configuración›${list}›${title}`);
     });
@@ -280,9 +256,7 @@ test.describe("Listas en celular", () => {
       await page.goto(route);
 
       await expect(page.getByRole("table")).toHaveCount(0);
-      const card = page
-        .getByRole("list", { name: ariaLabel })
-        .getByRole("listitem");
+      const card = page.getByRole("list", { name: ariaLabel }).getByRole("listitem");
       for (const text of texts) await expect(card).toContainText(text);
       await expect(card.getByRole("button", { name: "Editar" })).toBeVisible();
       const overflow = await page.evaluate(

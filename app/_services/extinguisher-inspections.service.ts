@@ -1,10 +1,6 @@
 import axiosWrapper from "./axiosWrapper";
 import { resolveDownloadFileName } from "@shared/utils/downloadFileName";
-import {
-  EvaluationValues,
-  ExtinguisherInspection,
-  ExtinguisherType,
-} from "@interfaces";
+import { EvaluationValues, ExtinguisherInspection, ExtinguisherType } from "@interfaces";
 
 interface EvaluationPayload {
   location: string;

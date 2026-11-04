@@ -31,9 +31,7 @@ export const compressEvidenceImage = async (file: Blob): Promise<File> => {
 
   const outputType = evidenceOutputType(file.type);
   // Carga diferida: la librería solo se descarga al elegir una foto.
-  const { default: imageCompression } = await import(
-    "browser-image-compression"
-  );
+  const { default: imageCompression } = await import("browser-image-compression");
 
   let compressed: Blob;
   try {
@@ -47,15 +45,11 @@ export const compressEvidenceImage = async (file: Blob): Promise<File> => {
       },
     );
   } catch {
-    throw new EvidenceImageError(
-      "No se pudo procesar la imagen. Intenta con otra foto.",
-    );
+    throw new EvidenceImageError("No se pudo procesar la imagen. Intenta con otra foto.");
   }
 
   if (compressed.size > EVIDENCE_API_LIMIT_BYTES) {
-    throw new EvidenceImageError(
-      "La imagen sigue pesando más de 2 MB. Intenta con otra foto.",
-    );
+    throw new EvidenceImageError("La imagen sigue pesando más de 2 MB. Intenta con otra foto.");
   }
 
   return new File([compressed], evidenceFileName(outputType), {

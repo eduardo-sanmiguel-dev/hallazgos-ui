@@ -1,14 +1,12 @@
-import { expect, test } from "@playwright/test";
+import { describe, expect, test } from "vite-plus/test";
 
 import { loginPathFor, safeNextPath } from "../../app/_shared/utils/nextPath";
 
 // Ruta de regreso después del login (`/?next=`): solo rutas de la app.
 
-test.describe("Ruta de regreso al iniciar sesión", () => {
+describe("Ruta de regreso al iniciar sesión", () => {
   test("acepta rutas internas con su búsqueda", () => {
-    expect(safeNextPath("/hallazgos?evidenceId=42")).toBe(
-      "/hallazgos?evidenceId=42",
-    );
+    expect(safeNextPath("/hallazgos?evidenceId=42")).toBe("/hallazgos?evidenceId=42");
     expect(safeNextPath("/gemba-walk/view?id=3")).toBe("/gemba-walk/view?id=3");
   });
 

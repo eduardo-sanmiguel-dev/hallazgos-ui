@@ -4,8 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { parseApiError } from "@services";
 
-export type EditRecordStatus =
-  "idle" | "loading" | "ready" | "notFound" | "error";
+export type EditRecordStatus = "idle" | "loading" | "ready" | "notFound" | "error";
 
 // Registro que se edita (`?id=N`). Antes la carga no tenía estados: mientras
 // llegaba se veía el formulario vacío (lo que se escribiera se pisaba) y, si

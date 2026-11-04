@@ -14,9 +14,7 @@ const contentScrollTop = (page: Page) =>
 
 test.describe("Volver arriba", () => {
   for (const path of ["/hallazgos", "/gemba-walk", "/dashboard"]) {
-    test(`aparece al bajar y regresa al inicio en ${path}`, async ({
-      page,
-    }) => {
+    test(`aparece al bajar y regresa al inicio en ${path}`, async ({ page }) => {
       const errors = trackPageErrors(page);
       await page.goto(path);
       // Con la página aún cargando, el scroll vuelve al inicio.
@@ -58,12 +56,8 @@ test.describe("Volver arriba", () => {
       await expect(fab(page)).toBeVisible();
       // Se lee `bottom` y no la caja: la animación de entrada (Zoom) escala
       // el botón al aparecer.
-      const bottom = await fab(page).evaluate((el) =>
-        parseFloat(getComputedStyle(el).bottom),
-      );
-      const navHeight = await nav.evaluate(
-        (el) => el.getBoundingClientRect().height,
-      );
+      const bottom = await fab(page).evaluate((el) => parseFloat(getComputedStyle(el).bottom));
+      const navHeight = await nav.evaluate((el) => el.getBoundingClientRect().height);
       expect(bottom).toBeGreaterThan(navHeight);
     });
   });

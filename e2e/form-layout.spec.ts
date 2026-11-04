@@ -51,9 +51,7 @@ test.describe("Diseño de los formularios de Configuración", () => {
       await page.goto(path);
 
       for (const name of sections) {
-        await expect(
-          page.getByRole("region", { name, exact: true }),
-        ).toBeVisible();
+        await expect(page.getByRole("region", { name, exact: true })).toBeVisible();
       }
 
       // La pantalla mide 1440 px: sin el máximo, la sección ocuparía todo
@@ -64,18 +62,14 @@ test.describe("Diseño de los formularios de Configuración", () => {
       expect(box.width).toBeLessThanOrEqual(MAX_WIDTH);
 
       // Centrada: el título de la página empieza donde la sección.
-      const heading = (await page
-        .getByRole("heading", { level: 1 })
-        .boundingBox())!;
+      const heading = (await page.getByRole("heading", { level: 1 }).boundingBox())!;
       expect(Math.abs(heading.x - box.x)).toBeLessThan(2);
 
       expect(errors).toEqual([]);
     });
   }
 
-  test("calendario: sección de programación y acciones al pie", async ({
-    page,
-  }) => {
+  test("calendario: sección de programación y acciones al pie", async ({ page }) => {
     await page.goto("/gemba-walk/calendar/form");
 
     const section = page.getByRole("region", {
@@ -86,9 +80,7 @@ test.describe("Diseño de los formularios de Configuración", () => {
     await expect(section.getByText("Recorrido regular")).toBeVisible();
 
     // "Guardar" va debajo del calendario, como en los demás formularios.
-    const save = (await page
-      .getByRole("button", { name: "Guardar" })
-      .boundingBox())!;
+    const save = (await page.getByRole("button", { name: "Guardar" }).boundingBox())!;
     const calendar = (await page.locator(".fc").boundingBox())!;
     expect(save.y).toBeGreaterThan(calendar.y + calendar.height);
   });
@@ -108,10 +100,6 @@ test("el Copyright queda al fondo en un formulario corto", async ({ page }) => {
 
   // Lejos del formulario y a no más del margen inferior (32 px) del fondo.
   expect(copyright.y - (saveBox.y + saveBox.height)).toBeGreaterThan(100);
-  expect(
-    mainBox.y + mainBox.height - (copyright.y + copyright.height),
-  ).toBeLessThanOrEqual(40);
-  expect(
-    await main.evaluate((el) => el.scrollHeight - el.clientHeight),
-  ).toBeLessThanOrEqual(0);
+  expect(mainBox.y + mainBox.height - (copyright.y + copyright.height)).toBeLessThanOrEqual(40);
+  expect(await main.evaluate((el) => el.scrollHeight - el.clientHeight)).toBeLessThanOrEqual(0);
 });

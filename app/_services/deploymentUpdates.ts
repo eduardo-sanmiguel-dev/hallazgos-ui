@@ -64,10 +64,13 @@ export function connectDeploymentUpdates(
   function scheduleReconnect() {
     if (stopped || updating || retry) return;
     const delay = Math.min(1_000 * 2 ** Math.min(attempts++, 5), 30_000);
-    retry = setTimeout(() => {
-      retry = undefined;
-      connect();
-    }, delay + Math.random() * 1_000);
+    retry = setTimeout(
+      () => {
+        retry = undefined;
+        connect();
+      },
+      delay + Math.random() * 1_000,
+    );
   }
 
   function connect() {
@@ -79,7 +82,9 @@ export function connectDeploymentUpdates(
       return;
     }
     const connection = socket;
-    connection.onopen = () => { attempts = 0; };
+    connection.onopen = () => {
+      attempts = 0;
+    };
     connection.onmessage = (event) => {
       if (stopped || updating || socket !== connection) return;
       try {

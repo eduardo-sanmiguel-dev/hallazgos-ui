@@ -7,10 +7,7 @@ import QRCode from "qrcode";
  * getUserMedia falle con ese nombre de DOMException; "unsupported" simula un
  * navegador sin getUserMedia. Debe llamarse antes de page.goto.
  */
-export const fakeCamera = async (
-  page: Page,
-  options: { qr: string } | { error: string },
-) => {
+export const fakeCamera = async (page: Page, options: { qr: string } | { error: string }) => {
   const qr =
     "qr" in options
       ? (() => {

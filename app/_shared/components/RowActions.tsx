@@ -38,15 +38,7 @@ interface RowActionBaseProps extends Required<RowActionProps> {
 }
 
 function RowAction({ tone, icon, label, onClick, disabled }: RowActionBaseProps) {
-  return (
-    <Chip
-      icon={icon}
-      label={label}
-      onClick={onClick}
-      disabled={disabled}
-      sx={toneSx(tone)}
-    />
-  );
+  return <Chip icon={icon} label={label} onClick={onClick} disabled={disabled} sx={toneSx(tone)} />;
 }
 
 // Contenedor de las acciones de una fila de tabla.
@@ -58,11 +50,7 @@ export function RowActions({ children }: { children: ReactNode }) {
   );
 }
 
-export function EditAction({
-  label = "Editar",
-  disabled = false,
-  onClick,
-}: RowActionProps) {
+export function EditAction({ label = "Editar", disabled = false, onClick }: RowActionProps) {
   return (
     <RowAction
       tone="warning"
@@ -74,11 +62,7 @@ export function EditAction({
   );
 }
 
-export function DeleteAction({
-  label = "Eliminar",
-  disabled = false,
-  onClick,
-}: RowActionProps) {
+export function DeleteAction({ label = "Eliminar", disabled = false, onClick }: RowActionProps) {
   return (
     <RowAction
       tone="error"
@@ -90,11 +74,7 @@ export function DeleteAction({
   );
 }
 
-export function ViewAction({
-  label = "Ver",
-  disabled = false,
-  onClick,
-}: RowActionProps) {
+export function ViewAction({ label = "Ver", disabled = false, onClick }: RowActionProps) {
   return (
     <RowAction
       tone="primary"

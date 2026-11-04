@@ -1,8 +1,4 @@
-import axiosWrapper, {
-  idempotencyHeaders,
-  submitResult,
-  type SubmitResult,
-} from "./axiosWrapper";
+import axiosWrapper, { idempotencyHeaders, submitResult, type SubmitResult } from "./axiosWrapper";
 import { GembaWalk, GembaWalkCalendar } from "@interfaces";
 
 interface PayloadCreate {
@@ -53,10 +49,9 @@ const findAvailableEvents = async (manufacturingPlantId: string) => {
 // Inicia el recorrido (valida la tolerancia) y devuelve el comprobante con la
 // hora de inicio que se envía al registrarlo.
 const start = async (gembaWalkCalendarId: number) => {
-  const { data } = await api.post<{ startToken: string; startedAt: string }>(
-    "/start",
-    { gembaWalkCalendarId },
-  );
+  const { data } = await api.post<{ startToken: string; startedAt: string }>("/start", {
+    gembaWalkCalendarId,
+  });
   return data;
 };
 

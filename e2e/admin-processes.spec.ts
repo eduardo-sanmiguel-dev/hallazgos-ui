@@ -2,12 +2,7 @@ import type { Page } from "@playwright/test";
 
 import { captureWrites, mockGet } from "./support/api";
 import { expect, test } from "./support/fixtures";
-import {
-  pickOption,
-  sessionPlants,
-  toast,
-  trackPageErrors,
-} from "./support/ui";
+import { pickOption, sessionPlants, toast, trackPageErrors } from "./support/ui";
 
 // Panel administrativo, grupo 1 (piloto: Procesos). Las piezas comunes que
 // usarán los demás formularios: "Guardar" marca todo lo que falta, confirmar
@@ -17,10 +12,8 @@ import {
 
 const ID = 9701;
 
-const saveButton = (page: Page) =>
-  page.getByRole("button", { name: "Guardar" });
-const cancelButton = (page: Page) =>
-  page.getByRole("button", { name: "Cancelar" });
+const saveButton = (page: Page) => page.getByRole("button", { name: "Guardar" });
+const cancelButton = (page: Page) => page.getByRole("button", { name: "Cancelar" });
 const nameInput = (page: Page) => page.getByLabel("Nombre");
 
 /** Registro fijo para editar, de la primera planta del usuario. */
@@ -71,9 +64,7 @@ test.describe("Procesos: formulario", () => {
       name: "¿Descartar el registro?",
     });
     // El foco inicia en la opción segura: Enter no descarta por accidente.
-    await expect(
-      dialog.getByRole("button", { name: "Seguir editando" }),
-    ).toBeFocused();
+    await expect(dialog.getByRole("button", { name: "Seguir editando" })).toBeFocused();
     await dialog.getByRole("button", { name: "Seguir editando" }).click();
     await expect(page).toHaveURL(/\/processes\/form$/);
     await expect(nameInput(page)).toHaveValue("E2E a medias");
@@ -83,9 +74,7 @@ test.describe("Procesos: formulario", () => {
     await expect(page).toHaveURL(/\/processes$/);
   });
 
-  test("al editar, confirma solo si algo cambió respecto a lo cargado", async ({
-    page,
-  }) => {
+  test("al editar, confirma solo si algo cambió respecto a lo cargado", async ({ page }) => {
     await mockProcess(page);
     await page.goto(`/processes/form?id=${ID}`);
     await expect(nameInput(page)).toHaveValue("E2E Proceso");
@@ -97,9 +86,7 @@ test.describe("Procesos: formulario", () => {
     await page.goto(`/processes/form?id=${ID}`);
     await nameInput(page).fill("E2E Proceso editado");
     await cancelButton(page).click();
-    await expect(
-      page.getByRole("dialog", { name: "¿Descartar los cambios?" }),
-    ).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "¿Descartar los cambios?" })).toBeVisible();
 
     // Volver al valor original ya no cuenta como cambio.
     await page.getByRole("button", { name: "Seguir editando" }).click();
@@ -146,15 +133,11 @@ test.describe("Procesos: formulario", () => {
     );
     await page.goto(`/processes/form?id=${ID}`);
     await expect(nameInput(page)).toHaveValue("E2E Proceso");
-    await expect(page.getByRole("combobox", { name: "Planta" })).toHaveText(
-      plant.name,
-    );
+    await expect(page.getByRole("combobox", { name: "Planta" })).toHaveText(plant.name);
     expect(warnings).toEqual([]);
   });
 
-  test("mientras carga el registro no se muestra el formulario vacío", async ({
-    page,
-  }) => {
+  test("mientras carga el registro no se muestra el formulario vacío", async ({ page }) => {
     const plant = await mockProcess(page);
     let release!: () => void;
     const held = new Promise<void>((resolve) => (release = resolve));
@@ -179,9 +162,7 @@ test.describe("Procesos: formulario", () => {
     await expect(nameInput(page)).toHaveValue("E2E Proceso");
   });
 
-  test("un registro que no existe lo dice y deja volver a la lista", async ({
-    page,
-  }) => {
+  test("un registro que no existe lo dice y deja volver a la lista", async ({ page }) => {
     await page.route(
       (url) => url.pathname.endsWith(`/api/v1/processes/${ID}`),
       (route) =>
@@ -203,9 +184,7 @@ test.describe("Procesos: formulario", () => {
     await expect(page).toHaveURL(/\/processes$/);
   });
 
-  test("si falla la carga del registro: error con Reintentar", async ({
-    page,
-  }) => {
+  test("si falla la carga del registro: error con Reintentar", async ({ page }) => {
     const plant = await mockProcess(page);
     let fail = true;
     await page.route(
@@ -223,9 +202,7 @@ test.describe("Procesos: formulario", () => {
     );
     await page.goto(`/processes/form?id=${ID}`);
 
-    const error = page
-      .getByRole("alert")
-      .filter({ hasText: "No se pudo cargar" });
+    const error = page.getByRole("alert").filter({ hasText: "No se pudo cargar" });
     await expect(error).toBeVisible();
     fail = false;
     await error.getByRole("button", { name: "Reintentar" }).click();
@@ -252,9 +229,7 @@ test.describe("Procesos: formulario", () => {
     await pickOption(page, "Planta");
     await saveButton(page).click();
 
-    await expect(
-      page.getByText("Debe tener máximo 5 caracteres."),
-    ).toBeVisible();
+    await expect(page.getByText("Debe tener máximo 5 caracteres.")).toBeVisible();
     await expect(nameInput(page)).toBeFocused();
   });
 });
@@ -266,23 +241,16 @@ test.describe("Procesos: breadcrumbs (B2)", () => {
     await page.goto("/processes/form");
     const trail = page.getByRole("navigation", { name: "Ruta de navegación" });
     await expect(trail).toHaveText(/Configuración›Procesos›Nuevo proceso/);
-    await expect(trail.getByText("Nuevo proceso")).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    await expect(trail.getByText("Nuevo proceso")).toHaveAttribute("aria-current", "page");
 
     await nameInput(page).fill("E2E a medias");
     await trail.getByRole("link", { name: "Procesos" }).click();
-    await expect(
-      page.getByRole("dialog", { name: "¿Descartar el registro?" }),
-    ).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "¿Descartar el registro?" })).toBeVisible();
     await page.getByRole("button", { name: "Descartar" }).click();
     await expect(page).toHaveURL(/\/processes$/);
 
     // En la lista no hay breadcrumbs.
-    await expect(
-      page.getByRole("navigation", { name: "Ruta de navegación" }),
-    ).toHaveCount(0);
+    await expect(page.getByRole("navigation", { name: "Ruta de navegación" })).toHaveCount(0);
   });
 
   test.describe("en celular", () => {
@@ -291,49 +259,37 @@ test.describe("Procesos: breadcrumbs (B2)", () => {
     test("no se muestran", async ({ page }) => {
       await page.goto("/processes/form");
       await expect(nameInput(page)).toBeVisible();
-      await expect(
-        page.getByRole("navigation", { name: "Ruta de navegación" }),
-      ).toBeHidden();
+      await expect(page.getByRole("navigation", { name: "Ruta de navegación" })).toBeHidden();
     });
   });
 });
 
 test.describe("Procesos: lista", () => {
-  test("la primera carga muestra el esqueleto de la tabla, no la barra", async ({
-    page,
-  }) => {
+  test("la primera carga muestra el esqueleto de la tabla, no la barra", async ({ page }) => {
     let release!: () => void;
     const held = new Promise<void>((resolve) => (release = resolve));
     await page.route(
-      (url) =>
-        url.pathname.endsWith("/api/v1/processes") &&
-        url.searchParams.has("page"),
+      (url) => url.pathname.endsWith("/api/v1/processes") && url.searchParams.has("page"),
       async (route) => {
         await held;
         await route.fallback();
       },
     );
     await page.goto("/processes");
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Procesos" }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Procesos" })).toBeVisible();
     await expect(page.getByRole("status", { name: "Cargando…" })).toBeVisible();
     await expect(page.getByRole("progressbar")).toHaveCount(0);
 
     release();
     await expect(page.getByRole("table")).toBeVisible();
-    await expect(page.getByRole("status", { name: "Cargando…" })).toHaveCount(
-      0,
-    );
+    await expect(page.getByRole("status", { name: "Cargando…" })).toHaveCount(0);
   });
 });
 
 test.describe("Procesos: lista en celular", () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true });
 
-  test("tarjetas con nombre, planta y acciones, sin desplazarse de lado", async ({
-    page,
-  }) => {
+  test("tarjetas con nombre, planta y acciones, sin desplazarse de lado", async ({ page }) => {
     await mockGet(
       page,
       "/processes",
@@ -354,9 +310,7 @@ test.describe("Procesos: lista en celular", () => {
     await page.goto("/processes");
 
     await expect(page.getByRole("table")).toHaveCount(0);
-    const card = page
-      .getByRole("list", { name: "Procesos" })
-      .getByRole("listitem");
+    const card = page.getByRole("list", { name: "Procesos" }).getByRole("listitem");
     await expect(card).toContainText("E2E Proceso");
     await expect(card).toContainText("E2E Planta");
     await expect(card.getByRole("button", { name: "Editar" })).toBeVisible();

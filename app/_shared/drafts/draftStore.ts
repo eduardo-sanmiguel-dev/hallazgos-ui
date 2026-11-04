@@ -41,10 +41,8 @@ export interface DraftRecord<T = Record<string, string>> {
 
 export const draftId = (userId: number, form: string) => `${userId}:${form}`;
 
-export const isExpired = (
-  draft: Pick<DraftRecord, "createdAt">,
-  now = Date.now(),
-) => now - Date.parse(draft.createdAt) > DRAFT_TTL_MS;
+export const isExpired = (draft: Pick<DraftRecord, "createdAt">, now = Date.now()) =>
+  now - Date.parse(draft.createdAt) > DRAFT_TTL_MS;
 
 let dbPromise: Promise<IDBDatabase | null> | null = null;
 
@@ -87,8 +85,7 @@ const run = async <R>(
     try {
       const transaction = db.transaction(STORE, mode);
       const request = operation(transaction.objectStore(STORE));
-      transaction.oncomplete = () =>
-        resolve(request ? request.result : undefined);
+      transaction.oncomplete = () => resolve(request ? request.result : undefined);
       transaction.onerror = () => resolve(undefined);
       transaction.onabort = () => resolve(undefined);
     } catch {
@@ -114,16 +111,12 @@ export const putDraft = <T>(draft: DraftRecord<T>) =>
   run("readwrite", (store) => store.put(draft)).then(() => undefined);
 
 export const deleteDraft = (userId: number, form: string) =>
-  run("readwrite", (store) => store.delete(draftId(userId, form))).then(
-    () => undefined,
-  );
+  run("readwrite", (store) => store.delete(draftId(userId, form))).then(() => undefined);
 
 /** Borradores vigentes del usuario (aviso al cerrar sesión o al terminar). */
 export const listUserDrafts = async (userId: number) =>
   (
-    (await run<DraftRecord[]>("readonly", (store) =>
-      store.index(BY_USER).getAll(userId),
-    )) ?? []
+    (await run<DraftRecord[]>("readonly", (store) => store.index(BY_USER).getAll(userId))) ?? []
   ).filter((draft) => !isExpired(draft));
 
 /** Al cerrar sesión a propósito: no deja datos del usuario en el celular. */
@@ -139,9 +132,7 @@ export const deleteUserDrafts = async (userId: number) => {
 
 /** Borra los vencidos de cualquier usuario (al abrir la app). */
 export const purgeExpiredDrafts = async (now = Date.now()) => {
-  const drafts = await run<DraftRecord[]>("readonly", (store) =>
-    store.getAll(),
-  );
+  const drafts = await run<DraftRecord[]>("readonly", (store) => store.getAll());
   const expired = (drafts ?? []).filter((draft) => isExpired(draft, now));
   if (!expired.length) return;
   await run("readwrite", (store) => {

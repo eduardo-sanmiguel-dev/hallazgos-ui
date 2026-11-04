@@ -26,25 +26,17 @@ const firePrompt = (page: Page, outcome: "accepted" | "dismissed") =>
   }, outcome);
 
 const promptCalls = (page: Page) =>
-  page.evaluate(
-    () => (window as unknown as { __promptCalls: number }).__promptCalls,
-  );
+  page.evaluate(() => (window as unknown as { __promptCalls: number }).__promptCalls);
 
 test.describe("Instalar app", () => {
-  test("solo aparece cuando el navegador permite instalar y abre su diálogo", async ({
-    page,
-  }) => {
+  test("solo aparece cuando el navegador permite instalar y abre su diálogo", async ({ page }) => {
     const errors = trackPageErrors(page);
     await page.goto("/dashboard");
 
     // Sin aviso del navegador no hay opción.
     let menu = await openUserMenu(page);
-    await expect(
-      menu.getByRole("menuitem", { name: "Cerrar sesión" }),
-    ).toBeVisible();
-    await expect(
-      menu.getByRole("menuitem", { name: "Instalar app" }),
-    ).toHaveCount(0);
+    await expect(menu.getByRole("menuitem", { name: "Cerrar sesión" })).toBeVisible();
+    await expect(menu.getByRole("menuitem", { name: "Instalar app" })).toHaveCount(0);
     await page.keyboard.press("Escape");
 
     await firePrompt(page, "accepted");
@@ -55,18 +47,12 @@ test.describe("Instalar app", () => {
 
     // Ya instalada: la opción desaparece.
     menu = await openUserMenu(page);
-    await expect(
-      menu.getByRole("menuitem", { name: "Cerrar sesión" }),
-    ).toBeVisible();
-    await expect(
-      menu.getByRole("menuitem", { name: "Instalar app" }),
-    ).toHaveCount(0);
+    await expect(menu.getByRole("menuitem", { name: "Cerrar sesión" })).toBeVisible();
+    await expect(menu.getByRole("menuitem", { name: "Instalar app" })).toHaveCount(0);
     expect(errors).toEqual([]);
   });
 
-  test("si el usuario cancela, no se avisa como instalada", async ({
-    page,
-  }) => {
+  test("si el usuario cancela, no se avisa como instalada", async ({ page }) => {
     await page.goto("/dashboard");
     await firePrompt(page, "dismissed");
     const menu = await openUserMenu(page);

@@ -10,8 +10,7 @@ import { sessionPlants, toast } from "./support/ui";
 // (admin-processes.spec.ts); aquí, lo propio de cada pantalla. Escrituras
 // interceptadas; lecturas simuladas donde hace falta un registro fijo.
 
-const trail = (page: Page) =>
-  page.getByRole("navigation", { name: "Ruta de navegación" });
+const trail = (page: Page) => page.getByRole("navigation", { name: "Ruta de navegación" });
 
 const EQUIPMENT = {
   id: 9701,
@@ -50,10 +49,7 @@ const servePage = (page: Page, path: string, rows: unknown[]) =>
 test.describe("Criterios y tipos de criterios", () => {
   for (const [route, expected] of [
     ["/main-types/form", "Configuración›Criterios›Nuevo criterio"],
-    [
-      "/secondary-types/form",
-      "Configuración›Criterios›Tipos de criterios›Nuevo tipo de criterio",
-    ],
+    ["/secondary-types/form", "Configuración›Criterios›Tipos de criterios›Nuevo tipo de criterio"],
     [
       "/emergency-teams/form",
       "Configuración›Equipos›Equipos de emergencia›Nuevo equipo de emergencia",
@@ -83,9 +79,7 @@ test.describe("Criterios y tipos de criterios", () => {
     await expect(page.getByText("Criterio no encontrado")).toBeVisible();
   });
 
-  test("tipos de criterio: Guardar marca nombre, criterio y responsable", async ({
-    page,
-  }) => {
+  test("tipos de criterio: Guardar marca nombre, criterio y responsable", async ({ page }) => {
     const writes = await captureWrites(page);
     await page.goto("/secondary-types/form");
     await page.getByRole("button", { name: "Guardar" }).click();
@@ -106,18 +100,12 @@ test.describe("Equipos de protección", () => {
     await page.goto("/equipments");
     await page.getByRole("button", { name: "Crear", exact: true }).click();
     await expect(page).toHaveURL(/\/equipments\/form$/);
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Nuevo equipo" }),
-    ).toBeVisible();
-    await expect(trail(page)).toHaveText(
-      "Configuración›Equipos›Equipo de protección›Nuevo equipo",
-    );
+    await expect(page.getByRole("heading", { level: 1, name: "Nuevo equipo" })).toBeVisible();
+    await expect(trail(page)).toHaveText("Configuración›Equipos›Equipo de protección›Nuevo equipo");
     await expect(page.getByRole("dialog")).toHaveCount(0);
   });
 
-  test("salir con algo capturado pide confirmación; sin cambios sale directo", async ({
-    page,
-  }) => {
+  test("salir con algo capturado pide confirmación; sin cambios sale directo", async ({ page }) => {
     await page.goto("/equipments/form");
     const cancel = page.getByRole("button", { name: "Cancelar" });
     // Sin cambios (la planta elegida sola no cuenta): regresa a la lista.
@@ -138,9 +126,7 @@ test.describe("Equipos de protección", () => {
     await expect(page).toHaveURL(/\/equipments$/);
   });
 
-  test("el precio acepta coma decimal y la frecuencia solo enteros", async ({
-    page,
-  }) => {
+  test("el precio acepta coma decimal y la frecuencia solo enteros", async ({ page }) => {
     const writes = await captureWrites(page);
     await page.goto("/equipments/form");
     const plants = await sessionPlants(page);
@@ -170,19 +156,13 @@ test.describe("Equipos de protección", () => {
     await mockGet(page, `/equipments/${EQUIPMENT.id}`, EQUIPMENT);
     await page.goto("/equipments");
     await page.getByRole("button", { name: "Editar" }).first().click();
-    await expect(page).toHaveURL(
-      new RegExp(`/equipments/form\\?id=${EQUIPMENT.id}$`),
-    );
+    await expect(page).toHaveURL(new RegExp(`/equipments/form\\?id=${EQUIPMENT.id}$`));
     await expect(page.getByLabel("Nombre")).toHaveValue("E2E Lentes");
-    await expect(page.getByLabel("Frecuencia de entrega (días)")).toHaveValue(
-      "30",
-    );
+    await expect(page.getByLabel("Frecuencia de entrega (días)")).toHaveValue("30");
     await expect(page.getByLabel("Precio")).toHaveValue("120");
   });
 
-  test("si falla la carga del equipo: error con Reintentar", async ({
-    page,
-  }) => {
+  test("si falla la carga del equipo: error con Reintentar", async ({ page }) => {
     let fail = true;
     await page.route(
       (url) => url.pathname.endsWith(`/api/v1/equipments/${EQUIPMENT.id}`),
@@ -193,9 +173,7 @@ test.describe("Equipos de protección", () => {
     );
     await page.goto(`/equipments/form?id=${EQUIPMENT.id}`);
 
-    const error = page
-      .getByRole("alert")
-      .filter({ hasText: "No se pudo cargar" });
+    const error = page.getByRole("alert").filter({ hasText: "No se pudo cargar" });
     await expect(error).toBeVisible();
     await expect(page.getByRole("button", { name: "Guardar" })).toHaveCount(0);
     fail = false;
@@ -228,14 +206,9 @@ test.describe("Equipos de emergencia", () => {
   }) => {
     const writes = await captureWrites(page);
     await page.goto("/emergency-teams/form");
-    await expect(page.getByLabel("Capacidad")).toHaveAttribute(
-      "inputmode",
-      "decimal",
-    );
+    await expect(page.getByLabel("Capacidad")).toHaveAttribute("inputmode", "decimal");
     await page.getByRole("button", { name: "Guardar" }).click();
-    await expect(
-      toast(page, /Completa los [45] campos marcados\./),
-    ).toBeVisible();
+    await expect(toast(page, /Completa los [45] campos marcados\./)).toBeVisible();
     await expect(page.getByText("Escribe la ubicación.")).toBeVisible();
     await expect(page.getByText("Escribe la capacidad.")).toBeVisible();
     expect(writes).toEqual([]);
@@ -244,9 +217,7 @@ test.describe("Equipos de emergencia", () => {
   test.describe("en celular", () => {
     test.use({ viewport: { width: 390, height: 844 }, isMobile: true });
 
-    test("tarjetas con casilla para imprimir y seleccionar toda la página", async ({
-      page,
-    }) => {
+    test("tarjetas con casilla para imprimir y seleccionar toda la página", async ({ page }) => {
       await servePage(page, "/emergency-teams", [
         EMERGENCY_TEAM,
         { ...EMERGENCY_TEAM, id: 9802, location: "E2E Almacén" },
@@ -254,23 +225,15 @@ test.describe("Equipos de emergencia", () => {
       await page.goto("/emergency-teams");
 
       await expect(page.getByRole("table")).toHaveCount(0);
-      const cards = page
-        .getByRole("list", { name: "Equipos de emergencia" })
-        .getByRole("listitem");
+      const cards = page.getByRole("list", { name: "Equipos de emergencia" }).getByRole("listitem");
       await expect(cards).toHaveCount(2);
       await expect(cards.first()).toContainText("#9801 · E2E Pasillo");
       await expect(cards.first()).toContainText("PQS");
 
       await cards.first().getByRole("checkbox").check();
-      await expect(
-        page.getByRole("button", { name: "Imprimir (1)" }),
-      ).toBeEnabled();
-      await page
-        .getByRole("checkbox", { name: "Seleccionar todos los de esta página" })
-        .check();
-      await expect(
-        page.getByRole("button", { name: "Imprimir (2)" }),
-      ).toBeVisible();
+      await expect(page.getByRole("button", { name: "Imprimir (1)" })).toBeEnabled();
+      await page.getByRole("checkbox", { name: "Seleccionar todos los de esta página" }).check();
+      await expect(page.getByRole("button", { name: "Imprimir (2)" })).toBeVisible();
 
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - window.innerWidth,
@@ -279,19 +242,13 @@ test.describe("Equipos de emergencia", () => {
     });
   });
 
-  test("en escritorio, si falla la lista: error con Reintentar", async ({
-    page,
-  }) => {
+  test("en escritorio, si falla la lista: error con Reintentar", async ({ page }) => {
     await page.route(
-      (url) =>
-        url.pathname.endsWith("/api/v1/emergency-teams") &&
-        url.searchParams.has("page"),
+      (url) => url.pathname.endsWith("/api/v1/emergency-teams") && url.searchParams.has("page"),
       (route) => route.fulfill({ status: 500, json: { statusCode: 500 } }),
     );
     await page.goto("/emergency-teams");
-    await expect(
-      page.getByRole("alert").filter({ hasText: "No se pudo cargar" }),
-    ).toBeVisible();
+    await expect(page.getByRole("alert").filter({ hasText: "No se pudo cargar" })).toBeVisible();
   });
 });
 
@@ -346,9 +303,7 @@ test.describe("Listas en celular", () => {
       await page.goto(route);
 
       await expect(page.getByRole("table")).toHaveCount(0);
-      const card = page
-        .getByRole("list", { name: ariaLabel })
-        .getByRole("listitem");
+      const card = page.getByRole("list", { name: ariaLabel }).getByRole("listitem");
       for (const text of texts) await expect(card).toContainText(text);
       await expect(card.getByRole("button", { name: action })).toBeVisible();
       const overflow = await page.evaluate(

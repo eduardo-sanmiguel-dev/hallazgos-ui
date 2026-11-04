@@ -11,13 +11,8 @@ interface Props {
   rows: readonly unknown[];
   page: number;
   rowsPerPage: number;
-  handleChangePage: (
-    _: MouseEvent<HTMLButtonElement> | null,
-    newPage: number,
-  ) => void;
-  handleChangeRowsPerPage: (
-    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => void;
+  handleChangePage: (_: MouseEvent<HTMLButtonElement> | null, newPage: number) => void;
+  handleChangeRowsPerPage: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   colSpan: number;
   count?: number;
   /** Por omisión 10/25/50, sin "Todos" (ver useRowsPerPage). */

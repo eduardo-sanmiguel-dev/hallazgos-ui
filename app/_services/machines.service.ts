@@ -5,11 +5,7 @@ const api = axiosWrapper({
   baseURL: "/machines",
 });
 
-const findAll = async ({
-  manufacturingPlantId,
-}: {
-  manufacturingPlantId: string;
-}) => {
+const findAll = async ({ manufacturingPlantId }: { manufacturingPlantId: string }) => {
   const { data } = await api.get<Machine[]>("", {
     params: { manufacturingPlantId },
   });

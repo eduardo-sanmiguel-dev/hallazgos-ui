@@ -62,9 +62,7 @@ export default function ConfirmDialog({
       <DialogTitle id={titleId}>{title}</DialogTitle>
       {description && (
         <DialogContent>
-          <DialogContentText id={descriptionId}>
-            {description}
-          </DialogContentText>
+          <DialogContentText id={descriptionId}>{description}</DialogContentText>
         </DialogContent>
       )}
       <DialogActions sx={{ px: 3, pb: 2.5 }}>

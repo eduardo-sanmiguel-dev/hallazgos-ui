@@ -2,8 +2,7 @@
 // y, si no llega, el front arma uno de respaldo con la hora local del usuario.
 
 /** Zona IANA del navegador (ej. America/Bogota), para mandarla al back. */
-export const getBrowserTimeZone = () =>
-  Intl.DateTimeFormat().resolvedOptions().timeZone;
+export const getBrowserTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 /** "AAAA-MM-DD_HHmm_UTC±HH" en la hora local del navegador. */
 export const buildLocalFileNameTimestamp = (date = new Date()) => {
@@ -19,9 +18,7 @@ export const buildLocalFileNameTimestamp = (date = new Date()) => {
   )}_${pad(date.getHours())}${pad(date.getMinutes())}_${offset}`;
 };
 
-export const getFileNameFromContentDisposition = (
-  contentDisposition: string | undefined,
-) => {
+export const getFileNameFromContentDisposition = (contentDisposition: string | undefined) => {
   if (!contentDisposition) return "";
 
   const encoded = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition);
@@ -44,7 +41,5 @@ export const resolveDownloadFileName = (
   extension = ".xlsx",
 ) => {
   const fromHeader = getFileNameFromContentDisposition(contentDisposition);
-  return fromHeader.toLowerCase().endsWith(extension)
-    ? fromHeader
-    : buildFallback();
+  return fromHeader.toLowerCase().endsWith(extension) ? fromHeader : buildFallback();
 };

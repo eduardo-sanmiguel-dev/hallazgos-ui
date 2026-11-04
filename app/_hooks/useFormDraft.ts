@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { v4 as uuidv4 } from "uuid";
 
@@ -74,12 +68,7 @@ const lockStateFor = (error: unknown): DraftLock["sendState"] | null => {
 //   Service.create(data, { idempotencyKey: draft.key() })
 //     .then(() => draft.settle())
 //     .catch(draft.settle);
-export function useFormDraft<T>({
-  form,
-  content,
-  hasContent,
-  onRestore,
-}: Options<T>) {
+export function useFormDraft<T>({ form, content, hasContent, onRestore }: Options<T>) {
   const userId = useUserSessionStore((state) => state.id);
   const [offerRecord, setOfferRecord] = useState<DraftRecord<T> | null>(null);
   const [lock, setLock] = useState<DraftLock | null>(null);
@@ -115,10 +104,7 @@ export function useFormDraft<T>({
 
     getDraft<T>(userId, form).then((draft) => {
       if (ignore) return;
-      if (
-        draft &&
-        (hasContentRef.current(toContent(draft)) || draft.sendState !== "none")
-      ) {
+      if (draft && (hasContentRef.current(toContent(draft)) || draft.sendState !== "none")) {
         setOfferRecord(draft);
       } else {
         setReady(true);

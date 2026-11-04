@@ -59,9 +59,7 @@ const CATALOGS: CatalogCase[] = [
     // Hay registros sin responsable: el formulario obliga a elegir uno.
     completeEdit: async (page) => {
       const responsible = page.getByRole("combobox", { name: "Responsable" });
-      await expect(page.getByRole("combobox", { name: "Criterio" })).toHaveText(
-        /\S/,
-      );
+      await expect(page.getByRole("combobox", { name: "Criterio" })).toHaveText(/\S/);
       // MUI Select vacío muestra un espacio de ancho cero.
       if (!(await responsible.innerText()).replace(/[\s​]/g, "")) {
         await pickOption(page, "Responsable", "Seguridad");
@@ -120,8 +118,7 @@ const CATALOGS: CatalogCase[] = [
   },
 ];
 
-const saveButton = (page: Page) =>
-  page.getByRole("button", { name: "Guardar" });
+const saveButton = (page: Page) => page.getByRole("button", { name: "Guardar" });
 
 for (const catalog of CATALOGS) {
   test.describe(`Catálogo: ${catalog.name}`, () => {
@@ -205,16 +202,12 @@ test("tipos de criterio: exige el responsable al guardar", async ({ page }) => {
   expect(writes).toEqual([]);
 });
 
-test("criterios: el administrador puede quitar la foto obligatoria", async ({
-  page,
-}) => {
+test("criterios: el administrador puede quitar la foto obligatoria", async ({ page }) => {
   const writes = await captureWrites(page);
 
   await page.goto("/main-types/form");
   await page.getByLabel("Nombre").fill("E2E sin foto (no se guarda)");
-  await page
-    .getByRole("checkbox", { name: "Requiere evidencia fotográfica" })
-    .uncheck();
+  await page.getByRole("checkbox", { name: "Requiere evidencia fotográfica" }).uncheck();
   await saveButton(page).click();
   await expect(toast(page, "Criterio creado correctamente")).toBeVisible();
 
@@ -229,9 +222,7 @@ test("criterios: el administrador puede quitar la foto obligatoria", async ({
 
 // Criterios está oculto del menú para quien no es administrador, así que la
 // página se bloquea (RouteAccessGuard) y no llega a mostrar el formulario.
-test("criterios: sin rol de administrador la página dice que no tiene acceso", async ({
-  page,
-}) => {
+test("criterios: sin rol de administrador la página dice que no tiene acceso", async ({ page }) => {
   await mockGet(page, "/users/get-information-current-user", {
     id: 999,
     name: "E2E Supervisor",
@@ -249,15 +240,11 @@ test("criterios: sin rol de administrador la página dice que no tiene acceso", 
   expect(writes).toEqual([]);
 });
 
-test("un nombre de puros espacios se marca al guardar y no se envía", async ({
-  page,
-}) => {
+test("un nombre de puros espacios se marca al guardar y no se envía", async ({ page }) => {
   const writes = await captureWrites(page);
   await page.goto("/main-types/form");
   await page.getByLabel("Nombre").fill("   ");
   await saveButton(page).click();
-  await expect(page.locator("#campo-name-helper-text")).toHaveText(
-    "Escribe el nombre.",
-  );
+  await expect(page.locator("#campo-name-helper-text")).toHaveText("Escribe el nombre.");
   expect(writes).toEqual([]);
 });

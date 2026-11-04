@@ -1,15 +1,11 @@
-import { expect, test } from "@playwright/test";
+import { describe, expect, test } from "vite-plus/test";
 import { createStore } from "zustand/vanilla";
 
 import { syncRumUser } from "../../app/_shared/utils/rumUser";
 
-import {
-  isBotNavigator,
-  isLocalHostname,
-  shouldSendRumEvent,
-} from "../../app/_shared/utils/rum";
+import { isBotNavigator, isLocalHostname, shouldSendRumEvent } from "../../app/_shared/utils/rum";
 
-test.describe("RUM: identidad del usuario", () => {
+describe("RUM: identidad del usuario", () => {
   test("restaura la identidad y actualiza nombre y correo con el mismo ID", () => {
     const store = createStore(() => ({
       id: 1,
@@ -21,12 +17,12 @@ test.describe("RUM: identidad del usuario", () => {
     let clears = 0;
     const unsubscribe = syncRumUser(store, {
       setUser: (user) => users.push(user),
-      clearUser: () => { clears++; },
+      clearUser: () => {
+        clears++;
+      },
     });
 
-    expect(users).toEqual([
-      { id: "1", name: "Nombre anterior", email: "anterior@example.com" },
-    ]);
+    expect(users).toEqual([{ id: "1", name: "Nombre anterior", email: "anterior@example.com" }]);
     store.setState({ name: "Nombre actualizado" });
     expect(users.at(-1)?.name).toBe("Nombre actualizado");
     store.setState({ email: "actual@example.com" });
@@ -46,22 +42,22 @@ test.describe("RUM: identidad del usuario", () => {
     let clears = 0;
     const unsubscribe = syncRumUser(store, {
       setUser: (user) => users.push(user),
-      clearUser: () => { clears++; },
+      clearUser: () => {
+        clears++;
+      },
     });
     expect(clears).toBe(1);
     expect(users).toHaveLength(0);
     store.setState({ id: 2, name: "Usuario", email: "user@example.com" });
-    expect(users).toEqual([
-      { id: "2", name: "Usuario", email: "user@example.com" },
-    ]);
+    expect(users).toEqual([{ id: "2", name: "Usuario", email: "user@example.com" }]);
     unsubscribe();
   });
 });
 
-// Regla `beforeSend` del RUM (instrumentation-client.ts). Solo corre en
+// Regla `beforeSend` del RUM (app/observability.ts). Solo corre en
 // producción, así que se prueba la función directamente, sin navegador.
 
-test.describe("RUM: eventos que se envían", () => {
+describe("RUM: eventos que se envían", () => {
   test("descarta los clics sobre el trazo de la firma", () => {
     expect(
       shouldSendRumEvent({
@@ -73,9 +69,7 @@ test.describe("RUM: eventos que se envían", () => {
 
   test("envía las demás acciones, incluidos los botones de la firma", () => {
     for (const name of ["Guardar", "Limpiar", "Agregar", undefined]) {
-      expect(
-        shouldSendRumEvent({ type: "action", action: { target: { name } } }),
-      ).toBe(true);
+      expect(shouldSendRumEvent({ type: "action", action: { target: { name } } })).toBe(true);
     }
     expect(shouldSendRumEvent({ type: "action", action: {} })).toBe(true);
   });
@@ -97,7 +91,7 @@ const chromeBrands = (headless = false) => ({
   ],
 });
 
-test.describe("RUM: quién no se monitorea", () => {
+describe("RUM: quién no se monitorea", () => {
   test("bots que se declaran en el user agent", () => {
     for (const userAgent of [
       "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
@@ -110,9 +104,7 @@ test.describe("RUM: quién no se monitorea", () => {
   });
 
   test("navegadores automatizados (webdriver)", () => {
-    expect(isBotNavigator({ userAgent: CHROME_WINDOWS, webdriver: true })).toBe(
-      true,
-    );
+    expect(isBotNavigator({ userAgent: CHROME_WINDOWS, webdriver: true })).toBe(true);
   });
 
   test("HeadlessChrome con el user agent disfrazado de Chrome", () => {
@@ -147,7 +139,7 @@ test.describe("RUM: quién no se monitorea", () => {
   });
 });
 
-test.describe("RUM: nada de máquinas locales", () => {
+describe("RUM: nada de máquinas locales", () => {
   test("no se monitorea localhost, loopback ni IPs de red local", () => {
     for (const hostname of [
       "localhost",

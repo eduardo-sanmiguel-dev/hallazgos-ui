@@ -2,11 +2,7 @@ import { TableRow } from "@mui/material";
 import { TableCell, tableCellClasses } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
-import {
-  primaryAccentBorder,
-  primarySoftBackground,
-  primaryTextColor,
-} from "../../theme";
+import { primaryAccentBorder, primarySoftBackground, primaryTextColor } from "../../theme";
 
 // Encabezado en verde tenue con texto oscurecido (el blanco sobre el verde de
 // marca no llegaba a contraste AA) y línea de acento en verde de marca.

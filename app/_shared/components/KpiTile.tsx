@@ -43,8 +43,7 @@ const deltaText = ({ current, previous, mode }: KpiDelta) => {
     return { diff, text: `${formatNumber(Math.abs(diff), 1)} pts` };
   }
 
-  if (!previous)
-    return { diff: current, text: current ? "nuevo" : "sin cambio" };
+  if (!previous) return { diff: current, text: current ? "nuevo" : "sin cambio" };
 
   const diff = ((current - previous) / previous) * 100;
   return { diff, text: `${formatNumber(Math.abs(diff), 1)}%` };
@@ -61,12 +60,7 @@ function DeltaRow({ delta }: { delta: KpiDelta }) {
         ? "success"
         : "error";
 
-  const Icon =
-    direction > 0
-      ? ArrowDropUpIcon
-      : direction < 0
-        ? ArrowDropDownIcon
-        : RemoveIcon;
+  const Icon = direction > 0 ? ArrowDropUpIcon : direction < 0 ? ArrowDropDownIcon : RemoveIcon;
 
   const verb = direction > 0 ? "Subió" : direction < 0 ? "Bajó" : "Sin cambio";
 
@@ -87,9 +81,7 @@ function DeltaRow({ delta }: { delta: KpiDelta }) {
       <Box
         sx={(theme) => {
           const color =
-            tone === "neutral"
-              ? theme.palette.text.secondary
-              : theme.palette[tone].main;
+            tone === "neutral" ? theme.palette.text.secondary : theme.palette[tone].main;
           return {
             display: "inline-flex",
             alignItems: "center",
@@ -120,14 +112,7 @@ function DeltaRow({ delta }: { delta: KpiDelta }) {
 
 // Indicador principal de un tablero (dashboard, análisis EPP): un número,
 // su variación contra el periodo anterior y contexto.
-export default function KpiTile({
-  label,
-  value,
-  caption,
-  delta,
-  isLoading,
-  icon,
-}: Props) {
+export default function KpiTile({ label, value, caption, delta, isLoading, icon }: Props) {
   return (
     <Paper
       variant="outlined"
@@ -148,11 +133,7 @@ export default function KpiTile({
           gap: 1,
         }}
       >
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ fontWeight: 600 }}
-        >
+        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
           {label}
         </Typography>
         {icon && (

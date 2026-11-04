@@ -9,18 +9,15 @@ export const catalogKeys = {
   all: ["catalogs"] as const,
   mainTypes: () => ["catalogs", "mainTypes"] as const,
   zones: (filters: object = {}) => ["catalogs", "zones", filters] as const,
-  processes: (filters: object = {}) =>
-    ["catalogs", "processes", filters] as const,
+  processes: (filters: object = {}) => ["catalogs", "processes", filters] as const,
   manufacturingPlants: () => ["catalogs", "manufacturingPlants"] as const,
   areas: (filters: object = {}) => ["catalogs", "areas", filters] as const,
   employeeCatalogs: () => ["catalogs", "employeeCatalogs"] as const,
-  gembaWalkZones: (filters: object = {}) =>
-    ["catalogs", "gembaWalkZones", filters] as const,
+  gembaWalkZones: (filters: object = {}) => ["catalogs", "gembaWalkZones", filters] as const,
   icsCatalogs: () => ["catalogs", "icsCatalogs"] as const,
   typesOfEvents: () => ["catalogs", "typesOfEvents"] as const,
   users: (filters: object = {}) => ["catalogs", "users", filters] as const,
-  employees: (filters: object = {}) =>
-    ["catalogs", "employees", filters] as const,
+  employees: (filters: object = {}) => ["catalogs", "employees", filters] as const,
 };
 
 export type CatalogName = Exclude<keyof typeof catalogKeys, "all">;
@@ -33,9 +30,7 @@ export const invalidateCatalogs = (...names: CatalogName[]) => {
   const queryClient = getQueryClient();
 
   return Promise.all(
-    names.map((name) =>
-      queryClient.invalidateQueries({ queryKey: ["catalogs", name] }),
-    ),
+    names.map((name) => queryClient.invalidateQueries({ queryKey: ["catalogs", name] })),
   );
 };
 

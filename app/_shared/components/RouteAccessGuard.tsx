@@ -1,16 +1,10 @@
-"use client";
-
 import { ReactNode, useEffect, useSyncExternalStore } from "react";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "@shared/navigation";
 
 import { useUserSessionStore } from "@store";
 import { ROLE_ADMINISTRADOR } from "@shared/constants";
-import {
-  canAccessPath,
-  firstAccessiblePath,
-  type RouteAccessContext,
-} from "./menu";
+import { canAccessPath, firstAccessiblePath, type RouteAccessContext } from "./menu";
 import LoadingLinear from "./LoadingLinear";
 import NoAccessState from "./NoAccessState";
 
@@ -29,11 +23,7 @@ const useIsClient = () =>
 // Bloquea las páginas que el menú no le muestra al usuario (entrar por URL
 // directa) con un "sin acceso" en vez de una pantalla vacía o con errores.
 // No cambia permisos: el API sigue validando cada petición.
-export default function RouteAccessGuard({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function RouteAccessGuard({ children }: { children: ReactNode }) {
   const isClient = useIsClient();
   const pathname = usePathname();
   const router = useRouter();

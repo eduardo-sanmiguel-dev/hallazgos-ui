@@ -1,5 +1,3 @@
-"use client";
-
 import { ReactNode } from "react";
 
 import { Box } from "@mui/material";
@@ -15,13 +13,7 @@ interface StatusPageProps {
 }
 
 // Pantalla completa para errores y páginas no encontradas.
-export default function StatusPage({
-  code,
-  title,
-  description,
-  icon,
-  children,
-}: StatusPageProps) {
+export default function StatusPage({ code, title, description, icon, children }: StatusPageProps) {
   return (
     <Box
       component="section"
@@ -55,23 +47,14 @@ export default function StatusPage({
         {icon}
       </Box>
       {code && (
-        <Typography
-          variant="overline"
-          sx={{ color: "text.secondary", lineHeight: 1 }}
-        >
+        <Typography variant="overline" sx={{ color: "text.secondary", lineHeight: 1 }}>
           {code}
         </Typography>
       )}
-      <Typography
-        variant="h4"
-        component="h1"
-        sx={{ fontSize: { xs: "1.625rem", sm: "2.125rem" } }}
-      >
+      <Typography variant="h4" component="h1" sx={{ fontSize: { xs: "1.625rem", sm: "2.125rem" } }}>
         {title}
       </Typography>
-      <Typography sx={{ color: "text.secondary", maxWidth: 480 }}>
-        {description}
-      </Typography>
+      <Typography sx={{ color: "text.secondary", maxWidth: 480 }}>{description}</Typography>
       {children && (
         <Box
           sx={{

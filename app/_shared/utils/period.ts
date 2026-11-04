@@ -2,8 +2,7 @@
 // y su rango de fechas (DD/MM/YYYY, el formato que espera la API). La
 // comparación la decide la API.
 
-export type PeriodPreset =
-  "last30" | "month" | "lastMonth" | "last3" | "year" | "custom";
+export type PeriodPreset = "last30" | "month" | "lastMonth" | "last3" | "year" | "custom";
 
 export interface PeriodValue {
   preset: PeriodPreset;
@@ -54,8 +53,7 @@ export const presetRange = (
 
 // Por omisión los últimos 30 días (M5): con "este mes", los primeros días
 // del mes casi no había datos.
-export const DEFAULT_PERIOD = (today = new Date()) =>
-  presetRange("last30", today);
+export const DEFAULT_PERIOD = (today = new Date()) => presetRange("last30", today);
 
 const ES_MONTHS = [
   "ene",
@@ -83,13 +81,7 @@ const isoDay = (iso: string) => {
  * - mismo año: "1 ago – 22 oct 2026";
  * - distinto año: "1 dic 2025 – 22 ene 2026".
  */
-export const periodLabel = ({
-  desde,
-  hasta,
-}: {
-  desde: string;
-  hasta: string;
-}) => {
+export const periodLabel = ({ desde, hasta }: { desde: string; hasta: string }) => {
   const [y1, m1, d1] = desde.split("-").map(Number);
   const [y2, m2, d2] = hasta.split("-").map(Number);
   if (y1 === y2 && m1 === m2) {

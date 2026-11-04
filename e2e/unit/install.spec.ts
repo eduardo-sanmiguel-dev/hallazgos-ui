@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { describe, expect, test } from "vite-plus/test";
 
 import { getInstallMode } from "../../app/_shared/utils/installPrompt";
 
@@ -14,7 +14,7 @@ const CHROME_IPHONE =
 const SAFARI_MAC =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
 
-test.describe("Instalar app: cuándo se ofrece", () => {
+describe("Instalar app: cuándo se ofrece", () => {
   test("con el aviso del navegador usa el diálogo nativo", () => {
     expect(
       getInstallMode({
@@ -27,9 +27,7 @@ test.describe("Instalar app: cuándo se ofrece", () => {
 
   test("ya instalada (abierta como app) no ofrece nada", () => {
     for (const userAgent of [CHROME_ANDROID, SAFARI_IPHONE]) {
-      expect(
-        getInstallMode({ hasPrompt: true, isStandalone: true, userAgent }),
-      ).toBeNull();
+      expect(getInstallMode({ hasPrompt: true, isStandalone: true, userAgent })).toBeNull();
     }
   });
 

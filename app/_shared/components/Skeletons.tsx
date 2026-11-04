@@ -1,5 +1,3 @@
-"use client";
-
 import { ReactNode } from "react";
 
 import { Box } from "@mui/material";
@@ -13,13 +11,7 @@ import FormContainer from "./FormContainer";
 // Esqueletos por tipo de pantalla: ocupan el lugar de lo que va a cargar para
 // que la página no "salte" al llegar los datos.
 
-function SkeletonRoot({
-  label = "Cargando…",
-  children,
-}: {
-  label?: string;
-  children: ReactNode;
-}) {
+function SkeletonRoot({ label = "Cargando…", children }: { label?: string; children: ReactNode }) {
   return (
     <Box role="status" aria-live="polite" aria-label={label}>
       {children}
@@ -49,10 +41,7 @@ function HeaderSkeleton() {
 function TableRowsSkeleton({ rows }: { rows: number }) {
   return (
     <>
-      <Paper
-        variant="outlined"
-        sx={{ p: 2, display: { xs: "none", sm: "block" } }}
-      >
+      <Paper variant="outlined" sx={{ p: 2, display: { xs: "none", sm: "block" } }}>
         <Skeleton variant="rounded" height={40} sx={{ mb: 1.5 }} />
         <Stack spacing={1.25}>
           {Array.from({ length: rows }, (_, index) => (
@@ -97,11 +86,7 @@ export function FormSkeleton({ sections = 2 }: { sections?: number }) {
       <SkeletonRoot>
         <HeaderSkeleton />
         {Array.from({ length: sections }, (_, section) => (
-          <Paper
-            key={section}
-            variant="outlined"
-            sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}
-          >
+          <Paper key={section} variant="outlined" sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
             <Skeleton variant="text" width={160} height={28} sx={{ mb: 2 }} />
             <Grid container spacing={2}>
               {Array.from({ length: 4 }, (_, field) => (

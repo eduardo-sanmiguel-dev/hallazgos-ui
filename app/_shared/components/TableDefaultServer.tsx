@@ -105,25 +105,18 @@ const TableDefaultServer = <T,>({
   const setPage = setPageCtrl ?? setPageLocal;
   const setRowsPerPage = setRowsPerPageCtrl ?? setRowsPerPageLocal;
 
-  const handleChangePage = (
-    _: MouseEvent<HTMLButtonElement> | null,
-    newPage: number,
-  ) => {
+  const handleChangePage = (_: MouseEvent<HTMLButtonElement> | null, newPage: number) => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (
-    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
+  const handleChangeRowsPerPage = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
 
   return (
     <TableContainer component={Paper} aria-busy={isFetching}>
-      <Box sx={{ height: 4 }}>
-        {isFetching && <LinearProgress aria-label="Actualizando" />}
-      </Box>
+      <Box sx={{ height: 4 }}>{isFetching && <LinearProgress aria-label="Actualizando" />}</Box>
       <Table sx={{ minWidth: 500 }} aria-label={ariaLabel}>
         <TableHead>
           <StyledTableRow>

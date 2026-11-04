@@ -63,17 +63,14 @@ export const TITLES: Record<ApiErrorKind, string> = {
 const DEFAULT_MESSAGES: Partial<Record<ApiErrorKind, string>> = {
   offline:
     "No hay conexión con el servidor. Lo que capturaste sigue aquí; reintenta cuando tengas señal.",
-  timeout:
-    "El envío tardó demasiado. Revisa tu señal y reintenta; lo que capturaste sigue aquí.",
+  timeout: "El envío tardó demasiado. Revisa tu señal y reintenta; lo que capturaste sigue aquí.",
   session: "Tu sesión terminó. Inicia sesión de nuevo.",
   forbidden: "No tienes permiso para realizar esta acción.",
   notFound: "No se encontró lo que buscas.",
   tooLarge: "La foto pesa demasiado para enviarse.",
   rateLimit: "Demasiados intentos. Espera un minuto e intenta de nuevo.",
-  server:
-    "Ocurrió un error inesperado. Intenta de nuevo; si continúa, avisa al administrador.",
-  unknown:
-    "Se produjo un error al procesar su solicitud, inténtelo nuevamente más tarde.",
+  server: "Ocurrió un error inesperado. Intenta de nuevo; si continúa, avisa al administrador.",
+  unknown: "Se produjo un error al procesar su solicitud, inténtelo nuevamente más tarde.",
 };
 
 const KIND_BY_CODE: Record<string, ApiErrorKind> = {
@@ -103,8 +100,7 @@ const kindByStatus = (status: number): ApiErrorKind => {
   return "unknown";
 };
 
-const isOffline = () =>
-  typeof navigator !== "undefined" && navigator.onLine === false;
+const isOffline = () => typeof navigator !== "undefined" && navigator.onLine === false;
 
 /** Clasifica un error de axios (o cualquier otro) para mostrarlo. */
 export const parseApiError = (error: unknown): ParsedApiError => {
@@ -113,10 +109,8 @@ export const parseApiError = (error: unknown): ParsedApiError => {
 
   if (!response) {
     const isTimeout =
-      axiosError?.code === AxiosError.ECONNABORTED ||
-      axiosError?.code === AxiosError.ETIMEDOUT;
-    const kind: ApiErrorKind =
-      isTimeout && !isOffline() ? "timeout" : "offline";
+      axiosError?.code === AxiosError.ECONNABORTED || axiosError?.code === AxiosError.ETIMEDOUT;
+    const kind: ApiErrorKind = isTimeout && !isOffline() ? "timeout" : "offline";
 
     return {
       kind,
@@ -135,16 +129,13 @@ export const parseApiError = (error: unknown): ParsedApiError => {
     // 422 de una clave reusada: es un error de la app, no de los datos.
     (body.code === "IDEMPOTENCY_KEY_MISMATCH" ? "unknown" : undefined) ||
     kindByStatus(status);
-  const rawMessage = Array.isArray(body.message)
-    ? body.message.join(" ")
-    : body.message;
+  const rawMessage = Array.isArray(body.message) ? body.message.join(" ") : body.message;
 
   return {
     kind,
     title: TITLES[kind],
     message: rawMessage || DEFAULT_MESSAGES[kind] || DEFAULT_MESSAGES.unknown!,
-    fieldErrors:
-      body.errors && typeof body.errors === "object" ? body.errors : {},
+    fieldErrors: body.errors && typeof body.errors === "object" ? body.errors : {},
     ref: body.ref,
     status,
     code: body.code,
@@ -157,6 +148,4 @@ export const parseApiError = (error: unknown): ParsedApiError => {
  * agotado, error 500) o lo sigue procesando.
  */
 export const keepsIdempotencyKey = (error: unknown) =>
-  ["offline", "timeout", "server", "inProgress"].includes(
-    parseApiError(error).kind,
-  );
+  ["offline", "timeout", "server", "inProgress"].includes(parseApiError(error).kind);

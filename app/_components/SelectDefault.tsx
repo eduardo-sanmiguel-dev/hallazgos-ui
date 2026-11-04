@@ -62,9 +62,7 @@ export default function SelectDefault({
 }: Props) {
   const autocompleteId = useId();
   const selectedOption = multiple
-    ? data.filter((item) =>
-        Array.isArray(value) ? value.includes(String(item.id)) : false,
-      )
+    ? data.filter((item) => (Array.isArray(value) ? value.includes(String(item.id)) : false))
     : data.find((item) => String(item.id) === value) || null;
 
   return (
@@ -102,12 +100,7 @@ export default function SelectDefault({
           return (
             <li key={option.id} {...optionProps}>
               {multiple && (
-                <Checkbox
-                  icon={icon}
-                  checkedIcon={checkedIcon}
-                  checked={selected}
-                  sx={{ mr: 1 }}
-                />
+                <Checkbox icon={icon} checkedIcon={checkedIcon} checked={selected} sx={{ mr: 1 }} />
               )}
               {option.color && <ColorDot color={option.color} />}
               {option.name || ""}
@@ -164,11 +157,7 @@ export default function SelectDefault({
             }}
             label={label}
             error={
-              !validationEmpty
-                ? false
-                : Array.isArray(value)
-                  ? value.length === 0
-                  : value === ""
+              !validationEmpty ? false : Array.isArray(value) ? value.length === 0 : value === ""
             }
             helperText={helperText || attention}
             name={name}

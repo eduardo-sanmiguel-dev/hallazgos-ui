@@ -12,10 +12,7 @@ import type { SxProps } from "@mui/material/styles";
 
 import { constants } from "@constants";
 import { StyledTableCell, StyledTableRow } from "./TableDefault";
-import TableDefaultServer, {
-  TableBodyState,
-  type ServerPagination,
-} from "./TableDefaultServer";
+import TableDefaultServer, { TableBodyState, type ServerPagination } from "./TableDefaultServer";
 import TablePaginationActions from "./TablePaginationActions";
 
 export interface ResponsiveColumn<T> {
@@ -129,18 +126,12 @@ function CardList<T>({
   } = pagination;
 
   const titleColumns = columns.filter((column) => column.card === "title");
-  const subtitleColumns = columns.filter(
-    (column) => column.card === "subtitle",
-  );
-  const fieldColumns = columns.filter(
-    (column) => !column.card || column.card === "field",
-  );
+  const subtitleColumns = columns.filter((column) => column.card === "subtitle");
+  const fieldColumns = columns.filter((column) => !column.card || column.card === "field");
 
   return (
     <Box aria-busy={isFetching}>
-      <Box sx={{ height: 4 }}>
-        {isFetching && <LinearProgress aria-label="Actualizando" />}
-      </Box>
+      <Box sx={{ height: 4 }}>{isFetching && <LinearProgress aria-label="Actualizando" />}</Box>
       {rows.length === 0 && !isFetching ? (
         <Paper variant="outlined">
           <TableBodyState
@@ -158,12 +149,7 @@ function CardList<T>({
           sx={{ listStyle: "none", m: 0, p: 0 }}
         >
           {rows.map((row) => (
-            <Paper
-              key={getRowKey(row)}
-              component="li"
-              variant="outlined"
-              sx={{ p: 2 }}
-            >
+            <Paper key={getRowKey(row)} component="li" variant="outlined" sx={{ p: 2 }}>
               {titleColumns.map((column) => (
                 <Typography
                   key={column.id}
@@ -219,9 +205,7 @@ function CardList<T>({
         count={count}
         page={page}
         rowsPerPage={rowsPerPage}
-        rowsPerPageOptions={
-          rowsPerPageOptions ?? constants.pagination.rowsPerPageOptions
-        }
+        rowsPerPageOptions={rowsPerPageOptions ?? constants.pagination.rowsPerPageOptions}
         onPageChange={(_, nextPage) => setPage(nextPage)}
         onRowsPerPageChange={(event) => {
           setRowsPerPage(parseInt(event.target.value, 10));

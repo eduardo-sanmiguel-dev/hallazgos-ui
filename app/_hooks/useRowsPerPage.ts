@@ -23,10 +23,7 @@ interface Options {
  */
 export function useRowsPerPage(
   table: string,
-  {
-    allowAll = false,
-    initial = constants.pagination.defaultRowsPerPage,
-  }: Options = {},
+  { allowAll = false, initial = constants.pagination.defaultRowsPerPage }: Options = {},
 ) {
   const [rowsPerPage, setRowsPerPageState] = useState(initial);
   const [ready, setReady] = useState(false);

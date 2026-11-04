@@ -1,10 +1,7 @@
-import { expect, test } from "@playwright/test";
+import { describe, expect, test } from "vite-plus/test";
 import { AxiosError, AxiosHeaders } from "axios";
 
-import {
-  keepsIdempotencyKey,
-  parseApiError,
-} from "../../app/_services/apiError";
+import { keepsIdempotencyKey, parseApiError } from "../../app/_services/apiError";
 
 // Clasificación de los errores del API (formato único de la Fase 3) para
 // titular el aviso y decidir la acción.
@@ -20,7 +17,7 @@ const httpError = (status: number, data: unknown) =>
 
 const networkError = (code: string) => new AxiosError("Network Error", code);
 
-test.describe("parseApiError", () => {
+describe("parseApiError", () => {
   test("validación: título propio, resumen y errores por campo", () => {
     const parsed = parseApiError(
       httpError(400, {
@@ -83,9 +80,7 @@ test.describe("parseApiError", () => {
   });
 
   test("API anterior (sin code, message como arreglo): por estatus y en un solo texto", () => {
-    const parsed = parseApiError(
-      httpError(400, { message: ["zone should not be empty", "otro"] }),
-    );
+    const parsed = parseApiError(httpError(400, { message: ["zone should not be empty", "otro"] }));
     expect(parsed).toMatchObject({
       kind: "validation",
       message: "zone should not be empty otro",
@@ -118,21 +113,11 @@ test.describe("parseApiError", () => {
   test("la clave de envío se conserva solo cuando el servidor quizá lo recibió", () => {
     expect(keepsIdempotencyKey(networkError("ERR_NETWORK"))).toBe(true);
     expect(keepsIdempotencyKey(networkError("ECONNABORTED"))).toBe(true);
-    expect(keepsIdempotencyKey(httpError(500, { code: "INTERNAL_ERROR" }))).toBe(
-      true,
-    );
-    expect(
-      keepsIdempotencyKey(httpError(409, { code: "IDEMPOTENCY_IN_PROGRESS" })),
-    ).toBe(true);
+    expect(keepsIdempotencyKey(httpError(500, { code: "INTERNAL_ERROR" }))).toBe(true);
+    expect(keepsIdempotencyKey(httpError(409, { code: "IDEMPOTENCY_IN_PROGRESS" }))).toBe(true);
 
-    expect(
-      keepsIdempotencyKey(httpError(400, { code: "VALIDATION_FAILED" })),
-    ).toBe(false);
-    expect(
-      keepsIdempotencyKey(httpError(409, { code: "IDEMPOTENCY_UNCONFIRMED" })),
-    ).toBe(false);
-    expect(keepsIdempotencyKey(httpError(403, { code: "FORBIDDEN" }))).toBe(
-      false,
-    );
+    expect(keepsIdempotencyKey(httpError(400, { code: "VALIDATION_FAILED" }))).toBe(false);
+    expect(keepsIdempotencyKey(httpError(409, { code: "IDEMPOTENCY_UNCONFIRMED" }))).toBe(false);
+    expect(keepsIdempotencyKey(httpError(403, { code: "FORBIDDEN" }))).toBe(false);
   });
 });

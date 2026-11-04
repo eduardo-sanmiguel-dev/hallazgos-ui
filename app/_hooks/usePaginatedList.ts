@@ -26,10 +26,7 @@ interface Options<TFilters, TItem> {
    * Pide la página a la API. Recibe los filtros ya "debounceados"; si hay
    * que transformarlos (fechas, números…), hacerlo aquí.
    */
-  fetcher: (
-    filters: TFilters,
-    pagination: PaginationParams,
-  ) => Promise<PaginatedResponse<TItem>>;
+  fetcher: (filters: TFilters, pagination: PaginationParams) => Promise<PaginatedResponse<TItem>>;
   initialRowsPerPage?: number;
   /** Ofrece "Todos" en el selector de filas (solo catálogos chicos). */
   allowAllRows?: boolean;
@@ -59,16 +56,14 @@ export function usePaginatedList<TFilters, TItem>({
   enabled = true,
 }: Options<TFilters, TItem>) {
   const [debouncedFilters] = useDebounce(filters, debounceMs, {
-    equalityFn: (previous, next) =>
-      JSON.stringify(previous) === JSON.stringify(next),
+    equalityFn: (previous, next) => JSON.stringify(previous) === JSON.stringify(next),
   });
   const filtersKey = JSON.stringify(debouncedFilters);
   // Mientras el debounce conserva filtros anteriores, no consultar ni
   // recargar esa consulta por paginación, foco de ventana o refresh.
   const filtersAreCurrent = filtersKey === JSON.stringify(filters);
   const canQuery =
-    filtersAreCurrent &&
-    (typeof enabled === "function" ? enabled(debouncedFilters) : enabled);
+    filtersAreCurrent && (typeof enabled === "function" ? enabled(debouncedFilters) : enabled);
   // Filas por página recordadas por tabla; se espera a leerlas para no
   // pedir dos veces la primera página.
   const {
@@ -92,8 +87,7 @@ export function usePaginatedList<TFilters, TItem>({
 
   const page = pagination.filtersKey === filtersKey ? pagination.page : 0;
 
-  const setPage = (nextPage: number) =>
-    setPagination({ page: nextPage, filtersKey });
+  const setPage = (nextPage: number) => setPagination({ page: nextPage, filtersKey });
 
   const setRowsPerPage = (nextRowsPerPage: number) => {
     saveRowsPerPage(nextRowsPerPage);
@@ -102,8 +96,7 @@ export function usePaginatedList<TFilters, TItem>({
 
   const query = useQuery({
     queryKey: ["list", key, debouncedFilters, page, rowsPerPage],
-    queryFn: () =>
-      fetcher(debouncedFilters, { page: page + 1, limit: rowsPerPage }),
+    queryFn: () => fetcher(debouncedFilters, { page: page + 1, limit: rowsPerPage }),
     placeholderData: keepPreviousData,
     // Las listas siempre se revalidan al volver a la pantalla (pudo crearse
     // o editarse algo); mientras, se muestra lo que había.

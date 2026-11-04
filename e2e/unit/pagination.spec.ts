@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { describe, expect, test } from "vite-plus/test";
 
 import {
   getRowsPerPageOptions,
@@ -11,18 +11,13 @@ import {
 // Lógica pura de "Filas por página" (useRowsPerPage), sin navegador. El
 // comportamiento en pantalla está en e2e/pagination.spec.ts.
 
-test.describe("Paginación: opciones", () => {
+describe("Paginación: opciones", () => {
   test("ofrece 10, 25 y 50, sin el 5 de antes", () => {
     expect(getRowsPerPageOptions()).toEqual([10, 25, 50]);
   });
 
   test("agrega Todos (-1) solo si se permite", () => {
-    expect(getRowsPerPageOptions(true)).toEqual([
-      10,
-      25,
-      50,
-      { label: "Todos", value: -1 },
-    ]);
+    expect(getRowsPerPageOptions(true)).toEqual([10, 25, 50, { label: "Todos", value: -1 }]);
   });
 
   test("cada llamada devuelve un arreglo nuevo (no comparte las constantes)", () => {
@@ -32,7 +27,7 @@ test.describe("Paginación: opciones", () => {
   });
 });
 
-test.describe("Paginación: valor guardado", () => {
+describe("Paginación: valor guardado", () => {
   test("acepta las opciones vigentes", () => {
     for (const saved of ["10", "25", "50"]) {
       expect(parseSavedRowsPerPage(saved)).toBe(Number(saved));
@@ -52,13 +47,11 @@ test.describe("Paginación: valor guardado", () => {
 
   test("la clave es distinta por tabla", () => {
     expect(rowsPerPageStorageKey("users")).toBe("filas-por-pagina:users");
-    expect(rowsPerPageStorageKey("evidences")).not.toBe(
-      rowsPerPageStorageKey("users"),
-    );
+    expect(rowsPerPageStorageKey("evidences")).not.toBe(rowsPerPageStorageKey("users"));
   });
 });
 
-test.describe("Paginación: acción del RUM", () => {
+describe("Paginación: acción del RUM", () => {
   test("etiqueta Todos en lugar de -1", () => {
     expect(rowsPerPageLabel(-1)).toBe("Todos");
     expect(rowsPerPageLabel(25)).toBe("25");

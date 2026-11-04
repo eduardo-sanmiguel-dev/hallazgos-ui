@@ -5,6 +5,8 @@ import { expect, type Page } from "@playwright/test";
  * un formulario o detrás de un diálogo) no hace nada.
  */
 export const openFilters = async (page: Page) => {
+  // La ruta SPA se monta después de restaurar la sesión y cargar su módulo.
+  await expect(page.locator("main#contenido")).toBeVisible();
   // La página se pinta cuando ya se conoce la sesión (RouteAccessGuard).
   await expect(page.locator("[data-route-access=pending]")).toHaveCount(0);
   const toggle = page
@@ -18,11 +20,7 @@ export const openFilters = async (page: Page) => {
 };
 
 /** Elige una opción de un SelectDefault (Autocomplete de MUI) por su etiqueta. */
-export const pickOption = async (
-  page: Page,
-  label: string,
-  option?: string | RegExp,
-) => {
+export const pickOption = async (page: Page, label: string, option?: string | RegExp) => {
   await openFilters(page);
   const input = page.getByRole("combobox", { name: label, exact: true });
   await expect(input).toBeEnabled();
@@ -33,9 +31,7 @@ export const pickOption = async (
   const options = listbox.getByRole("option");
   await expect(options.first()).toBeVisible();
 
-  const target = option
-    ? options.filter({ hasText: option }).first()
-    : options.first();
+  const target = option ? options.filter({ hasText: option }).first() : options.first();
   const text = (await target.innerText()).trim();
   await target.click();
   return text;
@@ -88,11 +84,7 @@ export const pickMany = async (page: Page, label: string, count = 1) => {
 /** Escribe una fecha DD/MM/AAAA en un DatePicker de MUI X. */
 export const fillDate = async (page: Page, label: string, date: string) => {
   await openFilters(page);
-  await page
-    .getByRole("group", { name: label })
-    .getByRole("spinbutton")
-    .first()
-    .click();
+  await page.getByRole("group", { name: label }).getByRole("spinbutton").first().click();
   await page.keyboard.type(date.replace(/\D/g, ""));
 };
 
@@ -113,12 +105,12 @@ export const choosePlant = async (page: Page) => {
 
 /** Plantas del usuario según la sesión que el layout carga al entrar. */
 export const sessionPlants = async (page: Page) => {
+  // El loader restaura la sesión antes de montar la página cargada por ruta.
+  await expect(page.locator("main#contenido")).toBeVisible();
   const handle = await page.waitForFunction(
     () =>
-      JSON.parse(sessionStorage.getItem("user-session") || "{}").state
-        ?.manufacturingPlants?.length &&
-      JSON.parse(sessionStorage.getItem("user-session")!).state
-        .manufacturingPlants,
+      JSON.parse(sessionStorage.getItem("user-session") || "{}").state?.manufacturingPlants
+        ?.length && JSON.parse(sessionStorage.getItem("user-session")!).state.manufacturingPlants,
   );
   return (await handle.jsonValue()) as { id: number; name: string }[];
 };

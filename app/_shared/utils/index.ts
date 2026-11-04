@@ -44,7 +44,7 @@ export const baseUrlImage = (image: string, path?: string) => {
     path = "/static/images/evidences/";
   }
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_URL_API_RAW;
+  const apiBaseUrl = import.meta.env.VITE_API_ORIGIN;
   const url = `${apiBaseUrl}${path}${image}`;
 
   if (image.startsWith("seed")) {
@@ -61,10 +61,7 @@ export const durantionToTime = (row: EvidenceRow) => {
 
   if (!solutionDate || status !== STATUS_CLOSED) return "";
 
-  const totalSeconds = Math.max(
-    0,
-    dayjs(solutionDate).diff(dayjs(createdAt), "second"),
-  );
+  const totalSeconds = Math.max(0, dayjs(solutionDate).diff(dayjs(createdAt), "second"));
 
   const days = Math.floor(totalSeconds / (24 * 60 * 60));
   const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60));

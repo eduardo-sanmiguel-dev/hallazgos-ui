@@ -36,9 +36,7 @@ for (const route of ROUTES) {
     await expect(page).toHaveURL(new RegExp(`${route}$`));
 
     await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
-    await expect(page.getByText("No se pudo mostrar esta página")).toHaveCount(
-      0,
-    );
+    await expect(page.getByText("No se pudo mostrar esta página")).toHaveCount(0);
     // Deja terminar las peticiones iniciales.
     await page.waitForLoadState("networkidle");
 

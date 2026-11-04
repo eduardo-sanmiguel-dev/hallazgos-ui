@@ -45,11 +45,7 @@ const remove = async (id: number) => {
 };
 
 // Igual que findAll, pero paginado en la BD (page 1-based).
-const findAllPaginated = async (filters: {
-  name?: string;
-  page: number;
-  limit: number;
-}) => {
+const findAllPaginated = async (filters: { name?: string; page: number; limit: number }) => {
   const { data } = await api.get<{ data: ManufacturingPlant[]; count: number }>("", {
     params: {
       page: filters.page,
@@ -62,9 +58,30 @@ const findAllPaginated = async (filters: {
 
 export const ManufacturingPlantsService = {
   findAllPaginated,
-  create: withCatalogInvalidation(create, "manufacturingPlants", "zones", "processes", "areas", "gembaWalkZones"),
+  create: withCatalogInvalidation(
+    create,
+    "manufacturingPlants",
+    "zones",
+    "processes",
+    "areas",
+    "gembaWalkZones",
+  ),
   findAll,
   findOne,
-  update: withCatalogInvalidation(update, "manufacturingPlants", "zones", "processes", "areas", "gembaWalkZones"),
-  remove: withCatalogInvalidation(remove, "manufacturingPlants", "zones", "processes", "areas", "gembaWalkZones"),
+  update: withCatalogInvalidation(
+    update,
+    "manufacturingPlants",
+    "zones",
+    "processes",
+    "areas",
+    "gembaWalkZones",
+  ),
+  remove: withCatalogInvalidation(
+    remove,
+    "manufacturingPlants",
+    "zones",
+    "processes",
+    "areas",
+    "gembaWalkZones",
+  ),
 };

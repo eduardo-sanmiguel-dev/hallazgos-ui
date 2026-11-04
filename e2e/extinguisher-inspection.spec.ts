@@ -3,13 +3,7 @@ import type { Page } from "@playwright/test";
 import { captureWrites, mockGet } from "./support/api";
 import { fakeCamera } from "./support/camera";
 import { expect, test } from "./support/fixtures";
-import {
-  fillDate,
-  pickOption,
-  sessionPlants,
-  toast,
-  trackPageErrors,
-} from "./support/ui";
+import { fillDate, pickOption, sessionPlants, toast, trackPageErrors } from "./support/ui";
 
 // Inspección de extintores: el equipo se agrega escaneando su QR con la
 // cámara (simulada con fakeCamera). Las escrituras se interceptan.
@@ -36,11 +30,9 @@ const openWithCamera = async (page: Page, qr: string) => {
   return plant;
 };
 
-const scan = (page: Page) =>
-  page.getByRole("button", { name: "Agregar evaluación" }).click();
+const scan = (page: Page) => page.getByRole("button", { name: "Agregar evaluación" }).click();
 
-const saveButton = (page: Page) =>
-  page.getByRole("button", { name: "Guardar" });
+const saveButton = (page: Page) => page.getByRole("button", { name: "Guardar" });
 
 /** Botones C / NC / NA de un concepto (de la única evaluación en pantalla). */
 const concept = (page: Page, label: string) =>
@@ -54,10 +46,7 @@ test.describe("Inspección de extintores", () => {
     const writes = await captureWrites(page);
 
     // El QR impreso trae una URL; se toma el número que contiene.
-    const plant = await openWithCamera(
-      page,
-      `https://comportarte.example/equipo/${TEAM_ID}`,
-    );
+    const plant = await openWithCamera(page, `https://comportarte.example/equipo/${TEAM_ID}`);
     await mockGet(page, `/emergency-teams/${TEAM_ID}`, emergencyTeam(plant.id));
 
     // Sin evaluaciones, Guardar marca lo que falta (antes estaba deshabilitado).
@@ -67,9 +56,7 @@ test.describe("Inspección de extintores", () => {
     );
     expect(writes).toEqual([]);
     await scan(page);
-    await expect(
-      toast(page, `Equipo #${TEAM_ID} agregado a la inspección`),
-    ).toBeVisible();
+    await expect(toast(page, `Equipo #${TEAM_ID} agregado a la inspección`)).toBeVisible();
     await expect(page.getByText("E2E Pasillo norte")).toBeVisible();
 
     // Lista de verificación: los 10 conceptos inician en "Cumple".
@@ -85,42 +72,31 @@ test.describe("Inspección de extintores", () => {
     ).toHaveAttribute("aria-pressed", "true");
 
     // Una novedad: un toque (antes, dos listas y "Agregar").
-    await concept(page, "Manómetro")
-      .getByRole("button", { name: "No cumple" })
-      .click();
+    await concept(page, "Manómetro").getByRole("button", { name: "No cumple" }).click();
     await expect(card.getByText("1 no cumple")).toBeVisible();
     await expect(page.getByText("1 no cumple", { exact: true })).toHaveCount(2);
     // "No cumple" elegido va en rojo sólido para que resalte.
-    await expect(
-      concept(page, "Manómetro").getByRole("button", { name: "No cumple" }),
-    ).toHaveCSS("background-color", "rgb(211, 47, 47)");
+    await expect(concept(page, "Manómetro").getByRole("button", { name: "No cumple" })).toHaveCSS(
+      "background-color",
+      "rgb(211, 47, 47)",
+    );
 
     // El mismo concepto otra vez cambia el estado.
-    await concept(page, "Manómetro")
-      .getByRole("button", { name: "No aplica" })
-      .click();
+    await concept(page, "Manómetro").getByRole("button", { name: "No aplica" }).click();
     await expect(card.getByText("1 no aplica")).toBeVisible();
     await expect(card.getByText("Sin novedades")).toBeVisible();
 
     // Volver a "Cumple" quita la novedad.
-    await concept(page, "Sello")
-      .getByRole("button", { name: "No cumple" })
-      .click();
+    await concept(page, "Sello").getByRole("button", { name: "No cumple" }).click();
     await expect(card.getByText("1 no cumple")).toBeVisible();
-    await concept(page, "Sello")
-      .getByRole("button", { name: "Cumple", exact: true })
-      .click();
+    await concept(page, "Sello").getByRole("button", { name: "Cumple", exact: true }).click();
     await expect(card.getByText("Sin novedades")).toBeVisible();
 
-    await page
-      .getByLabel("Observaciones generales")
-      .fill("  Etiqueta despegada  ");
+    await page.getByLabel("Observaciones generales").fill("  Etiqueta despegada  ");
 
     // Escanear el mismo equipo otra vez no lo duplica.
     await scan(page);
-    await expect(
-      toast(page, "Ese equipo ya fue agregado en las evaluaciones"),
-    ).toBeVisible();
+    await expect(toast(page, "Ese equipo ya fue agregado en las evaluaciones")).toBeVisible();
 
     await saveButton(page).click();
     await expect(toast(page, "Inspección creada correctamente")).toBeVisible();
@@ -162,9 +138,7 @@ test.describe("Inspección de extintores", () => {
     expect(errors).toEqual([]);
   });
 
-  test("rechaza la fecha de recarga pasada y permite quitar la evaluación", async ({
-    page,
-  }) => {
+  test("rechaza la fecha de recarga pasada y permite quitar la evaluación", async ({ page }) => {
     const writes = await captureWrites(page);
     await fakeCamera(page, { qr: String(TEAM_ID) });
     await page.goto("/extinguisher-inspection/form");
@@ -198,16 +172,10 @@ test.describe("Inspección de extintores", () => {
     await page.goto("/extinguisher-inspection/form");
     const [plant] = await sessionPlants(page);
     await pickOption(page, "Planta", plant.name);
-    await mockGet(
-      page,
-      `/emergency-teams/${TEAM_ID}`,
-      emergencyTeam(plant.id + 1000),
-    );
+    await mockGet(page, `/emergency-teams/${TEAM_ID}`, emergencyTeam(plant.id + 1000));
 
     await scan(page);
-    await expect(
-      toast(page, "El equipo escaneado pertenece a una planta diferente"),
-    ).toBeVisible();
+    await expect(toast(page, "El equipo escaneado pertenece a una planta diferente")).toBeVisible();
   });
 
   test("un QR sin número avisa", async ({ page }) => {
@@ -243,9 +211,7 @@ test.describe("Inspección de extintores", () => {
     // Con una sola planta se elige sola; entonces no aplica.
     test.skip((await sessionPlants(page)).length === 1);
     await scan(page);
-    await expect(
-      toast(page, "Seleccione una planta antes de crear evaluación"),
-    ).toBeVisible();
+    await expect(toast(page, "Seleccione una planta antes de crear evaluación")).toBeVisible();
   });
 
   for (const [error, message] of [
@@ -262,15 +228,11 @@ test.describe("Inspección de extintores", () => {
       const [plant] = await sessionPlants(page);
       await pickOption(page, "Planta", plant.name);
       await scan(page);
-      await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
-        message,
-      );
+      await expect(page.getByRole("dialog").getByRole("alert")).toContainText(message);
     });
   }
 
-  test("agrega evaluaciones a una inspección existente (sin guardar)", async ({
-    page,
-  }) => {
+  test("agrega evaluaciones a una inspección existente (sin guardar)", async ({ page }) => {
     const errors = trackPageErrors(page);
     const writes = await captureWrites(page);
     await page.goto("/extinguisher-inspection");
@@ -316,9 +278,7 @@ test.describe("Inspección de extintores", () => {
     ).toHaveAttribute("aria-pressed", "true");
 
     await saveButton(page).click();
-    await expect(
-      toast(page, "Evaluaciones agregadas correctamente"),
-    ).toBeVisible();
+    await expect(toast(page, "Evaluaciones agregadas correctamente")).toBeVisible();
     expect(writes).toEqual([
       {
         method: "PATCH",
@@ -340,9 +300,7 @@ test.describe("Inspección de extintores", () => {
     expect(errors).toEqual([]);
   });
 
-  test("no guarda evaluaciones con número de extintor repetido", async ({
-    page,
-  }) => {
+  test("no guarda evaluaciones con número de extintor repetido", async ({ page }) => {
     const writes = await captureWrites(page);
     await page.goto("/extinguisher-inspection");
     const [plant] = await sessionPlants(page);
@@ -376,9 +334,7 @@ test.describe("Inspección de extintores", () => {
     await page.goto("/extinguisher-inspection/form?id=9602");
     await expect(page.getByText("E2E", { exact: true })).toHaveCount(2);
     await saveButton(page).click();
-    await expect(
-      toast(page, "No se pueden guardar evaluaciones con IDs o números"),
-    ).toBeVisible();
+    await expect(toast(page, "No se pueden guardar evaluaciones con IDs o números")).toBeVisible();
     expect(writes).toEqual([]);
   });
 
@@ -392,8 +348,7 @@ test.describe("Inspección de extintores", () => {
             json: {
               statusCode: 400,
               code: "VALIDATION_FAILED",
-              message:
-                "Revisa 2 campos: Capacidad (renglón 1) y Próxima recarga (renglón 1).",
+              message: "Revisa 2 campos: Capacidad (renglón 1) y Próxima recarga (renglón 1).",
               error: "Bad Request",
               errors: {
                 "evaluations.0.capacity": "Debe ser 1 o mayor.",
@@ -413,9 +368,7 @@ test.describe("Inspección de extintores", () => {
     const card = page.getByRole("region", {
       name: "Evaluación del extintor E2E-501",
     });
-    await expect(card.getByRole("alert")).toHaveText(
-      "Capacidad: debe ser 1 o mayor.",
-    );
+    await expect(card.getByRole("alert")).toHaveText("Capacidad: debe ser 1 o mayor.");
     // La fecha es una sola para todas: su error va al campo de arriba.
     await expect(page.getByText("Fecha no válida.")).toBeVisible();
     await expect(toast(page, "Revisa los datos")).toBeVisible();
@@ -436,9 +389,7 @@ test.describe("Inspección de extintores", () => {
       name: "Cancelar",
       exact: true,
     });
-    const add = (await page
-      .getByRole("button", { name: "Agregar evaluación" })
-      .boundingBox())!;
+    const add = (await page.getByRole("button", { name: "Agregar evaluación" }).boundingBox())!;
     const cardBox = (await card.boundingBox())!;
     const cancel = (await cancelButton.boundingBox())!;
     const save = (await saveButton(page).boundingBox())!;
@@ -460,9 +411,9 @@ test.describe("Inspección de extintores", () => {
     // En escritorio, Guardar a la derecha de Cancelar.
     expect(save.x).toBeGreaterThan(cancel.x);
     await expect(saveButton(page)).toHaveClass(/MuiButton-contained/);
-    await expect(
-      page.getByRole("button", { name: "Cancelar", exact: true }),
-    ).toHaveClass(/MuiButton-outlined/);
+    await expect(page.getByRole("button", { name: "Cancelar", exact: true })).toHaveClass(
+      /MuiButton-outlined/,
+    );
 
     // Observaciones con su límite a la vista.
     const observations = card.getByLabel("Observaciones generales");
@@ -529,9 +480,7 @@ test.describe("Inspección de extintores", () => {
       );
       await page.goto("/extinguisher-inspection");
       await expect(page.getByText("Sin registros")).toBeVisible();
-      await expect(
-        page.getByText("No hay inspecciones con los filtros actuales."),
-      ).toBeVisible();
+      await expect(page.getByText("No hay inspecciones con los filtros actuales.")).toBeVisible();
     });
   });
 });

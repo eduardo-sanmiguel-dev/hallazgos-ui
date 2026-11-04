@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "ES2022",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -13,11 +13,6 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
     "paths": {
       "@services": ["./app/_services"],
       "@services/*": ["./app/_services/*"],
@@ -31,7 +26,7 @@
       "@shared/*": ["./app/_shared/*"],
       "@hooks": ["./app/_hooks"],
       "@hooks/*": ["./app/_hooks/*"],
-      "@routes/*": ["./app/(routes)/*"],
+      "@routes/*": ["./app/features/*"],
       "ThemeRegistry": ["./app/ThemeRegistry"],
       "_services/*": ["./app/_services/*"],
       "_components/*": ["./app/_components/*"],
@@ -44,19 +39,12 @@
       "_shared/*": ["./app/_shared/*"],
       "_hooks": ["./app/_hooks"],
       "_hooks/*": ["./app/_hooks/*"],
-      "_routes/*": ["./app/(routes)/*"],
-      "(routes)/*": ["./app/(routes)/*"]
+      "_routes/*": ["./app/features/*"],
+      "features/*": ["./app/features/*"]
     },
-
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
-  ],
-  "exclude": ["node_modules", ".next/dev"]
+  "include": ["app/**/*.ts", "app/**/*.tsx", "e2e/**/*.ts", "*.config.ts", "vite.config.ts"],
+  "exclude": ["node_modules", "dist", ".next"]
 }

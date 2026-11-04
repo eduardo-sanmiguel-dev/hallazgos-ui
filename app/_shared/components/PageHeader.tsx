@@ -40,9 +40,7 @@ export default function PageHeader({
       }}
     >
       <Box sx={{ minWidth: 0 }}>
-        {breadcrumbs && (
-          <PageBreadcrumbs current={title} onNavigate={onNavigate} />
-        )}
+        {breadcrumbs && <PageBreadcrumbs current={title} onNavigate={onNavigate} />}
         <Typography
           variant="h4"
           component="h1"

@@ -1,7 +1,7 @@
 import { expect, test } from "./support/fixtures";
 
 // Escáneres que buscan Next.js vulnerables mandan `Next-Action` (Server
-// Actions). La app no usa Server Actions: el middleware (proxy.ts) los corta
+// Actions). La app no usa Server Actions: los servidores de desarrollo y producción los cortan
 // con 400. Antes, con sesión, provocaban un 500 y un error en StatusPage.
 
 test.describe("Peticiones de escáneres (Next-Action)", () => {

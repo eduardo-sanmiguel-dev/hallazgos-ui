@@ -7,12 +7,15 @@ import { openFilters } from "./support/ui";
 // Navegación inferior en celular (A8). Los accesos salen de la misma regla
 // que el menú (canAccessPath): nunca muestra algo que diga "sin acceso".
 
-const nav = (page: Page) =>
-  page.getByRole("navigation", { name: "Accesos rápidos" });
+const nav = (page: Page) => page.getByRole("navigation", { name: "Accesos rápidos" });
 
 const asUser = async (
   page: Page,
-  { email, role = "General", observer = false }: {
+  {
+    email,
+    role = "General",
+    observer = false,
+  }: {
     email: string;
     role?: string;
     observer?: boolean;
@@ -55,7 +58,6 @@ test.describe("Navegación inferior en celular", () => {
     isMobile: true,
   });
 
-
   const ROLES = [
     {
       name: "administrador",
@@ -93,18 +95,15 @@ test.describe("Navegación inferior en celular", () => {
       await hideDevOverlays(page);
       await expect(nav(page)).toBeVisible();
       await expect.poll(() => destinations(page)).toEqual(expected);
-      await expect(
-        nav(page).getByRole("link", { name: "Nuevo hallazgo" }),
-      ).toBeVisible();
+      await expect(nav(page).getByRole("link", { name: "Nuevo hallazgo" })).toBeVisible();
 
       for (const label of expected) {
         await nav(page).getByRole("link", { name: label }).click();
-        await expect(
-          nav(page).getByRole("link", { name: label }),
-        ).toHaveAttribute("aria-current", "page");
-        await expect(
-          page.getByText("No tienes acceso a esta sección"),
-        ).toHaveCount(0);
+        await expect(nav(page).getByRole("link", { name: label })).toHaveAttribute(
+          "aria-current",
+          "page",
+        );
+        await expect(page.getByText("No tienes acceso a esta sección")).toHaveCount(0);
       }
     });
   }
@@ -156,10 +155,7 @@ test.describe("Navegación inferior en celular", () => {
     const box = (await nav(page).boundingBox())!;
     const isNavOnTop = () =>
       page.evaluate(
-        ([x, y]) =>
-          !!document
-            .elementFromPoint(x, y)
-            ?.closest('nav[aria-label="Accesos rápidos"]'),
+        ([x, y]) => !!document.elementFromPoint(x, y)?.closest('nav[aria-label="Accesos rápidos"]'),
         [box.x + box.width * 0.85, box.y + box.height / 2],
       );
     expect(await isNavOnTop()).toBe(true);

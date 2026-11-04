@@ -10,10 +10,8 @@ import { choosePlant, toast } from "./support/ui";
 // pantalla. Escrituras interceptadas; lecturas simuladas donde hace falta un
 // registro fijo.
 
-const saveButton = (page: Page) =>
-  page.getByRole("button", { name: "Guardar" });
-const trail = (page: Page) =>
-  page.getByRole("navigation", { name: "Ruta de navegación" });
+const saveButton = (page: Page) => page.getByRole("button", { name: "Guardar" });
+const trail = (page: Page) => page.getByRole("navigation", { name: "Ruta de navegación" });
 
 const DATES = {
   createdAt: "2026-10-01T15:00:00.000Z",
@@ -41,22 +39,13 @@ const servePage = (page: Page, path: string, rows: unknown[]) =>
 
 test.describe("Gemba Walk: formularios de configuración", () => {
   for (const [route, expected] of [
-    [
-      "/gemba-walk/zones/form",
-      "Configuración›Gemba Walk›Zonas›Nueva zona de Gemba Walk",
-    ],
-    [
-      "/gemba-walk/observers/form",
-      "Configuración›Gemba Walk›Observadores›Nuevo observador",
-    ],
+    ["/gemba-walk/zones/form", "Configuración›Gemba Walk›Zonas›Nueva zona de Gemba Walk"],
+    ["/gemba-walk/observers/form", "Configuración›Gemba Walk›Observadores›Nuevo observador"],
     [
       "/gemba-walk/evaluations/form",
       "Configuración›Gemba Walk›Evaluaciones›Nuevo concepto de evaluación",
     ],
-    [
-      "/gemba-walk/calendar/form",
-      "Configuración›Gemba Walk›Calendario›Programar recorridos",
-    ],
+    ["/gemba-walk/calendar/form", "Configuración›Gemba Walk›Calendario›Programar recorridos"],
   ] as const) {
     test(`breadcrumbs en ${route}`, async ({ page }) => {
       await page.goto(route);
@@ -89,9 +78,7 @@ test.describe("Gemba Walk: formularios de configuración", () => {
     await saveButton(page).click();
     await expect(toast(page, "Completa los 2 campos marcados.")).toBeVisible();
     await expect(page.getByText("Selecciona la zona.")).toBeVisible();
-    await expect(
-      page.getByText("Selecciona al menos un usuario."),
-    ).toBeVisible();
+    await expect(page.getByText("Selecciona al menos un usuario.")).toBeVisible();
     expect(writes).toEqual([]);
   });
 
@@ -132,22 +119,16 @@ test.describe("Gemba Walk: formularios de configuración", () => {
     await expect(page.getByText("Concepto no encontrado")).toBeVisible();
   });
 
-  test("zonas: al editar, salir con un cambio pide confirmación", async ({
-    page,
-  }) => {
+  test("zonas: al editar, salir con un cambio pide confirmación", async ({ page }) => {
     await mockGet(page, `/gemba-walk/zones/${ZONE.id}`, ZONE);
     await page.goto(`/gemba-walk/zones/form?id=${ZONE.id}`);
     await expect(page.getByLabel("Zona")).toHaveValue("E2E Zona");
     await page.getByLabel("Ubicación").fill("E2E Otro pasillo");
     await trail(page).getByRole("link", { name: "Zonas" }).click();
-    await expect(
-      page.getByRole("dialog", { name: "¿Descartar los cambios?" }),
-    ).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "¿Descartar los cambios?" })).toBeVisible();
   });
 
-  test("calendario: el enlace de los breadcrumbs sin cambios regresa directo", async ({
-    page,
-  }) => {
+  test("calendario: el enlace de los breadcrumbs sin cambios regresa directo", async ({ page }) => {
     await page.goto("/gemba-walk/calendar/form");
     await trail(page).getByRole("link", { name: "Calendario" }).click();
     await expect(page).toHaveURL(/\/gemba-walk\/calendar$/);
@@ -216,9 +197,7 @@ test.describe("Gemba Walk: listas de configuración en celular", () => {
       await page.goto(route);
 
       await expect(page.getByRole("table")).toHaveCount(0);
-      const card = page
-        .getByRole("list", { name: ariaLabel })
-        .getByRole("listitem");
+      const card = page.getByRole("list", { name: ariaLabel }).getByRole("listitem");
       for (const text of texts) await expect(card).toContainText(text);
       await expect(card.getByRole("button", { name: "Editar" })).toBeVisible();
       const overflow = await page.evaluate(
@@ -228,9 +207,7 @@ test.describe("Gemba Walk: listas de configuración en celular", () => {
     });
   }
 
-  test("calendario: un evento pasado no tiene acciones en su tarjeta", async ({
-    page,
-  }) => {
+  test("calendario: un evento pasado no tiene acciones en su tarjeta", async ({ page }) => {
     await servePage(page, "/gemba-walk/calendar", [
       {
         id: 9906,
@@ -241,9 +218,7 @@ test.describe("Gemba Walk: listas de configuración en celular", () => {
       },
     ]);
     await page.goto("/gemba-walk/calendar");
-    const card = page
-      .getByRole("list", { name: "Calendario de Gemba Walk" })
-      .getByRole("listitem");
+    const card = page.getByRole("list", { name: "Calendario de Gemba Walk" }).getByRole("listitem");
     await expect(card).toContainText("E2E Zona - E2E Pasillo");
     await expect(card.getByRole("button", { name: "Editar" })).toHaveCount(0);
     await expect(card).toContainText("Evento pasado");

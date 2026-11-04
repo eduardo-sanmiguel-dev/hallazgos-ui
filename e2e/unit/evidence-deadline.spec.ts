@@ -1,21 +1,20 @@
-import { expect, test } from "@playwright/test";
+import { describe, beforeEach, afterAll, expect, test } from "vite-plus/test";
 
 import {
   getDeadline,
   getPriorityRiskLevel,
-} from "../../app/(routes)/hallazgos/_constants/priorityOptions";
+} from "../../app/features/hallazgos/_constants/priorityOptions";
 import {
   readLastLocation,
   saveLastLocation,
-} from "../../app/(routes)/hallazgos/_constants/lastLocation";
+} from "../../app/features/hallazgos/_constants/lastLocation";
 
 // Plazo de un hallazgo para tarjetas y detalle (misma regla que la tabla) y
 // última planta y lugar recordados por usuario.
 
-const daysAgo = (days: number) =>
-  new Date(Date.now() - days * 24 * 60 * 60_000).toISOString();
+const daysAgo = (days: number) => new Date(Date.now() - days * 24 * 60 * 60_000).toISOString();
 
-test.describe("getDeadline", () => {
+describe("getDeadline", () => {
   test("abierto o en progreso: días restantes, o vencido con cuántos días", () => {
     expect(
       getDeadline({
@@ -102,10 +101,10 @@ test.describe("getDeadline", () => {
   });
 });
 
-test.describe("Última planta y lugar", () => {
+describe("Última planta y lugar", () => {
   const store = new Map<string, string>();
 
-  test.beforeEach(() => {
+  beforeEach(() => {
     store.clear();
     (globalThis as { localStorage?: unknown }).localStorage = {
       getItem: (key: string) => store.get(key) ?? null,
@@ -113,7 +112,7 @@ test.describe("Última planta y lugar", () => {
     };
   });
 
-  test.afterAll(() => {
+  afterAll(() => {
     delete (globalThis as { localStorage?: unknown }).localStorage;
   });
 
@@ -140,8 +139,6 @@ test.describe("Última planta y lugar", () => {
       },
     };
     expect(readLastLocation(7)).toBeNull();
-    expect(() =>
-      saveLastLocation(7, { manufacturingPlantId: "1", zoneId: "2" }),
-    ).not.toThrow();
+    expect(() => saveLastLocation(7, { manufacturingPlantId: "1", zoneId: "2" })).not.toThrow();
   });
 });

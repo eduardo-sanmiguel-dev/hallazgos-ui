@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { describe, expect, test } from "vite-plus/test";
 
 import {
   stringToDate,
@@ -11,7 +11,7 @@ import {
 const CREATED = "2026-10-21T14:25:10.000Z";
 const plus = (ms: number) => new Date(Date.parse(CREATED) + ms).toISOString();
 
-test.describe("Fecha de última actualización", () => {
+describe("Fecha de última actualización", () => {
   test("igual a la creación no se muestra", () => {
     expect(updatedDateLabel(CREATED, CREATED)).toBeNull();
   });
@@ -24,12 +24,8 @@ test.describe("Fecha de última actualización", () => {
 
   test("editada en otro minuto se muestra con el formato de la tabla", () => {
     const updated = plus(5 * 60_000);
-    expect(updatedDateLabel(CREATED, updated)).toBe(
-      stringToDateWithTime(updated),
-    );
-    expect(
-      updatedDateLabel(CREATED, plus(2 * 24 * 60 * 60_000)),
-    ).not.toBeNull();
+    expect(updatedDateLabel(CREATED, updated)).toBe(stringToDateWithTime(updated));
+    expect(updatedDateLabel(CREATED, plus(2 * 24 * 60 * 60_000))).not.toBeNull();
   });
 
   test("sin fecha de actualización no muestra nada", () => {
@@ -42,7 +38,7 @@ test.describe("Fecha de última actualización", () => {
   });
 });
 
-test.describe("Fecha con el mes en letra", () => {
+describe("Fecha con el mes en letra", () => {
   test("el mes sale en español (antes, en inglés)", () => {
     expect(stringToDate("2018-10-18T12:00:00")).toBe("18 octubre 2018");
     expect(stringToDate(new Date(2025, 2, 11, 12))).toBe("11 marzo 2025");

@@ -1,9 +1,7 @@
-"use client";
-
 import { MouseEvent } from "react";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from "@shared/components/AppLink";
+import { usePathname } from "@shared/navigation";
 
 import { Breadcrumbs } from "@mui/material";
 import { Link as MuiLink } from "@mui/material";
@@ -21,10 +19,7 @@ interface PageBreadcrumbsProps {
 // Ruta corta de un formulario o detalle (B2): "Configuración › Procesos ›
 // Editar proceso". Sale del menú, así que los nombres son los mismos. Solo en
 // tablet y escritorio: en celular ocupa espacio y el menú ya ubica.
-export default function PageBreadcrumbs({
-  current,
-  onNavigate,
-}: PageBreadcrumbsProps) {
+export default function PageBreadcrumbs({ current, onNavigate }: PageBreadcrumbsProps) {
   const pathname = usePathname();
   const trail = breadcrumbTrail(pathname);
   if (!trail) return null;

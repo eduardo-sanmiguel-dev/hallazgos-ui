@@ -15,6 +15,7 @@ const baseURL = process.env.E2E_BASE_URL || "http://localhost:3000";
  */
 export default defineConfig({
   testDir: "./e2e",
+  testIgnore: ["**/unit/**"],
   outputDir: "./test-results",
   // Las pruebas son independientes (las escrituras se interceptan), así que
   // corren en paralelo. E2E_WORKERS=1 vuelve a una a la vez si el API o el

@@ -1,19 +1,13 @@
-"use client";
-
 import { useEffect, useState } from "react";
 
-import { usePathname } from "next/navigation";
+import { usePathname } from "@shared/navigation";
 
 import { Fab } from "@mui/material";
 import { Zoom } from "@mui/material";
 import { useScrollTrigger } from "@mui/material";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 
-import {
-  BOTTOM_NAV_HEIGHT,
-  isFormPath,
-  useBottomNavVisible,
-} from "./MobileBottomNav";
+import { BOTTOM_NAV_HEIGHT, isFormPath, useBottomNavVisible } from "./MobileBottomNav";
 
 // Desplazamiento (px) a partir del cual vale la pena ofrecer volver arriba.
 export const SCROLL_TOP_THRESHOLD = 400;

@@ -1,9 +1,7 @@
-"use client";
-
 import { ReactNode, useEffect, useState } from "react";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from "@shared/components/AppLink";
+import { usePathname } from "@shared/navigation";
 
 import { Box } from "@mui/material";
 import { ButtonBase } from "@mui/material";
@@ -67,9 +65,7 @@ const MAX_DESTINATIONS = 3;
 export const bottomNavDestinations = (ctx: RouteAccessContext) =>
   DESTINATIONS_BY_PRIORITY.filter((item) => canAccessPath(item.url, ctx))
     .slice(0, MAX_DESTINATIONS)
-    .sort(
-      (a, b) => DISPLAY_ORDER.indexOf(a.url) - DISPLAY_ORDER.indexOf(b.url),
-    );
+    .sort((a, b) => DISPLAY_ORDER.indexOf(a.url) - DISPLAY_ORDER.indexOf(b.url));
 
 // Formularios: la barra estorba (y el botón "Nuevo" no aplica).
 export const isFormPath = (pathname: string) => /\/form(\/|$)/.test(pathname);
@@ -92,9 +88,7 @@ const opensKeyboard = (element: Element | null) => {
     return true;
   }
   return (
-    element instanceof HTMLInputElement &&
-    !NON_TEXT_INPUTS.has(element.type) &&
-    !element.readOnly
+    element instanceof HTMLInputElement && !NON_TEXT_INPUTS.has(element.type) && !element.readOnly
   );
 };
 
@@ -108,9 +102,7 @@ function useKeyboardOpen() {
     const viewport = window.visualViewport;
 
     const update = () => {
-      const shrunk = viewport
-        ? window.innerHeight - viewport.height > 150
-        : false;
+      const shrunk = viewport ? window.innerHeight - viewport.height > 150 : false;
       setIsOpen(opensKeyboard(document.activeElement) || shrunk);
     };
 
@@ -127,13 +119,7 @@ function useKeyboardOpen() {
   return isOpen;
 }
 
-function NavItem({
-  destination,
-  selected,
-}: {
-  destination: NavDestination;
-  selected: boolean;
-}) {
+function NavItem({ destination, selected }: { destination: NavDestination; selected: boolean }) {
   return (
     <ButtonBase
       component={Link}
@@ -147,9 +133,7 @@ function NavItem({
         flexDirection: "column",
         gap: 0.25,
         borderRadius: `${theme.tokens.radius.md}px`,
-        color: selected
-          ? theme.palette.text.brand
-          : theme.palette.text.secondary,
+        color: selected ? theme.palette.text.brand : theme.palette.text.secondary,
         "& .MuiSvgIcon-root": { fontSize: 24 },
       })}
     >
@@ -195,12 +179,7 @@ export function useBottomNavVisible() {
   const ctx = useRouteAccessContext();
 
   // Sin "Nuevo hallazgo" (p. ej. el usuario solo-HDS) no hay barra.
-  return (
-    isPhone &&
-    !!userId &&
-    canAccessPath(NEW_EVIDENCE_PATH, ctx) &&
-    !isFormPath(pathname)
-  );
+  return isPhone && !!userId && canAccessPath(NEW_EVIDENCE_PATH, ctx) && !isFormPath(pathname);
 }
 
 // Navegación inferior en celular (A8): accesos de campo según el rol y
@@ -220,8 +199,7 @@ export default function MobileBottomNav() {
   const half = Math.ceil(destinations.length / 2);
   const left = destinations.slice(0, half);
   const right = destinations.slice(half);
-  const isSelected = (url: string) =>
-    pathname === url || pathname.startsWith(`${url}/`);
+  const isSelected = (url: string) => pathname === url || pathname.startsWith(`${url}/`);
 
   return (
     <>

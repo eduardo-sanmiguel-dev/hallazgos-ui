@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@shared/navigation";
 
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 
@@ -36,9 +36,7 @@ export function useLeaveConfirm<T extends object>(
       isEditing
         ? current
         : Object.fromEntries(
-            Object.entries(current).filter(
-              ([key]) => !ignoreOnCreate.includes(key as keyof T),
-            ),
+            Object.entries(current).filter(([key]) => !ignoreOnCreate.includes(key as keyof T)),
           ),
     );
 

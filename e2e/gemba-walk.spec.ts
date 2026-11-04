@@ -39,8 +39,7 @@ const EVALUATIONS = [
   },
 ];
 
-const minutesFromNow = (minutes: number) =>
-  new Date(Date.now() + minutes * 60_000).toISOString();
+const minutesFromNow = (minutes: number) => new Date(Date.now() + minutes * 60_000).toISOString();
 
 const calendarEvent = (id: number, scheduledAt: string) => ({
   id,
@@ -50,8 +49,7 @@ const calendarEvent = (id: number, scheduledAt: string) => ({
   gembaWalkZone: ZONE,
 });
 
-const saveButton = (page: Page) =>
-  page.getByRole("button", { name: "Guardar" });
+const saveButton = (page: Page) => page.getByRole("button", { name: "Guardar" });
 
 /** Abre en edición el primer registro de la tabla y espera sus datos. */
 const editFirstRow = async (page: Page, route: string) => {
@@ -62,9 +60,7 @@ const editFirstRow = async (page: Page, route: string) => {
 };
 
 test.describe("Gemba Walk: registrar recorrido", () => {
-  test("inicia, marca un NC y registra el recorrido (sin guardar)", async ({
-    page,
-  }) => {
+  test("inicia, marca un NC y registra el recorrido (sin guardar)", async ({ page }) => {
     const errors = trackPageErrors(page);
     const startedAt = new Date().toISOString();
     const writes = await captureWrites(page, {
@@ -90,31 +86,26 @@ test.describe("Gemba Walk: registrar recorrido", () => {
     // Por defecto todo cumple; se marca un NC con comentario.
     await expect(page.getByText("C: 2")).toBeVisible();
     const epp = page.getByRole("group", { name: "EPP" });
-    await expect(
-      epp.getByRole("button", { name: "Cumple", exact: true }),
-    ).toHaveAttribute("aria-pressed", "true");
+    await expect(epp.getByRole("button", { name: "Cumple", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     await epp.getByRole("button", { name: "No cumple" }).click();
-    await expect(
-      epp.getByRole("button", { name: "No cumple" }),
-    ).toHaveAttribute("aria-pressed", "true");
+    await expect(epp.getByRole("button", { name: "No cumple" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     await expect(page.getByText("NC: 1")).toBeVisible();
     // Cumplimiento en vivo en la barra fija.
-    await expect(
-      page.getByRole("progressbar", { name: "Cumplimiento: 50%" }),
-    ).toBeVisible();
-    await page
-      .getByLabel("Comentarios")
-      .first()
-      .fill("  Dos personas sin lentes  ");
+    await expect(page.getByRole("progressbar", { name: "Cumplimiento: 50%" })).toBeVisible();
+    await page.getByLabel("Comentarios").first().fill("  Dos personas sin lentes  ");
 
     await finish.click();
     const dialog = page.getByRole("dialog", { name: "Confirmar registro" });
     await expect(dialog).toContainText("1 C y 1 NC");
     await dialog.getByRole("button", { name: "Registrar" }).click();
 
-    await expect(
-      toast(page, "Recorrido registrado correctamente"),
-    ).toBeVisible();
+    await expect(toast(page, "Recorrido registrado correctamente")).toBeVisible();
     await expect(page).toHaveURL(/\/gemba-walk$/);
 
     expect(writes).toEqual([
@@ -143,9 +134,7 @@ test.describe("Gemba Walk: registrar recorrido", () => {
     expect(errors).toEqual([]);
   });
 
-  test("un recorrido fuera de tolerancia no se puede iniciar", async ({
-    page,
-  }) => {
+  test("un recorrido fuera de tolerancia no se puede iniciar", async ({ page }) => {
     await mockGet(page, "/gemba-walk/walks/available-events", [
       calendarEvent(9302, minutesFromNow(-60)),
     ]);
@@ -156,9 +145,7 @@ test.describe("Gemba Walk: registrar recorrido", () => {
     await pickOption(page, "Recorrido programado (hoy)", /Fuera de tiempo/);
 
     await expect(page.getByText("Fuera de tiempo.")).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Iniciar recorrido" }),
-    ).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Iniciar recorrido" })).toHaveCount(0);
   });
 
   test("avisa cuando no hay recorridos ni conceptos", async ({ page }) => {
@@ -167,9 +154,7 @@ test.describe("Gemba Walk: registrar recorrido", () => {
 
     await page.goto("/gemba-walk/form");
     await choosePlant(page);
-    await expect(
-      page.getByText("No hay recorridos programados para hoy"),
-    ).toBeVisible();
+    await expect(page.getByText("No hay recorridos programados para hoy")).toBeVisible();
     await expect(
       page.getByText("La planta no tiene conceptos de evaluación registrados."),
     ).toBeVisible();
@@ -179,9 +164,7 @@ test.describe("Gemba Walk: registrar recorrido", () => {
     await mockGet(page, "/gemba-walk/walks/access", { isObserver: false });
 
     await page.goto("/gemba-walk/form");
-    await expect(
-      page.getByText("Solo los usuarios registrados como observadores"),
-    ).toBeVisible();
+    await expect(page.getByText("Solo los usuarios registrados como observadores")).toBeVisible();
     await expect(page.getByRole("combobox", { name: "Planta" })).toHaveCount(0);
   });
 });
@@ -202,9 +185,7 @@ const storedDrafts = (page: Page) =>
             .objectStore("drafts")
             .getAll();
           query.onsuccess = () => {
-            resolve(
-              query.result.map(({ id, sendState }) => ({ id, sendState })),
-            );
+            resolve(query.result.map(({ id, sendState }) => ({ id, sendState })));
             open.result.close();
           };
         };
@@ -238,8 +219,7 @@ const draftNotice = (page: Page) =>
     has: page.getByRole("button", { name: /Recuperar|Reintentar envío/ }),
   });
 
-const hhmmss = (iso: string) =>
-  new Date(iso).toLocaleTimeString("en-GB", { hour12: false });
+const hhmmss = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour12: false });
 
 /**
  * Inicia el recorrido de un evento de hoy (dentro de la tolerancia), marca
@@ -260,10 +240,7 @@ const startWalkWithDraft = async (
   await pickOption(page, "Recorrido programado (hoy)", /E2E Zona - Pasillo/);
   await page.getByRole("button", { name: "Iniciar recorrido" }).click();
   await expect(page.getByText(hhmmss(startedAt))).toBeVisible();
-  await page
-    .getByRole("group", { name: "EPP" })
-    .getByRole("button", { name: "No cumple" })
-    .click();
+  await page.getByRole("group", { name: "EPP" }).getByRole("button", { name: "No cumple" }).click();
   await page.getByLabel("Comentarios").first().fill("Sin lentes");
   if (waitForDraft) {
     await expect.poll(async () => (await storedDrafts(page)).length).toBe(1);
@@ -304,22 +281,16 @@ test.describe("Gemba Walk: borrador del recorrido", () => {
     await expect(page.getByText(hhmmss(startedAt))).toBeVisible();
     await expect(page.getByText("Fuera de tiempo.")).toHaveCount(0);
     await expect(
-      page
-        .getByRole("group", { name: "EPP" })
-        .getByRole("button", { name: "No cumple" }),
+      page.getByRole("group", { name: "EPP" }).getByRole("button", { name: "No cumple" }),
     ).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByLabel("Comentarios").first()).toHaveValue(
-      "Sin lentes",
-    );
+    await expect(page.getByLabel("Comentarios").first()).toHaveValue("Sin lentes");
 
     await page.getByRole("button", { name: "Terminar recorrido" }).click();
     await page
       .getByRole("dialog", { name: "Confirmar registro" })
       .getByRole("button", { name: "Registrar" })
       .click();
-    await expect(
-      toast(page, "Recorrido registrado correctamente"),
-    ).toBeVisible();
+    await expect(toast(page, "Recorrido registrado correctamente")).toBeVisible();
 
     // Un solo inicio; el registro lleva el comprobante original.
     expect(writes.map(({ path }) => path)).toEqual([
@@ -351,33 +322,24 @@ test.describe("Gemba Walk: borrador del recorrido", () => {
       "Este recorrido ya se registró (desde otro dispositivo o por otro observador).",
     );
     await expect(blocked).toContainText("E2E Zona - Pasillo");
+    await expect(page.getByRole("button", { name: "Terminar recorrido" })).toBeDisabled();
     await expect(
-      page.getByRole("button", { name: "Terminar recorrido" }),
-    ).toBeDisabled();
-    await expect(
-      page
-        .getByRole("group", { name: "EPP" })
-        .getByRole("button", { name: "Cumple", exact: true }),
+      page.getByRole("group", { name: "EPP" }).getByRole("button", { name: "Cumple", exact: true }),
     ).toBeDisabled();
 
     await blocked.getByRole("button", { name: "Descartar recorrido" }).click();
     await expect(blocked).toHaveCount(0);
-    await expect(
-      page.getByText("No hay recorridos programados para hoy"),
-    ).toBeVisible();
+    await expect(page.getByText("No hay recorridos programados para hoy")).toBeVisible();
     await expect.poll(async () => (await storedDrafts(page)).length).toBe(0);
   });
 
-  test("un recorrido de otro día queda en solo lectura con el motivo", async ({
-    page,
-  }) => {
+  test("un recorrido de otro día queda en solo lectura con el motivo", async ({ page }) => {
     await mockGet(page, "/gemba-walk/walks/available-events", []);
     await mockGet(page, "/gemba-walk/evaluations", EVALUATIONS);
     await page.goto("/gemba-walk/form");
     await sessionPlants(page);
     const userId = await page.evaluate(
-      () =>
-        JSON.parse(sessionStorage.getItem("user-session") || "{}").state?.id,
+      () => JSON.parse(sessionStorage.getItem("user-session") || "{}").state?.id,
     );
     const yesterday = new Date(Date.now() - 24 * 60 * 60_000);
     const now = new Date().toISOString();
@@ -413,14 +375,10 @@ test.describe("Gemba Walk: borrador del recorrido", () => {
         `Era un recorrido del ${day}: solo se pueden registrar los recorridos del día.`,
       ),
     ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Terminar recorrido" }),
-    ).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Terminar recorrido" })).toBeDisabled();
   });
 
-  test("reintentar un registro que ya había llegado no lo duplica", async ({
-    page,
-  }) => {
+  test("reintentar un registro que ya había llegado no lo duplica", async ({ page }) => {
     await captureWrites(page, { respond });
     const requests: Request[] = [];
     await page.route("**/api/v1/gemba-walk/walks", async (route) => {
@@ -446,39 +404,24 @@ test.describe("Gemba Walk: borrador del recorrido", () => {
     // Mientras el aviso "Sin conexión" (con su "Reintentar") está abierto, la
     // petición sigue esperando; al cerrarlo queda como envío sin confirmar.
     await expect(toast(page, "Sin conexión")).toBeVisible();
-    await page
-      .locator("[data-sonner-toast]")
-      .getByRole("button", { name: /close/i })
-      .click();
+    await page.locator("[data-sonner-toast]").getByRole("button", { name: /close/i }).click();
     await expect(draftNotice(page)).toContainText("Envío sin confirmar");
-    await expect
-      .poll(async () => (await storedDrafts(page))[0]?.sendState)
-      .toBe("pending");
+    await expect.poll(async () => (await storedDrafts(page))[0]?.sendState).toBe("pending");
 
-    await draftNotice(page)
-      .getByRole("button", { name: "Reintentar envío" })
-      .click();
-    await expect(
-      toast(page, "Ya se había registrado (recorrido #777)"),
-    ).toBeVisible();
+    await draftNotice(page).getByRole("button", { name: "Reintentar envío" }).click();
+    await expect(toast(page, "Ya se había registrado (recorrido #777)")).toBeVisible();
     expect(requests).toHaveLength(2);
     expect(requests[0].headers()["idempotency-key"]).toBeTruthy();
-    expect(requests[1].headers()["idempotency-key"]).toBe(
-      requests[0].headers()["idempotency-key"],
-    );
+    expect(requests[1].headers()["idempotency-key"]).toBe(requests[0].headers()["idempotency-key"]);
   });
 
-  test("salir con un recorrido iniciado pide confirmación", async ({
-    page,
-  }) => {
+  test("salir con un recorrido iniciado pide confirmación", async ({ page }) => {
     await captureWrites(page, { respond });
     await startWalkWithDraft(page, startedAt);
 
     await page.getByRole("button", { name: "Cancelar" }).click();
     const dialog = page.getByRole("dialog", { name: "¿Salir del recorrido?" });
-    await dialog
-      .getByRole("button", { name: "Seguir en el recorrido" })
-      .click();
+    await dialog.getByRole("button", { name: "Seguir en el recorrido" }).click();
     await expect(page).toHaveURL(/\/gemba-walk\/form$/);
 
     await page.getByRole("button", { name: "Cancelar" }).click();
@@ -490,9 +433,7 @@ test.describe("Gemba Walk: borrador del recorrido", () => {
 
   // Sin esperar al guardado automático (~0.8 s): "Salir" guarda en ese
   // momento lo último capturado, como promete el aviso.
-  test("salir justo después de un cambio lo guarda en el borrador", async ({
-    page,
-  }) => {
+  test("salir justo después de un cambio lo guarda en el borrador", async ({ page }) => {
     await captureWrites(page, { respond });
     await startWalkWithDraft(page, startedAt);
 
@@ -523,9 +464,7 @@ test.describe("Gemba Walk: borrador del recorrido", () => {
     expect(saved).toContain("Último cambio e2e");
   });
 
-  test("sin almacén de borradores (modo privado), salir avisa que se perderá", async ({
-    page,
-  }) => {
+  test("sin almacén de borradores (modo privado), salir avisa que se perderá", async ({ page }) => {
     await withoutIndexedDb(page);
     await captureWrites(page, { respond });
     await startWalkWithDraft(page, startedAt, { waitForDraft: false });
@@ -564,9 +503,7 @@ test.describe("Gemba Walk: borrador del recorrido", () => {
       expect(cancelBox.height).toBeGreaterThanOrEqual(48);
       // El texto cabe completo y nada se sale de la pantalla.
       for (const button of [finish, cancel]) {
-        expect(
-          await button.evaluate((el) => el.scrollWidth <= el.clientWidth),
-        ).toBe(true);
+        expect(await button.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
       }
       expect(finishBox.x + finishBox.width).toBeLessThanOrEqual(360);
       const overflow = await page.evaluate(
@@ -598,9 +535,7 @@ test.describe("Gemba Walk: consulta", () => {
     await mockGet(page, "/gemba-walk/walks/9401", walkDetail());
 
     await page.goto("/gemba-walk/view?id=9401");
-    await expect(
-      page.getByRole("heading", { level: 2, name: "E2E Zona - Pasillo" }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "E2E Zona - Pasillo" })).toBeVisible();
     // Resumen: tipo de recorrido y cuántos conceptos no cumplen.
     await expect(page.getByText("Recorrido regular")).toBeVisible();
     await expect(page.getByText("1 concepto no cumple")).toBeVisible();
@@ -608,9 +543,7 @@ test.describe("Gemba Walk: consulta", () => {
     await expect(page.getByText("50%", { exact: true })).toBeVisible();
     await expect(page.getByText("C: 1", { exact: true })).toBeVisible();
     await expect(page.getByText("NC: 1")).toBeVisible();
-    await expect(
-      page.getByRole("progressbar", { name: "Cumplimiento: 50%" }),
-    ).toBeVisible();
+    await expect(page.getByRole("progressbar", { name: "Cumplimiento: 50%" })).toBeVisible();
     // Datos.
     const data = page.getByRole("region", { name: "Datos" });
     await expect(data).toContainText("Observador E2E");
@@ -620,10 +553,7 @@ test.describe("Gemba Walk: consulta", () => {
     await expect(results.getByText("NC - No cumple")).toBeVisible();
     await expect(results.getByText("Sin lentes")).toBeVisible();
     // Agrupado por categoría en el orden definido.
-    await expect(results.getByText(/^(SHE|CALIDAD)$/)).toHaveText([
-      "SHE",
-      "CALIDAD",
-    ]);
+    await expect(results.getByText(/^(SHE|CALIDAD)$/)).toHaveText(["SHE", "CALIDAD"]);
 
     // "Solo no cumple": oculta lo que cumple.
     await results.getByRole("button", { name: "No cumple (1)" }).click();
@@ -643,9 +573,7 @@ test.describe("Gemba Walk: consulta", () => {
     expect(errors).toEqual([]);
   });
 
-  test("un recorrido sin conceptos evaluados no dice «Todo cumple»", async ({
-    page,
-  }) => {
+  test("un recorrido sin conceptos evaluados no dice «Todo cumple»", async ({ page }) => {
     await mockGet(page, "/gemba-walk/walks/9401", {
       ...walkDetail(),
       results: [],
@@ -660,9 +588,7 @@ test.describe("Gemba Walk: consulta", () => {
     await expect(results.getByText("Todo cumple")).toBeVisible();
   });
 
-  test("un detalle inexistente lo dice; si falla, deja reintentar", async ({
-    page,
-  }) => {
+  test("un detalle inexistente lo dice; si falla, deja reintentar", async ({ page }) => {
     await mockGet(
       page,
       "/gemba-walk/walks/9499",
@@ -695,9 +621,7 @@ test.describe("Gemba Walk: consulta", () => {
   test.describe("en celular", () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
-    test("la lista de recorridos se ve en tarjetas con su resultado y acción", async ({
-      page,
-    }) => {
+    test("la lista de recorridos se ve en tarjetas con su resultado y acción", async ({ page }) => {
       await mockGet(
         page,
         "/gemba-walk/walks",
@@ -707,9 +631,7 @@ test.describe("Gemba Walk: consulta", () => {
       await page.goto("/gemba-walk");
 
       await expect(page.getByRole("table")).toHaveCount(0);
-      const card = page
-        .getByRole("list", { name: "Recorridos" })
-        .getByRole("listitem");
+      const card = page.getByRole("list", { name: "Recorridos" }).getByRole("listitem");
       await expect(card).toContainText("E2E Zona - Pasillo");
       await expect(card).toContainText("NC: 1");
       await expect(card).toContainText("50%");
@@ -725,9 +647,7 @@ test.describe("Gemba Walk: consulta", () => {
       const late = new Date();
       if (late.getDay() === 0) late.setDate(late.getDate() - 1);
       late.setHours(23, 30, 0, 0);
-      await mockGet(page, "/gemba-walk/walks/calendar", [
-        calendarEvent(9302, late.toISOString()),
-      ]);
+      await mockGet(page, "/gemba-walk/walks/calendar", [calendarEvent(9302, late.toISOString())]);
       await page.goto("/gemba-walk/schedule");
       await choosePlant(page);
 
@@ -775,9 +695,7 @@ test.describe("Gemba Walk: consulta", () => {
     ]);
 
     await page.goto("/gemba-walk/schedule");
-    await expect(
-      page.getByText("Selecciona una planta para ver el calendario"),
-    ).toBeVisible();
+    await expect(page.getByText("Selecciona una planta para ver el calendario")).toBeVisible();
     await choosePlant(page);
 
     await expect(page.getByText("✗ E2E Otra - Pasillo")).toBeVisible();
@@ -786,9 +704,7 @@ test.describe("Gemba Walk: consulta", () => {
     expect(errors).toEqual([]);
   });
 
-  test("Regresar va en la cabecera y no se pierde con el fondo", async ({
-    page,
-  }) => {
+  test("Regresar va en la cabecera y no se pierde con el fondo", async ({ page }) => {
     await page.goto("/gemba-walk/schedule");
     const back = page
       .locator("header")
@@ -797,9 +713,9 @@ test.describe("Gemba Walk: consulta", () => {
     await expect(back).toBeVisible();
     // Botón de contorno con el fondo del papel (antes, transparente sobre el
     // gris de la página).
-    expect(
-      await back.evaluate((el) => getComputedStyle(el).backgroundColor),
-    ).toBe("rgb(255, 255, 255)");
+    expect(await back.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(
+      "rgb(255, 255, 255)",
+    );
 
     await back.click();
     await expect(page).toHaveURL(/\/gemba-walk$/);
@@ -834,8 +750,7 @@ const addEventTomorrow = async (page: Page) => {
 };
 
 /** Mientras un diálogo termina de cerrarse, el siguiente clic se pierde. */
-const dialogsClosed = (page: Page) =>
-  expect(page.locator(".MuiDialog-root")).toHaveCount(0);
+const dialogsClosed = (page: Page) => expect(page.locator(".MuiDialog-root")).toHaveCount(0);
 
 test.describe("Gemba Walk: programación", () => {
   test.describe("en pantalla táctil", () => {
@@ -845,9 +760,7 @@ test.describe("Gemba Walk: programación", () => {
       viewport: { width: 390, height: 844 },
     });
 
-    test("explica que hay que mantener presionado para elegir días", async ({
-      page,
-    }) => {
+    test("explica que hay que mantener presionado para elegir días", async ({ page }) => {
       await mockGet(page, "/gemba-walk/zones", [ZONE]);
       await mockGet(page, "/gemba-walk/calendar", [], {
         when: (url) => !url.searchParams.has("page"),
@@ -859,17 +772,13 @@ test.describe("Gemba Walk: programación", () => {
     });
   });
 
-  test("agrega un evento al calendario y lo guarda (sin guardar)", async ({
-    page,
-  }) => {
+  test("agrega un evento al calendario y lo guarda (sin guardar)", async ({ page }) => {
     const errors = trackPageErrors(page);
     const writes = await captureWrites(page, { respond: () => [] });
     const day = await addEventTomorrow(page);
 
     await saveButton(page).click();
-    await expect(
-      toast(page, "Calendario guardado correctamente"),
-    ).toBeVisible();
+    await expect(toast(page, "Calendario guardado correctamente")).toBeVisible();
     await expect(page).toHaveURL(/\/gemba-walk\/calendar$/);
 
     expect(writes).toEqual([
@@ -890,9 +799,7 @@ test.describe("Gemba Walk: programación", () => {
     expect(errors).toEqual([]);
   });
 
-  test("cancelar con eventos sin guardar pide confirmación", async ({
-    page,
-  }) => {
+  test("cancelar con eventos sin guardar pide confirmación", async ({ page }) => {
     const writes = await captureWrites(page);
     await addEventTomorrow(page);
 
@@ -984,9 +891,7 @@ test.describe("Gemba Walk: catálogos", () => {
     const id = await editFirstRow(page, "/gemba-walk/evaluations");
     await expect(page.getByLabel("Descripción")).toHaveValue(/\S/);
     await saveButton(page).click();
-    await expect(
-      toast(page, "Concepto actualizado correctamente"),
-    ).toBeVisible();
+    await expect(toast(page, "Concepto actualizado correctamente")).toBeVisible();
 
     expect(writes).toEqual([
       expect.objectContaining({
@@ -996,9 +901,7 @@ test.describe("Gemba Walk: catálogos", () => {
     ]);
   });
 
-  test("crea varios observadores en una zona (sin guardar)", async ({
-    page,
-  }) => {
+  test("crea varios observadores en una zona (sin guardar)", async ({ page }) => {
     const writes = await captureWrites(page, {
       // El API regresa un observador por usuario.
       respond: ({ body }) =>
@@ -1012,9 +915,7 @@ test.describe("Gemba Walk: catálogos", () => {
     await pickOption(page, "Zona");
     const users = await pickMany(page, "Usuarios", 2);
     await saveButton(page).click();
-    await expect(
-      toast(page, `${users.length} observadores creados correctamente`),
-    ).toBeVisible();
+    await expect(toast(page, `${users.length} observadores creados correctamente`)).toBeVisible();
 
     expect(writes).toEqual([
       {
@@ -1036,9 +937,7 @@ test.describe("Gemba Walk: catálogos", () => {
     // Guardar se habilita cuando cargan planta, zona y usuario.
     await expect(saveButton(page)).toBeEnabled();
     await saveButton(page).click();
-    await expect(
-      toast(page, "Observador actualizado correctamente"),
-    ).toBeVisible();
+    await expect(toast(page, "Observador actualizado correctamente")).toBeVisible();
 
     expect(writes).toEqual([
       {

@@ -15,9 +15,7 @@ export function useUploadProgress() {
 
   const onUploadProgress = useCallback((event: AxiosProgressEvent) => {
     // Sin `total` (el navegador no lo conoce) se muestra 0 % hasta terminar.
-    setProgress(
-      event.total ? Math.min(100, (event.loaded / event.total) * 100) : 0,
-    );
+    setProgress(event.total ? Math.min(100, (event.loaded / event.total) * 100) : 0);
   }, []);
 
   const reset = useCallback(() => setProgress(null), []);

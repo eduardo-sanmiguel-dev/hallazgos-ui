@@ -1,6 +1,4 @@
-"use client";
-
-import { useRouter } from "next/navigation";
+import { useRouter } from "@shared/navigation";
 
 import { Button } from "@mui/material";
 import { Paper } from "@mui/material";
@@ -39,11 +37,7 @@ export default function EditRecordState({
   if (status === "loading") return <FormSkeleton sections={1} />;
 
   const back = (
-    <Button
-      variant="outlined"
-      startIcon={<ArrowBackIcon />}
-      onClick={() => router.push(listHref)}
-    >
+    <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => router.push(listHref)}>
       Volver a la lista
     </Button>
   );

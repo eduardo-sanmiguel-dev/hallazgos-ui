@@ -14,10 +14,7 @@ import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 
 import type { ThemePreference } from "../../theme";
 
-const OPTIONS: Record<
-  ThemePreference,
-  { label: string; icon: ReactElement<SvgIconProps> }
-> = {
+const OPTIONS: Record<ThemePreference, { label: string; icon: ReactElement<SvgIconProps> }> = {
   system: { label: "Sistema", icon: <SettingsBrightnessOutlinedIcon /> },
   light: { label: "Claro", icon: <LightModeOutlinedIcon /> },
   dark: { label: "Oscuro", icon: <DarkModeOutlinedIcon /> },
@@ -80,18 +77,12 @@ export default function ThemeSelector({ value, onChange }: Props) {
               selected={selected}
               onClick={() => select(name)}
             >
-              <ListItemIcon
-                sx={{ color: selected ? "text.brand" : "text.secondary" }}
-              >
+              <ListItemIcon sx={{ color: selected ? "text.brand" : "text.secondary" }}>
                 {OPTIONS[name].icon}
               </ListItemIcon>
               <ListItemText>{OPTIONS[name].label}</ListItemText>
               {selected && (
-                <CheckIcon
-                  fontSize="small"
-                  aria-hidden
-                  sx={{ ml: 2, color: "text.brand" }}
-                />
+                <CheckIcon fontSize="small" aria-hidden sx={{ ml: 2, color: "text.brand" }} />
               )}
             </MenuItem>
           );

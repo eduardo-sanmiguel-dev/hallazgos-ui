@@ -6,8 +6,7 @@ import { expect, test } from "./support/fixtures";
 // cámara del teléfono como opción principal y galería; con mouse, un solo
 // "Subir foto" y la cámara web. Compresión y mensajes claros.
 
-const preview = (page: Page) =>
-  page.getByAltText("Vista previa de la evidencia");
+const preview = (page: Page) => page.getByAltText("Vista previa de la evidencia");
 
 /** JPG de `width`×`height` generado en el navegador (ruido: pesa más). */
 const bigJpeg = (page: Page, width: number, height: number) =>
@@ -37,22 +36,15 @@ test.describe("Foto de evidencia: pantalla táctil", () => {
     hasTouch: true,
   });
 
-  test("la opción principal abre la cámara trasera; la galería no la fuerza", async ({
-    page,
-  }) => {
+  test("la opción principal abre la cámara trasera; la galería no la fuerza", async ({ page }) => {
     await page.goto("/ics/form");
     const camera = page.getByLabel("Tomar foto");
     await expect(camera).toHaveAttribute("capture", "environment");
     await expect(camera).toHaveAttribute("accept", "image/*");
-    await expect(page.getByLabel("Elegir de galería")).not.toHaveAttribute(
-      "capture",
-      /.*/,
-    );
+    await expect(page.getByLabel("Elegir de galería")).not.toHaveAttribute("capture", /.*/);
     await expect(page.getByLabel("Subir foto")).toHaveCount(0);
     // La cámara del teléfono hace lo mismo y mejor: sin la del navegador.
-    await expect(
-      page.getByRole("button", { name: "Usar cámara del navegador" }),
-    ).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Usar cámara del navegador" })).toHaveCount(0);
   });
 });
 
@@ -62,28 +54,16 @@ test.describe("Foto de evidencia: escritorio", () => {
     await expect(page.getByText("Subir foto")).toBeVisible();
   });
 
-  test("un solo botón para subir la foto, más la cámara web", async ({
-    page,
-  }) => {
+  test("un solo botón para subir la foto, más la cámara web", async ({ page }) => {
     // Con mouse, "Tomar foto" y "Elegir de galería" abrían el mismo selector.
-    await expect(page.getByLabel("Subir foto")).not.toHaveAttribute(
-      "capture",
-      /.*/,
-    );
-    await expect(page.getByLabel("Subir foto")).toHaveAttribute(
-      "accept",
-      "image/*",
-    );
+    await expect(page.getByLabel("Subir foto")).not.toHaveAttribute("capture", /.*/);
+    await expect(page.getByLabel("Subir foto")).toHaveAttribute("accept", "image/*");
     await expect(page.getByText("Tomar foto")).toHaveCount(0);
     await expect(page.getByText("Elegir de galería")).toHaveCount(0);
-    await expect(
-      page.getByRole("button", { name: "Usar cámara del navegador" }),
-    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Usar cámara del navegador" })).toBeVisible();
   });
 
-  test("una foto grande se reduce a 1920 px y pesa menos de 2 MB", async ({
-    page,
-  }) => {
+  test("una foto grande se reduce a 1920 px y pesa menos de 2 MB", async ({ page }) => {
     const buffer = Buffer.from(await bigJpeg(page, 4000, 3000));
     expect(buffer.length).toBeGreaterThan(2 * 1024 * 1024);
 
@@ -94,12 +74,10 @@ test.describe("Foto de evidencia: escritorio", () => {
     });
     await expect(preview(page)).toBeVisible();
 
-    const [width, height] = await preview(page).evaluate(
-      async (img: HTMLImageElement) => {
-        await img.decode();
-        return [img.naturalWidth, img.naturalHeight];
-      },
-    );
+    const [width, height] = await preview(page).evaluate(async (img: HTMLImageElement) => {
+      await img.decode();
+      return [img.naturalWidth, img.naturalHeight];
+    });
     expect(Math.max(width, height)).toBeLessThanOrEqual(1920);
     expect(Math.max(width, height)).toBeGreaterThan(1000);
 
@@ -136,9 +114,7 @@ test.describe("Foto de evidencia: escritorio", () => {
       buffer: Buffer.from("no es imagen"),
     });
     await expect(
-      page
-        .getByRole("alert")
-        .filter({ hasText: "El archivo no es una imagen." }),
+      page.getByRole("alert").filter({ hasText: "El archivo no es una imagen." }),
     ).toBeVisible();
     await expect(preview(page)).toHaveCount(0);
   });

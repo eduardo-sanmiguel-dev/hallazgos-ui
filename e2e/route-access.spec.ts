@@ -20,8 +20,7 @@ const asUser = async (page: Page, email: string, role = "General") => {
   });
 };
 
-const noAccess = (page: Page) =>
-  page.getByText("No tienes acceso a esta sección");
+const noAccess = (page: Page) => page.getByText("No tienes acceso a esta sección");
 
 test.describe("Acceso por URL directa", () => {
   for (const route of [
@@ -43,9 +42,10 @@ test.describe("Acceso por URL directa", () => {
       await page.goto(route);
 
       await expect(noAccess(page)).toBeVisible();
-      await expect(
-        page.getByRole("link", { name: "Ir al inicio" }),
-      ).toHaveAttribute("href", "/dashboard");
+      await expect(page.getByRole("link", { name: "Ir al inicio" })).toHaveAttribute(
+        "href",
+        "/dashboard",
+      );
       await expect(page.getByRole("table")).toHaveCount(0);
       // La página no se monta: no consulta su lista.
       expect(tableRequests).toEqual([]);
@@ -55,9 +55,7 @@ test.describe("Acceso por URL directa", () => {
   test("un usuario general sí entra a hallazgos", async ({ page }) => {
     await asUser(page, "e2e-general@example.com");
     await page.goto("/hallazgos");
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Hallazgos" }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Hallazgos" })).toBeVisible();
     await expect(noAccess(page)).toHaveCount(0);
   });
 
@@ -76,9 +74,7 @@ test.describe("Acceso por URL directa", () => {
     expect(errors).toEqual([]);
   });
 
-  test("el usuario de HDS vuelve a HDS desde una página sin acceso", async ({
-    page,
-  }) => {
+  test("el usuario de HDS vuelve a HDS desde una página sin acceso", async ({ page }) => {
     await asUser(page, "cosmeticostrujillo0023@gmail.com");
     await page.goto("/hallazgos");
     await expect(noAccess(page)).toBeVisible();

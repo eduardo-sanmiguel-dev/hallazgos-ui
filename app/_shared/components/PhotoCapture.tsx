@@ -1,9 +1,6 @@
-"use client";
+import { ChangeEvent, DragEvent, Suspense, lazy, useEffect, useState } from "react";
 
-import { ChangeEvent, DragEvent, useEffect, useState } from "react";
-
-import dynamic from "next/dynamic";
-import Image from "next/image";
+import Image from "@shared/components/AppImage";
 
 import { Alert } from "@mui/material";
 import { Box } from "@mui/material";
@@ -31,10 +28,7 @@ import {
 import LoadingLinear from "./LoadingLinear";
 import { TOUCH_MEDIA } from "../../theme";
 
-const BrowserCamera = dynamic(() => import("./PhotoCaptureBrowserCamera"), {
-  ssr: false,
-  loading: () => <LoadingLinear label="Abriendo cámara…" />,
-});
+const BrowserCamera = lazy(() => import("./PhotoCaptureBrowserCamera"));
 
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",
@@ -144,20 +138,16 @@ export default function PhotoCapture({
     <Stack spacing={2} sx={{ width: "100%" }}>
       {mode === "browserCamera" ? (
         <Box>
-          <BrowserCamera
-            onTakePhoto={handleBrowserPhoto}
-            onError={() => {
-              setMode("pick");
-              setError(
-                "No se pudo abrir la cámara del navegador. Usa «Subir foto».",
-              );
-            }}
-          />
-          <Button
-            startIcon={<CloseIcon />}
-            onClick={() => setMode("pick")}
-            sx={{ mt: 1 }}
-          >
+          <Suspense fallback={<LoadingLinear label="Abriendo cámara…" />}>
+            <BrowserCamera
+              onTakePhoto={handleBrowserPhoto}
+              onError={() => {
+                setMode("pick");
+                setError("No se pudo abrir la cámara del navegador. Usa «Subir foto».");
+              }}
+            />
+          </Suspense>
+          <Button startIcon={<CloseIcon />} onClick={() => setMode("pick")} sx={{ mt: 1 }}>
             Cancelar cámara
           </Button>
         </Box>
@@ -178,21 +168,14 @@ export default function PhotoCapture({
               transition: "border-color 150ms, background-color 150ms",
             }}
           >
-            <AddAPhotoOutlinedIcon
-              aria-hidden
-              sx={{ fontSize: 36, color: "text.secondary" }}
-            />
+            <AddAPhotoOutlinedIcon aria-hidden sx={{ fontSize: 36, color: "text.secondary" }} />
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
               {isTouch
                 ? "Toma una foto de lo que observaste."
                 : "Sube una foto de lo que observaste o arrástrala aquí."}
             </Typography>
             {isTouch ? (
-              <Stack
-                direction={{ xs: "column", sm: "row" }}
-                spacing={1.5}
-                sx={{ width: "100%" }}
-              >
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ width: "100%" }}>
                 <Button
                   component="label"
                   variant="contained"
@@ -268,12 +251,7 @@ export default function PhotoCapture({
       )}
 
       {isProcessing && (
-        <Stack
-          direction="row"
-          spacing={1.5}
-          role="status"
-          sx={{ alignItems: "center" }}
-        >
+        <Stack direction="row" spacing={1.5} role="status" sx={{ alignItems: "center" }}>
           <CircularProgress size={20} aria-hidden />
           <Typography variant="body2">Procesando imagen…</Typography>
         </Stack>

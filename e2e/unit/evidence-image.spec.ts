@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { describe, expect, test } from "vite-plus/test";
 
 import {
   evidenceFileName,
@@ -8,7 +8,7 @@ import {
 
 // El API solo acepta JPG, PNG o WEBP y revisa que el contenido coincida.
 
-test.describe("Imagen de evidencia", () => {
+describe("Imagen de evidencia", () => {
   test("PNG y WEBP se conservan; lo demás sale como JPG", () => {
     expect(evidenceOutputType("image/png")).toBe("image/png");
     expect(evidenceOutputType("image/webp")).toBe("image/webp");
@@ -19,15 +19,9 @@ test.describe("Imagen de evidencia", () => {
 
   test("la extensión coincide con el tipo", () => {
     const now = new Date(1_700_000_000_000);
-    expect(evidenceFileName("image/jpeg", now)).toBe(
-      "evidencia-1700000000000.jpg",
-    );
-    expect(evidenceFileName("image/png", now)).toBe(
-      "evidencia-1700000000000.png",
-    );
-    expect(evidenceFileName("image/webp", now)).toBe(
-      "evidencia-1700000000000.webp",
-    );
+    expect(evidenceFileName("image/jpeg", now)).toBe("evidencia-1700000000000.jpg");
+    expect(evidenceFileName("image/png", now)).toBe("evidencia-1700000000000.png");
+    expect(evidenceFileName("image/webp", now)).toBe("evidencia-1700000000000.webp");
   });
 
   test("tamaño legible", () => {

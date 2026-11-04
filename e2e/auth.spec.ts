@@ -8,9 +8,7 @@ import { toast } from "./support/ui";
 test.use({ storageState: { cookies: [], origins: [] } });
 
 test.describe("Sesión", () => {
-  test("una ruta protegida sin sesión regresa al inicio (con la ruta pedida)", async ({
-    page,
-  }) => {
+  test("una ruta protegida sin sesión regresa al inicio (con la ruta pedida)", async ({ page }) => {
     await page.goto("/hallazgos");
     await expect(page).toHaveURL(/\/\?next=%2Fhallazgos$/);
     await expect(page.getByRole("button", { name: "Iniciar" })).toBeVisible();
@@ -28,18 +26,14 @@ test.describe("Sesión", () => {
     await page.getByLabel("Contraseña", { exact: true }).fill("");
     await page.getByRole("button", { name: "Iniciar" }).click();
 
-    await expect(
-      toast(page, "El correo electrónico es requerido"),
-    ).toBeVisible();
+    await expect(toast(page, "El correo electrónico es requerido")).toBeVisible();
     expect(loginCalls).toBe(0);
   });
 
   test("rechaza una contraseña incorrecta", async ({ page }) => {
     const { email } = e2eCredentials();
 
-    const response = page.waitForResponse((r) =>
-      r.url().includes("/auth/login"),
-    );
+    const response = page.waitForResponse((r) => r.url().includes("/auth/login"));
     await loginWithForm(page, email, "contraseña-incorrecta-e2e");
 
     expect((await response).ok()).toBe(false);

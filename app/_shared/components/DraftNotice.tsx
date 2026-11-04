@@ -40,14 +40,9 @@ export default function DraftNotice({
       <Alert severity="warning" role="status">
         <AlertTitle>Envío sin confirmar</AlertTitle>
         Se intentó enviar el {formatWhen(lock.lastSendAt)} y no sabemos si llegó
-        {lock.sendState === "unconfirmed" ? " (el servidor falló)" : ""}. Para
-        no duplicarlo ni perder cambios, no se puede editar: reintenta el envío
-        o descártalo.
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={1}
-          sx={{ mt: 1.5 }}
-        >
+        {lock.sendState === "unconfirmed" ? " (el servidor falló)" : ""}. Para no duplicarlo ni
+        perder cambios, no se puede editar: reintenta el envío o descártalo.
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1.5 }}>
           <Button
             variant="contained"
             startIcon={<SendIcon />}
@@ -76,29 +71,15 @@ export default function DraftNotice({
 
   return (
     <Alert severity={isPending ? "warning" : "info"} role="status">
-      <AlertTitle>
-        {isPending ? "Tienes un envío sin confirmar" : "Tienes un borrador"}
-      </AlertTitle>
+      <AlertTitle>{isPending ? "Tienes un envío sin confirmar" : "Tienes un borrador"}</AlertTitle>
       {isPending
         ? `Se intentó enviar el ${formatWhen(offer.lastSendAt ?? offer.savedAt)}${offer.hasPhoto ? ", con foto" : ""}. Recupéralo para reintentar el envío.`
         : `Guardado el ${formatWhen(offer.savedAt)}${offer.hasPhoto ? ", con foto" : ""}.`}
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        spacing={1}
-        sx={{ mt: 1.5 }}
-      >
-        <Button
-          variant="contained"
-          startIcon={<RestoreIcon />}
-          onClick={onRestore}
-        >
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1.5 }}>
+        <Button variant="contained" startIcon={<RestoreIcon />} onClick={onRestore}>
           Recuperar
         </Button>
-        <Button
-          color="error"
-          startIcon={<DeleteOutlineIcon />}
-          onClick={onDiscard}
-        >
+        <Button color="error" startIcon={<DeleteOutlineIcon />} onClick={onDiscard}>
           Descartar
         </Button>
       </Stack>

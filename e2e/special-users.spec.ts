@@ -19,13 +19,10 @@ const asUser = async (page: Page, email: string, role = "General") => {
   });
 };
 
-const nav = (page: Page) =>
-  page.getByRole("navigation", { name: "Menú principal" });
+const nav = (page: Page) => page.getByRole("navigation", { name: "Menú principal" });
 
 test.describe("Usuarios especiales", () => {
-  test("el usuario de HDS solo ve HDS y el dashboard lo redirige", async ({
-    page,
-  }) => {
+  test("el usuario de HDS solo ve HDS y el dashboard lo redirige", async ({ page }) => {
     await asUser(page, "cosmeticostrujillo0023@gmail.com");
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/\/hds$/);
@@ -40,17 +37,13 @@ test.describe("Usuarios especiales", () => {
     await asUser(page, "malonso@hadainternational.com");
     await page.goto("/epp");
     await page.getByRole("button", { name: "Abrir menú" }).click();
-    await expect(
-      nav(page).getByRole("button", { name: "Inspección de extintores" }),
-    ).toBeVisible();
+    await expect(nav(page).getByRole("button", { name: "Inspección de extintores" })).toBeVisible();
     await expect(
       nav(page).getByRole("button", { name: "Hojas de datos de seguridad" }),
     ).toHaveCount(0);
   });
 
-  test("el dashboard restringido oculta clasificaciones de comportamiento", async ({
-    page,
-  }) => {
+  test("el dashboard restringido oculta clasificaciones de comportamiento", async ({ page }) => {
     await asUser(page, "glora@hadainternational.com", "Administrador");
     await page.goto("/dashboard");
     await openFilters(page);
@@ -62,21 +55,15 @@ test.describe("Usuarios especiales", () => {
     ).toHaveCount(0);
   });
 
-  test("si falla la consulta de acceso a Gemba Walk se oculta el módulo", async ({
-    page,
-  }) => {
+  test("si falla la consulta de acceso a Gemba Walk se oculta el módulo", async ({ page }) => {
     await asUser(page, "e2e-general@example.com");
     await mockGet(page, "/gemba-walk/walks/access", { message: "Error" }, { status: 500 });
     await page.goto("/hallazgos");
     await page.getByRole("button", { name: "Abrir menú" }).click();
-    await expect(
-      nav(page).getByRole("button", { name: "Gemba Walk - Recorridos" }),
-    ).toHaveCount(0);
+    await expect(nav(page).getByRole("button", { name: "Gemba Walk - Recorridos" })).toHaveCount(0);
   });
 
-  test("hallazgos funciona aunque falle la configuración de permisos", async ({
-    page,
-  }) => {
+  test("hallazgos funciona aunque falle la configuración de permisos", async ({ page }) => {
     await mockGet(page, "/evidences/permissions/config", { message: "Error" }, { status: 500 });
     await page.goto("/hallazgos");
     await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();

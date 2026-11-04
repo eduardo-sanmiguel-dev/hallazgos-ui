@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useId, useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
@@ -14,10 +12,7 @@ import { DialogTitle } from "@mui/material";
 import { AuthService, SESSION_ENDED_EVENT } from "@services";
 import { useUserSessionStore } from "@store";
 import { allowUnload } from "@hooks/useBeforeUnload";
-import {
-  isDraftStorageAvailable,
-  listUserDrafts,
-} from "@shared/drafts/draftStore";
+import { isDraftStorageAvailable, listUserDrafts } from "@shared/drafts/draftStore";
 
 const DRAFTS_UNAVAILABLE_SESSION =
   "Este navegador no permite guardar borradores (por ejemplo, en modo privado): lo que capturaste en esta pantalla se perderá.";
@@ -38,9 +33,7 @@ export default function SessionEndedDialog() {
   });
   // Ya va de salida (también si falló: está navegando).
   const isLeaving = !logoutMutation.isIdle;
-  const [drafts, setDrafts] = useState<"saved" | "none" | "unavailable">(
-    "none",
-  );
+  const [drafts, setDrafts] = useState<"saved" | "none" | "unavailable">("none");
   const userId = useUserSessionStore((state) => state.id);
   const titleId = useId();
   const descriptionId = useId();

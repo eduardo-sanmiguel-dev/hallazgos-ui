@@ -31,19 +31,12 @@ const savedEvent = (id: number, scheduledAt: string, zoneData = ZONES[0]) => ({
   gembaWalkZone: zoneData,
 });
 
-const SAVED = [
-  savedEvent(9311, at(2, "10:00")),
-  savedEvent(9312, at(-1, "09:00"), ZONES[1]),
-];
+const SAVED = [savedEvent(9311, at(2, "10:00")), savedEvent(9312, at(-1, "09:00"), ZONES[1])];
 
-const dialogsClosed = (page: Page) =>
-  expect(page.locator(".MuiDialog-root")).toHaveCount(0);
+const dialogsClosed = (page: Page) => expect(page.locator(".MuiDialog-root")).toHaveCount(0);
 
 /** Abre el calendario dos días adelante con eventos y zonas fijas. */
-const openCalendar = async (
-  page: Page,
-  { zones = ZONES, saved = SAVED } = {},
-) => {
+const openCalendar = async (page: Page, { zones = ZONES, saved = SAVED } = {}) => {
   await mockGet(page, "/gemba-walk/zones", zones);
   await mockGet(page, "/gemba-walk/calendar", saved, {
     when: (url) => !url.searchParams.has("page"),
@@ -53,8 +46,7 @@ const openCalendar = async (
   await pickOption(page, "Planta", plant.name);
 };
 
-const event = (page: Page, text: string) =>
-  page.locator(".fc-event").filter({ hasText: text });
+const event = (page: Page, text: string) => page.locator(".fc-event").filter({ hasText: text });
 
 const dayCell = (page: Page, offsetDays: number) =>
   page.locator(`td.fc-daygrid-day[data-date="${dayKey(offsetDays)}"]`);
@@ -70,9 +62,7 @@ const addEvent = async (page: Page, offsetDays: number, zoneName: string) => {
 };
 
 test.describe("Gemba Walk: edición del calendario", () => {
-  test("edita un evento guardado y guarda el cambio (sin guardar)", async ({
-    page,
-  }) => {
+  test("edita un evento guardado y guarda el cambio (sin guardar)", async ({ page }) => {
     const writes = await captureWrites(page, { respond: () => [] });
     await openCalendar(page);
 
@@ -104,9 +94,7 @@ test.describe("Gemba Walk: edición del calendario", () => {
     ]);
   });
 
-  test("volver al estado original deja de contar como cambio", async ({
-    page,
-  }) => {
+  test("volver al estado original deja de contar como cambio", async ({ page }) => {
     await openCalendar(page);
     const save = page.getByRole("button", { name: "Guardar" });
 
@@ -125,9 +113,7 @@ test.describe("Gemba Walk: edición del calendario", () => {
     await expect(save).toBeDisabled();
   });
 
-  test("al cancelar con cambios pendientes confirma antes de salir", async ({
-    page,
-  }) => {
+  test("al cancelar con cambios pendientes confirma antes de salir", async ({ page }) => {
     await openCalendar(page);
     await addEvent(page, 3, "E2E Otra - Pasillo");
 
@@ -149,9 +135,7 @@ test.describe("Gemba Walk: edición del calendario", () => {
   test("los eventos pasados no se editan", async ({ page }) => {
     await openCalendar(page);
     await event(page, "E2E Otra - Pasillo").click();
-    await expect(
-      toast(page, "Los eventos pasados no se pueden editar"),
-    ).toBeVisible();
+    await expect(toast(page, "Los eventos pasados no se pueden editar")).toBeVisible();
   });
 
   test("un evento nuevo se puede quitar antes de guardar", async ({ page }) => {
@@ -170,9 +154,7 @@ test.describe("Gemba Walk: edición del calendario", () => {
       saved: [savedEvent(9313, at(2, "08:00"))],
     });
     await addEvent(page, 2, "E2E Zona - Pasillo");
-    await expect(
-      toast(page, "1 evento(s) omitido(s) porque ya existían"),
-    ).toBeVisible();
+    await expect(toast(page, "1 evento(s) omitido(s) porque ya existían")).toBeVisible();
   });
 
   test("no deja cambiar de planta con cambios pendientes", async ({ page }) => {
@@ -181,22 +163,16 @@ test.describe("Gemba Walk: edición del calendario", () => {
     test.skip(plants.length < 2, "El usuario solo tiene una planta");
     await addEvent(page, 3, "E2E Zona - Pasillo");
     await pickOption(page, "Planta", plants[1].name);
-    await expect(
-      toast(page, "Guarda los cambios antes de cambiar de planta"),
-    ).toBeVisible();
+    await expect(toast(page, "Guarda los cambios antes de cambiar de planta")).toBeVisible();
   });
 
   test("avisa si la planta no tiene zonas", async ({ page }) => {
     await openCalendar(page, { zones: [] });
     await page.locator(`td.fc-daygrid-day[data-date="${dayKey(3)}"]`).click();
-    await expect(
-      toast(page, "La planta seleccionada no tiene zonas registradas"),
-    ).toBeVisible();
+    await expect(toast(page, "La planta seleccionada no tiene zonas registradas")).toBeVisible();
   });
 
-  test("arrastra un evento a otro día y cambia a la vista semanal", async ({
-    page,
-  }) => {
+  test("arrastra un evento a otro día y cambia a la vista semanal", async ({ page }) => {
     // El mes completo a la vista: si el día destino cae en la última fila
     // (según la fecha de hoy), Playwright desplaza la página a mitad del
     // arrastre y FullCalendar lo pierde.
@@ -211,9 +187,7 @@ test.describe("Gemba Walk: edición del calendario", () => {
     await expect(page.getByRole("button", { name: "Guardar" })).toBeEnabled();
 
     // A un día pasado se revierte.
-    const past = page.locator(
-      `td.fc-daygrid-day[data-date="${dayKey(-2)}"] .fc-daygrid-day-frame`,
-    );
+    const past = page.locator(`td.fc-daygrid-day[data-date="${dayKey(-2)}"] .fc-daygrid-day-frame`);
     if (await past.count()) {
       await event(page, "E2E Zona - Pasillo").dragTo(past);
     }
@@ -227,9 +201,7 @@ test.describe("Gemba Walk: edición del calendario", () => {
     expect(writes[0]).toMatchObject({
       method: "PATCH",
       body: {
-        events: [
-          expect.objectContaining({ id: 9311, scheduledAt: at(4, "10:00") }),
-        ],
+        events: [expect.objectContaining({ id: 9311, scheduledAt: at(4, "10:00") })],
       },
     });
   });

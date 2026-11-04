@@ -27,22 +27,16 @@ const paddingBottom = (page: Page, selector: string) =>
     .evaluate((el) => parseFloat(getComputedStyle(el).paddingBottom));
 
 test.describe("Zona segura inferior", () => {
-  test("la página se dibuja detrás de los botones del sistema", async ({
-    page,
-  }) => {
+  test("la página se dibuja detrás de los botones del sistema", async ({ page }) => {
     await page.goto("/");
     const viewports = await page
       .locator('meta[name="viewport"]')
-      .evaluateAll((metas) =>
-        metas.map((meta) => meta.getAttribute("content")),
-      );
+      .evaluateAll((metas) => metas.map((meta) => meta.getAttribute("content")));
     expect(viewports).toHaveLength(1);
     expect(viewports[0]).toContain("viewport-fit=cover");
   });
 
-  test("el contenido y el botón flotante quedan por encima", async ({
-    page,
-  }) => {
+  test("el contenido y el botón flotante quedan por encima", async ({ page }) => {
     await emulateBottomInset(page);
     await page.goto("/dashboard");
 
@@ -54,15 +48,11 @@ test.describe("Zona segura inferior", () => {
     await expect(fab).toBeVisible();
     // 24px de margen (escritorio) + la zona segura. Se lee `bottom` y no la
     // caja: la animación de entrada (Zoom) escala el botón al aparecer.
-    const bottom = await fab.evaluate((el) =>
-      parseFloat(getComputedStyle(el).bottom),
-    );
+    const bottom = await fab.evaluate((el) => parseFloat(getComputedStyle(el).bottom));
     expect(bottom).toBe(24 + INSET);
   });
 
-  test("los diálogos a pantalla completa respetan la zona", async ({
-    page,
-  }) => {
+  test("los diálogos a pantalla completa respetan la zona", async ({ page }) => {
     await emulateBottomInset(page);
     await page.goto("/ciael");
     await page.getByRole("button", { name: "Crear registro" }).click();

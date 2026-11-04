@@ -13,12 +13,7 @@ interface Props {
   manufacturingPlantId: string;
 }
 
-const SelectZones = ({
-  value,
-  onChange,
-  isFilter = false,
-  manufacturingPlantId,
-}: Props) => {
+const SelectZones = ({ value, onChange, isFilter = false, manufacturingPlantId }: Props) => {
   const { data: zones = [] } = useZones(
     { manufacturingPlantId },
     { enabled: !!manufacturingPlantId },
@@ -42,9 +37,7 @@ const SelectZones = ({
           </MenuItem>
         ))}
       </Select>
-      {!manufacturingPlantId && (
-        <FormHelperText>Seleccione una planta</FormHelperText>
-      )}
+      {!manufacturingPlantId && <FormHelperText>Seleccione una planta</FormHelperText>}
     </FormControl>
   );
 };

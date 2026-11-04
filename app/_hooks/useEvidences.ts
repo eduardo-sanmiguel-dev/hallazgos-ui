@@ -17,11 +17,7 @@ const EMPTY_ROWS: EvidenceRow[] = [];
 export const useEvidences = (filters: FiltersEvidences) => {
   const [page, setPage] = useState(0);
   // Sin "Todos": son miles de hallazgos.
-  const {
-    rowsPerPage,
-    setRowsPerPage,
-    ready: rowsPerPageReady,
-  } = useRowsPerPage("evidences");
+  const { rowsPerPage, setRowsPerPage, ready: rowsPerPageReady } = useRowsPerPage("evidences");
 
   const query = useQuery({
     queryKey: ["list", "evidences", filters, page, rowsPerPage],

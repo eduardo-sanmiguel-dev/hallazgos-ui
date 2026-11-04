@@ -14,11 +14,7 @@ interface FormSectionProps {
 
 // Tarjeta que agrupa los campos de un formulario. Con título, la sección
 // queda nombrada para lectores de pantalla (formularios largos como CIAEL).
-export default function FormSection({
-  title,
-  description,
-  children,
-}: FormSectionProps) {
+export default function FormSection({ title, description, children }: FormSectionProps) {
   const titleId = useId();
 
   return (

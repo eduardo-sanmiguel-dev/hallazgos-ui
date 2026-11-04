@@ -1,9 +1,4 @@
-import {
-  EppHistoryItem,
-  EppsPage,
-  PayloadCreateEpp,
-  QueryEpps,
-} from "@interfaces";
+import { EppHistoryItem, EppsPage, PayloadCreateEpp, QueryEpps } from "@interfaces";
 import axiosWrapper, { idempotencyHeaders } from "./axiosWrapper";
 import {
   buildLocalFileNameTimestamp,
@@ -16,10 +11,7 @@ const api = axiosWrapper({
 });
 
 // Con clave de idempotencia: un reintento no duplica la entrega.
-const create = async (
-  payload: PayloadCreateEpp,
-  options: { idempotencyKey?: string } = {},
-) => {
+const create = async (payload: PayloadCreateEpp, options: { idempotencyKey?: string } = {}) => {
   const { data } = await api.post("", payload, {
     headers: idempotencyHeaders(options.idempotencyKey),
   });
@@ -30,9 +22,7 @@ const findPaginated = async ({ search, ...query }: QueryEpps) => {
   const { data } = await api.get<EppsPage>("", {
     params: {
       // Los filtros vacíos no se envían (la API los valida como positivos).
-      ...Object.fromEntries(
-        Object.entries(query).filter(([, value]) => value !== ""),
-      ),
+      ...Object.fromEntries(Object.entries(query).filter(([, value]) => value !== "")),
       ...(search?.trim() && { search: search.trim() }),
       // El historial (con firmas) se pide por colaborador al expandir la fila.
       withHistory: "false",
@@ -41,14 +31,10 @@ const findPaginated = async ({ search, ...query }: QueryEpps) => {
   return data;
 };
 
-const findEmployeeHistory = async (
-  employeeId: number,
-  manufacturingPlantId: string,
-) => {
-  const { data } = await api.get<EppHistoryItem[]>(
-    `/employees/${employeeId}/history`,
-    { params: { manufacturingPlantId } },
-  );
+const findEmployeeHistory = async (employeeId: number, manufacturingPlantId: string) => {
+  const { data } = await api.get<EppHistoryItem[]>(`/employees/${employeeId}/history`, {
+    params: { manufacturingPlantId },
+  });
   return data;
 };
 

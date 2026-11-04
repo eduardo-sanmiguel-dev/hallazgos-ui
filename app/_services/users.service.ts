@@ -110,14 +110,10 @@ const remove = async (id: number) => {
  * Supervisores de una zona de la planta (solo id, nombre y correo). Antes se
  * descargaban todos con sus zonas y procesos (~1.5 MB) para filtrar aquí.
  */
-const findZoneSupervisors = async (filters: {
-  manufacturingPlantId: string;
-  zoneId: string;
-}) => {
-  const { data } = await api.get<Pick<User, "id" | "name" | "email">[]>(
-    "/supervisors",
-    { params: filters },
-  );
+const findZoneSupervisors = async (filters: { manufacturingPlantId: string; zoneId: string }) => {
+  const { data } = await api.get<Pick<User, "id" | "name" | "email">[]>("/supervisors", {
+    params: filters,
+  });
   return data;
 };
 

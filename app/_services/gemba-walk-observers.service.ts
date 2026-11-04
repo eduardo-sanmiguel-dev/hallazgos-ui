@@ -69,20 +69,15 @@ const findAllPaginated = async ({
   limit: number;
   [key: string]: string | number | undefined;
 }) => {
-  const { data } = await api.get<{ data: GembaWalkObserver[]; count: number }>(
-    "",
-    {
-      params: {
-        page,
-        limit,
-        ...Object.fromEntries(
-          Object.entries(filters).filter(
-            ([, value]) => value !== "" && value !== undefined,
-          ),
-        ),
-      },
+  const { data } = await api.get<{ data: GembaWalkObserver[]; count: number }>("", {
+    params: {
+      page,
+      limit,
+      ...Object.fromEntries(
+        Object.entries(filters).filter(([, value]) => value !== "" && value !== undefined),
+      ),
     },
-  );
+  });
   return data;
 };
 

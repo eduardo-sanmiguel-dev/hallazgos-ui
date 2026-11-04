@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { describe, expect, test } from "vite-plus/test";
 
 import {
   EVIDENCE_STATUS_COLOR,
@@ -8,7 +8,7 @@ import {
 // Colores de estatus de un hallazgo: los mismos en chips, filtros, gráficas,
 // seguimiento y correos.
 
-test.describe("Colores de estatus", () => {
+describe("Colores de estatus", () => {
   test("ámbar, azul, verde y gris; Cancelado no es rojo", () => {
     expect(EVIDENCE_STATUS_COLOR["Abierto"].main).toBe("#B45309");
     expect(EVIDENCE_STATUS_COLOR["En progreso"].main).toBe("#1D4ED8");

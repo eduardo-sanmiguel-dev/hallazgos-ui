@@ -8,13 +8,7 @@ import ts from "typescript";
 const UI_ROOT = join(__dirname, "..", "..");
 
 // Corren solo en el servidor (no llegan al navegador) o son solo tipos.
-const NOT_MEASURABLE = [
-  "app/_interfaces/",
-  "app/layout.tsx",
-  "app/manifest.ts",
-  "app/not-found.tsx",
-  "app/privacy/page.tsx",
-];
+const NOT_MEASURABLE = ["app/_interfaces/", "app/manifest.ts"];
 
 /** Ruta relativa al UI ("app/..."), venga del source map o del disco. */
 const toAppPath = (filePath: string) => {
@@ -45,7 +39,8 @@ export const coverageOptions: CoverageReportOptions = {
   outputDir: "./coverage",
   reports: ["v8", "console-summary", "lcovonly"],
   entryFilter: (entry) =>
-    entry.url.includes("/_next/static/") && !entry.url.includes("node_modules"),
+    (entry.url.includes("/app/") || entry.url.includes("/assets/")) &&
+    !entry.url.includes("node_modules"),
   sourceFilter: isOwnSource,
   sourcePath: toAppPath,
   // Descarta chunks sin source map (Next, librerías) que pasan tal cual.

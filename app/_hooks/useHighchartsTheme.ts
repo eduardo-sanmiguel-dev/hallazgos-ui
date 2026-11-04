@@ -1,5 +1,3 @@
-"use client";
-
 import Highcharts from "highcharts/esm/highcharts.src.js";
 import { lighten, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -48,8 +46,7 @@ const themeOptions = (theme: Theme): Highcharts.Options => {
     chart: {
       // Igual al Paper que contiene la gráfica (en oscuro, MUI lo aclara
       // ligeramente por la elevación).
-      backgroundColor:
-        mode === "dark" ? lighten(background.paper, 0.05) : background.paper,
+      backgroundColor: mode === "dark" ? lighten(background.paper, 0.05) : background.paper,
     },
     title: { style: { color: text.primary } },
     subtitle: { style: { color: text.secondary } },

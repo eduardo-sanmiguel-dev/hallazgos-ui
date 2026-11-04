@@ -7,11 +7,7 @@ import { rowsPerPageActionContext } from "@shared/utils/pagination";
  * selector no queda con nombre). Sin RUM iniciado (desarrollo, bots) el SDK
  * ignora la llamada; un fallo del monitoreo nunca afecta la tabla.
  */
-export const trackRowsPerPageChange = (
-  table: string,
-  previous: number,
-  rowsPerPage: number,
-) => {
+export const trackRowsPerPageChange = (table: string, previous: number, rowsPerPage: number) => {
   try {
     openobserveRum.addAction(
       "filas_por_pagina",

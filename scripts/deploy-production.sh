@@ -48,15 +48,6 @@ al_fallar() {
   esac
 } >&2
 
-# Clave estable para Server Actions (solo legible por el usuario).
-preparar_clave() {
-  if [ ! -f .server_actions_key ]; then
-    (umask 077; openssl rand -base64 32 > .server_actions_key)
-  fi
-  export NEXT_SERVER_ACTIONS_ENCRYPTION_KEY
-  NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=$(cat .server_actions_key)
-}
-
 # fetch + reset en vez de pull: nunca se queda en un merge a medias
 # y el servidor queda exactamente igual al remoto.
 actualizar_codigo() {
@@ -131,55 +122,28 @@ instalar() {
   return 1
 }
 
-detener() {
-  pm2 stop "$PM2_NAME"
-  ESTADO="detenida"
-}
-
-# Aparta el build actual en .next.prev para poder regresar a él.
-# La caché se queda en .next para que el build nuevo siga siendo rápido.
-respaldar_build() {
-  rm -rf .next.prev
-  if [ -d .next ]; then
-    mv .next .next.prev
-    mkdir -p .next
-    if [ -d .next.prev/cache ]; then
-      mv .next.prev/cache .next/cache
-    fi
-  fi
-}
-
-# Vuelve al build anterior y lo arranca.
-restaurar_build() {
-  if [ ! -d .next.prev ]; then
-    echo "No hay build anterior para restaurar." >&2
-    return 0
-  fi
-  echo "Restaurando el build anterior..." >&2
-  if [ -d .next/cache ]; then
-    rm -rf .next.prev/cache
-    mv .next/cache .next.prev/cache
-  fi
-  rm -rf .next
-  mv .next.prev .next
-  if pm2 restart "$PM2_NAME" --update-env; then
-    ESTADO="revertida"
-  else
-    ESTADO="detenida"
-  fi
-}
-
-# next build reescribe .next, por eso la app está detenida en este paso.
+# Compila en otro directorio mientras se sigue sirviendo el dist anterior.
 construir() {
-  respaldar_build
-  if ! pnpm build; then
-    restaurar_build
+  env VITE_BUILD_OUT_DIR=dist.next pnpm build
+}
+
+restaurar_build() {
+  if [ ! -d dist.prev ]; then
+    echo "No hay dist anterior; para el primer cambio desde Next restaura el commit y lockfile anteriores." >&2
     return 1
   fi
+  rm -rf dist.failed
+  if [ -d dist ]; then mv dist dist.failed; fi
+  mv dist.prev dist
+  pm2 startOrReload ecosystem.config.js --only "$PM2_NAME" --update-env
+  ESTADO="revertida"
 }
 
 arrancar() {
-  pm2 restart "$PM2_NAME" --update-env
+  rm -rf dist.prev
+  if [ -d dist ]; then mv dist dist.prev; fi
+  mv dist.next dist
+  pm2 startOrReload ecosystem.config.js --only "$PM2_NAME" --update-env
   ESTADO="nueva"
 }
 
@@ -200,7 +164,7 @@ esperar_app() {
 # Si la versión nueva no responde, regresa al build anterior.
 verificar_app() {
   if esperar_app; then
-    rm -rf .next.prev
+    rm -rf dist.prev
     return 0
   fi
   restaurar_build
@@ -241,15 +205,14 @@ main() {
   trap al_fallar ERR
 
   cd "$APP_DIR"
-  preparar_clave
 
   medir "actualizar código"       actualizar_codigo
   medir "verificar versiones"     verificar_versiones
   medir "revisar lockfile"        revisar_lockfile
   medir "pnpm install"            instalar
-  # Antes de detener la app: si falta algo, producción sigue arriba.
+  # Si falla la compilación, el dist anterior continúa disponible.
   medir "verificar dependencias"  pnpm check-deps
-  medir "pm2 stop"                detener
+  medir "validar tipos"           pnpm typecheck
   medir "pnpm build"              construir
   medir "pm2 restart"             arrancar
   medir "verificar app"           verificar_app

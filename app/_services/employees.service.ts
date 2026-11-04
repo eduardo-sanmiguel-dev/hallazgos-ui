@@ -47,8 +47,7 @@ const findAllPaginated = async ({
   page: number;
   limit: number;
 }) => {
-  const { manufacturingPlantId, name, areaId, positionId, genreId, isActive } =
-    filters;
+  const { manufacturingPlantId, name, areaId, positionId, genreId, isActive } = filters;
   const { data } = await api.get<{ data: Employee[]; count: number }>("", {
     params: {
       page,

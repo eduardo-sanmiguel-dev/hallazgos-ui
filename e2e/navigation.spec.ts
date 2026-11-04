@@ -5,9 +5,7 @@ import { expect, test } from "./support/fixtures";
 // según el rol del usuario.
 
 test.describe("Navegación", () => {
-  test("el menú colapsado abre cada grupo en un menú flotante", async ({
-    page,
-  }) => {
+  test("el menú colapsado abre cada grupo en un menú flotante", async ({ page }) => {
     await page.goto("/dashboard");
     const nav = page.getByRole("navigation", { name: "Menú principal" });
     await nav.getByRole("button", { name: "General" }).click();
@@ -25,9 +23,7 @@ test.describe("Navegación", () => {
     const nav = page.getByRole("navigation", { name: "Menú principal" });
 
     // El grupo va antes que su opción del mismo nombre.
-    const group = nav
-      .getByRole("button", { name: "Criterios", exact: true })
-      .first();
+    const group = nav.getByRole("button", { name: "Criterios", exact: true }).first();
     await group.click();
     await nav.getByRole("button", { name: "Tipos de criterios" }).click();
     await expect(page).toHaveURL(/\/secondary-types$/);
@@ -38,14 +34,10 @@ test.describe("Navegación", () => {
     await nav.getByRole("button", { name: "Hallazgos" }).click();
     await expect(page).toHaveURL(/\/hallazgos$/);
     await page.getByRole("button", { name: "Cerrar menú" }).click();
-    await expect(
-      page.getByRole("button", { name: "Abrir menú" }),
-    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Abrir menú" })).toBeVisible();
   });
 
-  test("en móvil el menú es un panel que se cierra al navegar", async ({
-    page,
-  }) => {
+  test("en móvil el menú es un panel que se cierra al navegar", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/dashboard");
     await page.getByRole("button", { name: "Abrir menú" }).click();
@@ -80,9 +72,7 @@ test.describe("Navegación", () => {
   });
 
   for (const role of ["General", "Supervisor"]) {
-    test(`un usuario ${role} no ve la configuración de administrador`, async ({
-      page,
-    }) => {
+    test(`un usuario ${role} no ve la configuración de administrador`, async ({ page }) => {
       await mockGet(page, "/users/get-information-current-user", {
         id: 7101,
         name: `E2E ${role}`,
@@ -95,15 +85,9 @@ test.describe("Navegación", () => {
       await page.goto("/hallazgos");
       await page.getByRole("button", { name: "Abrir menú" }).click();
       const nav = page.getByRole("navigation", { name: "Menú principal" });
-      await expect(
-        nav.getByRole("button", { name: "Hallazgos" }),
-      ).toBeVisible();
-      await expect(nav.getByRole("button", { name: "Usuarios" })).toHaveCount(
-        0,
-      );
-      await expect(
-        nav.getByRole("button", { name: "Comportamiento seguro (ICS)" }),
-      ).toHaveCount(0);
+      await expect(nav.getByRole("button", { name: "Hallazgos" })).toBeVisible();
+      await expect(nav.getByRole("button", { name: "Usuarios" })).toHaveCount(0);
+      await expect(nav.getByRole("button", { name: "Comportamiento seguro (ICS)" })).toHaveCount(0);
     });
   }
 });

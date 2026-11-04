@@ -6,9 +6,7 @@ interface LoadingLinearProps {
   label?: string;
 }
 
-export default function LoadingLinear({
-  label = "Cargando…",
-}: LoadingLinearProps) {
+export default function LoadingLinear({ label = "Cargando…" }: LoadingLinearProps) {
   return (
     <Box sx={{ width: "100%" }} role="status" aria-live="polite">
       <LinearProgress aria-label={label} />

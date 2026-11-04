@@ -1,11 +1,7 @@
-"use client";
-
-export const dynamic = "force-dynamic";
-
 import { useEffect, useState } from "react";
 
-import Image from "next/image";
-import { useSearchParams } from "next/navigation";
+import Image from "@shared/components/AppImage";
+import { useSearchParams } from "@shared/navigation";
 
 import { CssBaseline } from "@mui/material";
 import { Box } from "@mui/material";

@@ -1,12 +1,10 @@
-"use client";
-
 import { MouseEvent, useId, useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
 
 import { getQueryClient } from "@shared/libs/queryClient";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@shared/navigation";
 
 import { Avatar } from "@mui/material";
 import { Box } from "@mui/material";
@@ -40,7 +38,7 @@ import { deleteUserDrafts, listUserDrafts } from "@shared/drafts/draftStore";
 import { useConfirmDialog } from "./ConfirmDialog";
 import { TOUCH_MEDIA } from "../../theme";
 
-const appVersion = process.env.NEXT_PUBLIC_APP_VERSION;
+const appVersion = import.meta.env.VITE_APP_VERSION;
 
 const initialsOf = (name: string, email: string) => {
   const words = name.trim().split(/\s+/).filter(Boolean);
@@ -65,17 +63,16 @@ export default function HeaderUserMenu() {
   const { mode: installMode, promptInstall } = useInstallApp();
 
   const { confirm, confirmDialog } = useConfirmDialog();
-  const { userId, name, email, role, manufacturingPlants, resetSession } =
-    useUserSessionStore(
-      useShallow((state) => ({
-        userId: state.id,
-        name: state.name,
-        email: state.email,
-        role: state.role,
-        manufacturingPlants: state.manufacturingPlants,
-        resetSession: state.resetSession,
-      })),
-    );
+  const { userId, name, email, role, manufacturingPlants, resetSession } = useUserSessionStore(
+    useShallow((state) => ({
+      userId: state.id,
+      name: state.name,
+      email: state.email,
+      role: state.role,
+      manufacturingPlants: state.manufacturingPlants,
+      resetSession: state.resetSession,
+    })),
+  );
 
   const displayName = name || email;
   const roleLabel = role === ROLE_ADMINISTRADOR ? "Administrador" : "Usuario";
@@ -92,9 +89,7 @@ export default function HeaderUserMenu() {
       // Nada de la cuenta que sale queda en memoria para la siguiente.
       getQueryClient().clear();
       router.push("/");
-      setTimeout(() => {
-        resetSession();
-      }, 1000);
+      resetSession();
     },
   });
 
@@ -147,9 +142,7 @@ export default function HeaderUserMenu() {
   return (
     <>
       <ButtonBase
-        onClick={(event: MouseEvent<HTMLElement>) =>
-          setAnchorEl(event.currentTarget)
-        }
+        onClick={(event: MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget)}
         aria-label={`Cuenta de ${displayName}`}
         aria-haspopup="menu"
         aria-expanded={isOpen}
@@ -233,12 +226,7 @@ export default function HeaderUserMenu() {
               {displayName}
             </Typography>
             {name && email && (
-              <Typography
-                variant="body2"
-                noWrap
-                component="div"
-                sx={{ color: "text.secondary" }}
-              >
+              <Typography variant="body2" noWrap component="div" sx={{ color: "text.secondary" }}>
                 {email}
               </Typography>
             )}
@@ -314,26 +302,14 @@ export default function HeaderUserMenu() {
       </Menu>
 
       {/* Safari de iPhone/iPad no tiene diálogo de instalación. */}
-      <Dialog
-        open={isIosHelpOpen}
-        onClose={() => setIsIosHelpOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
+      <Dialog open={isIosHelpOpen} onClose={() => setIsIosHelpOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Instalar app</DialogTitle>
         <DialogContent>
-          <Typography
-            component="ol"
-            sx={{ pl: 2.5, m: 0, "& li": { mb: 1.5 } }}
-          >
+          <Typography component="ol" sx={{ pl: 2.5, m: 0, "& li": { mb: 1.5 } }}>
             <li>
               Toca <b>Compartir</b>{" "}
-              <IosShareIcon
-                fontSize="small"
-                aria-hidden
-                sx={{ verticalAlign: "text-bottom" }}
-              />{" "}
-              en la barra de Safari.
+              <IosShareIcon fontSize="small" aria-hidden sx={{ verticalAlign: "text-bottom" }} /> en
+              la barra de Safari.
             </li>
             <li>
               Elige <b>Agregar a inicio</b>{" "}
@@ -345,8 +321,7 @@ export default function HeaderUserMenu() {
               .
             </li>
             <li>
-              Toca <b>Agregar</b>: ComportArte aparecerá en tu pantalla de
-              inicio.
+              Toca <b>Agregar</b>: ComportArte aparecerá en tu pantalla de inicio.
             </li>
           </Typography>
         </DialogContent>

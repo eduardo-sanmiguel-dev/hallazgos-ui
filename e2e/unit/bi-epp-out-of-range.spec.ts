@@ -1,22 +1,22 @@
-import { expect, test } from "@playwright/test";
+import { describe, expect, test } from "vite-plus/test";
 
 import type { BiEppOutOfRangeRow } from "../../app/_interfaces/dashboard.interfaces";
 import {
   matchesEmployee,
   rankEmployees,
-} from "../../app/(routes)/business-intelligence/epp/_lib/outOfRange";
+} from "../../app/features/business-intelligence/epp/_lib/outOfRange";
 import {
   DEFAULT_PERIOD,
   presetRange,
-} from "../../app/(routes)/business-intelligence/epp/_lib/period";
+} from "../../app/features/business-intelligence/epp/_lib/period";
 import {
   formatIsoDate,
   periodLabel,
-} from "../../app/(routes)/business-intelligence/epp/_lib/biEpp";
+} from "../../app/features/business-intelligence/epp/_lib/biEpp";
 
 // Lógica pura del periodo y del ranking fuera de rango (sin navegador).
 
-test.describe("Análisis EPP: atajos de periodo", () => {
+describe("Análisis EPP: atajos de periodo", () => {
   const today = new Date(2026, 9, 22); // 22 oct 2026
 
   test("últimos 30 días (por omisión), este mes, mes anterior, 3 meses y este año", () => {
@@ -64,11 +64,9 @@ test.describe("Análisis EPP: atajos de periodo", () => {
   });
 });
 
-test.describe("Análisis EPP: textos de fechas", () => {
+describe("Análisis EPP: textos de fechas", () => {
   test("rangos de uno o varios meses y años", () => {
-    expect(periodLabel({ desde: "2026-08-01", hasta: "2026-10-22" })).toBe(
-      "1 ago – 22 oct 2026",
-    );
+    expect(periodLabel({ desde: "2026-08-01", hasta: "2026-10-22" })).toBe("1 ago – 22 oct 2026");
     expect(periodLabel({ desde: "2025-12-01", hasta: "2026-01-22" })).toBe(
       "1 dic 2025 – 22 ene 2026",
     );
@@ -118,14 +116,11 @@ const ROWS = [
   row({ employeeId: 3, name: "Carla", code: "300", deliveries: 2 }),
 ];
 
-test.describe("Análisis EPP: ranking fuera de rango", () => {
+describe("Análisis EPP: ranking fuera de rango", () => {
   test("todos los equipos: totales, porcentaje, equipos y anticipación", () => {
     const ranking = rankEmployees(ROWS);
 
-    expect(ranking.map(({ name }) => name)).toEqual([
-      "Beto Gómez",
-      "Ana Pérez",
-    ]);
+    expect(ranking.map(({ name }) => name)).toEqual(["Beto Gómez", "Ana Pérez"]);
     // Empatan en 3: Beto va primero por porcentaje (100 % vs 75 %).
     expect(ranking[1]).toMatchObject({
       outOfRange: 3,

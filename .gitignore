@@ -22,6 +22,10 @@ AGENTS.md
 
 # production
 /build
+/dist/
+/dist.*/
+/.vite/
+/.vite-plus/
 
 # misc
 .DS_Store
@@ -48,3 +52,7 @@ next-env.d.ts
 /test-results/
 /playwright-report/
 /blob-report/
+
+# Generated from the central Vite+ config by the portable runner
+/.oxlint.generated.json
+/.oxfmt.generated.json

@@ -78,16 +78,12 @@ export const primaryTextColor = (theme: Theme) =>
 // detalle de hallazgo). 16 % en claro y 24 % en oscuro: con su texto
 // (`primaryTextColor`) da 5.7:1 o más en ambos temas.
 export const primarySoftBackground = (theme: Theme) =>
-  alpha(
-    theme.palette.primary.main,
-    theme.palette.mode === "light" ? 0.16 : 0.24,
-  );
+  alpha(theme.palette.primary.main, theme.palette.mode === "light" ? 0.16 : 0.24);
 
 // Línea de acento bajo esos encabezados: da presencia de marca sin un relleno
 // fuerte (que competiría con los botones principales). Es decorativa: el
 // fondo ya delimita el encabezado.
-export const primaryAccentBorder = (theme: Theme) =>
-  `2px solid ${theme.palette.primary.main}`;
+export const primaryAccentBorder = (theme: Theme) => `2px solid ${theme.palette.primary.main}`;
 
 // En modo claro, el texto y los íconos en color primario usan el verde oscuro;
 // los rellenos (botón contained, chip filled) y el logo conservan el de marca.

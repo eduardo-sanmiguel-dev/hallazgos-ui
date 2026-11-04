@@ -1,5 +1,3 @@
-"use client";
-
 import type { Dayjs } from "dayjs";
 import "dayjs/locale/es";
 
@@ -79,9 +77,7 @@ export default function PeriodFilter({ value, onChange }: Props) {
         <LocalizationProvider
           dateAdapter={AdapterDayjs}
           adapterLocale="es"
-          localeText={
-            esES.components.MuiLocalizationProvider.defaultProps.localeText
-          }
+          localeText={esES.components.MuiLocalizationProvider.defaultProps.localeText}
         >
           <Paper sx={{ width: { sm: 180 } }}>
             <DatePicker

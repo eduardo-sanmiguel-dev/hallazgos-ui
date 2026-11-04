@@ -28,18 +28,12 @@ const rowsPerPageSelect = (page: Page) =>
 
 const pickRowsPerPage = async (page: Page, option: string) => {
   await rowsPerPageSelect(page).click();
-  await page
-    .getByRole("listbox")
-    .getByRole("option", { name: option, exact: true })
-    .click();
+  await page.getByRole("listbox").getByRole("option", { name: option, exact: true }).click();
 };
 
 const optionLabels = async (page: Page) => {
   await rowsPerPageSelect(page).click();
-  const labels = await page
-    .getByRole("listbox")
-    .getByRole("option")
-    .allInnerTexts();
+  const labels = await page.getByRole("listbox").getByRole("option").allInnerTexts();
   await page.keyboard.press("Escape");
   return labels.map((label) => label.trim());
 };
@@ -56,16 +50,11 @@ const spyRumActions = async (page: Page) => {
       w.__rumActions.push({ name, context });
     };
   });
-  return () =>
-    page.evaluate(
-      () => (window as unknown as { __rumActions: unknown[] }).__rumActions,
-    );
+  return () => page.evaluate(() => (window as unknown as { __rumActions: unknown[] }).__rumActions);
 };
 
 test.describe("Filas por página", () => {
-  test("una lista grande empieza en 10 y no ofrece 5 ni Todos", async ({
-    page,
-  }) => {
+  test("una lista grande empieza en 10 y no ofrece 5 ni Todos", async ({ page }) => {
     const errors = trackPageErrors(page);
     const limits = trackListLimits(page, "/users");
     await page.goto("/users");
@@ -83,9 +72,7 @@ test.describe("Filas por página", () => {
     expect(await optionLabels(page)).toEqual(["10", "25", "50", "Todos"]);
   });
 
-  test("recuerda la elección por tabla y la registra en el RUM", async ({
-    page,
-  }) => {
+  test("recuerda la elección por tabla y la registra en el RUM", async ({ page }) => {
     const limits = trackListLimits(page, "/users");
     await page.goto("/users");
     await expect(rowsPerPageSelect(page)).toHaveText("10");
@@ -127,9 +114,7 @@ test.describe("Filas por página", () => {
     await expect(rowsPerPageSelect(page)).toHaveText("10");
   });
 
-  test("hallazgos empieza en 10, sin Todos, y recuerda la elección", async ({
-    page,
-  }) => {
+  test("hallazgos empieza en 10, sin Todos, y recuerda la elección", async ({ page }) => {
     const limits: number[] = [];
     await page.route(
       (url) => url.pathname.endsWith("/api/v1/evidences"),

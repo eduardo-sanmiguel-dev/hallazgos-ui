@@ -14,9 +14,7 @@ const rules = ["Administrador", "General", "Supervisor"];
 const SelectRules = ({ value, onChange, isFilter = false }: Props) => {
   return (
     <FormControl fullWidth>
-      <InputLabel id="manufacturing-plant-simple-select-label">
-        Roles
-      </InputLabel>
+      <InputLabel id="manufacturing-plant-simple-select-label">Roles</InputLabel>
       <Select
         labelId="manufacturing-plant-simple-select-label"
         id="manufacturing-plant-simple-select"

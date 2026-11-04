@@ -7,11 +7,7 @@ import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 
-import {
-  STATUS_CLOSED,
-  STATUS_IN_PROGRESS,
-  STATUS_OPEN,
-} from "@shared/constants";
+import { STATUS_CLOSED, STATUS_IN_PROGRESS, STATUS_OPEN } from "@shared/constants";
 import {
   EVIDENCE_STATUS_COLOR,
   SemanticTone,
@@ -33,11 +29,7 @@ type StatusChipProps = Omit<ChipProps, "color" | "label" | "icon"> & {
 
 // Chip con color semántico. El color nunca va solo: siempre lleva texto y,
 // en estatus de hallazgo, ícono (se distingue sin ver colores).
-export default function StatusChip({
-  label,
-  tone = "default",
-  ...props
-}: StatusChipProps) {
+export default function StatusChip({ label, tone = "default", ...props }: StatusChipProps) {
   return <Chip label={label} color={tone} {...props} />;
 }
 

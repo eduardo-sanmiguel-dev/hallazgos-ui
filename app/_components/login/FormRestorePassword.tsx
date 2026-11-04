@@ -1,10 +1,8 @@
-"use client";
-
 import { useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "@shared/navigation";
 
 import { Button } from "@mui/material";
 import { TextField } from "@mui/material";
@@ -16,15 +14,13 @@ import { constants } from "@constants";
 
 const FormRestorePassword = () => {
   const [email, setEmail] = useState(
-    process.env.NODE_ENV === constants.environments.development
-      ? "eduardo-266@hotmail.com"
-      : "",
+    import.meta.env.MODE === constants.environments.development ? "eduardo-266@hotmail.com" : "",
   );
   const [password, setPassword] = useState(
-    process.env.NODE_ENV === constants.environments.development ? "123" : "",
+    import.meta.env.MODE === constants.environments.development ? "123" : "",
   );
   const [passwordConfirm, setPasswordConfirm] = useState(
-    process.env.NODE_ENV === constants.environments.development ? "123" : "",
+    import.meta.env.MODE === constants.environments.development ? "123" : "",
   );
 
   const router = useRouter();

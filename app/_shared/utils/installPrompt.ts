@@ -1,6 +1,6 @@
 // Instalación de la app (PWA). Chrome y Edge disparan `beforeinstallprompt`
 // una sola vez, poco después de cargar la página: se escucha desde
-// instrumentation-client.ts (antes de que la app sea interactiva) y se guarda
+// app/observability.ts (antes de que la app sea interactiva) y se guarda
 // aquí para que el botón "Instalar app" lo use cuando el usuario quiera.
 
 export interface BeforeInstallPromptEvent extends Event {
@@ -32,8 +32,7 @@ export const getInstallMode = ({
 
   // iPadOS se presenta como Mac de escritorio, pero con pantalla táctil.
   const isIOS =
-    /iPhone|iPad|iPod/i.test(userAgent) ||
-    (/Macintosh/i.test(userAgent) && maxTouchPoints > 1);
+    /iPhone|iPad|iPod/i.test(userAgent) || (/Macintosh/i.test(userAgent) && maxTouchPoints > 1);
   // En iOS solo Safari puede agregar a inicio (Chrome/Firefox/Edge de iOS no).
   const isIOSSafari = isIOS && !/CriOS|FxiOS|EdgiOS/i.test(userAgent);
 

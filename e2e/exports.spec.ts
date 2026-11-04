@@ -16,9 +16,7 @@ const expectXlsx = async (download: Download) => {
 test.describe("Exportaciones", () => {
   test("descarga el Excel de hallazgos", async ({ page }) => {
     await page.goto("/hallazgos");
-    await expect
-      .poll(() => recordCount(page), { timeout: 30_000 })
-      .toBeGreaterThan(0);
+    await expect.poll(() => recordCount(page), { timeout: 30_000 }).toBeGreaterThan(0);
 
     const download = page.waitForEvent("download", { timeout: 120_000 });
     await page.getByRole("button", { name: "Excel" }).click();
@@ -28,9 +26,7 @@ test.describe("Exportaciones", () => {
     expect(file.suggestedFilename()).toMatch(/^Hallazgos_/);
   });
 
-  test("el PDF de hallazgos pide planta antes de descargar", async ({
-    page,
-  }) => {
+  test("el PDF de hallazgos pide planta antes de descargar", async ({ page }) => {
     let pdfCalls = 0;
     page.on("request", (request) => {
       if (request.url().includes("/download/pdf")) pdfCalls++;

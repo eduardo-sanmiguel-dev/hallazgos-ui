@@ -9,9 +9,7 @@ export default function Copyright(props: any) {
       {...props}
       sx={{
         color: (theme) =>
-          theme.palette.mode === "light"
-            ? theme.palette.common.black
-            : theme.palette.common.white,
+          theme.palette.mode === "light" ? theme.palette.common.black : theme.palette.common.white,
         mt: 2,
       }}
     >

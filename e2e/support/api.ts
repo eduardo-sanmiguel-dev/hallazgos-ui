@@ -52,8 +52,7 @@ export const captureWrites = async (
 };
 
 /** Id del registro que el formulario está editando (?id=N en la URL). */
-export const editingId = (page: Page) =>
-  Number(new URL(page.url()).searchParams.get("id"));
+export const editingId = (page: Page) => Number(new URL(page.url()).searchParams.get("id"));
 
 /**
  * Responde las lecturas (GET) de una ruta del API con datos fijos, para
@@ -64,10 +63,7 @@ export const mockGet = (
   page: Page,
   path: string,
   json: unknown,
-  {
-    when = () => true,
-    status = 200,
-  }: { when?: (url: URL) => boolean; status?: number } = {},
+  { when = () => true, status = 200 }: { when?: (url: URL) => boolean; status?: number } = {},
 ) =>
   page.route(
     // Solo URLs del API: el UI tiene páginas con la misma ruta
@@ -77,7 +73,5 @@ export const mockGet = (
       url.pathname.replace(/^.*\/api\/v1/, "") === path &&
       when(url),
     (route) =>
-      route.request().method() === "GET"
-        ? route.fulfill({ status, json })
-        : route.fallback(),
+      route.request().method() === "GET" ? route.fulfill({ status, json }) : route.fallback(),
   );

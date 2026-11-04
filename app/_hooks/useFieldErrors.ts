@@ -35,13 +35,10 @@ const focusField = (field: string) => {
     return;
   }
 
-  const message = document.querySelector<HTMLElement>(
-    `[data-error-for="${CSS.escape(field)}"]`,
-  );
+  const message = document.querySelector<HTMLElement>(`[data-error-for="${CSS.escape(field)}"]`);
   if (!message) return;
 
-  const container =
-    message.closest(".MuiFormControl-root") ?? message.parentElement;
+  const container = message.closest(".MuiFormControl-root") ?? message.parentElement;
   const target =
     container?.querySelector<HTMLElement>(FOCUSABLE) ??
     container?.previousElementSibling?.querySelector<HTMLElement>(FOCUSABLE);
@@ -54,15 +51,11 @@ const focusAfterRender = (field: string) =>
   requestAnimationFrame(() => requestAnimationFrame(() => focusField(field)));
 
 const sameValues = (a: unknown[], b: unknown[]) =>
-  a.length === b.length &&
-  a.every((value, index) => Object.is(value, b[index]));
+  a.length === b.length && a.every((value, index) => Object.is(value, b[index]));
 
 // Un nombre que el formulario no tiene solo queda en el aviso: errorOf
 // nunca lo consulta.
-const resolveField = <F extends string>(
-  path: string,
-  map?: ApiFieldMap,
-): F | null => {
+const resolveField = <F extends string>(path: string, map?: ApiFieldMap): F | null => {
   if (!map) return path as F;
   const mapped = typeof map === "function" ? map(path) : map[path];
   // Sin entrada en el mapa: mismo nombre que en el API.
@@ -80,9 +73,7 @@ const resolveField = <F extends string>(
 //   Service.create(payload).then(...).catch(failFromApi);
 //   <TextField {...fieldProps("name")} ... />
 export function useFieldErrors<F extends string>(...values: unknown[]) {
-  return useErrorState<F, unknown[]>(values, (snapshot) =>
-    sameValues(snapshot, values),
-  );
+  return useErrorState<F, unknown[]>(values, (snapshot) => sameValues(snapshot, values));
 }
 
 /**
@@ -122,17 +113,12 @@ function useErrorState<F extends string, S>(
    *   if (failAll(missing)) return;
    */
   const failAll = (fields: Partial<Record<F, string>>) => {
-    const entries = Object.entries(fields).filter(([, message]) => message) as [
-      F,
-      string,
-    ][];
+    const entries = Object.entries(fields).filter(([, message]) => message) as [F, string][];
     if (!entries.length) return false;
 
     const [[first, firstMessage]] = entries;
     toast.error(
-      entries.length === 1
-        ? firstMessage
-        : `Completa los ${entries.length} campos marcados.`,
+      entries.length === 1 ? firstMessage : `Completa los ${entries.length} campos marcados.`,
     );
     mark(Object.fromEntries(entries) as Partial<Record<F, string>>, first);
     return true;
@@ -161,9 +147,7 @@ function useErrorState<F extends string, S>(
   };
 
   const errorOf = (field: F) =>
-    failed && isFieldActive(failed.snapshot, field)
-      ? failed.fields[field]
-      : undefined;
+    failed && isFieldActive(failed.snapshot, field) ? failed.fields[field] : undefined;
 
   // Props para un TextField: id (para el foco), error y mensaje.
   const fieldProps = (field: F) => ({

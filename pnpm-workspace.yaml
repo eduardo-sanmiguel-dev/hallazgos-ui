@@ -10,3 +10,7 @@ minimumReleaseAgeExclude:
   - "@tanstack/react-query@5.104.5"
 patchedDependencies:
   react-html5-camera-photo@1.5.11: patches/react-html5-camera-photo@1.5.11.patch
+
+overrides:
+  "vite@*": "npm:@voidzero-dev/vite-plus-core@1.4.0"
+  "vitest@*": "5.0.5"

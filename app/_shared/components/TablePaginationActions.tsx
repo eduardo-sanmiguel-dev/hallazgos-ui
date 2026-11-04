@@ -15,9 +15,7 @@ interface TablePaginationActionsProps {
   onPageChange: (event: MouseEvent<HTMLButtonElement>, newPage: number) => void;
 }
 
-export default function TablePaginationActions(
-  props: TablePaginationActionsProps,
-) {
+export default function TablePaginationActions(props: TablePaginationActionsProps) {
   const theme = useTheme();
   const { count, page, rowsPerPage, onPageChange } = props;
 
@@ -53,22 +51,14 @@ export default function TablePaginationActions(
         disabled={page === 0}
         aria-label="Página anterior"
       >
-        {theme.direction === "rtl" ? (
-          <KeyboardArrowRight />
-        ) : (
-          <KeyboardArrowLeft />
-        )}
+        {theme.direction === "rtl" ? <KeyboardArrowRight /> : <KeyboardArrowLeft />}
       </IconButton>
       <IconButton
         onClick={handleNextButtonClick}
         disabled={page >= lastPage}
         aria-label="Página siguiente"
       >
-        {theme.direction === "rtl" ? (
-          <KeyboardArrowLeft />
-        ) : (
-          <KeyboardArrowRight />
-        )}
+        {theme.direction === "rtl" ? <KeyboardArrowLeft /> : <KeyboardArrowRight />}
       </IconButton>
       <IconButton
         onClick={handleLastPageButtonClick}

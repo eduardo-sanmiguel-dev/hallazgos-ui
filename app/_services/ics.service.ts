@@ -1,8 +1,4 @@
-import axiosWrapper, {
-  idempotencyHeaders,
-  submitResult,
-  type SubmitResult,
-} from "./axiosWrapper";
+import axiosWrapper, { idempotencyHeaders, submitResult, type SubmitResult } from "./axiosWrapper";
 import { CatalogICS, ICSData } from "@interfaces";
 import { IFiltersIcs } from "@routes/ics/_components/FiltersIcs";
 import type { UploadOptions } from "./evidences.service";
@@ -22,10 +18,7 @@ interface Payload {
   employeeIds: number[];
 }
 
-const findAll = async ({
-  manufacturingPlantId,
-  name,
-}: Partial<IFiltersIcs>) => {
+const findAll = async ({ manufacturingPlantId, name }: Partial<IFiltersIcs>) => {
   const { data } = await api.get<ICSData[]>("", {
     params: {
       ...(manufacturingPlantId && { manufacturingPlantId }),

@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 
-import Link from "next/link";
+import Link from "@shared/components/AppLink";
 
 import { Button } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";

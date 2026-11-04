@@ -6,9 +6,7 @@ interface UserIdentity {
 
 interface IdentityStore {
   getState: () => UserIdentity;
-  subscribe: (
-    listener: (state: UserIdentity, previous: UserIdentity) => void,
-  ) => () => void;
+  subscribe: (listener: (state: UserIdentity, previous: UserIdentity) => void) => () => void;
 }
 
 interface RumIdentityClient {

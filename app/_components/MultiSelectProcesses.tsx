@@ -41,11 +41,7 @@ interface Props {
   manufacturingPlantNames: string[];
 }
 
-export default function MultiSelectProcesses({
-  values,
-  onChange,
-  manufacturingPlantNames,
-}: Props) {
+export default function MultiSelectProcesses({ values, onChange, manufacturingPlantNames }: Props) {
   const theme = useTheme();
   const [labelSelectAll, setLabelSelectAll] = useState("Todos");
 
@@ -53,9 +49,7 @@ export default function MultiSelectProcesses({
 
   const names = useMemo(
     () =>
-      (processes ?? []).map(
-        (process) => `${process.manufacturingPlant.name} - ${process.name}`,
-      ),
+      (processes ?? []).map((process) => `${process.manufacturingPlant.name} - ${process.name}`),
     [processes],
   );
 
@@ -80,9 +74,7 @@ export default function MultiSelectProcesses({
     onChange(processesFiltered);
   }, [manufacturingPlantNames]);
 
-  const handleChange = ({
-    target: { value },
-  }: SelectChangeEvent<typeof values>) => {
+  const handleChange = ({ target: { value } }: SelectChangeEvent<typeof values>) => {
     if (value.includes("none-all")) {
       if (values.length === names.length) {
         onChange([]);
@@ -98,21 +90,14 @@ export default function MultiSelectProcesses({
   return (
     <div>
       <FormControl sx={{ width: "100%" }}>
-        <InputLabel id="processes-multiple-chip-label">
-          Procesos (opcional)
-        </InputLabel>
+        <InputLabel id="processes-multiple-chip-label">Procesos (opcional)</InputLabel>
         <Select
           labelId="processes-multiple-chip-label"
           id="processes-multiple-chip"
           multiple
           value={values}
           onChange={handleChange}
-          input={
-            <OutlinedInput
-              id="select-multiple-chip-processes"
-              label="Procesos (opcional)"
-            />
-          }
+          input={<OutlinedInput id="select-multiple-chip-processes" label="Procesos (opcional)" />}
           renderValue={(selected) => (
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
               {selected.map((value) => (
@@ -126,11 +111,7 @@ export default function MultiSelectProcesses({
           {names
             .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }))
             .map((name) => (
-              <MenuItem
-                key={name}
-                value={name}
-                style={getStyles(name, values, theme)}
-              >
+              <MenuItem key={name} value={name} style={getStyles(name, values, theme)}>
                 {name}
               </MenuItem>
             ))}

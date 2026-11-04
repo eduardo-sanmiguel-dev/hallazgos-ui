@@ -41,21 +41,14 @@ interface Props {
   manufacturingPlantNames: string[];
 }
 
-export default function MultiSelectZones({
-  values,
-  onChange,
-  manufacturingPlantNames,
-}: Props) {
+export default function MultiSelectZones({ values, onChange, manufacturingPlantNames }: Props) {
   const theme = useTheme();
   const [labelSelectAll, setLabelSelectAll] = useState("Todos");
 
   const { data: zones } = useZones({ manufacturingPlantNames });
 
   const names = useMemo(
-    () =>
-      (zones ?? []).map(
-        (zone) => `${zone.manufacturingPlant.name} - ${zone.name}`,
-      ),
+    () => (zones ?? []).map((zone) => `${zone.manufacturingPlant.name} - ${zone.name}`),
     [zones],
   );
 
@@ -80,9 +73,7 @@ export default function MultiSelectZones({
     onChange(zonesFiltered);
   }, [manufacturingPlantNames]);
 
-  const handleChange = ({
-    target: { value },
-  }: SelectChangeEvent<typeof values>) => {
+  const handleChange = ({ target: { value } }: SelectChangeEvent<typeof values>) => {
     if (value.includes("none-all")) {
       if (values.length === names.length) {
         onChange([]);
@@ -105,9 +96,7 @@ export default function MultiSelectZones({
           multiple
           value={values}
           onChange={handleChange}
-          input={
-            <OutlinedInput id="select-multiple-chip-zones" label="Zonas" />
-          }
+          input={<OutlinedInput id="select-multiple-chip-zones" label="Zonas" />}
           renderValue={(selected) => (
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
               {selected.map((value) => (
@@ -121,11 +110,7 @@ export default function MultiSelectZones({
           {names
             .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }))
             .map((name) => (
-              <MenuItem
-                key={name}
-                value={name}
-                style={getStyles(name, values, theme)}
-              >
+              <MenuItem key={name} value={name} style={getStyles(name, values, theme)}>
                 {name}
               </MenuItem>
             ))}

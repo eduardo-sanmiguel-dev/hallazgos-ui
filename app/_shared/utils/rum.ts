@@ -35,15 +35,11 @@ const LOCAL_HOSTNAME =
  * variables de producción en localhost, ni al abrir la app desde otro
  * equipo de la red (192.168.x.x, 10.x.x.x, 172.16-31.x.x).
  */
-export const isLocalHostname = (hostname: string) =>
-  LOCAL_HOSTNAME.test(hostname);
+export const isLocalHostname = (hostname: string) => LOCAL_HOSTNAME.test(hostname);
 
 /**
  * `beforeSend` del RUM: los trazos de una firma no son interacciones, se
  * descartan para que no marquen la sesión como "frustrada" (rage click).
  */
 export const shouldSendRumEvent = (event: RumEventLike) =>
-  !(
-    event.type === "action" &&
-    event.action?.target?.name === constants.rum.ignoredClickName
-  );
+  !(event.type === "action" && event.action?.target?.name === constants.rum.ignoredClickName);

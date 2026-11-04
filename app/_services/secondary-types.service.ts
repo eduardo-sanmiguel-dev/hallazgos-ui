@@ -32,9 +32,7 @@ const findAll = async (filters: { name?: string; mainTypeId?: string }) => {
 };
 
 const findAllByManufacturingPlant = async (id: number) => {
-  const { data } = await api.get<SecondaryType[]>(
-    `/by/manufacturing-plant/${id}`
-  );
+  const { data } = await api.get<SecondaryType[]>(`/by/manufacturing-plant/${id}`);
   return data;
 };
 
@@ -69,9 +67,7 @@ const findAllPaginated = async ({
       page,
       limit,
       ...Object.fromEntries(
-        Object.entries(filters).filter(
-          ([, value]) => value !== "" && value !== undefined,
-        ),
+        Object.entries(filters).filter(([, value]) => value !== "" && value !== undefined),
       ),
     },
   });

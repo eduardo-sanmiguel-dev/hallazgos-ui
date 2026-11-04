@@ -1,9 +1,4 @@
-import axios, {
-  AxiosError,
-  AxiosInstance,
-  AxiosResponse,
-  InternalAxiosRequestConfig,
-} from "axios";
+import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 
@@ -38,10 +33,7 @@ export interface SubmitResult<T> {
   replayed: boolean;
 }
 
-export const submitResult = <T>({
-  data,
-  headers,
-}: AxiosResponse<T>): SubmitResult<T> => ({
+export const submitResult = <T>({ data, headers }: AxiosResponse<T>): SubmitResult<T> => ({
   data,
   replayed: headers["idempotent-replayed"] === "true",
 });
@@ -63,13 +55,11 @@ const markNotified = (error: unknown) => {
   }
 };
 
-const isNotified = (error: unknown) =>
-  !!(error as Record<symbol, boolean> | undefined)?.[NOTIFIED];
+const isNotified = (error: unknown) => !!(error as Record<symbol, boolean> | undefined)?.[NOTIFIED];
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const isLoginPage = () =>
-  typeof window !== "undefined" && window.location.pathname === "/";
+const isLoginPage = () => typeof window !== "undefined" && window.location.pathname === "/";
 
 // Consultas (GET) que fallan casi a la vez (p. ej. los catálogos de un
 // formulario con el servidor caído) se agrupan en un solo aviso que dice
@@ -91,16 +81,14 @@ export const notifyApiError = (
 ) => {
   const ref = parsed.ref;
   // Uno solo aunque fallen varias consultas a la vez sin conexión.
-  let id: string | undefined =
-    parsed.kind === "offline" ? "api-offline" : undefined;
+  let id: string | undefined = parsed.kind === "offline" ? "api-offline" : undefined;
   let description = parsed.message;
 
   if (isQuery && !id) {
     const key = queryGroupKey(parsed);
     const now = Date.now();
     const last = queryErrorGroups.get(key);
-    const count =
-      last && now - last.at < QUERY_GROUP_WINDOW_MS ? last.count + 1 : 1;
+    const count = last && now - last.at < QUERY_GROUP_WINDOW_MS ? last.count + 1 : 1;
     queryErrorGroups.set(key, { count, at: now });
     id = `api-query:${key}`;
     if (count > 1) description = `${parsed.message} (${count} consultas)`;
@@ -164,10 +152,7 @@ const canRetry = (config?: InternalAxiosRequestConfig) => {
   return method !== "post" || !!config.headers?.get?.(IDEMPOTENCY_HEADER);
 };
 
-const handleError = async (
-  instance: AxiosInstance,
-  error: AxiosError<ApiErrorBody>,
-) => {
+const handleError = async (instance: AxiosInstance, error: AxiosError<ApiErrorBody>) => {
   if (axios.isCancel(error)) throw error;
 
   const parsed = parseApiError(error);
@@ -196,10 +181,7 @@ const handleError = async (
     }
   }
 
-  if (
-    (parsed.kind === "offline" || parsed.kind === "timeout") &&
-    canRetry(config)
-  ) {
+  if ((parsed.kind === "offline" || parsed.kind === "timeout") && canRetry(config)) {
     return offerRetry(instance, config!, error, parsed);
   }
 
@@ -236,11 +218,9 @@ const timeoutFor = (config: InternalAxiosRequestConfig) => {
   return DEFAULT_TIMEOUT_MS;
 };
 
-export default function axiosWrapper({
-  baseURL,
-}: IAxiosWrapperProps): AxiosInstance {
+export default function axiosWrapper({ baseURL }: IAxiosWrapperProps): AxiosInstance {
   const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_URL_API + baseURL,
+    baseURL: import.meta.env.VITE_API_URL + baseURL,
   });
 
   api.interceptors.request.use((config: InternalAxiosRequestConfig<any>) => {
@@ -250,7 +230,7 @@ export default function axiosWrapper({
     if (!(config.data instanceof FormData)) {
       config.headers["Content-Type"] = "application/json";
     }
-    config.headers["x-app-key"] = process.env.NEXT_PUBLIC_APP_KEY;
+    config.headers["x-app-key"] = import.meta.env.VITE_APP_KEY;
 
     config.withCredentials = true;
     config.timeout = config.timeout || timeoutFor(config);

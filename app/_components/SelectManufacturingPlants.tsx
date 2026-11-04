@@ -11,11 +11,7 @@ interface Props {
   isFilter?: boolean;
 }
 
-const SelectManufacturingPlants = ({
-  value,
-  onChange,
-  isFilter = false,
-}: Props) => {
+const SelectManufacturingPlants = ({ value, onChange, isFilter = false }: Props) => {
   const { data: manufacturingPlants = [] } = useManufacturingPlants();
   // Al editar, el valor del registro llega antes que el catálogo: sin su
   // opción, MUI avisa "out-of-range value" en la consola. Se ve igual (vacío)
@@ -28,9 +24,7 @@ const SelectManufacturingPlants = ({
 
   return (
     <FormControl fullWidth>
-      <InputLabel id="manufacturing-plant-simple-select-label">
-        Planta
-      </InputLabel>
+      <InputLabel id="manufacturing-plant-simple-select-label">Planta</InputLabel>
       <Select
         labelId="manufacturing-plant-simple-select-label"
         id="manufacturing-plant-simple-select"
@@ -40,10 +34,7 @@ const SelectManufacturingPlants = ({
       >
         {isFilter && <MenuItem value="">Ninguna</MenuItem>}
         {manufacturingPlants.map((manufacturingPlant) => (
-          <MenuItem
-            key={manufacturingPlant.id}
-            value={String(manufacturingPlant.id)}
-          >
+          <MenuItem key={manufacturingPlant.id} value={String(manufacturingPlant.id)}>
             {manufacturingPlant.name}
           </MenuItem>
         ))}

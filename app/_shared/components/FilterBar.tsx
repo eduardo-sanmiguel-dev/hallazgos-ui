@@ -42,8 +42,7 @@ interface FilterBarProps {
   children: ReactNode;
 }
 
-const countLabel = (count: number) =>
-  `${count} ${count === 1 ? "registro" : "registros"}`;
+const countLabel = (count: number) => `${count} ${count === 1 ? "registro" : "registros"}`;
 
 const activeLabel = (count: number) =>
   `${count} ${count === 1 ? "filtro activo" : "filtros activos"}`;
@@ -58,9 +57,8 @@ const visuallyHidden = {
 } as const;
 
 // Lista de filtros activos sin los vacíos: `compactFilters(!!x && {...})`.
-export const compactFilters = (
-  ...filters: Array<ActiveFilter | false | null | undefined>
-) => filters.filter((filter): filter is ActiveFilter => !!filter);
+export const compactFilters = (...filters: Array<ActiveFilter | false | null | undefined>) =>
+  filters.filter((filter): filter is ActiveFilter => !!filter);
 
 // "A, B +3": evita chips demasiado largos con selecciones múltiples.
 // Sin nombres (catálogo aún cargando) muestra "…".
@@ -78,9 +76,7 @@ export const optionLabel = (
 ) => {
   const idSet = new Set(Array.isArray(ids) ? ids : [ids]);
   return joinNames(
-    options
-      .filter((option) => idSet.has(String(option.id)))
-      .map((option) => option.name),
+    options.filter((option) => idSet.has(String(option.id))).map((option) => option.name),
   );
 };
 
@@ -117,8 +113,7 @@ export default function FilterBar({
         {
           mb: 2,
           overflow: "hidden",
-          transition: (theme) =>
-            theme.transitions.create(["border-color", "box-shadow"]),
+          transition: (theme) => theme.transitions.create(["border-color", "box-shadow"]),
           ...(hasActive && {
             borderColor: "primary.main",
             boxShadow: (theme) => `inset 3px 0 0 ${theme.palette.primary.main}`,
@@ -128,11 +123,7 @@ export default function FilterBar({
       ]}
     >
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, pr: 1 }}>
-        <Typography
-          variant="subtitle2"
-          component="h2"
-          sx={{ m: 0, flex: 1, minWidth: 0 }}
-        >
+        <Typography variant="subtitle2" component="h2" sx={{ m: 0, flex: 1, minWidth: 0 }}>
           <ButtonBase
             aria-expanded={expanded}
             aria-controls={contentId}
@@ -251,9 +242,7 @@ export default function FilterBar({
                   </>
                 }
                 onDelete={filter.onRemove}
-                deleteIcon={
-                  <CancelIcon titleAccess={`Quitar filtro ${filter.label}`} />
-                }
+                deleteIcon={<CancelIcon titleAccess={`Quitar filtro ${filter.label}`} />}
                 sx={{ maxWidth: "100%" }}
               />
             ))}

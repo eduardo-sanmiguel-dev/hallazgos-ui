@@ -2,19 +2,12 @@ import type { Page } from "@playwright/test";
 
 import { captureWrites, editingId, mockGet } from "./support/api";
 import { expect, test } from "./support/fixtures";
-import {
-  fillDate,
-  pickMany,
-  pickOption,
-  toast,
-  trackPageErrors,
-} from "./support/ui";
+import { fillDate, pickMany, pickOption, toast, trackPageErrors } from "./support/ui";
 
 // Usuarios, colaboradores y equipos de emergencia. Las escrituras se
 // interceptan (ver captureWrites): no se toca la base.
 
-const saveButton = (page: Page) =>
-  page.getByRole("button", { name: "Guardar" });
+const saveButton = (page: Page) => page.getByRole("button", { name: "Guardar" });
 
 /** Mensaje de error junto al campo (TextField o select, ver useFieldErrors). */
 const fieldError = (page: Page, field: string) =>
@@ -30,9 +23,7 @@ const editFirstRow = async (page: Page, route: string, loadedField: string) => {
 };
 
 test.describe("Usuarios", () => {
-  test("crea un supervisor validando correo y zonas (sin guardar)", async ({
-    page,
-  }) => {
+  test("crea un supervisor validando correo y zonas (sin guardar)", async ({ page }) => {
     const errors = trackPageErrors(page);
     const writes = await captureWrites(page);
 
@@ -44,18 +35,12 @@ test.describe("Usuarios", () => {
     const plants = await pickMany(page, "Plantas");
 
     await saveButton(page).click();
-    await expect(fieldError(page, "email")).toHaveText(
-      "El correo electrónico no es válido.",
-    );
+    await expect(fieldError(page, "email")).toHaveText("El correo electrónico no es válido.");
     await expect(page.locator("#campo-email")).toBeFocused();
 
-    await page
-      .getByLabel("Correo electrónico")
-      .fill("e2e-supervisor@example.com");
+    await page.getByLabel("Correo electrónico").fill("e2e-supervisor@example.com");
     await saveButton(page).click();
-    await expect(fieldError(page, "zoneNames")).toHaveText(
-      "Selecciona al menos una zona.",
-    );
+    await expect(fieldError(page, "zoneNames")).toHaveText("Selecciona al menos una zona.");
     expect(writes).toEqual([]);
 
     const zones = await pickMany(page, "Zonas");
@@ -114,9 +99,7 @@ test.describe("Usuarios", () => {
 
   // La API ya no manda zonas ni procesos en el listado paginado (se cargan al
   // editar): la tabla no los muestra ni los necesita.
-  test("la tabla muestra plantas pero no zonas ni procesos", async ({
-    page,
-  }) => {
+  test("la tabla muestra plantas pero no zonas ni procesos", async ({ page }) => {
     const errors = trackPageErrors(page);
     await mockGet(
       page,
@@ -145,21 +128,13 @@ test.describe("Usuarios", () => {
     await page.goto("/users");
     const row = page.getByRole("row", { name: /E2E Supervisor/ });
     await expect(row).toContainText("Planta A, Planta B");
-    await expect(
-      page.getByRole("columnheader", { name: "Plantas" }),
-    ).toBeVisible();
-    await expect(page.getByRole("columnheader", { name: "Zonas" })).toHaveCount(
-      0,
-    );
-    await expect(
-      page.getByRole("columnheader", { name: "Procesos" }),
-    ).toHaveCount(0);
+    await expect(page.getByRole("columnheader", { name: "Plantas" })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "Zonas" })).toHaveCount(0);
+    await expect(page.getByRole("columnheader", { name: "Procesos" })).toHaveCount(0);
     expect(errors).toEqual([]);
   });
 
-  test("edita un usuario sin exigir contraseña (sin guardar)", async ({
-    page,
-  }) => {
+  test("edita un usuario sin exigir contraseña (sin guardar)", async ({ page }) => {
     const errors = trackPageErrors(page);
     const writes = await captureWrites(page);
 
@@ -168,9 +143,7 @@ test.describe("Usuarios", () => {
     const email = await page.getByLabel("Correo electrónico").inputValue();
 
     await saveButton(page).click();
-    await expect(
-      toast(page, "Usuario actualizado correctamente"),
-    ).toBeVisible();
+    await expect(toast(page, "Usuario actualizado correctamente")).toBeVisible();
 
     expect(writes).toEqual([
       {
@@ -190,9 +163,7 @@ test.describe("Colaboradores", () => {
 
     await page.goto("/employees/form");
     await page.getByLabel("Código de colaborador").fill("990001");
-    await page
-      .getByLabel("Nombre completo")
-      .fill("E2E Colaborador (no se guarda)");
+    await page.getByLabel("Nombre completo").fill("E2E Colaborador (no se guarda)");
     await fillDate(page, "Fecha de nacimiento *", "15/03/1990");
     await fillDate(page, "Fecha de admisión *", "01/02/2020");
     await pickOption(page, "Área *");
@@ -201,9 +172,7 @@ test.describe("Colaboradores", () => {
     // sin decir qué faltaba).
     await pickMany(page, "Plantas");
     await saveButton(page).click();
-    await expect(fieldError(page, "gender")).toHaveText(
-      "Selecciona el género.",
-    );
+    await expect(fieldError(page, "gender")).toHaveText("Selecciona el género.");
     expect(writes).toEqual([]);
     await pickOption(page, "Género *");
 
@@ -225,15 +194,11 @@ test.describe("Colaboradores", () => {
     // Las fechas viajan en ISO; el día se conserva en la zona del navegador.
     const { birthdate, dateOfAdmission } = body as Record<string, string>;
     expect(new Date(birthdate).toLocaleDateString("es-MX")).toBe("15/3/1990");
-    expect(new Date(dateOfAdmission).toLocaleDateString("es-MX")).toBe(
-      "1/2/2020",
-    );
+    expect(new Date(dateOfAdmission).toLocaleDateString("es-MX")).toBe("1/2/2020");
     expect(errors).toEqual([]);
   });
 
-  test("edita un colaborador desde la tabla (sin guardar)", async ({
-    page,
-  }) => {
+  test("edita un colaborador desde la tabla (sin guardar)", async ({ page }) => {
     const errors = trackPageErrors(page);
     const writes = await captureWrites(page);
 
@@ -242,9 +207,7 @@ test.describe("Colaboradores", () => {
     await expect(saveButton(page)).toBeEnabled();
 
     await saveButton(page).click();
-    await expect(
-      toast(page, "Colaborador actualizado correctamente"),
-    ).toBeVisible();
+    await expect(toast(page, "Colaborador actualizado correctamente")).toBeVisible();
 
     expect(writes).toEqual([
       {
@@ -258,9 +221,7 @@ test.describe("Colaboradores", () => {
 });
 
 test.describe("Equipos de emergencia", () => {
-  test("los campos se habilitan al elegir planta y se crea (sin guardar)", async ({
-    page,
-  }) => {
+  test("los campos se habilitan al elegir planta y se crea (sin guardar)", async ({ page }) => {
     const errors = trackPageErrors(page);
     const writes = await captureWrites(page);
 
@@ -278,9 +239,7 @@ test.describe("Equipos de emergencia", () => {
     await page.getByLabel("Capacidad").fill("6");
 
     await saveButton(page).click();
-    await expect(
-      toast(page, "Equipo de emergencia creado correctamente"),
-    ).toBeVisible();
+    await expect(toast(page, "Equipo de emergencia creado correctamente")).toBeVisible();
 
     expect(writes).toEqual([
       {
@@ -306,9 +265,7 @@ test.describe("Equipos de emergencia", () => {
     const location = (await page.getByLabel("Ubicación").inputValue()).trim();
 
     await saveButton(page).click();
-    await expect(
-      toast(page, "Equipo de emergencia actualizado correctamente"),
-    ).toBeVisible();
+    await expect(toast(page, "Equipo de emergencia actualizado correctamente")).toBeVisible();
 
     expect(writes).toEqual([
       {
@@ -321,9 +278,7 @@ test.describe("Equipos de emergencia", () => {
   });
 });
 
-test("edita un colaborador al que le faltan datos (sin guardar)", async ({
-  page,
-}) => {
+test("edita un colaborador al que le faltan datos (sin guardar)", async ({ page }) => {
   const writes = await captureWrites(page);
   await mockGet(page, "/employees/9851", {
     id: 9851,
@@ -337,9 +292,7 @@ test("edita un colaborador al que le faltan datos (sin guardar)", async ({
     manufacturingPlants: [],
   });
   await page.goto("/employees/form?id=9851");
-  await expect(page.getByLabel("Nombre completo")).toHaveValue(
-    "E2E Colaborador incompleto",
-  );
+  await expect(page.getByLabel("Nombre completo")).toHaveValue("E2E Colaborador incompleto");
   // Faltan datos obligatorios: "Guardar" los marca todos y no envía nada.
   await saveButton(page).click();
   await expect(toast(page, "Completa los 6 campos marcados.")).toBeVisible();
@@ -351,8 +304,6 @@ test("edita un colaborador al que le faltan datos (sin guardar)", async ({
   await pickOption(page, "Género *");
   await pickMany(page, "Plantas");
   await saveButton(page).click();
-  await expect(
-    toast(page, "Colaborador actualizado correctamente"),
-  ).toBeVisible();
+  await expect(toast(page, "Colaborador actualizado correctamente")).toBeVisible();
   expect(writes[0]).toMatchObject({ method: "PATCH", path: "/employees/9851" });
 });

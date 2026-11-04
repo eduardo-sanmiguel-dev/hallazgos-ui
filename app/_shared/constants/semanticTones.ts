@@ -1,8 +1,4 @@
-import {
-  STATUS_CLOSED,
-  STATUS_IN_PROGRESS,
-  STATUS_OPEN,
-} from "@shared/constants";
+import { STATUS_CLOSED, STATUS_IN_PROGRESS, STATUS_OPEN } from "@shared/constants";
 
 // Colores semánticos del sistema. Son nombres de la paleta de MUI, así que
 // respetan el tema elegido (claro, oscuro) y el contraste AA del
@@ -27,10 +23,7 @@ export const EVIDENCE_STATUS_TONE: Record<string, SemanticTone> = {
  * mail/mail.view.ts). `main`: relleno con texto blanco (AA) y texto o ícono
  * sobre fondo claro; `light`: texto o ícono sobre fondo oscuro.
  */
-export const EVIDENCE_STATUS_COLOR: Record<
-  string,
-  { main: string; light: string }
-> = {
+export const EVIDENCE_STATUS_COLOR: Record<string, { main: string; light: string }> = {
   [STATUS_OPEN]: { main: "#B45309", light: "#FBBF24" },
   [STATUS_IN_PROGRESS]: { main: "#1D4ED8", light: "#93C5FD" },
   [STATUS_CLOSED]: { main: "#15803D", light: "#4ADE80" },
@@ -38,10 +31,7 @@ export const EVIDENCE_STATUS_COLOR: Record<
 };
 
 /** Color de un estatus para texto o ícono según el modo del tema. */
-export const evidenceStatusColor = (
-  status: string,
-  mode: "light" | "dark" = "light",
-) => {
+export const evidenceStatusColor = (status: string, mode: "light" | "dark" = "light") => {
   const color = EVIDENCE_STATUS_COLOR[status];
   if (!color) return undefined;
   return mode === "dark" ? color.light : color.main;
@@ -58,8 +48,7 @@ export const RISK_LEVEL_TONE: Record<string, SemanticTone> = {
   Critico: "error",
 };
 
-export const riskLevelTone = (level: string): SemanticTone =>
-  RISK_LEVEL_TONE[level] ?? "default";
+export const riskLevelTone = (level: string): SemanticTone => RISK_LEVEL_TONE[level] ?? "default";
 
 // Plazo de atención: vencido (abierto) o cerrado fuera de tiempo es error;
 // cerrado en tiempo es éxito.

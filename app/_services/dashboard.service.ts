@@ -47,25 +47,22 @@ const findStatusByFilters = async ({
   responsibleIds?: string[];
   mainTypeIds?: string[];
 }) => {
-  const { data } = await api.get<ResponseDashboardStatusByFilters>(
-    "/status-by-filters",
-    {
-      params: {
-        manufacturingPlantId,
-        startDate,
-        endDate,
-        ...(areaIds && areaIds.length > 0 && { areaIds: areaIds.join(",") }),
-        ...(responsibleIds &&
-          responsibleIds.length > 0 && {
-            responsibleIds: responsibleIds.join(","),
-          }),
-        ...(mainTypeIds &&
-          mainTypeIds.length > 0 && {
-            mainTypeIds: mainTypeIds.join(","),
-          }),
-      },
+  const { data } = await api.get<ResponseDashboardStatusByFilters>("/status-by-filters", {
+    params: {
+      manufacturingPlantId,
+      startDate,
+      endDate,
+      ...(areaIds && areaIds.length > 0 && { areaIds: areaIds.join(",") }),
+      ...(responsibleIds &&
+        responsibleIds.length > 0 && {
+          responsibleIds: responsibleIds.join(","),
+        }),
+      ...(mainTypeIds &&
+        mainTypeIds.length > 0 && {
+          mainTypeIds: mainTypeIds.join(","),
+        }),
     },
-  );
+  });
   return data;
 };
 
@@ -84,26 +81,25 @@ const findPriorityInterventionByFilters = async ({
   responsibleIds?: string[];
   mainTypeIds?: string[];
 }) => {
-  const { data } =
-    await api.get<ResponseDashboardPriorityInterventionByFilters>(
-      "/priority-intervention-by-filters",
-      {
-        params: {
-          manufacturingPlantId,
-          startDate,
-          endDate,
-          ...(areaIds && areaIds.length > 0 && { areaIds: areaIds.join(",") }),
-          ...(responsibleIds &&
-            responsibleIds.length > 0 && {
-              responsibleIds: responsibleIds.join(","),
-            }),
-          ...(mainTypeIds &&
-            mainTypeIds.length > 0 && {
-              mainTypeIds: mainTypeIds.join(","),
-            }),
-        },
+  const { data } = await api.get<ResponseDashboardPriorityInterventionByFilters>(
+    "/priority-intervention-by-filters",
+    {
+      params: {
+        manufacturingPlantId,
+        startDate,
+        endDate,
+        ...(areaIds && areaIds.length > 0 && { areaIds: areaIds.join(",") }),
+        ...(responsibleIds &&
+          responsibleIds.length > 0 && {
+            responsibleIds: responsibleIds.join(","),
+          }),
+        ...(mainTypeIds &&
+          mainTypeIds.length > 0 && {
+            mainTypeIds: mainTypeIds.join(","),
+          }),
       },
-    );
+    },
+  );
   return data;
 };
 
@@ -122,25 +118,22 @@ const findRiskLevelByFilters = async ({
   responsibleIds?: string[];
   mainTypeIds?: string[];
 }) => {
-  const { data } = await api.get<ResponseDashboardRiskLevelByFilters>(
-    "/risk-level-by-filters",
-    {
-      params: {
-        manufacturingPlantId,
-        startDate,
-        endDate,
-        ...(areaIds && areaIds.length > 0 && { areaIds: areaIds.join(",") }),
-        ...(responsibleIds &&
-          responsibleIds.length > 0 && {
-            responsibleIds: responsibleIds.join(","),
-          }),
-        ...(mainTypeIds &&
-          mainTypeIds.length > 0 && {
-            mainTypeIds: mainTypeIds.join(","),
-          }),
-      },
+  const { data } = await api.get<ResponseDashboardRiskLevelByFilters>("/risk-level-by-filters", {
+    params: {
+      manufacturingPlantId,
+      startDate,
+      endDate,
+      ...(areaIds && areaIds.length > 0 && { areaIds: areaIds.join(",") }),
+      ...(responsibleIds &&
+        responsibleIds.length > 0 && {
+          responsibleIds: responsibleIds.join(","),
+        }),
+      ...(mainTypeIds &&
+        mainTypeIds.length > 0 && {
+          mainTypeIds: mainTypeIds.join(","),
+        }),
     },
-  );
+  });
   return data;
 };
 
@@ -159,25 +152,22 @@ const findAreasByFilters = async ({
   responsibleIds?: string[];
   mainTypeIds?: string[];
 }) => {
-  const { data } = await api.get<ResponseDashboardStatusByFilters>(
-    "/areas-by-filters",
-    {
-      params: {
-        manufacturingPlantId,
-        startDate,
-        endDate,
-        ...(areaIds && areaIds.length > 0 && { areaIds: areaIds.join(",") }),
-        ...(responsibleIds &&
-          responsibleIds.length > 0 && {
-            responsibleIds: responsibleIds.join(","),
-          }),
-        ...(mainTypeIds &&
-          mainTypeIds.length > 0 && {
-            mainTypeIds: mainTypeIds.join(","),
-          }),
-      },
+  const { data } = await api.get<ResponseDashboardStatusByFilters>("/areas-by-filters", {
+    params: {
+      manufacturingPlantId,
+      startDate,
+      endDate,
+      ...(areaIds && areaIds.length > 0 && { areaIds: areaIds.join(",") }),
+      ...(responsibleIds &&
+        responsibleIds.length > 0 && {
+          responsibleIds: responsibleIds.join(","),
+        }),
+      ...(mainTypeIds &&
+        mainTypeIds.length > 0 && {
+          mainTypeIds: mainTypeIds.join(","),
+        }),
     },
-  );
+  });
   return data;
 };
 
@@ -196,25 +186,22 @@ const findMainTypesByFilters = async ({
   responsibleIds?: string[];
   mainTypeIds?: string[];
 }) => {
-  const { data } = await api.get<ResponseDashboardStatusByFilters>(
-    "/main-types-by-filters",
-    {
-      params: {
-        manufacturingPlantId,
-        startDate,
-        endDate,
-        ...(areaIds && areaIds.length > 0 && { areaIds: areaIds.join(",") }),
-        ...(responsibleIds &&
-          responsibleIds.length > 0 && {
-            responsibleIds: responsibleIds.join(","),
-          }),
-        ...(mainTypeIds &&
-          mainTypeIds.length > 0 && {
-            mainTypeIds: mainTypeIds.join(","),
-          }),
-      },
+  const { data } = await api.get<ResponseDashboardStatusByFilters>("/main-types-by-filters", {
+    params: {
+      manufacturingPlantId,
+      startDate,
+      endDate,
+      ...(areaIds && areaIds.length > 0 && { areaIds: areaIds.join(",") }),
+      ...(responsibleIds &&
+        responsibleIds.length > 0 && {
+          responsibleIds: responsibleIds.join(","),
+        }),
+      ...(mainTypeIds &&
+        mainTypeIds.length > 0 && {
+          mainTypeIds: mainTypeIds.join(","),
+        }),
     },
-  );
+  });
   return data;
 };
 
@@ -261,36 +248,33 @@ const findAssignedResponsiblesByFilters = async ({
   responsibleIds?: string[];
   mainTypeIds?: string[];
 }) => {
-  const { data } =
-    await api.get<ResponseDashboardAssignedResponsiblesByFilters>(
-      "/assigned-responsibles-by-filters",
-      {
-        params: {
-          manufacturingPlantId,
-          startDate,
-          endDate,
-          ...(areaIds &&
-            areaIds.length > 0 && {
-              areaIds: areaIds.join(","),
-            }),
-          ...(responsibleIds &&
-            responsibleIds.length > 0 && {
-              responsibleIds: responsibleIds.join(","),
-            }),
-          ...(mainTypeIds &&
-            mainTypeIds.length > 0 && {
-              mainTypeIds: mainTypeIds.join(","),
-            }),
-        },
+  const { data } = await api.get<ResponseDashboardAssignedResponsiblesByFilters>(
+    "/assigned-responsibles-by-filters",
+    {
+      params: {
+        manufacturingPlantId,
+        startDate,
+        endDate,
+        ...(areaIds &&
+          areaIds.length > 0 && {
+            areaIds: areaIds.join(","),
+          }),
+        ...(responsibleIds &&
+          responsibleIds.length > 0 && {
+            responsibleIds: responsibleIds.join(","),
+          }),
+        ...(mainTypeIds &&
+          mainTypeIds.length > 0 && {
+            mainTypeIds: mainTypeIds.join(","),
+          }),
       },
-    );
+    },
+  );
   return data;
 };
 
 const findHistoricalByMonth = async () => {
-  const { data } = await api.get<ResponseDashboardHistoricalByMonth>(
-    "/historical-by-month",
-  );
+  const { data } = await api.get<ResponseDashboardHistoricalByMonth>("/historical-by-month");
   return data;
 };
 
@@ -309,25 +293,22 @@ const findSankeyByFilters = async ({
   responsibleIds?: string[];
   mainTypeIds?: string[];
 }) => {
-  const { data } = await api.get<ResponseDashboardSankeyByFilters>(
-    "/sankey-by-filters",
-    {
-      params: {
-        manufacturingPlantId,
-        startDate,
-        endDate,
-        ...(areaIds && areaIds.length > 0 && { areaIds: areaIds.join(",") }),
-        ...(responsibleIds &&
-          responsibleIds.length > 0 && {
-            responsibleIds: responsibleIds.join(","),
-          }),
-        ...(mainTypeIds &&
-          mainTypeIds.length > 0 && {
-            mainTypeIds: mainTypeIds.join(","),
-          }),
-      },
+  const { data } = await api.get<ResponseDashboardSankeyByFilters>("/sankey-by-filters", {
+    params: {
+      manufacturingPlantId,
+      startDate,
+      endDate,
+      ...(areaIds && areaIds.length > 0 && { areaIds: areaIds.join(",") }),
+      ...(responsibleIds &&
+        responsibleIds.length > 0 && {
+          responsibleIds: responsibleIds.join(","),
+        }),
+      ...(mainTypeIds &&
+        mainTypeIds.length > 0 && {
+          mainTypeIds: mainTypeIds.join(","),
+        }),
     },
-  );
+  });
   return data;
 };
 
@@ -457,25 +438,22 @@ const findHeatmapByFilters = async ({
   responsibleIds?: string[];
   mainTypeIds?: string[];
 }) => {
-  const { data } = await api.get<ResponseDashboardHeatmapByFilters>(
-    "/heatmap-by-filters",
-    {
-      params: {
-        manufacturingPlantId,
-        startDate,
-        endDate,
-        ...(areaIds && areaIds.length > 0 && { areaIds: areaIds.join(",") }),
-        ...(responsibleIds &&
-          responsibleIds.length > 0 && {
-            responsibleIds: responsibleIds.join(","),
-          }),
-        ...(mainTypeIds &&
-          mainTypeIds.length > 0 && {
-            mainTypeIds: mainTypeIds.join(","),
-          }),
-      },
+  const { data } = await api.get<ResponseDashboardHeatmapByFilters>("/heatmap-by-filters", {
+    params: {
+      manufacturingPlantId,
+      startDate,
+      endDate,
+      ...(areaIds && areaIds.length > 0 && { areaIds: areaIds.join(",") }),
+      ...(responsibleIds &&
+        responsibleIds.length > 0 && {
+          responsibleIds: responsibleIds.join(","),
+        }),
+      ...(mainTypeIds &&
+        mainTypeIds.length > 0 && {
+          mainTypeIds: mainTypeIds.join(","),
+        }),
     },
-  );
+  });
   return data;
 };
 
@@ -504,21 +482,16 @@ const findAllMainTypes = async () => {
 };
 
 const findAllEvidencesByMonth = async (year?: number) => {
-  const { data } = await api.get<ResponseDashboardEvidencesByMonth>(
-    "/evidences-by-month",
-    {
-      params: {
-        ...(year && { year }),
-      },
+  const { data } = await api.get<ResponseDashboardEvidencesByMonth>("/evidences-by-month", {
+    params: {
+      ...(year && { year }),
     },
-  );
+  });
   return data;
 };
 
 const findTopUsersByPlant = async () => {
-  const { data } = await api.get<ResponseTopUsersByPlant>(
-    "/top-users-by-plant",
-  );
+  const { data } = await api.get<ResponseTopUsersByPlant>("/top-users-by-plant");
   return data.data;
 };
 
@@ -527,14 +500,11 @@ const findMonthlySubtypeTrend = async ({
 }: {
   manufacturingPlantId: string;
 }) => {
-  const { data } = await api.get<MonthlySubtypeTrend[]>(
-    "/monthly-subtype-trend",
-    {
-      params: {
-        manufacturingPlantId,
-      },
+  const { data } = await api.get<MonthlySubtypeTrend[]>("/monthly-subtype-trend", {
+    params: {
+      manufacturingPlantId,
     },
-  );
+  });
   return data;
 };
 
@@ -546,18 +516,14 @@ interface BiEppQuery {
 }
 
 const findBusinessIntelligenceEpp = async (params: BiEppQuery) => {
-  const { data } = await api.get<BusinessIntelligenceEpp>(
-    `/business-intelligence/epp`,
-    { params },
-  );
+  const { data } = await api.get<BusinessIntelligenceEpp>(`/business-intelligence/epp`, { params });
   return data;
 };
 
 const findBusinessIntelligenceEppOutOfRange = async (params: BiEppQuery) => {
-  const { data } = await api.get<BiEppOutOfRange>(
-    `/business-intelligence/epp/out-of-range`,
-    { params },
-  );
+  const { data } = await api.get<BiEppOutOfRange>(`/business-intelligence/epp/out-of-range`, {
+    params,
+  });
   return data;
 };
 

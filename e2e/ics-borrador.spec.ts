@@ -76,16 +76,12 @@ const storedDrafts = (page: Page) =>
 
 const sessionUserId = (page: Page) =>
   page.evaluate(
-    () =>
-      JSON.parse(sessionStorage.getItem("user-session") || "{}").state
-        ?.id as number,
+    () => JSON.parse(sessionStorage.getItem("user-session") || "{}").state?.id as number,
   );
 
 const totalPeople = (page: Page) => page.getByLabel(/^Personas totales/);
-const description = (page: Page) =>
-  page.getByRole("textbox", { name: "Descripción (opcional)" });
-const saveButton = (page: Page) =>
-  page.getByRole("button", { name: "Guardar" });
+const description = (page: Page) => page.getByRole("textbox", { name: "Descripción (opcional)" });
+const saveButton = (page: Page) => page.getByRole("button", { name: "Guardar" });
 const notice = (page: Page) =>
   page.getByRole("status").filter({
     has: page.getByRole("button", { name: /Recuperar|Reintentar envío/ }),
@@ -103,11 +99,7 @@ const fillForm = async (page: Page) => {
   const [plant] = await openForm(page);
   await pickOption(page, "Planta *", plant.name);
   await pickOption(page, "Regla de vida *", "E2E Regla con estándares");
-  await pickOption(
-    page,
-    "Estándar de comportamiento",
-    "E2E Estándar con áreas",
-  );
+  await pickOption(page, "Estándar de comportamiento", "E2E Estándar con áreas");
   await pickOption(page, "Área", "E2E Área");
   await totalPeople(page).fill("6");
   await pickMany(page, "Personas que no cumplen *", 2);
@@ -121,10 +113,7 @@ const fillForm = async (page: Page) => {
 };
 
 /** Responde los POST /ics en orden y guarda cada petición. */
-const routeCreate = async (
-  page: Page,
-  handlers: ((route: Route) => Promise<void>)[],
-) => {
+const routeCreate = async (page: Page, handlers: ((route: Route) => Promise<void>)[]) => {
   const requests: Request[] = [];
   await page.route("**/api/v1/ics", async (route) => {
     if (route.request().method() !== "POST") return route.fallback();
@@ -162,13 +151,9 @@ test.describe("Borrador de ICS", () => {
       await expect(page.getByText(option).first()).toBeVisible();
     }
     await expect(totalPeople(page)).toHaveValue("6");
-    await expect(
-      page.getByText("E2E Colaborador Dos", { exact: true }),
-    ).toBeVisible();
+    await expect(page.getByText("E2E Colaborador Dos", { exact: true })).toBeVisible();
     await expect(description(page)).toHaveValue(DESCRIPTION);
-    await expect(
-      page.getByAltText("Vista previa de la evidencia"),
-    ).toBeVisible();
+    await expect(page.getByAltText("Vista previa de la evidencia")).toBeVisible();
     await expect(notice(page)).toHaveCount(0);
   });
 
@@ -191,17 +176,12 @@ test.describe("Borrador de ICS", () => {
     await fillForm(page);
     await saveButton(page).click();
     await expect(toast(page, "Sin conexión")).toBeVisible();
-    await page
-      .locator("[data-sonner-toast]")
-      .getByRole("button", { name: /close/i })
-      .click();
+    await page.locator("[data-sonner-toast]").getByRole("button", { name: /close/i }).click();
 
     // En la misma pantalla ya queda en solo lectura.
     await expect(notice(page)).toContainText("Envío sin confirmar");
     await expect(saveButton(page)).toBeDisabled();
-    await expect
-      .poll(async () => (await storedDrafts(page))[0]?.sendState)
-      .toBe("pending");
+    await expect.poll(async () => (await storedDrafts(page))[0]?.sendState).toBe("pending");
 
     await openForm(page);
     await expect(notice(page)).toContainText("Tienes un envío sin confirmar");
@@ -212,27 +192,19 @@ test.describe("Borrador de ICS", () => {
     await expect(
       page.getByRole("combobox", { name: "Regla de vida *", exact: true }),
     ).toBeDisabled();
-    await expect(page.getByRole("button", { name: "Quitar foto" })).toHaveCount(
-      0,
-    );
+    await expect(page.getByRole("button", { name: "Quitar foto" })).toHaveCount(0);
 
-    await notice(page)
-      .getByRole("button", { name: "Reintentar envío" })
-      .click();
+    await notice(page).getByRole("button", { name: "Reintentar envío" }).click();
     await expect(toast(page, "Ya se había guardado (ICS #4321)")).toBeVisible();
     await expect(page).toHaveURL(/\/ics$/);
     expect(requests).toHaveLength(2);
-    expect(requests[1].headers()["idempotency-key"]).toBe(
-      requests[0].headers()["idempotency-key"],
-    );
+    expect(requests[1].headers()["idempotency-key"]).toBe(requests[0].headers()["idempotency-key"]);
     // La foto viaja en el reintento (recuperada del borrador).
     expect(String(requests[1].postData())).toMatch(/name="file"; filename=/);
     await expect.poll(async () => (await storedDrafts(page)).length).toBe(0);
   });
 
-  test("salir con algo capturado pide confirmación; vacío sale directo", async ({
-    page,
-  }) => {
+  test("salir con algo capturado pide confirmación; vacío sale directo", async ({ page }) => {
     const [plant] = await openForm(page);
     // Solo la planta no cuenta como captura.
     await pickOption(page, "Planta *", plant.name);
@@ -257,9 +229,7 @@ test.describe("Borrador de ICS", () => {
     await expect.poll(async () => (await storedDrafts(page)).length).toBe(1);
   });
 
-  test("sin almacén de borradores (modo privado), salir avisa que se perderá", async ({
-    page,
-  }) => {
+  test("sin almacén de borradores (modo privado), salir avisa que se perderá", async ({ page }) => {
     await page.addInitScript(() =>
       Object.defineProperty(window, "indexedDB", {
         value: undefined,

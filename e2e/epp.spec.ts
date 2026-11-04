@@ -2,13 +2,7 @@ import type { Locator, Page } from "@playwright/test";
 
 import { captureWrites, mockGet } from "./support/api";
 import { expect, test } from "./support/fixtures";
-import {
-  openFilters,
-  pickOption,
-  sessionPlants,
-  toast,
-  trackPageErrors,
-} from "./support/ui";
+import { openFilters, pickOption, sessionPlants, toast, trackPageErrors } from "./support/ui";
 
 // EPP: catálogo de equipos y registro de entregas con firma. Las escrituras
 // se interceptan (captureWrites).
@@ -67,12 +61,7 @@ test.describe("EPP: equipos", () => {
     // la planta (con una sola se elige sola).
     await save.click();
     await expect(
-      toast(
-        page,
-        plants.length > 1
-          ? "Completa los 2 campos marcados."
-          : "Escribe el nombre.",
-      ),
+      toast(page, plants.length > 1 ? "Completa los 2 campos marcados." : "Escribe el nombre."),
     ).toBeVisible();
     await expect(form.getByText("Escribe el nombre.")).toBeVisible();
     await form.getByLabel("Nombre").fill("  E2E Lentes  ");
@@ -82,10 +71,7 @@ test.describe("EPP: equipos", () => {
     // a centavos.
     const frequency = form.getByLabel("Frecuencia de entrega (días)");
     await expect(frequency).toHaveAttribute("inputmode", "numeric");
-    await expect(form.getByLabel("Precio")).toHaveAttribute(
-      "inputmode",
-      "decimal",
-    );
+    await expect(form.getByLabel("Precio")).toHaveAttribute("inputmode", "decimal");
     await frequency.pressSequentially("e-.0");
     await expect(frequency).toHaveValue("");
     await frequency.fill("15");
@@ -117,9 +103,7 @@ test.describe("EPP: equipos", () => {
     await page.goto("/equipments");
     await page.getByRole("button", { name: "Editar" }).first().click();
     await expect(page).toHaveURL(/\/equipments\/form\?id=\d+$/);
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Editar equipo" }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Editar equipo" })).toBeVisible();
     await expect(page.getByLabel("Nombre")).toHaveValue(/\S/);
 
     // Sin cambios, Cancelar regresa a la lista sin preguntar.
@@ -144,9 +128,7 @@ test.describe("EPP: entregas", () => {
     const errors = trackPageErrors(page);
     const writes = await captureWrites(page);
     await mockGet(page, "/equipments", EQUIPMENTS);
-    await mockGet(page, "/employees", [
-      { id: 9801, code: 501, name: "E2E Colaborador" },
-    ]);
+    await mockGet(page, "/employees", [{ id: 9801, code: 501, name: "E2E Colaborador" }]);
     await mockGet(page, "/epps/validate-delivery-frequency", {
       canDeliver: false,
       message: "E2E ya se entregó en los últimos 30 días",
@@ -155,8 +137,7 @@ test.describe("EPP: entregas", () => {
     // El selector pide la versión ligera (id, código y nombre).
     const employeeRequest = page.waitForRequest(
       (request) =>
-        new URL(request.url()).pathname.endsWith("/api/v1/employees") &&
-        request.method() === "GET",
+        new URL(request.url()).pathname.endsWith("/api/v1/employees") && request.method() === "GET",
     );
 
     await page.goto("/epp");
@@ -178,9 +159,7 @@ test.describe("EPP: entregas", () => {
     await pickOption(page, "Equipo", "E2E Casco");
     await dialog.getByLabel("Observaciones").fill("  Talla M  ");
     await add.click();
-    await expect(
-      toast(page, "E2E ya se entregó en los últimos 30 días"),
-    ).toBeVisible();
+    await expect(toast(page, "E2E ya se entregó en los últimos 30 días")).toBeVisible();
     await pickOption(page, "Equipo", "E2E Guantes");
     await add.click();
     await dialog.getByRole("button", { name: "Quitar E2E Guantes" }).click();
@@ -191,14 +170,10 @@ test.describe("EPP: entregas", () => {
     await expect(save).toBeDisabled();
 
     await dialog.getByRole("button", { name: "Firmar" }).click();
-    const signature = page
-      .getByRole("dialog")
-      .filter({ hasText: "Firma del colaborador" });
+    const signature = page.getByRole("dialog").filter({ hasText: "Firma del colaborador" });
     const canvas = signature.locator("canvas");
     // El trazo lleva el nombre de acción que el RUM descarta (no es rage click).
-    await expect(
-      signature.locator('[data-dd-action-name="firma-trazo"] canvas'),
-    ).toHaveCount(1);
+    await expect(signature.locator('[data-dd-action-name="firma-trazo"] canvas')).toHaveCount(1);
     // Sin trazo no se puede guardar (antes se aceptaba una firma vacía).
     const saveSignature = signature.getByRole("button", { name: "Guardar" });
     const clearSignature = signature.getByRole("button", { name: "Limpiar" });
@@ -230,9 +205,7 @@ test.describe("EPP: entregas", () => {
       },
     });
     // Al guardar se avisa y el diálogo se cierra.
-    await expect(
-      toast(page, "Entrega de EPP registrada correctamente"),
-    ).toBeVisible();
+    await expect(toast(page, "Entrega de EPP registrada correctamente")).toBeVisible();
     await expect(dialog).toBeHidden();
     expect(errors).toEqual([]);
   });
@@ -242,25 +215,20 @@ test.describe("EPP: entregas", () => {
   }) => {
     const errors = trackPageErrors(page);
     await mockGet(page, "/equipments", EQUIPMENTS);
-    await mockGet(page, "/employees", [
-      { id: 9801, code: 501, name: "E2E Colaborador" },
-    ]);
+    await mockGet(page, "/employees", [{ id: 9801, code: 501, name: "E2E Colaborador" }]);
 
     // 1.ª validación: falla la red. 2.ª: se retiene hasta liberarla.
     let release: () => void = () => {};
     const held = new Promise<void>((resolve) => (release = resolve));
     let calls = 0;
-    await page.route(
-      "**/api/v1/epps/validate-delivery-frequency**",
-      async (route) => {
-        calls++;
-        if (calls === 1) return route.abort("failed");
-        await held;
-        await route.fulfill({
-          json: { canDeliver: true, message: "El equipo puede ser entregado." },
-        });
-      },
-    );
+    await page.route("**/api/v1/epps/validate-delivery-frequency**", async (route) => {
+      calls++;
+      if (calls === 1) return route.abort("failed");
+      await held;
+      await route.fulfill({
+        json: { canDeliver: true, message: "El equipo puede ser entregado." },
+      });
+    });
 
     await page.goto("/epp");
     await page.getByRole("button", { name: "Crear registro" }).click();
@@ -294,9 +262,7 @@ test.describe("EPP: entregas", () => {
   }) => {
     const writes = await captureWrites(page);
     await mockGet(page, "/equipments", EQUIPMENTS);
-    await mockGet(page, "/employees", [
-      { id: 9801, code: 501, name: "E2E Colaborador" },
-    ]);
+    await mockGet(page, "/employees", [{ id: 9801, code: 501, name: "E2E Colaborador" }]);
     await mockGet(page, "/epps/validate-delivery-frequency", {
       canDeliver: false,
       message: "E2E fuera de frecuencia",
@@ -312,61 +278,46 @@ test.describe("EPP: entregas", () => {
     const save = dialog.getByRole("button", { name: "Guardar", exact: true });
 
     // Las tres secciones a la vista; las que dependen del colaborador lo dicen.
-    await expect(
-      dialog.getByRole("region", { name: "Colaborador" }),
-    ).toBeVisible();
-    await expect(
-      equipmentsSection.getByText("Elige primero al colaborador."),
-    ).toBeVisible();
-    await expect(
-      signatureSection.getByText("Elige primero al colaborador."),
-    ).toBeVisible();
+    await expect(dialog.getByRole("region", { name: "Colaborador" })).toBeVisible();
+    await expect(equipmentsSection.getByText("Elige primero al colaborador.")).toBeVisible();
+    await expect(signatureSection.getByText("Elige primero al colaborador.")).toBeVisible();
     await expect(save).toBeDisabled();
 
     const [plant] = await sessionPlants(page);
     await pickOption(page, "Planta", plant.name);
-    await expect(
-      dialog.getByText("Falta: colaborador, equipos y firma"),
-    ).toBeVisible();
+    await expect(dialog.getByText("Falta: colaborador, equipos y firma")).toBeVisible();
     await pickOption(page, "Colaborador", "501 - E2E Colaborador");
     await expect(dialog.getByText("Falta: equipos y firma")).toBeVisible();
     // Vacío: ya no se marca en rojo (volvía a rojo tras cada "Agregar").
-    await expect(
-      dialog.getByRole("combobox", { name: "Equipo" }),
-    ).not.toHaveAttribute("aria-invalid", "true");
+    await expect(dialog.getByRole("combobox", { name: "Equipo" })).not.toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
 
     await pickOption(page, "Equipo", "E2E Casco");
     await dialog.getByRole("button", { name: "Agregar" }).click();
     // También en escritorio, lista (antes, tabla) con el aviso en el equipo.
     const items = dialog.getByRole("list", { name: "Equipos a entregar" });
-    await expect(
-      items.getByRole("listitem").filter({ hasText: "E2E Casco" }),
-    ).toContainText("Fuera de la frecuencia de entrega");
+    await expect(items.getByRole("listitem").filter({ hasText: "E2E Casco" })).toContainText(
+      "Fuera de la frecuencia de entrega",
+    );
     await expect(dialog.getByRole("table")).toHaveCount(0);
     await expect(equipmentsSection.getByText("1 equipo")).toBeVisible();
     await expect(dialog.getByText("Falta: firma")).toBeVisible();
 
     await signatureSection.getByRole("button", { name: "Firmar" }).click();
-    const signature = page
-      .getByRole("dialog")
-      .filter({ hasText: "Firma del colaborador" });
+    const signature = page.getByRole("dialog").filter({ hasText: "Firma del colaborador" });
     await sign(page, signature.locator("canvas"));
     await signature.getByRole("button", { name: "Guardar" }).click();
     await expect(signatureSection.getByText("Firmado")).toBeVisible();
     // Como en papel: la firma sobre el nombre de quien recibe.
-    await expect(
-      signatureSection.getByText("501 - E2E Colaborador"),
-    ).toBeVisible();
-    await expect(
-      signatureSection.getByText("Firma de recibido", { exact: true }),
-    ).toBeVisible();
+    await expect(signatureSection.getByText("501 - E2E Colaborador")).toBeVisible();
+    await expect(signatureSection.getByText("Firma de recibido", { exact: true })).toBeVisible();
     await expect(dialog.getByText(/^Falta:/)).toHaveCount(0);
     await expect(save).toBeEnabled();
 
     // Se puede repetir la firma.
-    await signatureSection
-      .getByRole("button", { name: "Volver a firmar" })
-      .click();
+    await signatureSection.getByRole("button", { name: "Volver a firmar" }).click();
     await expect(signature.locator("canvas")).toBeVisible();
     await signature.getByRole("button", { name: "Cerrar sin firmar" }).click();
 
@@ -382,10 +333,7 @@ test.describe("EPP: entregas", () => {
     await page.getByRole("button", { name: "Crear registro" }).click();
     const [plant] = await sessionPlants(page);
     await pickOption(page, "Planta", plant.name);
-    await page
-      .getByRole("dialog")
-      .getByRole("button", { name: "Cerrar" })
-      .click();
+    await page.getByRole("dialog").getByRole("button", { name: "Cerrar" }).click();
     await expect(page.getByText("Registro de EPP")).toHaveCount(0);
     expect(writes).toEqual([]);
   });
@@ -440,8 +388,7 @@ test.describe("EPP: lista de entregas", () => {
     );
     const listRequests: URL[] = [];
     await page.route(
-      (url) =>
-        url.pathname.endsWith("/api/v1/epps") && url.searchParams.has("page"),
+      (url) => url.pathname.endsWith("/api/v1/epps") && url.searchParams.has("page"),
       (route) => {
         listRequests.push(new URL(route.request().url()));
         return route.fulfill({
@@ -464,9 +411,7 @@ test.describe("EPP: lista de entregas", () => {
     return { plant, userId, listRequests };
   };
 
-  test("ordena, despliega el historial, lo elimina y descarga (sin guardar)", async ({
-    page,
-  }) => {
+  test("ordena, despliega el historial, lo elimina y descarga (sin guardar)", async ({ page }) => {
     const errors = trackPageErrors(page);
     const writes = await captureWrites(page);
     // Registrada antes de abrir la página: cualquier petición de historial
@@ -492,34 +437,21 @@ test.describe("EPP: lista de entregas", () => {
     }
     await page.getByRole("button", { name: "Cédula" }).click();
 
-    await page
-      .getByRole("button", { name: "Ver historial de E2E Ana" })
-      .click();
+    await page.getByRole("button", { name: "Ver historial de E2E Ana" }).click();
     const history = page.getByRole("table", {
       name: "Historial de entrega de E2E Ana",
     });
     await expect(history.getByText("E2E Casco")).toBeVisible();
-    expect(historyRequests.at(-1)!.pathname).toMatch(
-      /\/epps\/employees\/9901\/history$/,
-    );
-    expect(
-      historyRequests.at(-1)!.searchParams.get("manufacturingPlantId"),
-    ).toBe(String(plant.id));
-    await page
-      .getByRole("button", { name: "Eliminar registro del historial" })
-      .click();
-    await page
-      .getByRole("dialog")
-      .getByRole("button", { name: "Eliminar" })
-      .click();
+    expect(historyRequests.at(-1)!.pathname).toMatch(/\/epps\/employees\/9901\/history$/);
+    expect(historyRequests.at(-1)!.searchParams.get("manufacturingPlantId")).toBe(String(plant.id));
+    await page.getByRole("button", { name: "Eliminar registro del historial" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Eliminar" }).click();
     await expect.poll(() => writes.length).toBe(1);
     expect(writes[0]).toMatchObject({
       method: "DELETE",
       path: "/epps/history/99010",
     });
-    await page
-      .getByRole("button", { name: "Ocultar historial de E2E Ana" })
-      .click();
+    await page.getByRole("button", { name: "Ocultar historial de E2E Ana" }).click();
 
     // Sin Content-Disposition: EPP_{código}_fecha.xlsx
     await page.route(/\/api\/v1\/epps\/download\/file\/\d+/, (route) =>
@@ -529,18 +461,12 @@ test.describe("EPP: lista de entregas", () => {
       }),
     );
     const download = page.waitForEvent("download");
-    await page
-      .getByRole("button", { name: "Descargar archivo de E2E Ana" })
-      .click();
-    expect((await download).suggestedFilename()).toMatch(
-      /^EPP_9901_\d{4}-\d{2}-\d{2}_/,
-    );
+    await page.getByRole("button", { name: "Descargar archivo de E2E Ana" }).click();
+    expect((await download).suggestedFilename()).toMatch(/^EPP_9901_\d{4}-\d{2}-\d{2}_/);
     expect(errors).toEqual([]);
   });
 
-  test("muestra la carga del historial y se recupera si falla", async ({
-    page,
-  }) => {
+  test("muestra la carga del historial y se recupera si falla", async ({ page }) => {
     const errors = trackPageErrors(page);
     const { userId } = await openList(page);
 
@@ -557,9 +483,7 @@ test.describe("EPP: lista de entregas", () => {
       return route.fulfill({ json: [historyItem(9902, userId)] });
     });
 
-    await page
-      .getByRole("button", { name: "Ver historial de E2E Beto" })
-      .click();
+    await page.getByRole("button", { name: "Ver historial de E2E Beto" }).click();
     await expect(page.getByRole("status")).toContainText("Cargando historial…");
     await expect(
       page.getByRole("table", { name: "Historial de entrega de E2E Beto" }),
@@ -574,16 +498,12 @@ test.describe("EPP: lista de entregas", () => {
     await alert.getByRole("button", { name: "Reintentar" }).click();
     await expect(alert).toHaveCount(0);
     await expect(
-      page
-        .getByRole("table", { name: "Historial de entrega de E2E Beto" })
-        .getByText("E2E Casco"),
+      page.getByRole("table", { name: "Historial de entrega de E2E Beto" }).getByText("E2E Casco"),
     ).toBeVisible();
     expect(errors).toEqual([]);
   });
 
-  test("si al eliminar ya no quedan entregas, avisa y recarga la lista", async ({
-    page,
-  }) => {
+  test("si al eliminar ya no quedan entregas, avisa y recarga la lista", async ({ page }) => {
     const writes = await captureWrites(page);
     const { userId, listRequests } = await openList(page);
     await page.route(HISTORY, (route) =>
@@ -594,21 +514,12 @@ test.describe("EPP: lista de entregas", () => {
         : route.fallback(),
     );
 
-    await page
-      .getByRole("button", { name: "Ver historial de E2E Ana" })
-      .click();
+    await page.getByRole("button", { name: "Ver historial de E2E Ana" }).click();
     const loadedLists = listRequests.length;
-    await page
-      .getByRole("button", { name: "Eliminar registro del historial" })
-      .click();
-    await page
-      .getByRole("dialog")
-      .getByRole("button", { name: "Eliminar" })
-      .click();
+    await page.getByRole("button", { name: "Eliminar registro del historial" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Eliminar" }).click();
 
-    await expect(
-      page.getByText("Sin entregas registradas en esta planta."),
-    ).toBeVisible();
+    await expect(page.getByText("Sin entregas registradas en esta planta.")).toBeVisible();
     await expect.poll(() => listRequests.length).toBeGreaterThan(loadedLists);
   });
 
@@ -620,9 +531,7 @@ test.describe("EPP: lista de entregas", () => {
     }) => {
       const errors = trackPageErrors(page);
       let userId = 0;
-      await page.route(HISTORY, (route) =>
-        route.fulfill({ json: [historyItem(9901, userId)] }),
-      );
+      await page.route(HISTORY, (route) => route.fulfill({ json: [historyItem(9901, userId)] }));
       ({ userId } = await openList(page));
 
       await expect(page.getByRole("table")).toHaveCount(0);
@@ -657,13 +566,10 @@ test.describe("EPP: lista de entregas", () => {
       expect(errors).toEqual([]);
     });
 
-    test("sin entregas o con error usa los estados compartidos", async ({
-      page,
-    }) => {
+    test("sin entregas o con error usa los estados compartidos", async ({ page }) => {
       let fail = false;
       await page.route(
-        (url) =>
-          url.pathname.endsWith("/api/v1/epps") && url.searchParams.has("page"),
+        (url) => url.pathname.endsWith("/api/v1/epps") && url.searchParams.has("page"),
         (route) =>
           fail
             ? route.fulfill({ status: 500, json: { message: "Caída" } })
@@ -680,15 +586,11 @@ test.describe("EPP: lista de entregas", () => {
       }
 
       await expect(page.getByText("Sin entregas de EPP")).toBeVisible();
-      await expect(
-        page.getByText("No hay registros de EPP para esta planta."),
-      ).toBeVisible();
+      await expect(page.getByText("No hay registros de EPP para esta planta.")).toBeVisible();
 
       fail = true;
       await page.getByRole("button", { name: "Actualizar" }).click();
-      const alert = page
-        .getByRole("alert")
-        .filter({ hasText: "No se pudo cargar" });
+      const alert = page.getByRole("alert").filter({ hasText: "No se pudo cargar" });
       await expect(alert).toBeVisible();
       fail = false;
       await alert.getByRole("button", { name: "Reintentar" }).click();
@@ -703,9 +605,7 @@ test.describe("EPP: firma en celular", () => {
 
   const openSignature = async (page: Page) => {
     await mockGet(page, "/equipments", EQUIPMENTS);
-    await mockGet(page, "/employees", [
-      { id: 9801, code: 501, name: "E2E Colaborador" },
-    ]);
+    await mockGet(page, "/employees", [{ id: 9801, code: 501, name: "E2E Colaborador" }]);
     await page.goto("/epp");
     await page.getByRole("button", { name: "Crear registro" }).click();
     const dialog = page.getByRole("dialog");
@@ -715,9 +615,7 @@ test.describe("EPP: firma en celular", () => {
     await pickOption(page, "Equipo", "E2E Guantes");
     await dialog.getByRole("button", { name: "Agregar" }).click();
     await dialog.getByRole("button", { name: "Firmar" }).click();
-    const signature = page
-      .getByRole("dialog")
-      .filter({ hasText: "Firma del colaborador" });
+    const signature = page.getByRole("dialog").filter({ hasText: "Firma del colaborador" });
     return { dialog, signature, canvas: signature.locator("canvas") };
   };
 
@@ -732,12 +630,7 @@ test.describe("EPP: firma en celular", () => {
       canvas.height = image.naturalHeight;
       const context = canvas.getContext("2d")!;
       context.drawImage(image, 0, 0);
-      const pixels = context.getImageData(
-        0,
-        0,
-        canvas.width,
-        canvas.height,
-      ).data;
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
       // Primera fila y columna con trazo: el margen que se dejó alrededor.
       let top = canvas.height;
       let left = canvas.width;
@@ -801,11 +694,7 @@ test.describe("EPP: firma en celular", () => {
     });
 
     /** Firma trazo por trazo en proporciones del lienzo (0–1). */
-    const drawStrokes = async (
-      page: Page,
-      canvas: Locator,
-      strokes: number[][][],
-    ) => {
+    const drawStrokes = async (page: Page, canvas: Locator, strokes: number[][][]) => {
       await canvas.evaluate((element) =>
         Promise.all(
           (element.closest(".MuiDialog-root") ?? document)
@@ -816,10 +705,7 @@ test.describe("EPP: firma en celular", () => {
       const box = (await canvas.boundingBox())!;
       for (const stroke of strokes) {
         const [first, ...rest] = stroke;
-        await page.mouse.move(
-          box.x + first[0] * box.width,
-          box.y + first[1] * box.height,
-        );
+        await page.mouse.move(box.x + first[0] * box.width, box.y + first[1] * box.height);
         await page.mouse.down();
         for (const [x, y] of rest) {
           await page.mouse.move(box.x + x * box.width, box.y + y * box.height, {
@@ -873,10 +759,7 @@ test.describe("EPP: firma en celular", () => {
           0.03 + (step * 0.94) / 12,
           y + (step % 2 ? 0.08 : -0.03),
         ]);
-      const saved = await signAndMeasure(
-        page,
-        [0.12, 0.27, 0.42, 0.57, 0.72, 0.87].map(zigzag),
-      );
+      const saved = await signAndMeasure(page, [0.12, 0.27, 0.42, 0.57, 0.72, 0.87].map(zigzag));
       expect(saved.bytes).toBeLessThan(80_000);
     });
   });
@@ -890,9 +773,9 @@ test.describe("EPP: firma en celular", () => {
     await expect(save).toBeEnabled();
 
     await page.setViewportSize({ width: 844, height: 390 });
-    await expect(
-      signature.getByText("Gira el teléfono para firmar con más espacio."),
-    ).toHaveCount(0);
+    await expect(signature.getByText("Gira el teléfono para firmar con más espacio.")).toHaveCount(
+      0,
+    );
     // Al cambiar de tamaño el lienzo se limpia: no se guarda una firma
     // cortada o deformada.
     await expect(save).toBeDisabled();
@@ -904,9 +787,7 @@ test.describe("EPP: firma en celular", () => {
     await expect(save).toBeEnabled();
   });
 
-  test("los equipos agregados se ven en lista, sin tabla ancha", async ({
-    page,
-  }) => {
+  test("los equipos agregados se ven en lista, sin tabla ancha", async ({ page }) => {
     const { dialog } = await openSignature(page);
     await page
       .getByRole("dialog")
@@ -916,15 +797,11 @@ test.describe("EPP: firma en celular", () => {
 
     const items = dialog.getByRole("list", { name: "Equipos a entregar" });
     await expect(items).toContainText("E2E Guantes");
-    await expect(
-      items.getByRole("button", { name: "Quitar E2E Guantes" }),
-    ).toBeVisible();
+    await expect(items.getByRole("button", { name: "Quitar E2E Guantes" })).toBeVisible();
     await expect(dialog.getByRole("table")).toHaveCount(0);
   });
 
-  test("el aviso de frecuencia se lee completo y la barra deja ver qué falta", async ({
-    page,
-  }) => {
+  test("el aviso de frecuencia se lee completo y la barra deja ver qué falta", async ({ page }) => {
     await mockGet(page, "/epps/validate-delivery-frequency", {
       canDeliver: false,
       message: "E2E fuera de frecuencia",
@@ -945,21 +822,15 @@ test.describe("EPP: firma en celular", () => {
       .locator(".MuiChip-label");
     await expect(chip).toHaveText("Fuera de la frecuencia de entrega");
     // Sin recortar con "…".
-    expect(await chip.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
-      true,
-    );
+    expect(await chip.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
     await expect(dialog.getByText("Falta: firma")).toBeVisible();
-    await expect(
-      dialog.getByRole("button", { name: "Guardar", exact: true }),
-    ).toBeInViewport();
+    await expect(dialog.getByRole("button", { name: "Guardar", exact: true })).toBeInViewport();
   });
 });
 
 // El 201 de la API debe cerrar el diálogo antes de borrar su contenido.
 // Limpiarlo durante Slide desmonta la firma y los equipos con el modal vivo.
-test("EPP: conserva el contenido hasta terminar el cierre tras un 201", async ({
-  page,
-}) => {
+test("EPP: conserva el contenido hasta terminar el cierre tras un 201", async ({ page }) => {
   const errors = trackPageErrors(page);
   const consoleErrors: string[] = [];
   page.on("console", (message) => {
@@ -983,9 +854,7 @@ test("EPP: conserva el contenido hasta terminar el cierre tras un 201", async ({
     return route.fallback();
   });
   await mockGet(page, "/equipments", EQUIPMENTS);
-  await mockGet(page, "/employees", [
-    { id: 9801, code: 501, name: "E2E Colaborador" },
-  ]);
+  await mockGet(page, "/employees", [{ id: 9801, code: 501, name: "E2E Colaborador" }]);
   await page.goto("/epp");
   await page.getByRole("button", { name: "Crear registro" }).click();
   const dialog = page.getByRole("dialog");
@@ -995,9 +864,7 @@ test("EPP: conserva el contenido hasta terminar el cierre tras un 201", async ({
   await pickOption(page, "Equipo", "E2E Guantes");
   await dialog.getByRole("button", { name: "Agregar" }).click();
   await dialog.getByRole("button", { name: "Firmar", exact: true }).click();
-  const signature = page
-    .getByRole("dialog")
-    .filter({ hasText: "Firma del colaborador" });
+  const signature = page.getByRole("dialog").filter({ hasText: "Firma del colaborador" });
   await sign(page, signature.locator("canvas"));
   await signature.getByRole("button", { name: "Guardar", exact: true }).click();
   const preview = dialog.getByAltText("Firma del colaborador");
@@ -1008,9 +875,9 @@ test("EPP: conserva el contenido hasta terminar el cierre tras un 201", async ({
   await expect.poll(() => attempts).toBe(1);
   await expect(save).toBeEnabled();
   await expect(preview).toBeVisible();
-  await expect(
-    dialog.getByRole("list", { name: "Equipos a entregar" }),
-  ).toContainText("E2E Guantes");
+  await expect(dialog.getByRole("list", { name: "Equipos a entregar" })).toContainText(
+    "E2E Guantes",
+  );
   await expect(
     dialog.locator(".MuiAutocomplete-root", {
       has: page.getByRole("combobox", { name: "Colaborador", exact: true }),
@@ -1027,8 +894,7 @@ test("EPP: conserva el contenido hasta terminar el cierre tras un 201", async ({
       if (element.isConnected && !element.contains(image)) {
         state.eppClearedBeforeExit = true;
       }
-      if (!element.isConnected || !element.contains(image))
-        observer.disconnect();
+      if (!element.isConnected || !element.contains(image)) observer.disconnect();
     });
     observer.observe(element, { childList: true, subtree: true });
   });
@@ -1046,25 +912,15 @@ test("EPP: conserva el contenido hasta terminar el cierre tras un 201", async ({
   expect(writes).toHaveLength(1);
   expect(
     await page.evaluate(
-      () =>
-        (window as unknown as { eppClearedBeforeExit: boolean })
-          .eppClearedBeforeExit,
+      () => (window as unknown as { eppClearedBeforeExit: boolean }).eppClearedBeforeExit,
     ),
   ).toBe(false);
 
   // Otra entrega empieza vacía, después de terminar el cierre anterior.
   await page.getByRole("button", { name: "Crear registro" }).click();
   await expect(dialog.getByAltText("Firma del colaborador")).toHaveCount(0);
-  await expect(
-    dialog.getByRole("list", { name: "Equipos a entregar" }),
-  ).toHaveCount(0);
-  await expect(
-    dialog.getByRole("button", { name: "Guardar", exact: true }),
-  ).toBeDisabled();
+  await expect(dialog.getByRole("list", { name: "Equipos a entregar" })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Guardar", exact: true })).toBeDisabled();
   expect(errors).toEqual([]);
-  expect(
-    consoleErrors.filter((message) =>
-      /NotFoundError|removeChild/.test(message),
-    ),
-  ).toEqual([]);
+  expect(consoleErrors.filter((message) => /NotFoundError|removeChild/.test(message))).toEqual([]);
 });

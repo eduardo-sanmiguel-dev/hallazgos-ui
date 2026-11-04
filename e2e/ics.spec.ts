@@ -3,13 +3,7 @@ import type { Page } from "@playwright/test";
 import { captureWrites, mockGet } from "./support/api";
 import { fakeCamera } from "./support/camera";
 import { expect, test } from "./support/fixtures";
-import {
-  pickMany,
-  pickOption,
-  sessionPlants,
-  toast,
-  trackPageErrors,
-} from "./support/ui";
+import { pickMany, pickOption, sessionPlants, toast, trackPageErrors } from "./support/ui";
 
 // Registro de ICS. Catálogos y colaboradores con datos fijos (mockGet) para
 // recorrer los selects en cascada; el alta se intercepta (captureWrites).
@@ -49,8 +43,7 @@ const EMPLOYEES = [
   { id: 8102, name: "E2E Colaborador Dos" },
 ];
 
-const saveButton = (page: Page) =>
-  page.getByRole("button", { name: "Guardar" });
+const saveButton = (page: Page) => page.getByRole("button", { name: "Guardar" });
 
 const openForm = async (page: Page, employees = EMPLOYEES) => {
   await mockGet(page, "/ics/catalogs", CATALOGS);
@@ -64,9 +57,7 @@ const openForm = async (page: Page, employees = EMPLOYEES) => {
 const totalPeople = (page: Page) => page.getByLabel(/^Personas totales/);
 
 test.describe("ICS", () => {
-  test("registra un ICS con foto de la cámara (sin guardar)", async ({
-    page,
-  }) => {
+  test("registra un ICS con foto de la cámara (sin guardar)", async ({ page }) => {
     const errors = trackPageErrors(page);
     const writes = await captureWrites(page);
     await fakeCamera(page, { qr: "foto" });
@@ -74,11 +65,7 @@ test.describe("ICS", () => {
 
     // Al elegir regla aparecen sus estándares, y del estándar sus áreas.
     await pickOption(page, "Regla de vida *", "E2E Regla con estándares");
-    await pickOption(
-      page,
-      "Estándar de comportamiento",
-      "E2E Estándar con áreas",
-    );
+    await pickOption(page, "Estándar de comportamiento", "E2E Estándar con áreas");
     await pickOption(page, "Área", "E2E Área");
 
     // Solo números positivos.
@@ -89,12 +76,9 @@ test.describe("ICS", () => {
 
     await saveButton(page).click();
     // Se marca junto al campo (antes solo un aviso).
-    const tooFew =
-      "No puede ser menor que las personas que no cumplen con el estándar (2).";
+    const tooFew = "No puede ser menor que las personas que no cumplen con el estándar (2).";
     await expect(toast(page, tooFew)).toBeVisible();
-    await expect(page.locator("#campo-totalPeople-helper-text")).toHaveText(
-      tooFew,
-    );
+    await expect(page.locator("#campo-totalPeople-helper-text")).toHaveText(tooFew);
     await expect(totalPeople(page)).toBeFocused();
     expect(writes).toEqual([]);
 
@@ -102,13 +86,9 @@ test.describe("ICS", () => {
     await page.getByLabel("Descripción (opcional)").fill("  E2E sin casco  ");
     // Alternativa a la cámara del teléfono: la del navegador. La foto se
     // comprime y se sube como JPG (antes, un PNG al tamaño del visor).
-    await page
-      .getByRole("button", { name: "Usar cámara del navegador" })
-      .click();
+    await page.getByRole("button", { name: "Usar cámara del navegador" }).click();
     await page.locator("#outer-circle").click();
-    await expect(
-      page.getByAltText("Vista previa de la evidencia"),
-    ).toBeVisible();
+    await expect(page.getByAltText("Vista previa de la evidencia")).toBeVisible();
 
     await saveButton(page).click();
     await expect(toast(page, "ICS creado correctamente")).toBeVisible();
@@ -130,22 +110,16 @@ test.describe("ICS", () => {
     ]) {
       expect(fields).toContain(`name="${name}"\r\n\r\n${value}\r\n`);
     }
-    expect(fields).toMatch(
-      /name="file"; filename="[0-9a-f-]{36}-evidence\.jpg"/,
-    );
+    expect(fields).toMatch(/name="file"; filename="[0-9a-f-]{36}-evidence\.jpg"/);
     expect(errors).toEqual([]);
   });
 
-  test("registra un ICS con imagen adjunta y sin estándar (sin guardar)", async ({
-    page,
-  }) => {
+  test("registra un ICS con imagen adjunta y sin estándar (sin guardar)", async ({ page }) => {
     const writes = await captureWrites(page);
     await openForm(page);
 
     await pickOption(page, "Regla de vida *", "E2E Regla sin estándares");
-    await expect(
-      page.getByRole("combobox", { name: "Estándar de comportamiento" }),
-    ).toHaveCount(0);
+    await expect(page.getByRole("combobox", { name: "Estándar de comportamiento" })).toHaveCount(0);
     await totalPeople(page).fill("3");
     await pickMany(page, "Personas que no cumplen *");
     await page.getByLabel("Subir foto").setInputFiles({
@@ -155,9 +129,7 @@ test.describe("ICS", () => {
     });
     // La imagen se comprime antes de adjuntarse (un PNG sigue siendo PNG);
     // su vista previa lo indica.
-    await expect(
-      page.getByAltText("Vista previa de la evidencia"),
-    ).toBeVisible();
+    await expect(page.getByAltText("Vista previa de la evidencia")).toBeVisible();
 
     await saveButton(page).click();
     await expect(toast(page, "ICS creado correctamente")).toBeVisible();
@@ -197,28 +169,18 @@ test.describe("ICS", () => {
     await saveButton(page).click({ force: true });
 
     release();
-    await expect(
-      toast(page, "E2E la regla de vida ya no está activa"),
-    ).toBeVisible();
+    await expect(toast(page, "E2E la regla de vida ya no está activa")).toBeVisible();
     await expect(page).toHaveURL(/\/ics\/form$/);
     await expect(saveButton(page)).toBeEnabled();
     expect(posts).toBe(1);
     expect(errors).toEqual([]);
   });
 
-  test("un estándar sin áreas no muestra el select de área", async ({
-    page,
-  }) => {
+  test("un estándar sin áreas no muestra el select de área", async ({ page }) => {
     await openForm(page);
     await pickOption(page, "Regla de vida *", "E2E Regla con estándares");
-    await pickOption(
-      page,
-      "Estándar de comportamiento",
-      "E2E Estándar sin áreas",
-    );
-    await expect(
-      page.getByRole("combobox", { name: "Área", exact: true }),
-    ).toHaveCount(0);
+    await pickOption(page, "Estándar de comportamiento", "E2E Estándar sin áreas");
+    await expect(page.getByRole("combobox", { name: "Área", exact: true })).toHaveCount(0);
   });
 
   test("avisa cuando la planta no tiene colaboradores", async ({ page }) => {
@@ -229,15 +191,11 @@ test.describe("ICS", () => {
     });
     // Sin planta, deshabilitado y con la indicación.
     await expect(employees).toBeDisabled();
-    await expect(
-      page.getByText("Elige una planta para ver a sus colaboradores."),
-    ).toBeVisible();
+    await expect(page.getByText("Elige una planta para ver a sus colaboradores.")).toBeVisible();
     await mockGet(page, "/employees", []);
     const [plant] = await sessionPlants(page);
     await pickOption(page, "Planta *", plant.name);
-    await expect(
-      page.getByText("Esta planta no tiene colaboradores activos."),
-    ).toBeVisible();
+    await expect(page.getByText("Esta planta no tiene colaboradores activos.")).toBeVisible();
   });
 
   // "Guardar" ya no está deshabilitado: marca todo lo que falta, junto a cada
@@ -263,9 +221,7 @@ test.describe("ICS", () => {
     ]) {
       await expect(page.getByText(message)).toBeVisible();
     }
-    await expect(
-      page.getByRole("combobox", { name: "Planta *", exact: true }),
-    ).toBeFocused();
+    await expect(page.getByRole("combobox", { name: "Planta *", exact: true })).toBeFocused();
 
     await pickOption(page, "Planta *", plant.name);
     await expect(page.getByText("Selecciona la planta.")).toHaveCount(0);
@@ -289,9 +245,7 @@ test.describe("ICS", () => {
     await expect(input).toHaveValue("7");
   });
 
-  test("si no cargan las reglas de vida, lo dice y deja reintentar", async ({
-    page,
-  }) => {
+  test("si no cargan las reglas de vida, lo dice y deja reintentar", async ({ page }) => {
     let fail = true;
     await page.route(
       (url) => url.pathname.endsWith("/api/v1/ics/catalogs"),
@@ -314,9 +268,7 @@ test.describe("ICS", () => {
   test.describe("en celular", () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
-    test("la lista se ve en tarjetas sin desplazarse de lado", async ({
-      page,
-    }) => {
+    test("la lista se ve en tarjetas sin desplazarse de lado", async ({ page }) => {
       await mockGet(
         page,
         "/ics",
@@ -341,16 +293,12 @@ test.describe("ICS", () => {
       await page.goto("/ics");
 
       await expect(page.getByRole("table")).toHaveCount(0);
-      const card = page
-        .getByRole("list", { name: "Registros de ICS" })
-        .getByRole("listitem");
+      const card = page.getByRole("list", { name: "Registros de ICS" }).getByRole("listitem");
       await expect(card).toContainText("ICS #9800 · 75%");
       await expect(card).toContainText("E2E Planta");
       await expect(card).toContainText("E2E Regla");
       await expect(card).toContainText("6 / 2");
-      await expect(
-        card.getByRole("button", { name: /Eliminar/ }),
-      ).toBeVisible();
+      await expect(card.getByRole("button", { name: /Eliminar/ })).toBeVisible();
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - window.innerWidth,
       );

@@ -1,63 +1,77 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# ComportArte UI
 
-## Getting Started
+Aplicación React 19 + TypeScript con Vite+ (Oxc y Rolldown), React Router,
+React Compiler estable mediante Babel, MUI, TanStack Query y Zustand.
+NestJS sigue siendo la autoridad para autenticación y permisos.
 
-First, run the development server:
+## Desarrollo
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Node ^22.18, ^24.11 o >=26 y pnpm 12.16.1.
+`pnpm install --frozen-lockfile`, luego `pnpm dev` (http://localhost:3000).
+La API local debe estar en http://localhost:4000 con su base de desarrollo.
+Copiar `.env.example` a `.env.development` y configurar la clave pública del API.
+Los nombres anteriores NEXT_PUBLIC_URL_API, NEXT_PUBLIC_URL_API_RAW y
+NEXT_PUBLIC_APP_KEY se aceptan como respaldo para conservar los .env existentes.
+Solo se incorpora al navegador la lista explícita de variables públicas.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Comandos
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `pnpm check`: formato, Oxlint y tipos (TypeScript Go).
+- `pnpm typecheck` / `pnpm typecheck:ts6`: verificación de tipos independiente.
+- `pnpm lint`: Oxlint, incluidas reglas de React y hooks.
+- `pnpm format`: Oxfmt; `pnpm format:check`: solo comprobar.
+- `pnpm test`: pruebas unitarias con Vitest mediante Vite+.
+- `pnpm test:e2e`: pruebas completas en Chrome con la API de desarrollo.
+- `pnpm test:e2e:coverage`: cobertura de la aplicación durante los e2e.
+- `pnpm build`: dependencias, tipos y build de producción en `dist/`.
+- `pnpm start`: servir `dist/` en el puerto 3000; admite PORT y HOST.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+Los scripts pasan por `scripts/toolchain.mjs`, que ejecuta las herramientas exactas
+incluidas en Vite+ y lee su configuración central. Evita un bloqueo observado
+del despachador nativo `vp` en Windows con Node 26. No utiliza la caché de tareas
+del despachador; no cambia el compilador, bundler ni las versiones de herramientas.
+Los archivos de configuración generados para Oxlint/Oxfmt están ignorados por Git.
 
-## Learn More
+## Organización
 
-To learn more about Next.js, take a look at the following resources:
+`app/features/` conserva cada módulo y sus rutas originales (page.tsx).
+`app/router/` registra los módulos con carga diferida y verifica sesión.
+`app/_shared/navigation.ts` centraliza la navegación; AppLink conserva enlaces
+reales y AppImage conserva imágenes originales, blobs y firmas.
+Los componentes compartidos, servicios, borradores e interfaces mantienen sus APIs.
+React Compiler se aplica a componentes y hooks; no se habilita el port Rust experimental.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Sesión y permisos
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+Las cookies HttpOnly se envían con credentials. El router valida la identidad
+contra la API y restaura el usuario en el store antes de mostrar rutas protegidas.
+Se conservan `?next=`, recuperación de contraseña, controles de acceso por rol
+y usuario, aviso de sesión terminada y borradores locales. La caché se limpia
+al cambiar de cuenta. La autorización real se comprueba siempre en NestJS.
 
-## Deploy on Vercel
+## Producción
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Configurar `.env.production` antes de compilar. Es una SPA estática:
+Nginx puede servir `dist/` directamente con fallback a index.html para las rutas,
+sin aplicar ese fallback a los assets. Ver `deploy/nginx.conf.example`.
+Se incluye `scripts/serve.mjs` para mantener el puerto 3000 y el proceso PM2
+`ui-comp` sin exigir cambios inmediatos al reverse proxy.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+El build genera un ID único en el bundle y `dist/deployment-version.json`.
+Se conservan eventos WebSocket ui-version/api-version, verificación previa a
+recargar y publicación atómica con `scripts/publish-ui-version.mjs`.
+El servidor también conserva `/api/deployment-version` para pestañas anteriores.
 
+El script de despliegue prepara `dist.next`, conserva `dist.prev` y cambia el
+proceso a `ecosystem.config.js` después de compilar. En el primer despliegue
+desde Next, revisar que el script del VPS invoque esta versión del script y que
+PM2 adopte `scripts/serve.mjs`. Para volver a Next hay que restaurar el commit,
+instalar su lockfile, compilar y arrancar su configuración PM2; un dist no es
+intercambiable con un build .next. Esta migración local no despliega ni modifica el VPS.
 
-## Recarga automática por despliegues de UI y API
+## Validación
 
-El layout recibe los eventos WebSocket `ui-version` y `api-version`.
-Los cambios de UI se comparan contra el ID incorporado en su build. Los de
-API se comparan contra la última versión recibida por cada pestaña, guardada
-en `sessionStorage`. La primera conexión establece esa referencia; un nuevo
-ID provoca una recarga completa, también tras recuperar una conexión perdida.
-No hay consultas periódicas de versiones.
-
-Antes de recargar se comprueba que `/api/deployment-version` responde. Para
-un aviso de UI también debe coincidir con el build publicado. Si la UI aún
-no está disponible, la referencia de API se conserva para reintentar al
-reconectar. Sin almacenamiento disponible, se compara en memoria.
-
-La API genera su ID automáticamente al ejecutar `pnpm build` y lo conserva
-en `dist/deployment-version.json`. Reiniciar PM2 con el mismo build no cambia
-ese ID. No se requieren cambios en los workflows ni en el script del VPS,
-que ya ejecuta `pnpm build` antes de recargar PM2.
-
-Para activar esta ampliación, desplegar primero la API y después la UI.
-Las pestañas deben cargar esta nueva UI para empezar a detectar deploys de API.
-Se conserva el aviso de UI existente para actualizar las pestañas anteriores.
-
-Pruebas aisladas, sin API ni BD:
+Ver `docs/migracion-vite-plus.md` y `e2e/README.md`. Las escrituras de los e2e
+se interceptan, mientras que autenticación y lecturas utilizan la API local.
+La prueba aislada de actualizaciones sigue disponible con
 `pnpm exec playwright test -c playwright.deployment.config.ts`.

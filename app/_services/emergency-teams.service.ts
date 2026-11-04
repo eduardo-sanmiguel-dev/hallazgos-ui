@@ -18,10 +18,7 @@ const create = async (payload: Payload) => {
   return data;
 };
 
-const findAll = async (filters: {
-  search?: string;
-  manufacturingPlantId?: string;
-}) => {
+const findAll = async (filters: { search?: string; manufacturingPlantId?: string }) => {
   const { data } = await api.get<EmergencyTeam[]>("", {
     params: {
       ...(filters?.search && {
@@ -66,9 +63,7 @@ const findAllPaginated = async ({
       page,
       limit,
       ...Object.fromEntries(
-        Object.entries(filters).filter(
-          ([, value]) => value !== "" && value !== undefined,
-        ),
+        Object.entries(filters).filter(([, value]) => value !== "" && value !== undefined),
       ),
     },
   });

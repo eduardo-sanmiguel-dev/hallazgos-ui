@@ -9,8 +9,7 @@ import { toast, trackPageErrors } from "./support/ui";
 
 const servePage = (page: Page, path: string, data: unknown[]) =>
   page.route(
-    (url) =>
-      url.pathname.endsWith(`/api/v1${path}`) && url.searchParams.has("page"),
+    (url) => url.pathname.endsWith(`/api/v1${path}`) && url.searchParams.has("page"),
     (route) =>
       route.request().method() === "GET"
         ? route.fulfill({ json: { data, count: data.length } })
@@ -74,9 +73,7 @@ test.describe("Tablas con casos extremos", () => {
     await mockGet(page, "/gemba-walk/walks/9501", walk(9501));
     await page.goto("/gemba-walk");
 
-    const complete = page
-      .getByRole("row")
-      .filter({ hasText: "E2E Observador" });
+    const complete = page.getByRole("row").filter({ hasText: "E2E Observador" });
     await expect(complete).toContainText("C: 1");
     await expect(complete).toContainText("NC: 1");
     await expect(complete).toContainText("50%");
@@ -88,9 +85,7 @@ test.describe("Tablas con casos extremos", () => {
     expect(errors).toEqual([]);
   });
 
-  test("colaboradores activos e inactivos con datos faltantes", async ({
-    page,
-  }) => {
+  test("colaboradores activos e inactivos con datos faltantes", async ({ page }) => {
     const errors = trackPageErrors(page);
     await servePage(page, "/employees", [
       {
@@ -119,18 +114,14 @@ test.describe("Tablas con casos extremos", () => {
       },
     ]);
     await page.goto("/employees");
-    await expect(
-      page.getByRole("row").filter({ hasText: "E2E Activo" }),
-    ).toContainText("Activo");
-    await expect(
-      page.getByRole("row").filter({ hasText: "E2E Inactivo" }),
-    ).toContainText("Inactivo");
+    await expect(page.getByRole("row").filter({ hasText: "E2E Activo" })).toContainText("Activo");
+    await expect(page.getByRole("row").filter({ hasText: "E2E Inactivo" })).toContainText(
+      "Inactivo",
+    );
     expect(errors).toEqual([]);
   });
 
-  test("equipo sin frecuencia de entrega ni precio (sin guardar)", async ({
-    page,
-  }) => {
+  test("equipo sin frecuencia de entrega ni precio (sin guardar)", async ({ page }) => {
     const writes = await captureWrites(page);
     const equipment = {
       id: 9701,
@@ -151,9 +142,7 @@ test.describe("Tablas con casos extremos", () => {
     // El formulario es su propia ruta (antes, un diálogo sobre la lista).
     await expect(page).toHaveURL(/\/equipments\/form\?id=9701$/);
     await expect(page.getByLabel("Nombre")).toHaveValue("E2E Sin precio");
-    await expect(page.getByLabel("Frecuencia de entrega (días)")).toHaveValue(
-      "",
-    );
+    await expect(page.getByLabel("Frecuencia de entrega (días)")).toHaveValue("");
     await expect(page.getByLabel("Precio")).toHaveValue("");
     await page.getByRole("button", { name: "Guardar" }).click();
     await expect(toast(page, "Equipo actualizado correctamente")).toBeVisible();
@@ -164,9 +153,7 @@ test.describe("Tablas con casos extremos", () => {
     });
   });
 
-  test("sin editar, la columna de actualización muestra -", async ({
-    page,
-  }) => {
+  test("sin editar, la columna de actualización muestra -", async ({ page }) => {
     // Al inicio de un minuto: +5 ms no cruza al siguiente.
     const created = new Date(
       Math.floor((Date.now() - 3 * 24 * 60 * 60_000) / 60_000) * 60_000,
@@ -184,11 +171,7 @@ test.describe("Tablas con casos extremos", () => {
     });
     await servePage(page, "/equipments", [
       // Recién creado: la API guarda la actualización milisegundos después.
-      equipment(
-        9711,
-        "E2E Sin editar",
-        new Date(Date.parse(created) + 5).toISOString(),
-      ),
+      equipment(9711, "E2E Sin editar", new Date(Date.parse(created) + 5).toISOString()),
       equipment(9712, "E2E Editado", new Date().toISOString()),
     ]);
     await page.goto("/equipments");
@@ -197,9 +180,7 @@ test.describe("Tablas con casos extremos", () => {
       (await page.getByRole("row").filter({ hasText: name }).innerText()).match(
         /\d{2}\/\d{2}\/\d{4}/g,
       ) ?? [];
-    await expect(
-      page.getByRole("row").filter({ hasText: "E2E Sin editar" }),
-    ).toBeVisible();
+    await expect(page.getByRole("row").filter({ hasText: "E2E Sin editar" })).toBeVisible();
     // Solo la fecha de creación vs. creación y actualización.
     expect(await dates("E2E Sin editar")).toHaveLength(1);
     expect(await dates("E2E Editado")).toHaveLength(2);

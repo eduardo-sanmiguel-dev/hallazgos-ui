@@ -1,4 +1,11 @@
 import axiosWrapper from "./axiosWrapper";
+import { getQueryClient } from "@shared/libs/queryClient";
+import { useUserSessionStore } from "@store";
+
+function clearSession() {
+  getQueryClient().clear();
+  useUserSessionStore.getState().resetSession();
+}
 
 interface PayloadLogin {
   email: string;
@@ -16,14 +23,13 @@ const api = axiosWrapper({
 
 const login = async (payload: PayloadLogin) => {
   const { data } = await api.post<{ message: string }>("/login", payload);
+  clearSession();
   return data;
 };
 
 const loginRestorePassword = async (payload: PayloadRestorePassword) => {
-  const { data } = await api.post<{ message: string }>(
-    "/login-restore-password",
-    payload
-  );
+  const { data } = await api.post<{ message: string }>("/login-restore-password", payload);
+  clearSession();
   return data;
 };
 
@@ -36,6 +42,7 @@ const forgotPassword = async (email: string) => {
 
 const logout = async () => {
   const { data } = await api.post<{ message: string }>("/logout");
+  clearSession();
   return data;
 };
 

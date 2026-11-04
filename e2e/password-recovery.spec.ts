@@ -54,27 +54,15 @@ test.describe("Contraseña", () => {
     await expect(page.getByRole("button", { name: "Iniciar" })).toBeVisible();
   });
 
-  test("restablece la contraseña con el token del correo (sin guardar)", async ({
-    page,
-  }) => {
+  test("restablece la contraseña con el token del correo (sin guardar)", async ({ page }) => {
     const writes = await captureWrites(page, respondMessage);
-    // El servidor valida el token contra el API (un token de prueba se
-    // rechaza); con pushState, Next actualiza la URL sin pedirla al servidor.
-    await page.goto("/");
-    // Tras hidratar: el login ya responde.
-    await expect(page.getByRole("button", { name: "Iniciar" })).toBeVisible();
-    await page.waitForLoadState("networkidle");
-    // "Iniciar" ya viene del servidor: si el pushState llega antes de que
-    // Next termine de hidratar, no lo ve. Se repite hasta que aparece el
-    // formulario de restablecer.
-    await expect(async () => {
-      await page.evaluate(() =>
-        window.history.pushState(null, "", "/?token=token-e2e"),
-      );
-      await expect(page.getByLabel("Nueva contraseña")).toBeVisible({
-        timeout: 1_000,
-      });
-    }).toPass();
+    // El loader valida el enlace antes de mostrar el formulario. Simula un
+    // token válido sin enviar correos ni cambiar contraseñas en desarrollo.
+    await page.route("**/auth/check-token-restore-password", (route) =>
+      route.fulfill({ json: {} }),
+    );
+    await page.goto("/?token=token-e2e");
+    await expect(page.getByLabel("Nueva contraseña")).toBeVisible();
 
     const email = page.getByLabel("Correo Electrónico");
     const password = page.getByLabel("Nueva contraseña");

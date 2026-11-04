@@ -74,9 +74,7 @@ test.describe("Sin datos", () => {
       (url) => url.pathname.endsWith("/api/v1/evidences"),
       (route) => {
         queries++;
-        return fail
-          ? route.fulfill({ status: 500, body: "E2E caído" })
-          : route.fallback();
+        return fail ? route.fulfill({ status: 500, body: "E2E caído" }) : route.fallback();
       },
     );
     await page.route(
@@ -88,9 +86,7 @@ test.describe("Sin datos", () => {
     );
     await page.goto("/hallazgos");
 
-    const alert = page
-      .getByRole("alert")
-      .filter({ hasText: "No se pudo cargar" });
+    const alert = page.getByRole("alert").filter({ hasText: "No se pudo cargar" });
     await expect(alert).toBeVisible();
     // Antes, cada error provocaba otra consulta: decenas por segundo.
     await page.waitForTimeout(2_000);
@@ -108,8 +104,7 @@ test.describe("Sin datos", () => {
   test("si la lista no carga, lo dice y deja reintentar", async ({ page }) => {
     let fail = true;
     await page.route(
-      (url) =>
-        url.pathname.endsWith("/api/v1/zones") && url.searchParams.has("page"),
+      (url) => url.pathname.endsWith("/api/v1/zones") && url.searchParams.has("page"),
       (route) =>
         fail
           ? route.fulfill({ status: 500, json: { message: "E2E caído" } })
@@ -131,9 +126,7 @@ test.describe("Sin datos", () => {
     );
     await page.goto("/zones");
 
-    const alert = page
-      .getByRole("alert")
-      .filter({ hasText: "No se pudo cargar" });
+    const alert = page.getByRole("alert").filter({ hasText: "No se pudo cargar" });
     await expect(alert).toBeVisible();
     // No se confunde con "no hay datos".
     await expect(page.getByText(/^Sin registros/)).toHaveCount(0);
@@ -183,9 +176,7 @@ test.describe("Sin datos", () => {
       await page.reload();
     }
     // Un solo aviso en lugar de "Sin datos" en cada gráfica.
-    await expect(
-      page.getByText("Sin entregas de EPP en este periodo"),
-    ).toHaveCount(1);
+    await expect(page.getByText("Sin entregas de EPP en este periodo")).toHaveCount(1);
     await expect(page.getByText("Sin datos", { exact: true })).toHaveCount(0);
     expect(errors).toEqual([]);
   });
@@ -208,9 +199,7 @@ test.describe("Sin datos", () => {
     await expect(page.getByText("Elige el periodo")).toHaveCount(0);
 
     await page.getByRole("button", { name: "Ir a Hallazgos" }).click();
-    await expect(page).toHaveURL(
-      /\/hallazgos\?manufacturingPlantId=\d+&startDate=.+&endDate=.+/,
-    );
+    await expect(page).toHaveURL(/\/hallazgos\?manufacturingPlantId=\d+&startDate=.+&endDate=.+/);
     expect(errors).toEqual([]);
   });
 });

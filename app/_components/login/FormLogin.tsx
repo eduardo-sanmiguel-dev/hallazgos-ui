@@ -1,10 +1,8 @@
-"use client";
-
 import { useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "@shared/navigation";
 
 import { Button } from "@mui/material";
 import { TextField } from "@mui/material";
@@ -31,25 +29,19 @@ interface Props {
 const FormLogin = ({ setForgotPassword }: Props) => {
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleMouseDownPassword = (
-    event: React.MouseEvent<HTMLButtonElement>,
-  ) => {
+  const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
   };
 
-  const handleMouseUpPassword = (
-    event: React.MouseEvent<HTMLButtonElement>,
-  ) => {
+  const handleMouseUpPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
   };
 
   const [email, setEmail] = useState(
-    process.env.NODE_ENV === constants.environments.development
-      ? "eduardo-266@hotmail.com"
-      : "",
+    import.meta.env.MODE === constants.environments.development ? "eduardo-266@hotmail.com" : "",
   );
   const [password, setPassword] = useState(
-    process.env.NODE_ENV === constants.environments.development ? "12345" : "",
+    import.meta.env.MODE === constants.environments.development ? "12345" : "",
   );
 
   const router = useRouter();
@@ -105,9 +97,7 @@ const FormLogin = ({ setForgotPassword }: Props) => {
         onChange={(e) => setEmail(e.target.value)}
       />
       <FormControl sx={{ width: "100%" }} variant="outlined">
-        <InputLabel htmlFor="outlined-adornment-password">
-          Contraseña
-        </InputLabel>
+        <InputLabel htmlFor="outlined-adornment-password">Contraseña</InputLabel>
         <OutlinedInput
           id="outlined-adornment-password"
           type={showPassword ? "text" : "password"}
@@ -117,9 +107,7 @@ const FormLogin = ({ setForgotPassword }: Props) => {
           endAdornment={
             <InputAdornment position="end">
               <IconButton
-                aria-label={
-                  showPassword ? "hide the password" : "display the password"
-                }
+                aria-label={showPassword ? "hide the password" : "display the password"}
                 onClick={handleClickShowPassword}
                 onMouseDown={handleMouseDownPassword}
                 onMouseUp={handleMouseUpPassword}
@@ -145,11 +133,7 @@ const FormLogin = ({ setForgotPassword }: Props) => {
       </Button>
       <Grid container>
         <Grid size="grow">
-          <Link
-            variant="body2"
-            onClick={() => setForgotPassword(true)}
-            sx={{ cursor: "pointer" }}
-          >
+          <Link variant="body2" onClick={() => setForgotPassword(true)} sx={{ cursor: "pointer" }}>
             ¿Has olvidado tu contraseña?
           </Link>
         </Grid>

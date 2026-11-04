@@ -8,10 +8,7 @@ interface RefreshButtonProps {
 }
 
 // Botón de solo ícono para volver a consultar los datos de la página.
-export default function RefreshButton({
-  onClick,
-  label = "Actualizar",
-}: RefreshButtonProps) {
+export default function RefreshButton({ onClick, label = "Actualizar" }: RefreshButtonProps) {
   return (
     <Tooltip title={label}>
       <Button

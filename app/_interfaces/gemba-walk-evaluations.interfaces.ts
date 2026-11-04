@@ -2,8 +2,7 @@
 // en que se muestran en el recorrido.
 export const GEMBA_WALK_EVALUATION_CATEGORIES = ["SHE", "CALIDAD"] as const;
 
-export type GembaWalkEvaluationCategory =
-  (typeof GEMBA_WALK_EVALUATION_CATEGORIES)[number];
+export type GembaWalkEvaluationCategory = (typeof GEMBA_WALK_EVALUATION_CATEGORIES)[number];
 
 export interface GembaWalkEvaluation {
   id: number;

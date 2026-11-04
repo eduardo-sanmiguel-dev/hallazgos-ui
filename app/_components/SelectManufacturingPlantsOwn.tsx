@@ -26,9 +26,7 @@ const SelectManufacturingPlantsOwn = ({
   disabled,
   size = { xs: 12, sm: 6, md: 3 },
 }: Props) => {
-  const manufacturingPlants = useUserSessionStore(
-    (state) => state.manufacturingPlants || [],
-  );
+  const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants || []);
 
   useEffect(() => {
     if (manufacturingPlants.length === 1 && !value) {

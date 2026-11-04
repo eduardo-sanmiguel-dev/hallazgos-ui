@@ -4,9 +4,9 @@ import { dirname, join } from "node:path";
 
 // Solo se ejecuta DESPUÉS del health check del despliegue. La API observa
 // este directorio; el rename evita que lea un JSON escrito a medias.
-const file = process.env.UI_VERSION_FILE ||
-  join(homedir(), ".local", "state", "hallazgos", "ui-version.json");
-const version = (await readFile(".next/BUILD_ID", "utf8")).trim();
+const file =
+  process.env.UI_VERSION_FILE || join(homedir(), ".local", "state", "hallazgos", "ui-version.json");
+const { version } = JSON.parse(await readFile("dist/deployment-version.json", "utf8"));
 const url = new URL("/api/deployment-version", process.env.UI_URL || "http://127.0.0.1:3000");
 const response = await fetch(url, {
   cache: "no-store",

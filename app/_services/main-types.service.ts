@@ -58,9 +58,7 @@ const findAllPaginated = async ({
       page,
       limit,
       ...Object.fromEntries(
-        Object.entries(filters).filter(
-          ([, value]) => value !== "" && value !== undefined,
-        ),
+        Object.entries(filters).filter(([, value]) => value !== "" && value !== undefined),
       ),
     },
   });

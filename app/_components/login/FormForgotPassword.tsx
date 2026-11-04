@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
@@ -26,9 +24,7 @@ const FormForgotPassword = ({ setForgotPassword }: Props) => {
   });
   const isLoading = forgotMutation.isPending;
   const [email, setEmail] = useState(
-    process.env.NODE_ENV === constants.environments.development
-      ? "eduardo-266@hotmail.com"
-      : "",
+    import.meta.env.MODE === constants.environments.development ? "eduardo-266@hotmail.com" : "",
   );
 
   const login = async () => {

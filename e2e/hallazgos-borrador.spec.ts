@@ -76,15 +76,12 @@ const putRawDraft = (page: Page, draft: Record<string, unknown>) =>
 
 const sessionUserId = (page: Page) =>
   page.evaluate(
-    () =>
-      JSON.parse(sessionStorage.getItem("user-session") || "{}").state
-        ?.id as number,
+    () => JSON.parse(sessionStorage.getItem("user-session") || "{}").state?.id as number,
   );
 
 const description = (page: Page) =>
   page.getByRole("textbox", { name: "Describe lo que observaste" });
-const createButton = (page: Page) =>
-  page.getByRole("button", { name: "Crear hallazgo" });
+const createButton = (page: Page) => page.getByRole("button", { name: "Crear hallazgo" });
 const notice = (page: Page) =>
   page.getByRole("status").filter({
     has: page.getByRole("button", { name: /Recuperar|Reintentar envío/ }),
@@ -136,25 +133,17 @@ const pendingDraft = async (
   page: Page,
   retry: (route: import("@playwright/test").Route) => Promise<void>,
 ) => {
-  const requests = await routeCreate(page, [
-    (route) => route.abort("internetdisconnected"),
-    retry,
-  ]);
+  const requests = await routeCreate(page, [(route) => route.abort("internetdisconnected"), retry]);
   await fillForm(page);
   await createButton(page).click();
   await expect(toast(page, "Sin conexión")).toBeVisible();
-  await page
-    .locator("[data-sonner-toast]")
-    .getByRole("button", { name: /close/i })
-    .click();
+  await page.locator("[data-sonner-toast]").getByRole("button", { name: /close/i }).click();
 
   // En la misma pantalla ya queda en solo lectura.
   await expect(notice(page)).toContainText("Envío sin confirmar");
   await expect(createButton(page)).toHaveCount(0);
 
-  await expect
-    .poll(async () => (await storedDrafts(page))[0]?.sendState)
-    .toBe("pending");
+  await expect.poll(async () => (await storedDrafts(page))[0]?.sendState).toBe("pending");
   await openForm(page);
   await expect(notice(page)).toContainText("Tienes un envío sin confirmar");
   await notice(page).getByRole("button", { name: "Recuperar" }).click();
@@ -191,9 +180,7 @@ test.describe("Borrador de nuevo hallazgo", () => {
     await notice(page).getByRole("button", { name: "Recuperar" }).click();
 
     await expect(description(page)).toHaveValue(DESCRIPTION);
-    await expect(
-      page.getByAltText("Vista previa de la evidencia"),
-    ).toBeVisible();
+    await expect(page.getByAltText("Vista previa de la evidencia")).toBeVisible();
     await expect(notice(page)).toHaveCount(0);
   });
 
@@ -235,33 +222,19 @@ test.describe("Borrador de nuevo hallazgo", () => {
     await expect(notice(page)).toHaveCount(0);
   });
 
-  test("con un envío sin confirmar, lo recuperado queda en solo lectura", async ({
-    page,
-  }) => {
-    await pendingDraft(page, (route) =>
-      route.fulfill({ status: 201, json: { id: 555 } }),
-    );
+  test("con un envío sin confirmar, lo recuperado queda en solo lectura", async ({ page }) => {
+    await pendingDraft(page, (route) => route.fulfill({ status: 201, json: { id: 555 } }));
 
     await expect(notice(page)).toContainText("Envío sin confirmar");
-    await expect(
-      notice(page).getByRole("button", { name: "Reintentar envío" }),
-    ).toBeVisible();
-    await expect(
-      notice(page).getByRole("button", { name: "Descartar" }),
-    ).toBeVisible();
+    await expect(notice(page).getByRole("button", { name: "Reintentar envío" })).toBeVisible();
+    await expect(notice(page).getByRole("button", { name: "Descartar" })).toBeVisible();
     await expect(createButton(page)).toHaveCount(0);
     await expect(description(page)).toHaveValue(DESCRIPTION);
     await expect(description(page)).toHaveAttribute("readonly", "");
-    await expect(
-      page.getByRole("combobox", { name: "Hallazgo", exact: true }),
-    ).toBeDisabled();
+    await expect(page.getByRole("combobox", { name: "Hallazgo", exact: true })).toBeDisabled();
     // La foto se ve, pero no se puede quitar ni cambiar.
-    await expect(
-      page.getByAltText("Vista previa de la evidencia"),
-    ).toBeVisible();
-    await expect(page.getByRole("button", { name: "Quitar foto" })).toHaveCount(
-      0,
-    );
+    await expect(page.getByAltText("Vista previa de la evidencia")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Quitar foto" })).toHaveCount(0);
   });
 
   test("reintentar un envío que ya había llegado: 'Ya se había guardado (hallazgo #N)' y se borra el borrador", async ({
@@ -279,37 +252,25 @@ test.describe("Borrador de nuevo hallazgo", () => {
       }),
     );
 
-    await notice(page)
-      .getByRole("button", { name: "Reintentar envío" })
-      .click();
+    await notice(page).getByRole("button", { name: "Reintentar envío" }).click();
 
-    await expect(
-      toast(page, "Ya se había guardado (hallazgo #555)"),
-    ).toBeVisible();
+    await expect(toast(page, "Ya se había guardado (hallazgo #555)")).toBeVisible();
     await expect(page).toHaveURL(/\/hallazgos$/);
     expect(requests).toHaveLength(2);
     // Misma clave: el API reconoce el envío y no duplica.
-    expect(requests[1].headers()["idempotency-key"]).toBe(
-      requests[0].headers()["idempotency-key"],
-    );
+    expect(requests[1].headers()["idempotency-key"]).toBe(requests[0].headers()["idempotency-key"]);
     await expect.poll(async () => (await storedDrafts(page)).length).toBe(0);
   });
 
-  test("reintentar un envío que no había llegado: se guarda ahora", async ({
-    page,
-  }) => {
+  test("reintentar un envío que no había llegado: se guarda ahora", async ({ page }) => {
     const requests = await pendingDraft(page, (route) =>
       route.fulfill({ status: 201, json: { id: 556 } }),
     );
 
-    await notice(page)
-      .getByRole("button", { name: "Reintentar envío" })
-      .click();
+    await notice(page).getByRole("button", { name: "Reintentar envío" }).click();
 
     await expect(toast(page, "Hallazgo creado correctamente")).toBeVisible();
-    expect(requests[1].headers()["idempotency-key"]).toBe(
-      requests[0].headers()["idempotency-key"],
-    );
+    expect(requests[1].headers()["idempotency-key"]).toBe(requests[0].headers()["idempotency-key"]);
     // La foto viaja en el reintento (recuperada del borrador).
     expect(String(requests[1].postData())).toMatch(/name="file"; filename=/);
     await expect.poll(async () => (await storedDrafts(page)).length).toBe(0);
@@ -331,14 +292,10 @@ test.describe("Borrador de nuevo hallazgo", () => {
       }),
     );
 
-    await notice(page)
-      .getByRole("button", { name: "Reintentar envío" })
-      .click();
+    await notice(page).getByRole("button", { name: "Reintentar envío" }).click();
 
     // Exacto: el aviso del interceptor dice "Descripción: debe tener…".
-    await expect(
-      page.getByText("Debe tener máximo 5 caracteres.", { exact: true }),
-    ).toBeVisible();
+    await expect(page.getByText("Debe tener máximo 5 caracteres.", { exact: true })).toBeVisible();
     await expect(notice(page)).toHaveCount(0);
     await expect(createButton(page)).toBeVisible();
     await expect(description(page)).not.toHaveAttribute("readonly", "");
@@ -350,14 +307,10 @@ test.describe("Borrador de nuevo hallazgo", () => {
     await description(page).fill("Corto");
     await createButton(page).click();
     await expect(toast(page, "Hallazgo creado correctamente")).toBeVisible();
-    expect(next[0].headers()["idempotency-key"]).not.toBe(
-      requests[0].headers()["idempotency-key"],
-    );
+    expect(next[0].headers()["idempotency-key"]).not.toBe(requests[0].headers()["idempotency-key"]);
   });
 
-  test("solo se ofrecen los borradores vigentes del usuario con sesión", async ({
-    page,
-  }) => {
+  test("solo se ofrecen los borradores vigentes del usuario con sesión", async ({ page }) => {
     await openForm(page);
     const userId = await sessionUserId(page);
     const base = {
@@ -404,9 +357,7 @@ test.describe("Borrador de nuevo hallazgo", () => {
       .toEqual([userId + 1000]);
   });
 
-  test("cerrar sesión avisa y borra los borradores del usuario", async ({
-    page,
-  }) => {
+  test("cerrar sesión avisa y borra los borradores del usuario", async ({ page }) => {
     await page.route("**/api/v1/auth/logout", (route) =>
       route.fulfill({ json: { message: "Sesión cerrada correctamente." } }),
     );
@@ -433,9 +384,7 @@ test.describe("Borrador de nuevo hallazgo", () => {
     expect(await storedDrafts(page)).toHaveLength(0);
   });
 
-  test("si la sesión vence, el borrador se conserva y se avisa", async ({
-    page,
-  }) => {
+  test("si la sesión vence, el borrador se conserva y se avisa", async ({ page }) => {
     await routeCreate(page, [
       (route) =>
         route.fulfill({
@@ -456,9 +405,7 @@ test.describe("Borrador de nuevo hallazgo", () => {
       "Lo que capturaste quedó guardado como borrador en este dispositivo",
     );
     // El 401 no se procesó: el borrador queda editable.
-    await expect
-      .poll(async () => (await storedDrafts(page))[0]?.sendState)
-      .toBe("none");
+    await expect.poll(async () => (await storedDrafts(page))[0]?.sendState).toBe("none");
   });
 
   test("sin almacén de borradores (modo privado), si la sesión vence avisa que lo capturado se perderá", async ({

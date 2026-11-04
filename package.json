@@ -3,18 +3,24 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/toolchain.mjs dev --host 127.0.0.1 --port 3000 --strictPort",
     "check-deps": "node scripts/check-deps.mjs",
-    "build": "node scripts/check-deps.mjs && node scripts/build.mjs",
-    "start": "next start",
-    "lint": "eslint .",
+    "build": "pnpm check-deps && pnpm typecheck && node scripts/build.mjs",
+    "start": "node scripts/serve.mjs",
+    "lint": "node scripts/toolchain.mjs lint",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report",
     "test:e2e:coverage": "playwright test -c playwright.coverage.config.ts",
-    "typecheck": "next typegen && node node_modules/typescript7/bin/tsc --noEmit",
-    "typecheck:ts6": "next typegen && node node_modules/typescript/bin/tsc --noEmit",
-    "prepare": "husky"
+    "typecheck": "node node_modules/typescript7/bin/tsc --noEmit",
+    "typecheck:ts6": "node node_modules/typescript/bin/tsc --noEmit",
+    "prepare": "husky",
+    "preview": "node scripts/toolchain.mjs preview --host 127.0.0.1 --port 3000 --strictPort",
+    "check": "node scripts/toolchain.mjs check",
+    "format": "node scripts/toolchain.mjs fmt",
+    "format:check": "node scripts/toolchain.mjs fmt --check",
+    "test": "node scripts/toolchain.mjs test run",
+    "test:unit": "node scripts/toolchain.mjs test run"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
@@ -44,7 +50,6 @@
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "jsqr": "^1.4.0",
-    "next": "^16.2.6",
     "pdfmake": "^0.3.9",
     "qrcode": "^1.5.4",
     "react": "^19.2.6",
@@ -53,6 +58,7 @@
     "react-dom": "^19.2.6",
     "react-html5-camera-photo": "^1.5.11",
     "react-is": "^19.2.6",
+    "react-router-dom": "7.18.5",
     "react-signature-canvas": "1.1.0-alpha.2",
     "react-zoom-pan-pinch": "^4.0.3",
     "regression": "^2.0.1",
@@ -62,7 +68,9 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.0",
     "@playwright/test": "^1.64.1",
+    "@rolldown/plugin-babel": "0.3.0",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^25.9.1",
     "@types/pdfmake": "^0.3.3",
@@ -72,12 +80,17 @@
     "@types/react-html5-camera-photo": "^1.5.5",
     "@types/react-signature-canvas": "^1.0.7",
     "@types/regression": "^2.0.6",
-    "eslint": "^10.4.0",
-    "eslint-config-next": "^16.2.6",
+    "@vitejs/plugin-react": "6.2.1",
+    "babel-plugin-react-compiler": "1.0.0",
     "husky": "^9.1.7",
     "monocart-coverage-reports": "^3.0.0",
     "typescript": "^6.0.3",
-    "typescript7": "npm:typescript@^7.0.2"
+    "typescript7": "npm:typescript@^7.0.2",
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.4.0",
+    "vite-plus": "1.4.0"
+  },
+  "engines": {
+    "node": "^22.18.0 || ^24.11.0 || >=26.0.0"
   },
   "packageManager": "pnpm@12.16.1"
 }

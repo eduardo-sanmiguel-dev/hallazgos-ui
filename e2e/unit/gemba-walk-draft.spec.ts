@@ -1,9 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { describe, expect, test } from "vite-plus/test";
 
-import {
-  blockedReason,
-  initialAnswers,
-} from "../../app/(routes)/gemba-walk/form/_lib/walkDraft";
+import { blockedReason, initialAnswers } from "../../app/features/gemba-walk/form/_lib/walkDraft";
 
 // Borrador de un recorrido de Gemba Walk (G1): cuándo un recorrido iniciado
 // y recuperado ya no se puede registrar. La tolerancia de 15 minutos no
@@ -19,7 +16,7 @@ const fields = (overrides: object = {}) => ({
   ...overrides,
 });
 
-test.describe("Borrador de Gemba Walk", () => {
+describe("Borrador de Gemba Walk", () => {
   test("de hoy y aún disponible: se puede registrar aunque haya pasado la tolerancia", () => {
     // Programado a las 8:00, son las 12:00: la tolerancia terminó hace horas.
     expect(blockedReason(fields(), [30, 31], NOW)).toBeNull();
@@ -43,9 +40,7 @@ test.describe("Borrador de Gemba Walk", () => {
         [],
         NOW,
       ),
-    ).toBe(
-      "Era un recorrido del 27/10/2026: solo se pueden registrar los recorridos del día.",
-    );
+    ).toBe("Era un recorrido del 27/10/2026: solo se pueden registrar los recorridos del día.");
   });
 
   test("comprobante de inicio con más de 24 horas: vencido", () => {

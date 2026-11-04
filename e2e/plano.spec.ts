@@ -9,11 +9,7 @@ import { pickOption, sessionPlants, toast, trackPageErrors } from "./support/ui"
 
 const plano = (page: Page) => page.getByRole("img", { name: /plano/i }).first();
 
-const heatPoint = (
-  areaId: number,
-  open: number,
-  zoomLevel: number | null = 1,
-) => ({
+const heatPoint = (areaId: number, open: number, zoomLevel: number | null = 1) => ({
   areaId,
   areaName: `E2E Zona ${areaId}`,
   x: 200 + areaId * 40,
@@ -117,9 +113,7 @@ test.describe("Plano", () => {
       await page.getByRole("button", { name: "Mapa de calor" }).click();
 
       if (!points.length) {
-        await expect(
-          page.getByText("No hay hallazgos abiertos con coordenadas"),
-        ).toBeVisible();
+        await expect(page.getByText("No hay hallazgos abiertos con coordenadas")).toBeVisible();
       } else {
         const image = plano(page);
         await expect(image).toBeVisible();

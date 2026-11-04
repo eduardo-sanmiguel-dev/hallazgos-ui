@@ -3,12 +3,7 @@ import { readFileSync } from "node:fs";
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "./support/fixtures";
-import {
-  pickMany,
-  pickOption,
-  sessionPlants,
-  trackPageErrors,
-} from "./support/ui";
+import { pickMany, pickOption, sessionPlants, trackPageErrors } from "./support/ui";
 
 // Dashboard con los datos de la base de desarrollo: filtros, vistas
 // (gráficas, mapa de calor, histórico) y exportaciones. Solo lectura.
@@ -23,9 +18,7 @@ const choosePlantAndWait = async (page: Page) => {
 };
 
 test.describe("Dashboard", () => {
-  test("filtra por fechas, zonas, responsables y clasificación", async ({
-    page,
-  }) => {
+  test("filtra por fechas, zonas, responsables y clasificación", async ({ page }) => {
     // Un año de datos en 10 gráficas: con la suite completa tarda más.
     test.setTimeout(120_000);
     const errors = trackPageErrors(page);
@@ -42,15 +35,11 @@ test.describe("Dashboard", () => {
     await pickOption(page, "Periodo", "Este año");
     await filterRequest;
     // Un solo filtro "Periodo" (antes, "Desde" y "Hasta").
-    await expect(
-      page.getByRole("region", { name: "Filtros" }).getByText("Este año"),
-    ).toBeVisible();
+    await expect(page.getByRole("region", { name: "Filtros" }).getByText("Este año")).toBeVisible();
     await page.waitForLoadState("networkidle");
 
     // Varias zonas ocultan las gráficas de proyección.
-    const areasRequest = page.waitForRequest((request) =>
-      request.url().includes("areaIds="),
-    );
+    const areasRequest = page.waitForRequest((request) => request.url().includes("areaIds="));
     await pickMany(page, "Zonas", 2);
     await areasRequest;
     await page.waitForLoadState("networkidle");
@@ -84,9 +73,7 @@ test.describe("Dashboard", () => {
     await expect(page.getByText(/Planta: .+ \| Periodo: /)).toBeVisible();
     await page.waitForLoadState("networkidle");
     await page.getByRole("button", { name: "Gráficas" }).click();
-    await expect(
-      page.getByRole("button", { name: "Mapa de calor" }),
-    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Mapa de calor" })).toBeVisible();
 
     await page.getByRole("button", { name: "Histórico" }).click();
     const back = page.getByRole("button", { name: "Regresar" });
@@ -104,9 +91,7 @@ test.describe("Dashboard", () => {
     const downloadPromise = page.waitForEvent("download", { timeout: 90_000 });
     await page.getByRole("button", { name: "Descargar informe PDF" }).click();
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toMatch(
-      /^Informe_Dashboard_\d{8}_\d{4}\.pdf$/,
-    );
+    expect(download.suggestedFilename()).toMatch(/^Informe_Dashboard_\d{8}_\d{4}\.pdf$/);
     // Un PDF de verdad, con todas las gráficas: 2 por página como máximo
     // (una alta puede ocupar su propia página).
     const pdf = readFileSync(await download.path());
@@ -118,14 +103,10 @@ test.describe("Dashboard", () => {
     expect(pages.length).toBeLessThanOrEqual(visible);
   });
 
-  test("sin planta lleva a hallazgos sin filtros de planta", async ({
-    page,
-  }) => {
+  test("sin planta lleva a hallazgos sin filtros de planta", async ({ page }) => {
     await page.goto("/dashboard");
     await page.waitForLoadState("networkidle");
-    await expect(
-      page.getByRole("button", { name: "Descargar informe PDF" }),
-    ).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Descargar informe PDF" })).toHaveCount(0);
     await page.getByRole("button", { name: "Ir a Hallazgos" }).click();
     await expect(page).toHaveURL(/\/hallazgos\?startDate=/);
   });
@@ -206,13 +187,9 @@ test.describe("Dashboard: al entrar y estado de la pantalla", () => {
     await expect(page.getByText("Sin hallazgos en este periodo")).toBeVisible();
     await expect(charts(page)).toHaveCount(0);
     // Sin gráficas no hay informe que descargar.
-    await expect(
-      page.getByRole("button", { name: "Descargar informe PDF" }),
-    ).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Descargar informe PDF" })).toHaveCount(0);
     // Antes cada gráfica decía lo suyo.
-    await expect(
-      page.getByText("Seleccione planta, fecha inicio y fecha fin"),
-    ).toHaveCount(0);
+    await expect(page.getByText("Seleccione planta, fecha inicio y fecha fin")).toHaveCount(0);
 
     // El atajo "Últimos 3 meses" del control de periodo (antes, 90 días).
     await page.getByRole("button", { name: "Ver últimos 3 meses" }).click();
@@ -220,9 +197,7 @@ test.describe("Dashboard: al entrar y estado de la pantalla", () => {
     await expect
       .poll(() => requests.at(-1)?.searchParams.get("startDate"))
       .toBe(ddmmyyyy(new Date(today.getFullYear(), today.getMonth() - 2, 1)));
-    await expect(page.getByRole("combobox", { name: "Periodo" })).toHaveText(
-      "Últimos 3 meses",
-    );
+    await expect(page.getByRole("combobox", { name: "Periodo" })).toHaveText("Últimos 3 meses");
   });
 
   test("encabezado con el periodo y su comparación, e indicadores con su variación", async ({
@@ -274,37 +249,27 @@ test.describe("Dashboard: al entrar y estado de la pantalla", () => {
       name: "Indicadores del periodo",
     });
     const tile = (label: string) =>
-      indicators
-        .locator(".MuiPaper-root")
-        .filter({ has: page.getByText(label, { exact: true }) });
+      indicators.locator(".MuiPaper-root").filter({ has: page.getByText(label, { exact: true }) });
     await expect(tile("Hallazgos")).toContainText("10");
     await expect(tile("Hallazgos")).toContainText("25.0%");
     // Abiertos bajan (6 → 4): bueno, en verde.
-    await expect(
-      tile("Abiertos").getByLabel("Bajó 33.3% contra 1–30 ene 2020"),
-    ).toBeVisible();
+    await expect(tile("Abiertos").getByLabel("Bajó 33.3% contra 1–30 ene 2020")).toBeVisible();
     // % de cierre: 50 % contra 25 %, en puntos.
     await expect(tile("% de cierre")).toContainText("50.0%");
     await expect(tile("% de cierre")).toContainText("25.0 pts");
     await expect(tile("% de cierre")).toContainText("5 de 10 cerrados");
   });
 
-  test("si falla la consulta: un solo error con Reintentar", async ({
-    page,
-  }) => {
+  test("si falla la consulta: un solo error con Reintentar", async ({ page }) => {
     let fail = true;
     await page.route(
       (url) => url.pathname.endsWith("/api/v1/dashboard/status-by-filters"),
       (route) =>
-        fail
-          ? route.fulfill({ status: 500, json: { statusCode: 500 } })
-          : route.fallback(),
+        fail ? route.fulfill({ status: 500, json: { statusCode: 500 } }) : route.fallback(),
     );
     await choosePlantAndWait(page);
 
-    const error = page
-      .getByRole("alert")
-      .filter({ hasText: "No se pudo cargar" });
+    const error = page.getByRole("alert").filter({ hasText: "No se pudo cargar" });
     await expect(error).toHaveCount(1);
     await expect(charts(page)).toHaveCount(0);
 
@@ -340,9 +305,7 @@ test.describe("Dashboard: al entrar y estado de la pantalla", () => {
       // Dona de estatus: la leyenda lleva cantidad y porcentaje, y no hay
       // etiquetas afuera de la dona.
       const status = charts(page).first();
-      await expect(status.locator(".highcharts-legend")).toContainText(
-        /\d+ \(\d+%\)/,
-      );
+      await expect(status.locator(".highcharts-legend")).toContainText(/\d+ \(\d+%\)/);
       await expect(status.locator(".highcharts-data-label")).toHaveCount(0);
     });
   });

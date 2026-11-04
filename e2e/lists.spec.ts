@@ -50,13 +50,23 @@ const exerciseFilters = async (page: Page) => {
     const combobox = bar.getByRole("combobox").nth(i);
     if (!(await combobox.isEnabled())) continue;
     // Puede deshabilitarse al cambiar otro filtro.
-    if (!(await combobox.click({ timeout: 3000 }).then(() => true, () => false)))
+    if (
+      !(await combobox.click({ timeout: 3000 }).then(
+        () => true,
+        () => false,
+      ))
+    )
       continue;
     const options = page
       .getByRole("listbox")
       .getByRole("option")
       .filter({ hasNotText: /^(Ninguna|Ninguno|Todos|Todas|Seleccione)$/ });
-    if (await options.first().isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (
+      await options
+        .first()
+        .isVisible({ timeout: 3000 })
+        .catch(() => false)
+    ) {
       await options.first().click();
     }
     await page.keyboard.press("Escape");
@@ -82,12 +92,7 @@ const clickIfEnabled = async (page: Page, name: string) => {
 };
 
 const paginate = async (page: Page) => {
-  for (const name of [
-    "Página siguiente",
-    "Última página",
-    "Página anterior",
-    "Primera página",
-  ]) {
+  for (const name of ["Página siguiente", "Última página", "Página anterior", "Primera página"]) {
     await clickIfEnabled(page, name);
   }
   const rowsPerPage = page.getByRole("combobox", { name: /Filas por página/ });
@@ -118,9 +123,7 @@ const removeFirst = async (page: Page) => {
 };
 
 for (const route of LISTS) {
-  test(`listado ${route}: filtros, paginación y eliminar (sin guardar)`, async ({
-    page,
-  }) => {
+  test(`listado ${route}: filtros, paginación y eliminar (sin guardar)`, async ({ page }) => {
     test.setTimeout(120_000);
     const errors = trackPageErrors(page);
     const writes = await captureWrites(page);
@@ -132,9 +135,7 @@ for (const route of LISTS) {
     await exerciseFilters(page);
     await paginate(page);
     if (await removeFirst(page)) {
-      await expect
-        .poll(() => writes.filter((w) => w.method === "DELETE").length)
-        .toBe(1);
+      await expect.poll(() => writes.filter((w) => w.method === "DELETE").length).toBe(1);
     }
     expect(writes.filter((w) => w.method !== "DELETE")).toEqual([]);
     expect(errors).toEqual([]);

@@ -5,11 +5,7 @@ const api = axiosWrapper({
   baseURL: "/associated-tasks",
 });
 
-const findAll = async ({
-  manufacturingPlantId,
-}: {
-  manufacturingPlantId: string;
-}) => {
+const findAll = async ({ manufacturingPlantId }: { manufacturingPlantId: string }) => {
   const { data } = await api.get<AssociatedTask[]>("", {
     params: { manufacturingPlantId },
   });

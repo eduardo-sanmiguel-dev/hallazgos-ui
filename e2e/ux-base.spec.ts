@@ -13,9 +13,7 @@ test.describe("Celular", () => {
   test("usuarios se ven como tarjetas con sus acciones", async ({ page }) => {
     await page.goto("/users");
 
-    const cards = page
-      .getByRole("list", { name: "Usuarios" })
-      .getByRole("listitem");
+    const cards = page.getByRole("list", { name: "Usuarios" }).getByRole("listitem");
     await expect(cards.first()).toBeVisible();
     await expect(page.getByRole("table")).toHaveCount(0);
 
@@ -44,9 +42,7 @@ test.describe("Celular", () => {
     // Botón de la cuenta: el avatar de 34 px dejaba 42.
     const account = page.getByRole("button", { name: /^Cuenta de / });
     const accountBox = (await account.boundingBox())!;
-    expect(
-      Math.min(accountBox.width, accountBox.height),
-    ).toBeGreaterThanOrEqual(44);
+    expect(Math.min(accountBox.width, accountBox.height)).toBeGreaterThanOrEqual(44);
 
     // Barra de FullCalendar del editor del calendario (medía 39–40 px).
     await page.goto("/gemba-walk/calendar/form");
@@ -63,24 +59,17 @@ test.describe("Celular", () => {
     for (const name of ["Crear hallazgo", "Cancelar"]) {
       const button = page.getByRole("button", { name, exact: true });
       await button.scrollIntoViewIfNeeded();
-      expect((await button.boundingBox())!.height, name).toBeGreaterThanOrEqual(
-        48,
-      );
+      expect((await button.boundingBox())!.height, name).toBeGreaterThanOrEqual(48);
     }
   });
 
-  test("el texto verde sobre blanco usa el tono oscuro; el relleno no cambia", async ({
-    page,
-  }) => {
+  test("el texto verde sobre blanco usa el tono oscuro; el relleno no cambia", async ({ page }) => {
     await page.goto("/ics/form");
     const outlined = page.getByText("Elegir de galería");
     const filled = page.getByText("Tomar foto");
     await expect(outlined).toBeVisible();
 
-    const color = (
-      locator: typeof outlined,
-      prop: "color" | "backgroundColor",
-    ) =>
+    const color = (locator: typeof outlined, prop: "color" | "backgroundColor") =>
       locator
         .locator("xpath=ancestor-or-self::label[1]")
         .evaluate((el, p) => getComputedStyle(el)[p], prop);

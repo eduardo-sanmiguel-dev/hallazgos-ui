@@ -1,14 +1,6 @@
-"use client";
+import { Fragment, MouseEvent, ReactNode, useRef, useState } from "react";
 
-import {
-  Fragment,
-  MouseEvent,
-  ReactNode,
-  useRef,
-  useState,
-} from "react";
-
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "@shared/navigation";
 
 import { Box } from "@mui/material";
 import { Collapse } from "@mui/material";
@@ -96,13 +88,11 @@ interface MenuSection {
   entries: MenuEntry[];
 }
 
-const isGroup = (entry: MenuEntry): entry is MenuGroupConfig =>
-  "items" in entry;
+const isGroup = (entry: MenuEntry): entry is MenuGroupConfig => "items" in entry;
 
 const adminOnly = ({ isAdmin }: MenuContext) => isAdmin;
 
-const eppAccess = ({ isAdmin, email }: MenuContext) =>
-  isAdmin || EPP_USER_EMAILS.includes(email);
+const eppAccess = ({ isAdmin, email }: MenuContext) => isAdmin || EPP_USER_EMAILS.includes(email);
 
 const notEppUser = ({ email }: MenuContext) => !EPP_USER_EMAILS.includes(email);
 
@@ -131,9 +121,7 @@ const ANALYSIS_SECTION: MenuSection = {
 
 const MENU_SECTIONS: MenuSection[] = [
   {
-    entries: [
-      { url: "/dashboard", title: "Dashboard", icon: <SpaceDashboardIcon /> },
-    ],
+    entries: [{ url: "/dashboard", title: "Dashboard", icon: <SpaceDashboardIcon /> }],
   },
   {
     title: "Seguridad",
@@ -172,8 +160,7 @@ const MENU_SECTIONS: MenuSection[] = [
       {
         url: "/ciael",
         title: "CIAEL",
-        tooltip:
-          "Caracterización de incidentes, accidentes y enfermedades laborales",
+        tooltip: "Caracterización de incidentes, accidentes y enfermedades laborales",
         icon: <PersonalInjuryIcon />,
         visible: adminOnly,
       },
@@ -317,10 +304,7 @@ const MENU_SECTIONS: MenuSection[] = [
   },
 ];
 
-const HDS_ONLY_SECTIONS: MenuSection[] = [
-  { entries: [HDS_LINK] },
-  ANALYSIS_SECTION,
-];
+const HDS_ONLY_SECTIONS: MenuSection[] = [{ entries: [HDS_LINK] }, ANALYSIS_SECTION];
 
 const isLinkVisible = (link: MenuLinkConfig, ctx: MenuContext) =>
   link.visible ? link.visible(ctx) : true;
@@ -385,9 +369,7 @@ export const breadcrumbTrail = (pathname: string): BreadcrumbTrail | null => {
 
       const parents = [
         section.title,
-        group && group.title !== "General" && group.title !== owner.title
-          ? group.title
-          : undefined,
+        group && group.title !== "General" && group.title !== owner.title ? group.title : undefined,
       ].filter((title): title is string => !!title);
       return { parents, list: { title: owner.title, url: owner.url } };
     }
@@ -410,8 +392,7 @@ export const canAccessPath = (pathname: string, ctx: RouteAccessContext) => {
 // Primera página del menú que el usuario puede ver (inicio alternativo para
 // quien no tiene acceso al dashboard).
 export const firstAccessiblePath = (ctx: RouteAccessContext) =>
-  flattenLinks(visibleSections(sectionsFor(ctx.email), ctx))[0]?.url ??
-  "/dashboard";
+  flattenLinks(visibleSections(sectionsFor(ctx.email), ctx))[0]?.url ?? "/dashboard";
 
 const isLinkSelected = (link: MenuLinkConfig, pathname: string) =>
   link.isSelected ? link.isSelected(pathname) : pathname.startsWith(link.url);
@@ -478,13 +459,7 @@ const navItemSx =
     },
   });
 
-function SectionHeader({
-  title,
-  expanded,
-}: {
-  title: string;
-  expanded: boolean;
-}) {
+function SectionHeader({ title, expanded }: { title: string; expanded: boolean }) {
   if (!expanded) return <Divider sx={{ my: 1, mx: 1.5 }} />;
 
   return (
@@ -559,9 +534,7 @@ function NavGroup({
   const groupRef = useRef<HTMLDivElement>(null);
   const openedByUser = useRef(false);
 
-  const containsActive = group.items.some((item) =>
-    isLinkSelected(item, pathname),
-  );
+  const containsActive = group.items.some((item) => isLinkSelected(item, pathname));
   const listId = `menu-group-${group.id}`;
 
   // Colapsado (solo íconos): las opciones se abren en un menú flotante.
@@ -576,9 +549,7 @@ function NavGroup({
       <>
         <Tooltip title={group.title} placement="right">
           <ListItemButton
-            onClick={(event: MouseEvent<HTMLElement>) =>
-              setAnchorEl(event.currentTarget)
-            }
+            onClick={(event: MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget)}
             selected={containsActive}
             aria-haspopup="menu"
             aria-expanded={!!anchorEl}
@@ -630,9 +601,7 @@ function NavGroup({
     if (!openedByUser.current) return;
     openedByUser.current = false;
 
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     groupRef.current?.scrollIntoView({
       behavior: reduceMotion ? "auto" : "smooth",
@@ -668,12 +637,7 @@ function NavGroup({
           />
         </ListItemButton>
       </Tooltip>
-      <Collapse
-        in={open}
-        timeout="auto"
-        unmountOnExit
-        onEntered={scrollIntoView}
-      >
+      <Collapse in={open} timeout="auto" unmountOnExit onEntered={scrollIntoView}>
         <List
           id={listId}
           component="div"
@@ -693,13 +657,7 @@ function NavGroup({
           }}
         >
           {group.items.map((item) => (
-            <NavLink
-              key={item.url}
-              link={item}
-              expanded
-              nested
-              onNavigate={onNavigate}
-            />
+            <NavLink key={item.url} link={item} expanded nested onNavigate={onNavigate} />
           ))}
         </List>
       </Collapse>
@@ -736,9 +694,7 @@ export const MainListItems = ({
     sections
       .flatMap((section) => section.entries)
       .filter(isGroup)
-      .find((group) =>
-        group.items.some((item) => isLinkSelected(item, pathname)),
-      )?.id ?? null;
+      .find((group) => group.items.some((item) => isLinkSelected(item, pathname)))?.id ?? null;
 
   // Acordeón: un solo grupo abierto a la vez.
   const [openGroupId, setOpenGroupId] = useState<string | null>(activeGroupId);
@@ -753,9 +709,7 @@ export const MainListItems = ({
     <List component="nav" aria-label="Menú principal" sx={{ py: 1 }}>
       {sections.map((section, index) => (
         <Fragment key={section.title ?? index}>
-          {section.title && (
-            <SectionHeader title={section.title} expanded={expanded} />
-          )}
+          {section.title && <SectionHeader title={section.title} expanded={expanded} />}
           {section.entries.map((entry) =>
             isGroup(entry) ? (
               <NavGroup
@@ -763,20 +717,11 @@ export const MainListItems = ({
                 group={entry}
                 expanded={expanded}
                 open={openGroupId === entry.id}
-                onToggle={() =>
-                  setOpenGroupId((prev) =>
-                    prev === entry.id ? null : entry.id,
-                  )
-                }
+                onToggle={() => setOpenGroupId((prev) => (prev === entry.id ? null : entry.id))}
                 onNavigate={onNavigate}
               />
             ) : (
-              <NavLink
-                key={entry.url}
-                link={entry}
-                expanded={expanded}
-                onNavigate={onNavigate}
-              />
+              <NavLink key={entry.url} link={entry} expanded={expanded} onNavigate={onNavigate} />
             ),
           )}
         </Fragment>

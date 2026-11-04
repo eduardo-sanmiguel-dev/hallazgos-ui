@@ -1,11 +1,11 @@
-import { expect, test } from "@playwright/test";
+import { describe, expect, test } from "vite-plus/test";
 
 import {
   computeKpis,
   periodLabel,
   periodNames,
   type BiData,
-} from "../../app/(routes)/business-intelligence/epp/_lib/biEpp";
+} from "../../app/features/business-intelligence/epp/_lib/biEpp";
 
 // Indicadores del análisis EPP (lógica pura, sin navegador). El SQL "a la
 // fecha" se prueba en hallazgos-api/test/db/bi-epp.int-spec.ts.
@@ -40,23 +40,17 @@ const data = (overrides: Partial<BiData["kpis"]> = {}) =>
     chart9: [],
   }) as BiData;
 
-test.describe("Análisis EPP: periodos", () => {
+describe("Análisis EPP: periodos", () => {
   test("rango de días del mes", () => {
-    expect(periodLabel({ desde: "2026-10-01", hasta: "2026-10-22" })).toBe(
-      "1–22 oct 2026",
-    );
+    expect(periodLabel({ desde: "2026-10-01", hasta: "2026-10-22" })).toBe("1–22 oct 2026");
   });
 
   test("un solo día (primer día del mes)", () => {
-    expect(periodLabel({ desde: "2026-11-01", hasta: "2026-11-01" })).toBe(
-      "1 nov 2026",
-    );
+    expect(periodLabel({ desde: "2026-11-01", hasta: "2026-11-01" })).toBe("1 nov 2026");
   });
 
   test("febrero recortado al final del mes", () => {
-    expect(periodLabel({ desde: "2026-02-01", hasta: "2026-02-28" })).toBe(
-      "1–28 feb 2026",
-    );
+    expect(periodLabel({ desde: "2026-02-01", hasta: "2026-02-28" })).toBe("1–28 feb 2026");
   });
 
   test("nombres de ambos periodos desde la API", () => {
@@ -67,7 +61,7 @@ test.describe("Análisis EPP: periodos", () => {
   });
 });
 
-test.describe("Análisis EPP: indicadores", () => {
+describe("Análisis EPP: indicadores", () => {
   test("porcentaje fuera de rango y promedio por colaborador", () => {
     const kpis = computeKpis(
       data({

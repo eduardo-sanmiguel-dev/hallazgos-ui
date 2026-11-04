@@ -20,9 +20,7 @@ const CATALOG_STALE_TIME = 5 * 60 * 1000;
 type ZonesFilters = Parameters<typeof ZonesService.findAll>[0];
 type ProcessesFilters = Parameters<typeof ProcessesService.findAll>[0];
 type AreasFilters = Parameters<typeof AreasService.findAll>[0];
-type GembaWalkZonesFilters = Parameters<
-  typeof GembaWalkZonesService.findAll
->[0];
+type GembaWalkZonesFilters = Parameters<typeof GembaWalkZonesService.findAll>[0];
 
 /**
  * Arreglo vacío estable para `data ?? EMPTY_CATALOG`: un `[]` nuevo en cada
@@ -60,10 +58,7 @@ export const useMainTypes = () =>
     staleTime: CATALOG_STALE_TIME,
   });
 
-export const useZones = (
-  filters: ZonesFilters = {},
-  { enabled = true }: CatalogOptions = {},
-) =>
+export const useZones = (filters: ZonesFilters = {}, { enabled = true }: CatalogOptions = {}) =>
   useQuery({
     queryKey: catalogKeys.zones(filters),
     queryFn: () => ZonesService.findAll(filters),
@@ -89,10 +84,7 @@ export const useManufacturingPlants = () =>
     staleTime: CATALOG_STALE_TIME,
   });
 
-export const useAreas = (
-  filters: AreasFilters = {},
-  { enabled = true }: CatalogOptions = {},
-) =>
+export const useAreas = (filters: AreasFilters = {}, { enabled = true }: CatalogOptions = {}) =>
   useQuery({
     queryKey: catalogKeys.areas(filters),
     queryFn: () => AreasService.findAll(filters),

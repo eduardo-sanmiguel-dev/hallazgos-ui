@@ -1,11 +1,11 @@
-import { expect, test } from "@playwright/test";
+import { describe, expect, test } from "vite-plus/test";
 
-import { requiresPhotoEvidence } from "../../app/(routes)/hallazgos/_constants/mainTypes";
+import { requiresPhotoEvidence } from "../../app/features/hallazgos/_constants/mainTypes";
 
 // La foto obligatoria la decide la bandera del catálogo (la misma que valida
 // el API), no el nombre de la clasificación.
 
-test.describe("Foto obligatoria por clasificación", () => {
+describe("Foto obligatoria por clasificación", () => {
   test("solo deja de exigirse con la bandera en false", () => {
     expect(requiresPhotoEvidence({ requiresEvidence: false })).toBe(false);
     expect(requiresPhotoEvidence({ requiresEvidence: true })).toBe(true);

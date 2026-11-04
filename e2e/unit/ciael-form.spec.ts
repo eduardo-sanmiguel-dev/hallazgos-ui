@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { describe, expect, test } from "vite-plus/test";
 import dayjs from "dayjs";
 
 import {
@@ -7,22 +7,17 @@ import {
   initialForm,
   isFormDirty,
   missingCiaelFields,
-} from "../../app/(routes)/ciael/components/ciaelForm";
+} from "../../app/features/ciael/components/ciaelForm";
 
 // Formulario CIAEL: al guardar se marcan todos los obligatorios que faltan,
 // en el orden de las secciones, y cerrar con algo capturado pide confirmar.
 
-test.describe("Formulario CIAEL", () => {
+describe("Formulario CIAEL", () => {
   test("vacío: faltan todos los obligatorios, en el orden de la pantalla", () => {
     const missing = missingCiaelFields(initialForm);
 
-    expect(Object.keys(missing)).toEqual(
-      REQUIRED_FIELDS.map(([field]) => field),
-    );
-    expect(Object.keys(missing).slice(0, 2)).toEqual([
-      "manufacturingPlant",
-      "eventDate",
-    ]);
+    expect(Object.keys(missing)).toEqual(REQUIRED_FIELDS.map(([field]) => field));
+    expect(Object.keys(missing).slice(0, 2)).toEqual(["manufacturingPlant", "eventDate"]);
     expect(missing).not.toHaveProperty("daysOfDisability");
     expect(missing).not.toHaveProperty("manager");
   });
@@ -42,9 +37,7 @@ test.describe("Formulario CIAEL", () => {
   });
 
   test("completo: no falta nada", () => {
-    const complete = Object.fromEntries(
-      REQUIRED_FIELDS.map(([field]) => [field, "1"]),
-    );
+    const complete = Object.fromEntries(REQUIRED_FIELDS.map(([field]) => [field, "1"]));
 
     expect(
       missingCiaelFields({
@@ -65,11 +58,7 @@ test.describe("Formulario CIAEL", () => {
       bodyPart: "3",
     };
 
-    const { form: next, notice } = changeCiaelField(
-      form,
-      "manufacturingPlant",
-      "2",
-    );
+    const { form: next, notice } = changeCiaelField(form, "manufacturingPlant", "2");
 
     expect(next).toMatchObject({
       manufacturingPlant: "2",
@@ -103,9 +92,7 @@ test.describe("Formulario CIAEL", () => {
   });
 
   test("sin nada elegido que dependa, o eligiendo lo mismo, no avisa", () => {
-    expect(
-      changeCiaelField(initialForm, "manufacturingPlant", "1").notice,
-    ).toBeNull();
+    expect(changeCiaelField(initialForm, "manufacturingPlant", "1").notice).toBeNull();
     const form = { ...initialForm, manufacturingPlant: "1", zone: "5" };
     expect(changeCiaelField(form, "manufacturingPlant", "1")).toEqual({
       form,

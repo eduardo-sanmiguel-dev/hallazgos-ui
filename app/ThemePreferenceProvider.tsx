@@ -1,13 +1,4 @@
-"use client";
-
-import {
-  createContext,
-  ReactNode,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
 import { useMediaQuery } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -26,15 +17,10 @@ export function useThemePreference() {
   return context;
 }
 
-export default function ThemePreferenceProvider({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function ThemePreferenceProvider({ children }: { children: ReactNode }) {
   const [preference, setPreference] = useState<ThemePreference>("system");
   const prefersDark = useMediaQuery("(prefers-color-scheme: dark)");
-  const resolvedTheme =
-    preference === "system" ? (prefersDark ? "dark" : "light") : preference;
+  const resolvedTheme = preference === "system" ? (prefersDark ? "dark" : "light") : preference;
   const theme = useMemo(() => createAppTheme(resolvedTheme), [resolvedTheme]);
 
   useEffect(() => {

@@ -2,13 +2,7 @@ import type { Page } from "@playwright/test";
 
 import { captureWrites, mockGet } from "./support/api";
 import { expect, test } from "./support/fixtures";
-import {
-  fillDate,
-  pickOption,
-  sessionPlants,
-  toast,
-  trackPageErrors,
-} from "./support/ui";
+import { fillDate, pickOption, sessionPlants, toast, trackPageErrors } from "./support/ui";
 
 // Alta de CIAEL. Los catálogos traen datos fijos (mockGet) para que todos los
 // selects tengan opciones; el alta se intercepta (captureWrites).
@@ -38,35 +32,80 @@ const CATALOGS: Record<string, unknown[]> = {
  * Lesión, Causas y Responsables): mensaje junto al campo y cómo se llena.
  */
 const FIELDS: Array<[string, string, (page: Page) => Promise<unknown>]> = [
-  ["manufacturingPlant", "Selecciona la planta.", async (page) => {
-    const [plant] = await sessionPlants(page);
-    await pickOption(page, "Planta *", plant.name);
-  }],
-  ["eventDate", "Elige la fecha del evento.", (p) =>
-    fillDate(p, "Fecha del evento *", "02/03/2026")],
+  [
+    "manufacturingPlant",
+    "Selecciona la planta.",
+    async (page) => {
+      const [plant] = await sessionPlants(page);
+      await pickOption(page, "Planta *", plant.name);
+    },
+  ],
+  [
+    "eventDate",
+    "Elige la fecha del evento.",
+    (p) => fillDate(p, "Fecha del evento *", "02/03/2026"),
+  ],
   ["typeOfEvent", "Selecciona el tipo de evento.", (p) => pickOption(p, "Tipo de evento *")],
-  ["natureOfEvent", "Selecciona la naturaleza del evento.", (p) => pickOption(p, "Naturaleza del evento *")],
+  [
+    "natureOfEvent",
+    "Selecciona la naturaleza del evento.",
+    (p) => pickOption(p, "Naturaleza del evento *"),
+  ],
   ["zone", "Selecciona la zona.", (p) => pickOption(p, "Zona *")],
-  ["isInside", "Indica si fue dentro de la empresa.", (p) => pickOption(p, "Dentro de la empresa *", "Si")],
-  ["description", "Describe el evento.", (p) =>
-    p.getByLabel("Descripción del evento *").fill("  E2E se golpeó la mano  ")],
+  [
+    "isInside",
+    "Indica si fue dentro de la empresa.",
+    (p) => pickOption(p, "Dentro de la empresa *", "Si"),
+  ],
+  [
+    "description",
+    "Describe el evento.",
+    (p) => p.getByLabel("Descripción del evento *").fill("  E2E se golpeó la mano  "),
+  ],
   ["employee", "Selecciona el colaborador.", (p) => pickOption(p, "Colaborador *")],
-  ["accidentPosition", "Selecciona el nombre del cargo.", (p) => pickOption(p, "Nombre del cargo *")],
-  ["typeOfLink", "Selecciona el tipo de vinculación.", (p) => pickOption(p, "Tipo de vinculación *")],
+  [
+    "accidentPosition",
+    "Selecciona el nombre del cargo.",
+    (p) => pickOption(p, "Nombre del cargo *"),
+  ],
+  [
+    "typeOfLink",
+    "Selecciona el tipo de vinculación.",
+    (p) => pickOption(p, "Tipo de vinculación *"),
+  ],
   ["workingDay", "Selecciona la jornada.", (p) => pickOption(p, "Jornada *")],
-  ["timeWorked", "Escribe las horas laboradas antes del AT.", (p) =>
-    p.getByLabel("Tiempo laborado previo al AT (H) *").fill("4")],
+  [
+    "timeWorked",
+    "Escribe las horas laboradas antes del AT.",
+    (p) => p.getByLabel("Tiempo laborado previo al AT (H) *").fill("4"),
+  ],
   ["usualWork", "Indica si era su labor habitual.", (p) => pickOption(p, "Labor habitual *", "Si")],
   ["cieDiagnosis", "Selecciona el diagnóstico CIE.", (p) => pickOption(p, "Diagnóstico CIE *")],
-  ["bodyPart", "Selecciona la parte del cuerpo afectada.", (p) => pickOption(p, "Parte del cuerpo afectada *")],
+  [
+    "bodyPart",
+    "Selecciona la parte del cuerpo afectada.",
+    (p) => pickOption(p, "Parte del cuerpo afectada *"),
+  ],
   ["typeOfInjury", "Selecciona el tipo de lesión.", (p) => pickOption(p, "Tipo de lesión *")],
   ["isDeath", "Indica si causó la muerte.", (p) => pickOption(p, "Muerte *", "No")],
   ["atAgent", "Selecciona el agente AT.", (p) => pickOption(p, "Agente AT *")],
-  ["atMechanism", "Selecciona el mecanismo o forma del AT.", (p) => pickOption(p, "Mecanismo o formas del AT *")],
-  ["riskFactor", "Selecciona el factor de riesgo asociado.", (p) => pickOption(p, "Factor de riesgo asociado *")],
+  [
+    "atMechanism",
+    "Selecciona el mecanismo o forma del AT.",
+    (p) => pickOption(p, "Mecanismo o formas del AT *"),
+  ],
+  [
+    "riskFactor",
+    "Selecciona el factor de riesgo asociado.",
+    (p) => pickOption(p, "Factor de riesgo asociado *"),
+  ],
   ["machine", "Selecciona la máquina o equipo.", (p) => pickOption(p, "Máquina / Equipo *")],
   ["associatedTask", "Selecciona la tarea asociada.", (p) => pickOption(p, "Tarea asociada *")],
-  ["areaLeader", "Selecciona el líder de área.", (p) => pickOption(p, "Líder de área *", "E2E Líder")],
+  [
+    "areaLeader",
+    "Selecciona el líder de área.",
+    (p) => pickOption(p, "Líder de área *", "E2E Líder"),
+  ],
 ];
 
 const openDialog = async (page: Page) => {
@@ -114,14 +153,13 @@ test.describe("CIAEL", () => {
     await expect(dialog.getByRole("combobox", { name: "Líder de área *" })).toBeDisabled();
     // Teclado numérico en los campos de números.
     await expect(dialog.getByLabel("Días de incapacidad")).toHaveAttribute("inputmode", "numeric");
-    await expect(
-      dialog.getByLabel("Tiempo laborado previo al AT (H) *"),
-    ).toHaveAttribute("inputmode", "numeric");
+    await expect(dialog.getByLabel("Tiempo laborado previo al AT (H) *")).toHaveAttribute(
+      "inputmode",
+      "numeric",
+    );
   });
 
-  test("cambiar la planta o la zona limpia lo que depende de ellas y avisa", async ({
-    page,
-  }) => {
+  test("cambiar la planta o la zona limpia lo que depende de ellas y avisa", async ({ page }) => {
     const dialog = await openDialog(page);
     const plants = await sessionPlants(page);
     test.skip(plants.length < 2, "El usuario de e2e necesita dos plantas.");
@@ -139,9 +177,7 @@ test.describe("CIAEL", () => {
 
     // La zona: solo se limpia el líder de área.
     await pickOption(page, "Zona *", "E2E Otro lugar");
-    await expect(
-      toast(page, "Vuelve a elegir líder de área: depende de la zona."),
-    ).toBeVisible();
+    await expect(toast(page, "Vuelve a elegir líder de área: depende de la zona.")).toBeVisible();
     await expect(selected("Líder de área *")).not.toContainText("E2E Líder");
     await expect(selected("Colaborador *")).toContainText("E2E Colaborador");
 
@@ -149,10 +185,7 @@ test.describe("CIAEL", () => {
     await pickOption(page, "Líder de área *", "E2E Líder");
     await pickOption(page, "Planta *", plants[1].name);
     await expect(
-      toast(
-        page,
-        "Vuelve a elegir zona, colaborador y líder de área: dependen de la planta.",
-      ),
+      toast(page, "Vuelve a elegir zona, colaborador y líder de área: dependen de la planta."),
     ).toBeVisible();
     await expect(selected("Zona *")).not.toContainText("E2E");
     await expect(selected("Colaborador *")).not.toContainText("E2E");
@@ -162,9 +195,7 @@ test.describe("CIAEL", () => {
     await expect(selected("Parte del cuerpo afectada *")).toContainText("E2E Mano");
   });
 
-  test("marca todo lo que falta y crea el registro (sin guardar)", async ({
-    page,
-  }) => {
+  test("marca todo lo que falta y crea el registro (sin guardar)", async ({ page }) => {
     test.setTimeout(120_000);
     const errors = trackPageErrors(page);
     const writes = await captureWrites(page);
@@ -192,9 +223,7 @@ test.describe("CIAEL", () => {
     const [, plantMessage, fillPlant] = FIELDS[0];
     await fillPlant(page);
     await expect(dialog.getByText(plantMessage, { exact: true })).toHaveCount(0);
-    await expect(
-      dialog.getByText("Selecciona el colaborador.", { exact: true }),
-    ).toBeVisible();
+    await expect(dialog.getByText("Selecciona el colaborador.", { exact: true })).toBeVisible();
 
     // Con uno solo pendiente, el aviso dice cuál.
     const [, lastMessage, fillLast] = FIELDS.at(-1)!;
@@ -227,9 +256,7 @@ test.describe("CIAEL", () => {
     expect(errors).toEqual([]);
   });
 
-  test("vacío se cierra directo; con datos pide confirmar antes de descartar", async ({
-    page,
-  }) => {
+  test("vacío se cierra directo; con datos pide confirmar antes de descartar", async ({ page }) => {
     let dialog = await openDialog(page);
     await dialog.getByRole("button", { name: "Cancelar" }).click();
     await expect(page.getByText("Nuevo registro CIAEL")).toHaveCount(0);
@@ -280,9 +307,7 @@ test.describe("CIAEL", () => {
       await page.goto("/ciael");
 
       await expect(page.getByRole("table")).toHaveCount(0);
-      const card = page
-        .getByRole("list", { name: "Registros CIAEL" })
-        .getByRole("listitem");
+      const card = page.getByRole("list", { name: "Registros CIAEL" }).getByRole("listitem");
       await expect(card).toContainText("E2E Accidente · 01 octubre 2026");
       await expect(card).toContainText("E2E Colaborador");
       await expect(card).toContainText("E2E Contusión");
