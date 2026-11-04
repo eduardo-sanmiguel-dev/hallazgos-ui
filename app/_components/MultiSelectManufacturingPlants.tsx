@@ -7,8 +7,8 @@ import { InputLabel } from "@mui/material";
 import { MenuItem } from "@mui/material";
 import { FormControl } from "@mui/material";
 import { Select, SelectChangeEvent } from "@mui/material";
-import { Chip } from "@mui/material";
 import type { MenuProps as MuiMenuProps } from "@mui/material";
+import { Chip } from "@mui/material";
 
 import { useManufacturingPlants } from "@hooks";
 
@@ -40,7 +40,10 @@ interface Props {
   onChange: (values: string[]) => void;
 }
 
-export default function MultiSelectManufacturingPlants({ values, onChange }: Props) {
+export default function MultiSelectManufacturingPlants({
+  values,
+  onChange,
+}: Props) {
   const theme = useTheme();
   const [labelSelectAll, setLabelSelectAll] = useState("Todos");
 
@@ -61,7 +64,9 @@ export default function MultiSelectManufacturingPlants({ values, onChange }: Pro
     }
   }, [values, names]);
 
-  const handleChange = ({ target: { value } }: SelectChangeEvent<typeof values>) => {
+  const handleChange = ({
+    target: { value },
+  }: SelectChangeEvent<typeof values>) => {
     if (value.includes("none-all")) {
       if (values.length === names.length) {
         onChange([]);
@@ -71,13 +76,17 @@ export default function MultiSelectManufacturingPlants({ values, onChange }: Pro
         return;
       }
     }
-    onChange(typeof value === "string" ? value.split(",") : (value as string[]));
+    onChange(
+      typeof value === "string" ? value.split(",") : (value as string[]),
+    );
   };
 
   return (
     <div>
       <FormControl sx={{ width: "100%" }}>
-        <InputLabel id="manufacturing-plants-multiple-chip-label">Plantas</InputLabel>
+        <InputLabel id="manufacturing-plants-multiple-chip-label">
+          Plantas
+        </InputLabel>
         <Select
           labelId="manufacturing-plants-multiple-chip-label"
           id="manufacturing-plants-multiple-chip"
@@ -98,7 +107,11 @@ export default function MultiSelectManufacturingPlants({ values, onChange }: Pro
           {names
             .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }))
             .map((name) => (
-              <MenuItem key={name} value={name} style={getStyles(name, values, theme)}>
+              <MenuItem
+                key={name}
+                value={name}
+                style={getStyles(name, values, theme)}
+              >
                 {name}
               </MenuItem>
             ))}
