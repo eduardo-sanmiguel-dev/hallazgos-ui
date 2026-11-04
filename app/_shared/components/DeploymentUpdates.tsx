@@ -12,20 +12,28 @@ export default function DeploymentUpdates() {
 
     const url = new URL(`${apiUrl.replace(/\/$/, "")}/deployments/ws`);
     url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    let active = true;
 
-    return connectDeploymentUpdates(url.href, version, async (publishedVersion) => {
-      // Durante el arranque de B, la API puede anunciar A hasta que el script
-      // termine el health check. Confirmar la UI servida evita recargas en bucle.
+    const disconnect = connectDeploymentUpdates(url.href, version, async (publishedVersion, target) => {
+      // Confirmar que la UI responde también cuando se despliega solo la API.
+      // En un deploy de UI, además debe estar sirviendo el build anunciado.
       const response = await fetch("/api/deployment-version", {
         cache: "no-store",
         signal: AbortSignal.timeout(10_000),
       });
-      if (!response.ok || (await response.json()).version !== publishedVersion) {
+      if (!active || !response.ok) return false;
+      if (target === "ui" && (await response.json()).version !== publishedVersion) {
         return false;
       }
+      if (!active) return false;
       window.location.reload();
       return true;
     });
+
+    return () => {
+      active = false;
+      disconnect();
+    };
   }, []);
 
   return null;

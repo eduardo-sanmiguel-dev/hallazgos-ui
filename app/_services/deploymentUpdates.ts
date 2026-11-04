@@ -1,29 +1,59 @@
+type DeploymentTarget = "ui" | "api";
+
 /** Una conexión por pestaña. Solo reintenta si se corta: no consulta versiones. */
 export function connectDeploymentUpdates(
   url: string,
   currentVersion: string,
-  onUpdate: (version: string) => boolean | Promise<boolean>,
+  onUpdate: (version: string, target: DeploymentTarget) => boolean | Promise<boolean>,
 ) {
   let socket: WebSocket | undefined;
   let retry: ReturnType<typeof setTimeout> | undefined;
   let stopped = false;
   let updating = false;
   let checking = false;
-  let pendingVersion: string | undefined;
+  const pendingVersions = new Map<DeploymentTarget, string>();
   let attempts = 0;
+  // sessionStorage conserva la versión por pestaña incluso tras una recarga.
+  // Si el navegador bloquea el almacenamiento, se conserva solo en memoria.
+  const apiVersionKey = `deployment-api-version:${url}`;
+  let apiVersion: string | undefined;
+  try {
+    apiVersion = window.sessionStorage.getItem(apiVersionKey) ?? undefined;
+  } catch {
+    // Por ejemplo, almacenamiento deshabilitado por el navegador.
+  }
 
-  async function handleVersion(version: string) {
-    pendingVersion = version;
+  function rememberApiVersion(version: string) {
+    apiVersion = version;
+    try {
+      window.sessionStorage.setItem(apiVersionKey, version);
+    } catch {
+      // La reconexión también funciona con la referencia en memoria.
+    }
+  }
+
+  async function handleVersion(version: string, target: DeploymentTarget) {
+    pendingVersions.set(target, version);
     if (checking || updating || stopped) return;
     checking = true;
     try {
-      while (pendingVersion && !stopped && !updating) {
-        const next = pendingVersion;
-        pendingVersion = undefined;
+      while (pendingVersions.size && !stopped && !updating) {
+        const [nextTarget, nextVersion] = pendingVersions.entries().next().value!;
+        pendingVersions.delete(nextTarget);
+        const previousApiVersion = apiVersion;
+        if (nextTarget === "api") {
+          if (nextVersion === apiVersion) continue;
+          // Guardar antes de recargar evita repetir la recarga al reconectar.
+          rememberApiVersion(nextVersion);
+        }
         try {
-          updating = await onUpdate(next);
+          updating = await onUpdate(nextVersion, nextTarget);
         } catch {
           updating = false;
+        }
+        if (!updating && nextTarget === "api" && previousApiVersion) {
+          // Si la UI todavía no está disponible, reintentar en la reconexión.
+          rememberApiVersion(previousApiVersion);
         }
       }
     } finally {
@@ -48,29 +78,30 @@ export function connectDeploymentUpdates(
       scheduleReconnect();
       return;
     }
-    socket.onopen = () => { attempts = 0; };
-    socket.onmessage = (event) => {
+    const connection = socket;
+    connection.onopen = () => { attempts = 0; };
+    connection.onmessage = (event) => {
+      if (stopped || updating || socket !== connection) return;
       try {
         const message = JSON.parse(event.data);
-        if (
-          message?.type === "ui-version" &&
-          typeof message.version === "string" &&
-          message.version.length > 0 &&
-          message.version !== currentVersion &&
-          !updating && !stopped
-        ) {
-          void handleVersion(message.version);
+        if (typeof message?.version !== "string" || !message.version.length) return;
+        if (message.type === "ui-version" && message.version !== currentVersion) {
+          void handleVersion(message.version, "ui");
+        } else if (message.type === "api-version") {
+          if (!apiVersion) rememberApiVersion(message.version);
+          else if (message.version !== apiVersion) {
+            void handleVersion(message.version, "api");
+          }
         }
       } catch {
         // Un mensaje inválido no debe romper la aplicación.
       }
     };
-    socket.onclose = scheduleReconnect;
-    socket.onerror = () => socket?.close();
+    connection.onclose = scheduleReconnect;
+    connection.onerror = () => connection.close();
   }
 
-  // Al volver de suspensión o recuperar Internet se abre una conexión nueva,
-  // que recibe la versión vigente aunque se haya perdido el aviso del deploy.
+  // Una conexión nueva recibe ambas versiones, incluso tras perder un deploy.
   function resume() {
     if (stopped || updating || document.visibilityState === "hidden") return;
     if (retry) clearTimeout(retry);
