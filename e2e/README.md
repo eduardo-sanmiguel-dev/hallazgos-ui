@@ -69,7 +69,7 @@ Bash, `npx cross-env E2E_WORKERS=1 pnpm test:e2e`).
 ## Coverage
 
 `test:e2e:coverage` graba el coverage JS del navegador en cada prueba (V8) y
-lo lleva a los `.tsx` de `app/` con los source maps del dev server. Los
+lo lleva a los `.tsx` de `app/` con los source maps del build. Los
 archivos que ninguna prueba cargó cuentan con 0%. Quedan fuera las
 interfaces (solo tipos) y el generador estático `app/manifest.ts`. La configuración está en
 `e2e/support/coverage.ts`.
@@ -77,8 +77,18 @@ interfaces (solo tipos) y el generador estático `app/manifest.ts`. La configura
 - `coverage/index.html`: reporte navegable por archivo.
 - `coverage/lcov.info`: para VS Code (Coverage Gutters) o CI.
 
-Si el UI ya está corriendo, se reutiliza; debe ser `pnpm dev` (sin source
-maps no hay forma de llevar el coverage a los `.tsx`).
+Cobertura compila primero en `dist.e2e` usando `.env.development` y levanta su
+propio servidor estático en `http://localhost:3000`. No usa `dist` de producción,
+ni depende de una terminal con `pnpm dev`, HMR o recompilaciones durante la suite.
+Playwright cierra su servidor al terminar, incluso si falla una prueba.
 
-El UI se levanta solo con `pnpm dev` si no está corriendo. Usa el Chrome
-instalado en el equipo (no descarga navegadores).
+Antes de ejecutar cobertura, detén `pnpm dev` para dejar libre el puerto 3000:
+la API permite ese origen para CORS y WebSocket. Si el puerto está ocupado,
+Playwright falla al inicio en lugar de reutilizar silenciosamente otro proceso.
+La API debe permanecer levantada durante toda la ejecución.
+
+`pnpm test:e2e` conserva el servidor de desarrollo y puede reutilizarlo si ya está
+corriendo. Ambos comandos usan el Chrome instalado (no descargan navegadores).
+
+Si restauras o migras la base de desarrollo, reinicia la API para recrear el usuario
+E2E. El setup informa el estado HTTP si la autenticación falla y cierra Chrome al salir.

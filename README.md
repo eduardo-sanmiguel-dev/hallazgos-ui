@@ -24,7 +24,8 @@ Solo se incorpora al navegador la lista explícita de variables públicas.
 - `pnpm format`: Oxfmt; `pnpm format:check`: solo comprobar.
 - `pnpm test`: pruebas unitarias con Vitest mediante Vite+.
 - `pnpm test:e2e`: pruebas completas en Chrome con la API de desarrollo.
-- `pnpm test:e2e:coverage`: cobertura de la aplicación durante los e2e.
+- `pnpm test:e2e:coverage`: build de pruebas, servidor propio y cobertura de los e2e.
+  Requiere la API local activa y el puerto 3000 libre (detener `pnpm dev` primero).
 - `pnpm build`: dependencias, tipos y build de producción en `dist/`.
 - `pnpm start`: servir `dist/` en el puerto 3000; admite PORT y HOST.
 

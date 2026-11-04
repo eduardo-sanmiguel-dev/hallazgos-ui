@@ -14,12 +14,28 @@ export default async function globalSetup(config: FullConfig) {
   const { email, password } = e2eCredentials();
 
   const browser = await chromium.launch({ channel: "chrome" });
-  const page = await browser.newPage({ baseURL });
+  try {
+    const page = await browser.newPage({ baseURL });
+    const [response] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.request().method() === "POST" &&
+          new URL(response.url()).pathname.endsWith("/auth/login"),
+      ),
+      loginWithForm(page, email, password),
+    ]);
+    if (!response.ok()) {
+      throw new Error(
+        `No se pudo iniciar sesión con el usuario E2E (HTTP ${response.status()}). ` +
+          "Verifica e2e/.env.e2e y reinicia la API de desarrollo después de restaurar la base " +
+          "para que vuelva a crear el usuario de pruebas. Ver e2e/README.md.",
+      );
+    }
+    await expectLoggedIn(page);
 
-  await loginWithForm(page, email, password);
-  await expectLoggedIn(page);
-
-  mkdirSync(dirname(storageState as string), { recursive: true });
-  await page.context().storageState({ path: storageState as string });
-  await browser.close();
+    mkdirSync(dirname(storageState as string), { recursive: true });
+    await page.context().storageState({ path: storageState as string });
+  } finally {
+    await browser.close();
+  }
 }

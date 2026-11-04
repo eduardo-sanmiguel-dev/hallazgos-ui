@@ -83,8 +83,10 @@ const server = createServer(async (req, res) => {
   }
 });
 const port = Number(process.env.PORT || 3000);
-server.listen(port, process.env.HOST || "127.0.0.1", () =>
-  console.log(`UI estática en http://127.0.0.1:${server.address().port}`),
+const host = process.env.HOST || "127.0.0.1";
+const displayHost = host.includes(":") ? `[${host}]` : host;
+server.listen(port, host, () =>
+  console.log(`UI estática en http://${displayHost}:${server.address().port}`),
 );
 for (const signal of ["SIGINT", "SIGTERM"])
   process.on(signal, () => server.close(() => process.exit(0)));

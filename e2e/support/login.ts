@@ -9,5 +9,5 @@ export const loginWithForm = async (page: Page, email: string, password: string)
 };
 
 export const expectLoggedIn = async (page: Page) => {
-  await expect(page).toHaveURL(/\/dashboard/);
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
 };
