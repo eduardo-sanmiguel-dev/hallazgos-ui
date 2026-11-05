@@ -1,3 +1,5 @@
+import { STATUS_OPEN, STATUS_IN_PROGRESS, STATUS_CLOSED } from "@shared/constants";
+import { STATUS_CANCELLED } from "@shared/constants/semanticTones";
 import { useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
@@ -52,6 +54,12 @@ const filtersFromSearch = (
   const mainTypeIds = parseIds(searchParams.get("mainTypeIds"));
   const areaIds = parseIds(searchParams.get("areaIds"));
   const responsibleIds = parseIds(searchParams.get("responsibleIds"));
+  const states = (searchParams.get("states") || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value) =>
+      [STATUS_OPEN, STATUS_IN_PROGRESS, STATUS_CLOSED, STATUS_CANCELLED].includes(value),
+    );
   const startDate = searchParams.get("startDate") || "";
   const endDate = searchParams.get("endDate") || "";
 
@@ -61,7 +69,8 @@ const filtersFromSearch = (
     !!endDate ||
     mainTypeIds.length > 0 ||
     areaIds.length > 0 ||
-    responsibleIds.length > 0;
+    responsibleIds.length > 0 ||
+    states.length > 0;
 
   if (!hasAnyDashboardFilter) {
     return null;
@@ -77,7 +86,7 @@ const filtersFromSearch = (
       endDate,
       secondaryTypeIds: [],
       zoneIds: [],
-      states: [],
+      states,
       evidenceId: "",
     },
   };

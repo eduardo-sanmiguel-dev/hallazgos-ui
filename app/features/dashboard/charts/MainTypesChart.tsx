@@ -26,6 +26,7 @@ interface Props {
     responsibleIds: string[];
     responsibleNames: string[];
     mainTypeIds: string[];
+    states: string[];
     mainTypeNames: string[];
   };
 }

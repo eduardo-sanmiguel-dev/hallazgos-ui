@@ -39,6 +39,7 @@ const findStatusByFilters = async ({
   areaIds,
   responsibleIds,
   mainTypeIds,
+  states,
 }: {
   manufacturingPlantId: string;
   startDate: string;
@@ -46,6 +47,7 @@ const findStatusByFilters = async ({
   areaIds?: string[];
   responsibleIds?: string[];
   mainTypeIds?: string[];
+  states?: string[];
 }) => {
   const { data } = await api.get<ResponseDashboardStatusByFilters>("/status-by-filters", {
     params: {
@@ -57,6 +59,7 @@ const findStatusByFilters = async ({
         responsibleIds.length > 0 && {
           responsibleIds: responsibleIds.join(","),
         }),
+      ...(states && states.length > 0 && { states: states.join(",") }),
       ...(mainTypeIds &&
         mainTypeIds.length > 0 && {
           mainTypeIds: mainTypeIds.join(","),
@@ -73,6 +76,7 @@ const findPriorityInterventionByFilters = async ({
   areaIds,
   responsibleIds,
   mainTypeIds,
+  states,
 }: {
   manufacturingPlantId: string;
   startDate: string;
@@ -80,6 +84,7 @@ const findPriorityInterventionByFilters = async ({
   areaIds?: string[];
   responsibleIds?: string[];
   mainTypeIds?: string[];
+  states?: string[];
 }) => {
   const { data } = await api.get<ResponseDashboardPriorityInterventionByFilters>(
     "/priority-intervention-by-filters",
@@ -93,6 +98,7 @@ const findPriorityInterventionByFilters = async ({
           responsibleIds.length > 0 && {
             responsibleIds: responsibleIds.join(","),
           }),
+        ...(states && states.length > 0 && { states: states.join(",") }),
         ...(mainTypeIds &&
           mainTypeIds.length > 0 && {
             mainTypeIds: mainTypeIds.join(","),
@@ -110,6 +116,7 @@ const findRiskLevelByFilters = async ({
   areaIds,
   responsibleIds,
   mainTypeIds,
+  states,
 }: {
   manufacturingPlantId: string;
   startDate: string;
@@ -117,6 +124,7 @@ const findRiskLevelByFilters = async ({
   areaIds?: string[];
   responsibleIds?: string[];
   mainTypeIds?: string[];
+  states?: string[];
 }) => {
   const { data } = await api.get<ResponseDashboardRiskLevelByFilters>("/risk-level-by-filters", {
     params: {
@@ -128,6 +136,7 @@ const findRiskLevelByFilters = async ({
         responsibleIds.length > 0 && {
           responsibleIds: responsibleIds.join(","),
         }),
+      ...(states && states.length > 0 && { states: states.join(",") }),
       ...(mainTypeIds &&
         mainTypeIds.length > 0 && {
           mainTypeIds: mainTypeIds.join(","),
@@ -144,6 +153,7 @@ const findAreasByFilters = async ({
   areaIds,
   responsibleIds,
   mainTypeIds,
+  states,
 }: {
   manufacturingPlantId: string;
   startDate: string;
@@ -151,6 +161,7 @@ const findAreasByFilters = async ({
   areaIds?: string[];
   responsibleIds?: string[];
   mainTypeIds?: string[];
+  states?: string[];
 }) => {
   const { data } = await api.get<ResponseDashboardStatusByFilters>("/areas-by-filters", {
     params: {
@@ -162,6 +173,7 @@ const findAreasByFilters = async ({
         responsibleIds.length > 0 && {
           responsibleIds: responsibleIds.join(","),
         }),
+      ...(states && states.length > 0 && { states: states.join(",") }),
       ...(mainTypeIds &&
         mainTypeIds.length > 0 && {
           mainTypeIds: mainTypeIds.join(","),
@@ -178,6 +190,7 @@ const findMainTypesByFilters = async ({
   areaIds,
   responsibleIds,
   mainTypeIds,
+  states,
 }: {
   manufacturingPlantId: string;
   startDate: string;
@@ -185,6 +198,7 @@ const findMainTypesByFilters = async ({
   areaIds?: string[];
   responsibleIds?: string[];
   mainTypeIds?: string[];
+  states?: string[];
 }) => {
   const { data } = await api.get<ResponseDashboardStatusByFilters>("/main-types-by-filters", {
     params: {
@@ -196,6 +210,7 @@ const findMainTypesByFilters = async ({
         responsibleIds.length > 0 && {
           responsibleIds: responsibleIds.join(","),
         }),
+      ...(states && states.length > 0 && { states: states.join(",") }),
       ...(mainTypeIds &&
         mainTypeIds.length > 0 && {
           mainTypeIds: mainTypeIds.join(","),
@@ -211,12 +226,14 @@ const findResponsiblesByFilters = async ({
   endDate,
   areaIds,
   mainTypeIds,
+  states,
 }: {
   manufacturingPlantId: string;
   startDate: string;
   endDate: string;
   areaIds: string[];
   mainTypeIds?: string[];
+  states?: string[];
 }) => {
   const { data } = await api.get<User[]>("/responsibles-by-filters", {
     params: {
@@ -224,6 +241,7 @@ const findResponsiblesByFilters = async ({
       startDate,
       endDate,
       areaIds: areaIds.join(","),
+      ...(states && states.length > 0 && { states: states.join(",") }),
       ...(mainTypeIds &&
         mainTypeIds.length > 0 && {
           mainTypeIds: mainTypeIds.join(","),
@@ -240,6 +258,7 @@ const findAssignedResponsiblesByFilters = async ({
   areaIds,
   responsibleIds,
   mainTypeIds,
+  states,
 }: {
   manufacturingPlantId: string;
   startDate: string;
@@ -247,6 +266,7 @@ const findAssignedResponsiblesByFilters = async ({
   areaIds?: string[];
   responsibleIds?: string[];
   mainTypeIds?: string[];
+  states?: string[];
 }) => {
   const { data } = await api.get<ResponseDashboardAssignedResponsiblesByFilters>(
     "/assigned-responsibles-by-filters",
@@ -263,6 +283,7 @@ const findAssignedResponsiblesByFilters = async ({
           responsibleIds.length > 0 && {
             responsibleIds: responsibleIds.join(","),
           }),
+        ...(states && states.length > 0 && { states: states.join(",") }),
         ...(mainTypeIds &&
           mainTypeIds.length > 0 && {
             mainTypeIds: mainTypeIds.join(","),
@@ -285,6 +306,7 @@ const findSankeyByFilters = async ({
   areaIds,
   responsibleIds,
   mainTypeIds,
+  states,
 }: {
   manufacturingPlantId: string;
   startDate: string;
@@ -292,6 +314,7 @@ const findSankeyByFilters = async ({
   areaIds?: string[];
   responsibleIds?: string[];
   mainTypeIds?: string[];
+  states?: string[];
 }) => {
   const { data } = await api.get<ResponseDashboardSankeyByFilters>("/sankey-by-filters", {
     params: {
@@ -303,6 +326,7 @@ const findSankeyByFilters = async ({
         responsibleIds.length > 0 && {
           responsibleIds: responsibleIds.join(","),
         }),
+      ...(states && states.length > 0 && { states: states.join(",") }),
       ...(mainTypeIds &&
         mainTypeIds.length > 0 && {
           mainTypeIds: mainTypeIds.join(","),
@@ -319,6 +343,7 @@ const findPackedBubbleByFilters = async ({
   areaIds,
   responsibleIds,
   mainTypeIds,
+  states,
 }: {
   manufacturingPlantId: string;
   startDate: string;
@@ -326,6 +351,7 @@ const findPackedBubbleByFilters = async ({
   areaIds?: string[];
   responsibleIds?: string[];
   mainTypeIds?: string[];
+  states?: string[];
 }) => {
   const { data } = await api.get<ResponseDashboardPackedBubbleByFilters>(
     "/packed-bubble-by-filters",
@@ -339,6 +365,7 @@ const findPackedBubbleByFilters = async ({
           responsibleIds.length > 0 && {
             responsibleIds: responsibleIds.join(","),
           }),
+        ...(states && states.length > 0 && { states: states.join(",") }),
         ...(mainTypeIds &&
           mainTypeIds.length > 0 && {
             mainTypeIds: mainTypeIds.join(","),
@@ -356,6 +383,7 @@ const findSolidGaugeKpiByFilters = async ({
   areaIds,
   responsibleIds,
   mainTypeIds,
+  states,
 }: {
   manufacturingPlantId: string;
   startDate: string;
@@ -363,6 +391,7 @@ const findSolidGaugeKpiByFilters = async ({
   areaIds?: string[];
   responsibleIds?: string[];
   mainTypeIds?: string[];
+  states?: string[];
 }) => {
   const { data } = await api.get<ResponseDashboardSolidGaugeKpiByFilters>(
     "/solid-gauge-kpi-by-filters",
@@ -376,6 +405,7 @@ const findSolidGaugeKpiByFilters = async ({
           responsibleIds.length > 0 && {
             responsibleIds: responsibleIds.join(","),
           }),
+        ...(states && states.length > 0 && { states: states.join(",") }),
         ...(mainTypeIds &&
           mainTypeIds.length > 0 && {
             mainTypeIds: mainTypeIds.join(","),
@@ -393,6 +423,7 @@ const findAreaRangeLineByFilters = async ({
   areaIds,
   responsibleIds,
   mainTypeIds,
+  states,
 }: {
   manufacturingPlantId: string;
   startDate: string;
@@ -400,6 +431,7 @@ const findAreaRangeLineByFilters = async ({
   areaIds?: string[];
   responsibleIds?: string[];
   mainTypeIds?: string[];
+  states?: string[];
 }) => {
   const { data } = await api.get<ResponseDashboardAreaRangeLineByFilters>(
     "/area-range-line-by-filters",
@@ -413,6 +445,7 @@ const findAreaRangeLineByFilters = async ({
           responsibleIds.length > 0 && {
             responsibleIds: responsibleIds.join(","),
           }),
+        ...(states && states.length > 0 && { states: states.join(",") }),
         ...(mainTypeIds &&
           mainTypeIds.length > 0 && {
             mainTypeIds: mainTypeIds.join(","),
@@ -430,6 +463,7 @@ const findHeatmapByFilters = async ({
   areaIds,
   responsibleIds,
   mainTypeIds,
+  states,
 }: {
   manufacturingPlantId: string;
   startDate: string;
@@ -437,6 +471,7 @@ const findHeatmapByFilters = async ({
   areaIds?: string[];
   responsibleIds?: string[];
   mainTypeIds?: string[];
+  states?: string[];
 }) => {
   const { data } = await api.get<ResponseDashboardHeatmapByFilters>("/heatmap-by-filters", {
     params: {
@@ -448,6 +483,7 @@ const findHeatmapByFilters = async ({
         responsibleIds.length > 0 && {
           responsibleIds: responsibleIds.join(","),
         }),
+      ...(states && states.length > 0 && { states: states.join(",") }),
       ...(mainTypeIds &&
         mainTypeIds.length > 0 && {
           mainTypeIds: mainTypeIds.join(","),

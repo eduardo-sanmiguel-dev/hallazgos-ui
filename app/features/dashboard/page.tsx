@@ -85,6 +85,7 @@ const DashboardPage = () => {
       responsibleNames: [],
       mainTypeIds: [],
       mainTypeNames: [],
+      states: [],
     };
   });
   const [isHistoricalView, setIsHistoricalView] = useState(false);
@@ -126,7 +127,8 @@ const DashboardPage = () => {
   const hasExtraFilters =
     filters.areaIds.length > 0 ||
     filters.responsibleIds.length > 0 ||
-    filters.mainTypeIds.length > 0;
+    filters.mainTypeIds.length > 0 ||
+    filters.states.length > 0;
   const screenState = !filters.manufacturingPlantId
     ? "noPlant"
     : !hasCompleteFilters(filters)
@@ -149,6 +151,7 @@ const DashboardPage = () => {
       responsibleNames: [],
       mainTypeIds: [],
       mainTypeNames: [],
+      states: [],
     }));
 
   const widenPeriod = () => {
@@ -202,6 +205,7 @@ const DashboardPage = () => {
         },
         {
           label: "Abiertos",
+          status: "Abierto",
           icon: <ErrorOutlineIcon />,
           current: countOf(current, "Abierto"),
           previous: previous && countOf(previous, "Abierto"),
@@ -209,6 +213,7 @@ const DashboardPage = () => {
         },
         {
           label: "En progreso",
+          status: "En progreso",
           icon: <AutorenewIcon />,
           current: countOf(current, "En progreso"),
           previous: previous && countOf(previous, "En progreso"),
@@ -216,6 +221,7 @@ const DashboardPage = () => {
         },
         {
           label: "Cerrados",
+          status: "Cerrado",
           icon: <TaskAltIcon />,
           current: countOf(current, "Cerrado"),
           previous: previous && countOf(previous, "Cerrado"),
@@ -223,6 +229,7 @@ const DashboardPage = () => {
         },
         {
           label: "% de cierre",
+          status: "Cerrado",
           icon: <DonutLargeIcon />,
           current: closedRate(current),
           previous: previous ? closedRate(previous) : undefined,
@@ -230,7 +237,10 @@ const DashboardPage = () => {
           points: true,
           caption: `${formatCount(countOf(current, "Cerrado"))} de ${formatCount(current.total)} cerrados`,
         },
-      ]
+      ].filter(
+        (tile) =>
+          !tile.status || filters.states.length === 0 || filters.states.includes(tile.status),
+      )
     : [];
 
   // Zonas de la planta elegida (caché compartida).
@@ -250,6 +260,7 @@ const DashboardPage = () => {
         startDate: filters.startDate,
         endDate: filters.endDate,
         areaIds: filters.areaIds,
+        states: filters.states,
         ...(filters.mainTypeIds.length > 0 && {
           mainTypeIds: filters.mainTypeIds,
         }),
@@ -264,6 +275,7 @@ const DashboardPage = () => {
             startDate: filters.startDate,
             endDate: filters.endDate,
             areaIds: filters.areaIds,
+            states: filters.states,
             ...(filters.mainTypeIds.length > 0 && {
               mainTypeIds: filters.mainTypeIds,
             }),
@@ -295,6 +307,7 @@ const DashboardPage = () => {
         areaIds: filters.areaIds,
         responsibleIds: filters.responsibleIds,
         mainTypeIds: filters.mainTypeIds,
+        states: filters.states,
       },
     ],
     queryFn: () =>
@@ -304,6 +317,7 @@ const DashboardPage = () => {
         endDate: filters.endDate,
         areaIds: filters.areaIds,
         responsibleIds: filters.responsibleIds,
+        states: filters.states,
         ...(filters.mainTypeIds.length > 0 && {
           mainTypeIds: filters.mainTypeIds,
         }),
@@ -324,6 +338,7 @@ const DashboardPage = () => {
     filters.startDate && filters.endDate
       ? `Periodo: ${filters.startDate} - ${filters.endDate}`
       : "Periodo: sin rango",
+    filters.states.length > 0 ? `Estatus: ${filters.states.join(", ")}` : "",
     filters.mainTypeNames.length > 0 ? `Clasificación: ${filters.mainTypeNames.join(", ")}` : "",
     !areAllAreasSelected && filters.areaNames.length
       ? `Zonas: ${filters.areaNames.join(", ")}`
@@ -372,6 +387,10 @@ const DashboardPage = () => {
 
     if (filters.responsibleIds.length > 0) {
       params.set("responsibleIds", filters.responsibleIds.join(","));
+    }
+
+    if (filters.states.length > 0) {
+      params.set("states", filters.states.join(","));
     }
 
     const queryString = params.toString();
@@ -619,7 +638,7 @@ const DashboardPage = () => {
                     >
                       {hasExtraFilters && (
                         <Button variant="outlined" onClick={clearExtraFilters}>
-                          Quitar zonas, responsables y clasificación
+                          Quitar zonas, responsables, clasificación y estatus
                         </Button>
                       )}
                       {filters.periodPreset !== WIDER_PRESET && (
@@ -644,8 +663,8 @@ const DashboardPage = () => {
                   gap: 2,
                   gridTemplateColumns: {
                     xs: "repeat(2, minmax(0, 1fr))",
-                    md: "repeat(3, minmax(0, 1fr))",
-                    lg: "repeat(5, minmax(0, 1fr))",
+                    md: `repeat(${Math.min(3, kpiTiles.length)}, minmax(0, 1fr))`,
+                    lg: `repeat(${kpiTiles.length}, minmax(0, 1fr))`,
                   },
                   // Dos por fila en celular: el último, solo, a lo ancho.
                   "& > :last-child:nth-of-type(odd)": {

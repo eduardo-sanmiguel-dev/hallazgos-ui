@@ -7,7 +7,13 @@ import type { DashboardFilters } from "./DashboardFiltersBar";
 // La consulta solo usa planta, fechas y filtros (no el atajo del periodo).
 type SummaryFilters = Pick<
   DashboardFilters,
-  "manufacturingPlantId" | "startDate" | "endDate" | "areaIds" | "responsibleIds" | "mainTypeIds"
+  | "manufacturingPlantId"
+  | "startDate"
+  | "endDate"
+  | "areaIds"
+  | "responsibleIds"
+  | "mainTypeIds"
+  | "states"
 >;
 
 /** Planta y periodo completos: sin ellos no se consulta ninguna gráfica. */
@@ -19,6 +25,7 @@ const queryParams = (filters: SummaryFilters) => ({
   manufacturingPlantId: filters.manufacturingPlantId,
   startDate: filters.startDate,
   endDate: filters.endDate,
+  ...(filters.states.length > 0 && { states: filters.states }),
   ...(filters.areaIds.length > 0 && { areaIds: filters.areaIds }),
   ...(filters.responsibleIds.length > 0 && {
     responsibleIds: filters.responsibleIds,

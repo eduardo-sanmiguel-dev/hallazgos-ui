@@ -1,3 +1,6 @@
+import { STATUS_OPEN, STATUS_IN_PROGRESS, STATUS_CLOSED } from "@shared/constants";
+import { useTheme } from "@mui/material/styles";
+import { evidenceStatusColor, STATUS_CANCELLED } from "@shared/constants/semanticTones";
 import type { Dispatch, SetStateAction } from "react";
 import type { Area, MainType } from "@interfaces";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
@@ -6,6 +9,7 @@ import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import WhatshotOutlinedIcon from "@mui/icons-material/WhatshotOutlined";
 import {
+  Box,
   CircularProgress,
   Grid,
   IconButton,
@@ -33,6 +37,7 @@ export interface DashboardFilters {
   responsibleNames: string[];
   mainTypeIds: string[];
   mainTypeNames: string[];
+  states: string[];
 }
 
 interface DashboardFiltersBarProps {
@@ -72,7 +77,21 @@ export const DashboardFiltersBar = ({
   handleGoToHallazgos,
   handleDownloadDashboardPdf,
 }: DashboardFiltersBarProps) => {
+  const themeMode = useTheme().palette.mode;
+  const statusOptions = [STATUS_OPEN, STATUS_IN_PROGRESS, STATUS_CLOSED, STATUS_CANCELLED].map(
+    (status) => ({
+      id: status,
+      name: status,
+      color: evidenceStatusColor(status, themeMode),
+    }),
+  );
   const activeFilters = compactFilters(
+    filters.states.length > 0 && {
+      key: "states",
+      label: "Estatus",
+      value: joinNames(filters.states),
+      onRemove: () => setFilters((prev) => ({ ...prev, states: [] })),
+    },
     !!filters.manufacturingPlantId && {
       key: "manufacturingPlantId",
       label: "Planta",
@@ -134,9 +153,32 @@ export const DashboardFiltersBar = ({
   return (
     <FilterBar
       activeFilters={activeFilters}
-      sx={{ mb: 0, bgcolor: "background.paper" }}
+      sx={{
+        mb: 0,
+        bgcolor: "background.paper",
+        // En celular, las acciones tienen su fila para conservar el titulo y el control de apertura.
+        "& > .MuiBox-root:first-of-type": {
+          flexWrap: { xs: "wrap", sm: "nowrap" },
+          "& > .MuiTypography-root": { flexBasis: { xs: "100%", sm: "auto" } },
+          "& > .MuiStack-root": {
+            width: { xs: "100%", sm: "auto" },
+            px: { xs: 1, sm: 0 },
+            pb: { xs: 1, sm: 0 },
+          },
+        },
+      }}
       actions={
-        <Stack direction="row" spacing={{ xs: 0, sm: 1 }} sx={{ justifyContent: "flex-end" }}>
+        <Stack
+          direction="row"
+          spacing={{ xs: 0, sm: 1 }}
+          sx={{
+            justifyContent: "flex-end",
+            "& .MuiIconButton-root": {
+              minWidth: { xs: 44, sm: 40 },
+              minHeight: { xs: 44, sm: 40 },
+            },
+          }}
+        >
           <Tooltip title="Ir a Hallazgos" arrow>
             <IconButton color="primary" aria-label="Ir a Hallazgos" onClick={handleGoToHallazgos}>
               <AssignmentOutlinedIcon />
@@ -196,45 +238,75 @@ export const DashboardFiltersBar = ({
         </Stack>
       }
     >
-      <SelectManufacturingPlantsOwn
-        value={filters.manufacturingPlantId}
-        onChange={handlePlantChange}
-        isFilter={true}
-      />
-
-      {/* Atajos y "Personalizado" (Desde / Hasta), como el análisis EPP.
-          Antes, dos fechas sueltas. */}
-      <Grid size={{ xs: 12, md: "grow" }}>
-        <PeriodFilter
-          value={{
-            preset: filters.periodPreset,
-            startDate: filters.startDate,
-            endDate: filters.endDate,
+      <Grid size={{ xs: 12 }} sx={{ containerType: "inline-size" }}>
+        <Box
+          sx={{
+            display: "grid",
+            alignItems: "start",
+            gap: 2,
+            gridTemplateColumns: "minmax(0, 1fr)",
+            "& > *": { minWidth: 0, width: "100%" },
+            "@container (min-width: 520px)": { gridTemplateColumns: "repeat(2, minmax(0, 1fr))" },
+            "@container (min-width: 840px)": {
+              gridTemplateColumns:
+                filters.periodPreset === "custom"
+                  ? "repeat(2, minmax(0, 1fr))"
+                  : "repeat(3, minmax(0, 1fr))",
+            },
+            "@container (min-width: 1120px)": {
+              gridTemplateColumns:
+                filters.periodPreset === "custom"
+                  ? "repeat(4, minmax(0, 1fr))"
+                  : "repeat(3, minmax(0, 1fr))",
+            },
+            "@container (min-width: 1440px)": {
+              gridTemplateColumns:
+                filters.periodPreset === "custom"
+                  ? "repeat(4, minmax(0, 1fr))"
+                  : "repeat(6, minmax(0, 1fr))",
+            },
           }}
-          onChange={({ preset, startDate, endDate }) =>
-            setFilters((prev) => ({
-              ...prev,
-              periodPreset: preset,
-              startDate,
-              endDate,
-            }))
-          }
-        />
-      </Grid>
+        >
+          <SelectManufacturingPlantsOwn
+            value={filters.manufacturingPlantId}
+            onChange={handlePlantChange}
+            isFilter={true}
+            size={12}
+          />
 
-      <Grid
-        size={{
-          xs: 12,
-        }}
-      >
-        <Grid container spacing={2}>
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4,
+          <PeriodFilter
+            inGrid
+            value={{
+              preset: filters.periodPreset,
+              startDate: filters.startDate,
+              endDate: filters.endDate,
             }}
-          >
+            onChange={({ preset, startDate, endDate }) =>
+              setFilters((prev) => ({
+                ...prev,
+                periodPreset: preset,
+                startDate,
+                endDate,
+              }))
+            }
+          />
+
+          <Box>
+            <SelectDefault
+              data={statusOptions}
+              label="Estatus"
+              multiple={true}
+              isFilter={true}
+              value={filters.states}
+              onChange={(_, newValue) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  states: Array.isArray(newValue) ? newValue.map((item) => String(item.id)) : [],
+                }))
+              }
+            />
+          </Box>
+          <Box>
             <SelectDefault
               data={areas}
               label="Zonas"
@@ -252,15 +324,9 @@ export const DashboardFiltersBar = ({
               }
               helperText={!filters.manufacturingPlantId ? "Seleccione una planta" : ""}
             />
-          </Grid>
+          </Box>
 
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4,
-            }}
-          >
+          <Box>
             <SelectDefault
               data={sortedResponsibles}
               label="Responsables"
@@ -280,15 +346,9 @@ export const DashboardFiltersBar = ({
               }
               helperText={!filters.manufacturingPlantId ? "Seleccione una planta" : ""}
             />
-          </Grid>
+          </Box>
 
-          <Grid
-            size={{
-              xs: 12,
-              sm: 6,
-              md: 4,
-            }}
-          >
+          <Box>
             <SelectDefault
               data={availableMainTypes}
               label="Clasificación"
@@ -305,8 +365,8 @@ export const DashboardFiltersBar = ({
                 }))
               }
             />
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Grid>
     </FilterBar>
   );

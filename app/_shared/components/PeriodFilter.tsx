@@ -21,12 +21,14 @@ const parse = (value: string) => (value ? dayjs(value, FORMAT) : null);
 
 interface Props {
   value: PeriodValue;
+  // Integra cada campo a la cuadricula del contenedor.
+  inGrid?: boolean;
   onChange: (value: PeriodValue) => void;
 }
 
 // Periodo de un tablero: atajos comunes y, en "Personalizado", dos fechas.
 // La comparación (periodo anterior equivalente) la calcula la API.
-export default function PeriodFilter({ value, onChange }: Props) {
+export default function PeriodFilter({ value, onChange, inGrid = false }: Props) {
   const changePreset = (preset: PeriodPreset) =>
     // Personalizado parte del rango que ya se veía.
     onChange(preset === "custom" ? { ...value, preset } : presetRange(preset));
@@ -48,16 +50,20 @@ export default function PeriodFilter({ value, onChange }: Props) {
   return (
     <Box
       // En celular ocupa todo el ancho, como el selector de planta.
-      sx={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 1.5,
-        flex: { xs: "1 1 100%", sm: "0 0 auto" },
-        "& > *": { flex: { xs: "1 1 100%", sm: "0 0 auto" } },
-      }}
+      sx={
+        inGrid
+          ? { display: "contents" }
+          : {
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 1.5,
+              flex: { xs: "1 1 100%", sm: "0 0 auto" },
+              "& > *": { flex: { xs: "1 1 100%", sm: "0 0 auto" } },
+            }
+      }
     >
       {/* En Paper, como SelectDefault (p. ej. el selector de planta). */}
-      <Paper sx={{ minWidth: 180 }}>
+      <Paper sx={{ minWidth: inGrid ? 0 : 180 }}>
         <TextField
           select
           fullWidth
@@ -79,7 +85,7 @@ export default function PeriodFilter({ value, onChange }: Props) {
           adapterLocale="es"
           localeText={esES.components.MuiLocalizationProvider.defaultProps.localeText}
         >
-          <Paper sx={{ width: { sm: 180 } }}>
+          <Paper sx={{ width: inGrid ? "100%" : { sm: 180 } }}>
             <DatePicker
               label="Desde"
               format={FORMAT}
@@ -89,7 +95,7 @@ export default function PeriodFilter({ value, onChange }: Props) {
               slotProps={{ textField: { fullWidth: true } }}
             />
           </Paper>
-          <Paper sx={{ width: { sm: 180 } }}>
+          <Paper sx={{ width: inGrid ? "100%" : { sm: 180 } }}>
             <DatePicker
               label="Hasta"
               format={FORMAT}

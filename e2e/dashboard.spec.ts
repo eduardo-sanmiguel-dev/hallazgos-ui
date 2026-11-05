@@ -65,6 +65,36 @@ test.describe("Dashboard", () => {
     expect(errors).toEqual([]);
   });
 
+  test("filtra por varios estatus y los conserva al ir a Hallazgos", async ({ page }) => {
+    await choosePlantAndWait(page);
+    const request = page.waitForRequest((request) => {
+      const url = new URL(request.url());
+      return (
+        url.pathname.endsWith("/dashboard/status-by-filters") &&
+        url.searchParams.get("states") === "Abierto,En progreso"
+      );
+    });
+    await pickMany(page, "Estatus", 2);
+    await request;
+    await page.waitForLoadState("networkidle");
+    await page
+      .getByRole("region", { name: "Filtros" })
+      .getByRole("button", { name: /^Filtros/ })
+      .click();
+    await expect(
+      page
+        .getByRole("region", { name: "Filtros" })
+        .getByRole("button", { name: /^Estatus: Abierto, En progreso/ }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Ir a Hallazgos" }).click();
+    await expect(page).toHaveURL(/states=Abierto%2CEn\+progreso/);
+    await expect(
+      page
+        .getByRole("region", { name: "Filtros" })
+        .getByRole("button", { name: /^Estatus: Abierto, En progreso/ }),
+    ).toBeVisible();
+  });
+
   test("cambia al mapa de calor, al histórico y regresa", async ({ page }) => {
     const errors = trackPageErrors(page);
     await choosePlantAndWait(page);
