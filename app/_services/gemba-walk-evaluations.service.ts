@@ -69,6 +69,7 @@ const findAllPaginated = async ({
     count: number;
   }>("", {
     params: {
+      includeInactive: true,
       page,
       limit,
       ...Object.fromEntries(

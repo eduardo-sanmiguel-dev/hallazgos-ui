@@ -107,7 +107,8 @@ export default function HallazgosFormPage() {
     mainTypes.find((data) => data.id === Number(typeHallazgo))?.secondaryTypes ?? EMPTY_CATALOG,
   );
   const zones = zonesQuery.data ?? EMPTY_CATALOG;
-  const processes = useProcesses().data ?? EMPTY_CATALOG;
+  const processesQuery = useProcesses();
+  const processes = processesQuery.data ?? EMPTY_CATALOG;
 
   const router = useRouter();
   const upload = useUploadProgress();
@@ -248,7 +249,31 @@ export default function HallazgosFormPage() {
     if (!secondaryTypes.some((item) => String(item.id) === secondaryType))
       return ["secondaryType", "El tipo seleccionado ya no está disponible. Selecciona otro."];
     if (!zone) return ["zone", "Selecciona el lugar."];
+    if (zonesQuery.isPending) return ["zone", "Espera a que termine de cargar el catálogo."];
+    if (
+      !zones.some(
+        (item) =>
+          String(item.id) === zone && String(item.manufacturingPlant.id) === manufacturingPlantId,
+      )
+    )
+      return [
+        "zone",
+        "El lugar seleccionado ya no está disponible en esta planta. Selecciona otro.",
+      ];
     if (!process) return ["process", "Selecciona el proceso."];
+    if (processesQuery.isPending) return ["process", "Espera a que termine de cargar el catálogo."];
+    if (
+      !processes.some(
+        (item) =>
+          String(item.id) === process &&
+          item.isActive !== false &&
+          String(item.manufacturingPlant.id) === manufacturingPlantId,
+      )
+    )
+      return [
+        "process",
+        "El proceso seleccionado ya no está disponible en esta planta. Selecciona otro.",
+      ];
     if (!supervisor) return ["supervisor", "Selecciona el supervisor."];
     if (!currentDescription) return ["description", "Describe lo que observaste."];
     // Si la clasificación exige foto, se valida que haya imagen o adjunto.

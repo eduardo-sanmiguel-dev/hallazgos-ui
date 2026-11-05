@@ -72,6 +72,7 @@ const findAllPaginated = async (filters: {
 }) => {
   const { data } = await api.get<{ data: User[]; count: number }>("", {
     params: {
+      includeInactive: true,
       page: filters.page,
       limit: filters.limit,
       ...(filters.search?.trim() && { search: filters.search.trim() }),

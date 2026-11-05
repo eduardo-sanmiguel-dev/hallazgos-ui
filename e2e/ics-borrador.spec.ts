@@ -124,6 +124,44 @@ const routeCreate = async (page: Page, handlers: ((route: Route) => Promise<void
 };
 
 test.describe("Borrador de ICS", () => {
+  for (const field of ["ruleOfLife", "standardOfBehavior", "areaOfBehavior"] as const) {
+    test(`rechaza un borrador con ${field} desactivado y conserva su contenido`, async ({
+      page,
+    }) => {
+      const requests = await routeCreate(page, [
+        (route) => route.fulfill({ status: 201, json: { id: 999999 } }),
+      ]);
+      await fillForm(page);
+      await expect.poll(async () => (await storedDrafts(page))[0]?.hasPhoto).toBe(true);
+      const catalog = structuredClone(CATALOGS);
+      if (field === "ruleOfLife") catalog[0].isActive = false;
+      if (field === "standardOfBehavior") catalog[0].standards[0].isActive = false;
+      if (field === "areaOfBehavior") catalog[0].standards[0].areas[0].isActive = false;
+      await mockGet(page, "/ics/catalogs", catalog);
+      await page.reload();
+      await notice(page).getByRole("button", { name: "Recuperar" }).click();
+      await saveButton(page).click();
+      await expect(page.locator(`[data-error-for="${field}"]`)).toContainText(
+        "ya no está disponible",
+      );
+      expect(requests).toHaveLength(0);
+      await expect(description(page)).toHaveValue(DESCRIPTION);
+      await expect(page.getByAltText("Vista previa de la evidencia")).toBeVisible();
+      if (field !== "ruleOfLife") {
+        await page
+          .getByRole("button", {
+            name:
+              field === "standardOfBehavior"
+                ? "Quitar estándar no disponible"
+                : "Quitar área no disponible",
+          })
+          .click();
+        await expect(page.locator(`[data-error-for="${field}"]`)).toHaveCount(0);
+        await expect(description(page)).toHaveValue(DESCRIPTION);
+      }
+    });
+  }
+
   test("se guarda mientras se captura y al recuperarlo vuelven todos los campos y la foto", async ({
     page,
   }) => {

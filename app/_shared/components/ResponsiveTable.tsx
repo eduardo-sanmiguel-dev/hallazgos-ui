@@ -30,7 +30,7 @@ export interface ResponsiveColumn<T> {
   cellSx?: SxProps<Theme>;
 }
 
-interface ResponsiveTableProps<T> {
+export interface ResponsiveTableProps<T> {
   rows: T[];
   columns: ResponsiveColumn<T>[];
   getRowKey: (row: T) => Key;

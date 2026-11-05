@@ -16,6 +16,7 @@ import { MenuItem } from "@mui/material";
 
 import { SecondaryTypesService } from "@services";
 import SelectMainTypes from "@components/SelectMainTypes";
+import { useMainTypes } from "@hooks/useCatalogs";
 import { useFormFieldErrors } from "@hooks/useFieldErrors";
 import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
 import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
@@ -34,6 +35,7 @@ const SecondaryTypesFormPage = () => {
     typeResponsible: "",
   });
 
+  const mainTypesQuery = useMainTypes();
   const router = useRouter();
   const searchParams = useSearchParams();
   const idCurrent = Number(searchParams.get("id") || 0);
@@ -83,7 +85,15 @@ const SecondaryTypesFormPage = () => {
     if (
       failAll({
         name: !nameClean ? "Escribe el nombre." : undefined,
-        mainTypeId: !mainTypeId ? "Selecciona el criterio." : undefined,
+        mainTypeId: !mainTypeId
+          ? "Selecciona el criterio."
+          : mainTypesQuery.isPending
+            ? "Espera a que termine de cargar el catálogo."
+            : !(mainTypesQuery.data ?? []).some(
+                  (item) => item.id === mainTypeId && item.isActive !== false,
+                )
+              ? "El criterio seleccionado ya no está disponible. Selecciona otro."
+              : undefined,
         typeResponsible: !typeResponsible ? "Selecciona el responsable." : undefined,
       })
     ) {

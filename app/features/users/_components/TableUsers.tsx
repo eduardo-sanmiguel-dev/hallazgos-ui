@@ -6,7 +6,8 @@ import { notify, stringToDateWithTime, updatedDateLabel } from "@shared/utils";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { DeleteAction, EditAction, RowActions } from "@shared/components/RowActions";
 import type { ServerPagination } from "@shared/components/TableDefaultServer";
-import ResponsiveTable, { type ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import type { ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import CatalogTable from "@shared/components/CatalogTable";
 import { User } from "@interfaces";
 import { UsersService } from "@services";
 
@@ -79,7 +80,9 @@ export default function TableUsers({ rows, getData, pagination }: Props) {
   // en el listado); se ven al editar el usuario.
   return (
     <>
-      <ResponsiveTable
+      <CatalogTable
+        catalog="users"
+        onActivated={getData}
         rows={rows}
         columns={columns}
         getRowKey={(row) => row.id}

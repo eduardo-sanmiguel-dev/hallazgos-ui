@@ -21,7 +21,8 @@ import type { Theme } from "@mui/material/styles";
 import { notify, stringToDateWithTime, updatedDateLabel } from "@shared/utils";
 import TablePaginationActions from "@shared/components/TablePaginationActions";
 import { TableBodyState, type ServerPagination } from "@shared/components/TableDefaultServer";
-import ResponsiveTable, { type ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import type { ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import CatalogTable, { CatalogActions, CatalogStatus } from "@shared/components/CatalogTable";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { DeleteAction, EditAction, RowActions } from "@shared/components/RowActions";
 import { EmergencyTeam } from "@interfaces";
@@ -123,10 +124,12 @@ export default function EmergencyTeamsTable({
   };
 
   const rowActions = (row: EmergencyTeam) => (
-    <RowActions>
-      <EditAction onClick={() => router.push("/emergency-teams/form?id=" + row.id)} />
-      <DeleteAction onClick={() => confirmRemove(row)} disabled={removeMutation.isPending} />
-    </RowActions>
+    <CatalogActions catalog="emergency-teams" row={row} onActivated={getData}>
+      <RowActions>
+        <EditAction onClick={() => router.push("/emergency-teams/form?id=" + row.id)} />
+        <DeleteAction onClick={() => confirmRemove(row)} disabled={removeMutation.isPending} />
+      </RowActions>
+    </CatalogActions>
   );
 
   if (isPhone) {
@@ -187,7 +190,9 @@ export default function EmergencyTeamsTable({
             />
           </Paper>
         )}
-        <ResponsiveTable
+        <CatalogTable
+          catalog="emergency-teams"
+          onActivated={getData}
           rows={rows}
           columns={cardColumns}
           getRowKey={(row) => row.id}
@@ -230,13 +235,14 @@ export default function EmergencyTeamsTable({
               <StyledTableCell>Creado por</StyledTableCell>
               <StyledTableCell>Última actualización</StyledTableCell>
               <StyledTableCell>Actualizado por</StyledTableCell>
+              <StyledTableCell>Estado</StyledTableCell>
               <StyledTableCell>Acciones</StyledTableCell>
             </StyledTableRow>
           </TableHead>
           <TableBody>
             {!rows.length && (
               <TableRow>
-                <TableCell colSpan={12} sx={{ borderBottom: 0 }}>
+                <TableCell colSpan={13} sx={{ borderBottom: 0 }}>
                   {/* Vacío o, si la consulta falló, error con "Reintentar". */}
                   <TableBodyState
                     isError={pagination.isError}
@@ -271,12 +277,15 @@ export default function EmergencyTeamsTable({
                   {updatedDateLabel(row.createdAt, row.updatedAt) ?? "-"}
                 </StyledTableCell>
                 <StyledTableCell>{row.updatedBy?.name || "-"}</StyledTableCell>
+                <StyledTableCell>
+                  <CatalogStatus active={row.isActive} />
+                </StyledTableCell>
                 <StyledTableCell>{rowActions(row)}</StyledTableCell>
               </StyledTableRow>
             ))}
             {emptyRows > 0 && (
               <TableRow style={{ height: 53 * emptyRows }}>
-                <TableCell colSpan={12} />
+                <TableCell colSpan={13} />
               </TableRow>
             )}
           </TableBody>
@@ -284,7 +293,7 @@ export default function EmergencyTeamsTable({
             <StyledTableRow>
               <TablePagination
                 rowsPerPageOptions={constants.pagination.rowsPerPageOptions}
-                colSpan={12}
+                colSpan={13}
                 count={count}
                 rowsPerPage={rowsPerPage}
                 page={page}

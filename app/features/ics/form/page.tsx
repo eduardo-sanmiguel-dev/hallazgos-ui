@@ -6,7 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "@shared/navigation";
 import { useSearchParams } from "@shared/navigation";
 
-import { Grid } from "@mui/material";
+import { Grid, Button } from "@mui/material";
 import { FormHelperText } from "@mui/material";
 import { Checkbox } from "@mui/material";
 import { Autocomplete } from "@mui/material";
@@ -90,7 +90,7 @@ const IcsFormPage = () => {
   const { confirm, confirmDialog } = useConfirmDialog();
 
   const catalogsQuery = useIcsCatalogs();
-  const catalogs = catalogsQuery.data ?? EMPTY_CATALOG;
+  const catalogs = (catalogsQuery.data ?? EMPTY_CATALOG).filter((item) => item.isActive !== false);
 
   // Colaboradores de la planta elegida (misma consulta que CIAEL).
   const employeesQuery = useCatalog(
@@ -155,10 +155,12 @@ const IcsFormPage = () => {
   // Cada error se quita al cambiar su campo; los demás siguen marcados.
   const { failAll, failFromApi, errorOf, fieldProps } = useFormFieldErrors(form);
 
-  const standards =
-    catalogs.find((cat) => Number(cat.id) === Number(form.ruleOfLife))?.standards || [];
-  const areas =
-    standards.find((cat) => Number(cat.id) === Number(form.standardOfBehavior))?.areas || [];
+  const standards = (
+    catalogs.find((cat) => Number(cat.id) === Number(form.ruleOfLife))?.standards || []
+  ).filter((item) => item.isActive !== false);
+  const areas = (
+    standards.find((cat) => Number(cat.id) === Number(form.standardOfBehavior))?.areas || []
+  ).filter((item) => item.isActive !== false);
 
   // Al cambiar un campo se limpian los que dependen de él. Antes lo hacían
   // efectos, que también borraban lo recuperado de un borrador.
@@ -181,7 +183,22 @@ const IcsFormPage = () => {
     const selected = form.employees.length;
     return {
       manufacturingPlant: !form.manufacturingPlant ? "Selecciona la planta." : undefined,
-      ruleOfLife: !form.ruleOfLife ? "Selecciona la regla de vida." : undefined,
+      ruleOfLife: !form.ruleOfLife
+        ? "Selecciona la regla de vida."
+        : catalogsQuery.isPending
+          ? "Espera a que termine de cargar el catálogo."
+          : !catalogs.some((item) => String(item.id) === form.ruleOfLife)
+            ? "La regla de vida ya no está disponible. Selecciona otra."
+            : undefined,
+      standardOfBehavior:
+        form.standardOfBehavior &&
+        !standards.some((item) => String(item.id) === form.standardOfBehavior)
+          ? "El estándar ya no está disponible para esta regla. Selecciona otro."
+          : undefined,
+      areaOfBehavior:
+        form.areaOfBehavior && !areas.some((item) => String(item.id) === form.areaOfBehavior)
+          ? "El área ya no está disponible para este estándar. Selecciona otra."
+          : undefined,
       totalPeople: !form.totalPeople.trim()
         ? "Escribe cuántas personas observaste."
         : selected && totalPeople < selected
@@ -346,7 +363,7 @@ const IcsFormPage = () => {
           )}
           <FieldError field="ruleOfLife" message={errorOf("ruleOfLife")} />
         </Grid>
-        {standards.length > 0 && (
+        {(standards.length > 0 || !!form.standardOfBehavior) && (
           <Grid
             size={{
               xs: 12,
@@ -363,9 +380,16 @@ const IcsFormPage = () => {
               disabled={isLocked}
             />
             <FieldError field="standardOfBehavior" message={errorOf("standardOfBehavior")} />
+            {!isLocked &&
+              form.standardOfBehavior &&
+              !standards.some((item) => String(item.id) === form.standardOfBehavior) && (
+                <Button size="small" onClick={() => changeField("standardOfBehavior", "")}>
+                  Quitar estándar no disponible
+                </Button>
+              )}
           </Grid>
         )}
-        {areas.length > 0 && (
+        {(areas.length > 0 || !!form.areaOfBehavior) && (
           <Grid
             size={{
               xs: 12,
@@ -382,6 +406,13 @@ const IcsFormPage = () => {
               disabled={isLocked}
             />
             <FieldError field="areaOfBehavior" message={errorOf("areaOfBehavior")} />
+            {!isLocked &&
+              form.areaOfBehavior &&
+              !areas.some((item) => String(item.id) === form.areaOfBehavior) && (
+                <Button size="small" onClick={() => changeField("areaOfBehavior", "")}>
+                  Quitar área no disponible
+                </Button>
+              )}
           </Grid>
         )}
         <Grid

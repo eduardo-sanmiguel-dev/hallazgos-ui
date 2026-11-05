@@ -6,7 +6,8 @@ import { notify, stringToDateWithTime, updatedDateLabel } from "@shared/utils";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { DeleteAction, EditAction, RowActions } from "@shared/components/RowActions";
 import type { ServerPagination } from "@shared/components/TableDefaultServer";
-import ResponsiveTable, { type ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import type { ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import CatalogTable from "@shared/components/CatalogTable";
 import { GembaWalkZone } from "@interfaces";
 import { GembaWalkZonesService } from "@services";
 
@@ -101,7 +102,9 @@ export default function TableGembaWalkZones({ rows, getData, pagination }: Props
 
   return (
     <>
-      <ResponsiveTable
+      <CatalogTable
+        catalog="gemba-walk-zones"
+        onActivated={getData}
         rows={rows}
         columns={columns}
         getRowKey={(row) => row.id}

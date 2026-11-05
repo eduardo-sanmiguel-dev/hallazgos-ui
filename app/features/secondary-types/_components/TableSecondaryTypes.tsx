@@ -6,7 +6,8 @@ import { notify, stringToDateWithTime, updatedDateLabel } from "@shared/utils";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { DeleteAction, EditAction, RowActions } from "@shared/components/RowActions";
 import type { ServerPagination } from "@shared/components/TableDefaultServer";
-import ResponsiveTable, { type ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import type { ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import CatalogTable from "@shared/components/CatalogTable";
 import { SecondaryType } from "@interfaces";
 import { SecondaryTypesService } from "@services";
 
@@ -76,7 +77,9 @@ export default function TableSecondaryTypes({ rows, getData, pagination }: Props
 
   return (
     <>
-      <ResponsiveTable
+      <CatalogTable
+        catalog="secondary-types"
+        onActivated={getData}
         rows={rows}
         columns={columns}
         getRowKey={(row) => row.id}

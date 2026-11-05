@@ -35,10 +35,11 @@ export const DEFAULT_FILTERS_EMPLOYEES: IFiltersEmployeesList = {
   areaId: "",
   positionId: "",
   genreId: "",
-  isActive: "true",
+  isActive: "",
 };
 
 const STATUS_OPTIONS = [
+  { id: "", name: "Todos" },
   { id: "true", name: "Activos" },
   { id: "false", name: "Inactivos" },
 ];
@@ -93,7 +94,7 @@ const FiltersEmployees = ({ filters, setFilters, count }: Props) => {
       key: "isActive",
       label: "Estado",
       value: optionLabel(filters.isActive, STATUS_OPTIONS),
-      // "Activos" es el valor por defecto: no hay nada que quitar.
+      // Todos es el valor por defecto.
       onRemove:
         filters.isActive === DEFAULT_FILTERS_EMPLOYEES.isActive
           ? undefined
@@ -167,8 +168,8 @@ const FiltersEmployees = ({ filters, setFilters, count }: Props) => {
           onChange={(e) =>
             setFilters({
               ...filters,
-              // Sin selección vuelve a "Activos", como antes.
-              isActive: e.target.value || "true",
+              // Sin selección incluye ambos estados.
+              isActive: e.target.value,
             })
           }
         />

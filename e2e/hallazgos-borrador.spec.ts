@@ -151,6 +151,32 @@ const pendingDraft = async (
 };
 
 test.describe("Borrador de nuevo hallazgo", () => {
+  for (const { resource, field } of [
+    { resource: "zones", field: "zone" },
+    { resource: "processes", field: "process" },
+  ]) {
+    test(`no envía un borrador con ${resource} fuera del catálogo actual`, async ({ page }) => {
+      const requests = await routeCreate(page, [
+        (route) => route.fulfill({ status: 201, json: { id: 999999 } }),
+      ]);
+      await fillForm(page);
+      await expect.poll(async () => (await storedDrafts(page))[0]?.hasPhoto).toBe(true);
+      await page.route(
+        (url) => url.pathname.endsWith(`/api/v1/${resource}`),
+        (route) => route.fulfill({ json: [] }),
+      );
+      await page.reload();
+      await notice(page).getByRole("button", { name: "Recuperar" }).click();
+      await createButton(page).click();
+      await expect(page.locator(`[data-error-for="${field}"]`)).toContainText(
+        "ya no está disponible",
+      );
+      expect(requests).toHaveLength(0);
+      await expect(description(page)).toHaveValue(DESCRIPTION);
+      await expect(page.getByAltText("Vista previa de la evidencia")).toBeVisible();
+    });
+  }
+
   test("no envía un borrador cuyo tipo dejó de estar disponible", async ({ page }) => {
     const requests = await routeCreate(page, [
       (route) => route.fulfill({ status: 201, json: { id: 999999 } }),

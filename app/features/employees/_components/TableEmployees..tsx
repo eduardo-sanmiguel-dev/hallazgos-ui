@@ -10,7 +10,8 @@ import { Employee } from "@interfaces";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { DeleteAction, EditAction, RowActions } from "@shared/components/RowActions";
 import type { ServerPagination } from "@shared/components/TableDefaultServer";
-import ResponsiveTable, { type ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import type { ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import CatalogTable from "@shared/components/CatalogTable";
 import { EmployeesService } from "@services";
 
 interface Props {
@@ -103,7 +104,9 @@ export default function TableEmployees({ rows, getData, pagination }: Props) {
 
   return (
     <>
-      <ResponsiveTable
+      <CatalogTable
+        catalog="employees"
+        onActivated={getData}
         rows={rows}
         columns={columns}
         getRowKey={(row) => row.id}

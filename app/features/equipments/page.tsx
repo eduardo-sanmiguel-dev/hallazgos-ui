@@ -19,7 +19,8 @@ import FilterBar, { compactFilters, optionLabel } from "@shared/components/Filte
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { DeleteAction, EditAction, RowActions } from "@shared/components/RowActions";
-import ResponsiveTable, { type ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import type { ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import CatalogTable from "@shared/components/CatalogTable";
 import { Equipment } from "@interfaces";
 import { stringToDateWithTime, updatedDateLabel } from "@shared/utils";
 import { useUserSessionStore } from "@store";
@@ -218,7 +219,9 @@ export default function EquipmentsPage() {
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <ResponsiveTable
+        <CatalogTable
+          catalog="equipments"
+          onActivated={getData}
           rows={rows}
           columns={columns}
           getRowKey={(row) => row.id}

@@ -48,6 +48,7 @@ const remove = async (id: number) => {
 const findAllPaginated = async (filters: { name?: string; page: number; limit: number }) => {
   const { data } = await api.get<{ data: ManufacturingPlant[]; count: number }>("", {
     params: {
+      includeInactive: true,
       page: filters.page,
       limit: filters.limit,
       ...(filters.name && { name: filters.name }),

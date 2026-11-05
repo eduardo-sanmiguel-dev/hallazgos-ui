@@ -55,6 +55,7 @@ const findAllPaginated = async ({
 }) => {
   const { data } = await api.get<{ data: MainType[]; count: number }>("", {
     params: {
+      includeInactive: true,
       page,
       limit,
       ...Object.fromEntries(

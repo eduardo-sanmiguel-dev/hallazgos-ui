@@ -6,7 +6,8 @@ import { notify, stringToDateWithTime, updatedDateLabel } from "@shared/utils";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { DeleteAction, EditAction, RowActions } from "@shared/components/RowActions";
 import type { ServerPagination } from "@shared/components/TableDefaultServer";
-import ResponsiveTable, { type ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import type { ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import CatalogTable from "@shared/components/CatalogTable";
 import { Processes } from "@interfaces";
 import { ProcessesService } from "@services";
 
@@ -70,7 +71,9 @@ export default function TableProcess({ rows, getData, pagination }: Props) {
 
   return (
     <>
-      <ResponsiveTable
+      <CatalogTable
+        catalog="processes"
+        onActivated={getData}
         rows={rows}
         columns={columns}
         getRowKey={(row) => row.id}

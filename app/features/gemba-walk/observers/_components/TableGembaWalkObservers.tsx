@@ -6,7 +6,8 @@ import { notify, stringToDateWithTime, updatedDateLabel } from "@shared/utils";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { DeleteAction, EditAction, RowActions } from "@shared/components/RowActions";
 import type { ServerPagination } from "@shared/components/TableDefaultServer";
-import ResponsiveTable, { type ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import type { ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import CatalogTable from "@shared/components/CatalogTable";
 import { GembaWalkObserver } from "@interfaces";
 import { GembaWalkObserversService } from "@services";
 
@@ -111,7 +112,9 @@ export default function TableGembaWalkObservers({ rows, getData, pagination }: P
 
   return (
     <>
-      <ResponsiveTable
+      <CatalogTable
+        catalog="gemba-walk-observers"
+        onActivated={getData}
         rows={rows}
         columns={columns}
         getRowKey={(row) => row.id}

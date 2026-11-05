@@ -6,7 +6,8 @@ import { notify, stringToDateWithTime, updatedDateLabel } from "@shared/utils";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { DeleteAction, EditAction, RowActions } from "@shared/components/RowActions";
 import type { ServerPagination } from "@shared/components/TableDefaultServer";
-import ResponsiveTable, { type ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import type { ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import CatalogTable from "@shared/components/CatalogTable";
 import { GembaWalkEvaluation } from "@interfaces";
 import { GembaWalkEvaluationsService } from "@services";
 
@@ -94,7 +95,9 @@ export default function TableGembaWalkEvaluations({ rows, getData, pagination }:
 
   return (
     <>
-      <ResponsiveTable
+      <CatalogTable
+        catalog="gemba-walk-evaluations"
+        onActivated={getData}
         rows={rows}
         columns={columns}
         getRowKey={(row) => row.id}

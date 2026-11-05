@@ -10,7 +10,8 @@ import { notify, stringToDateWithTime, updatedDateLabel } from "@shared/utils";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { DeleteAction, EditAction, RowActions } from "@shared/components/RowActions";
 import type { ServerPagination } from "@shared/components/TableDefaultServer";
-import ResponsiveTable, { type ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import type { ResponsiveColumn } from "@shared/components/ResponsiveTable";
+import CatalogTable from "@shared/components/CatalogTable";
 import { GembaWalkCalendar } from "@interfaces";
 import { GembaWalkCalendarService } from "@services";
 
@@ -133,7 +134,9 @@ export default function TableGembaWalkCalendar({ rows, getData, pagination }: Pr
 
   return (
     <>
-      <ResponsiveTable
+      <CatalogTable
+        catalog="gemba-walk-calendar"
+        onActivated={getData}
         rows={rows}
         columns={columns}
         getRowKey={(row) => row.id}

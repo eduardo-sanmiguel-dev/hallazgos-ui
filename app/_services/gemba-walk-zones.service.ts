@@ -66,6 +66,7 @@ const findAllPaginated = async ({
 }) => {
   const { data } = await api.get<{ data: GembaWalkZone[]; count: number }>("", {
     params: {
+      includeInactive: true,
       page,
       limit,
       ...Object.fromEntries(
