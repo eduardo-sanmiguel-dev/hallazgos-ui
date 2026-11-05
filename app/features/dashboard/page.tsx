@@ -25,7 +25,7 @@ import KpiTile from "@shared/components/KpiTile";
 import PageHeader from "@shared/components/PageHeader";
 import { accentCard } from "@shared/utils/accentCard";
 import { DEFAULT_PERIOD, PERIOD_PRESETS, periodLabel, presetRange } from "@shared/utils/period";
-import { proposedPlantId, saveLastPlant } from "@shared/utils/lastPlant";
+import { proposedPlantId } from "@shared/utils/lastPlant";
 import AreaImageCoordinateSelector from "../areas/_components/AreaImageCoordinateSelector";
 import AreasChart from "./charts/AreasChart";
 import MainTypesChart from "./charts/MainTypesChart";
@@ -71,7 +71,7 @@ const DashboardPage = () => {
   // lo que el usuario elija o borre después. Los últimos 30 días incluyen hoy.
   const [filters, setFilters] = useState<DashboardFilters>(() => {
     const { preset, startDate, endDate } = DEFAULT_PERIOD();
-    const plantId = proposedPlantId(manufacturingPlants, userId, "dashboard");
+    const plantId = proposedPlantId(manufacturingPlants, userId);
     const plant = manufacturingPlants.find((item) => String(item.id) === plantId);
     return {
       manufacturingPlantId: plantId,
@@ -104,10 +104,6 @@ const DashboardPage = () => {
     const selectedPlant = manufacturingPlants.find(
       (item) => String(item.id) === event.target.value,
     );
-
-    if (selectedPlant && userId) {
-      saveLastPlant(userId, "dashboard", event.target.value);
-    }
 
     setFilters((prev) => ({
       ...prev,

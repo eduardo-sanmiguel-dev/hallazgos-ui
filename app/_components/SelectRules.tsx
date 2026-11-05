@@ -18,7 +18,7 @@ const SelectRules = ({ value, onChange, isFilter = false }: Props) => {
       <Select
         labelId="manufacturing-plant-simple-select-label"
         id="manufacturing-plant-simple-select"
-        label="Planta"
+        label="Roles"
         value={value}
         onChange={onChange}
       >

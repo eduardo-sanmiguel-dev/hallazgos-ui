@@ -6,7 +6,7 @@ import { TextField } from "@mui/material";
 
 import { EMPTY_CATALOG, useAreas, useManufacturingPlants } from "@hooks";
 import SelectDefault from "@components/SelectDefault";
-import SelectManufacturingPlants from "@components/SelectManufacturingPlants";
+import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 
 import FilterBar, { compactFilters, optionLabel } from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
@@ -110,7 +110,9 @@ const FiltersZones = ({ filters, setFilters, count }: Props) => {
           md: 3,
         }}
       >
-        <SelectManufacturingPlants
+        <SelectManufacturingPlantsOwn
+          embedded
+          source="catalog"
           value={filters.manufacturingPlantId}
           onChange={(e) =>
             setFilters({

@@ -3,7 +3,7 @@ import { Paper } from "@mui/material";
 import { TextField } from "@mui/material";
 
 import { EMPTY_CATALOG, useManufacturingPlants } from "@hooks";
-import SelectManufacturingPlants from "@components/SelectManufacturingPlants";
+import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 
 import FilterBar, { compactFilters, optionLabel } from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
@@ -82,7 +82,9 @@ const FiltersProcesses = ({ filters, setFilters, count }: Props) => {
           md: 3,
         }}
       >
-        <SelectManufacturingPlants
+        <SelectManufacturingPlantsOwn
+          embedded
+          source="catalog"
           value={filters.manufacturingPlantId}
           onChange={(e) =>
             setFilters({

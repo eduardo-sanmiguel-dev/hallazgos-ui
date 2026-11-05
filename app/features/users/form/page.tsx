@@ -19,7 +19,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
 import { UsersService } from "@services";
-import MultiSelectManufacturingPlants from "@components/MultiSelectManufacturingPlants";
+import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import MultiSelectZones from "@components/MultiSelectZones";
 import { isValidEmail } from "@shared/utils";
 import MultiSelectProcesses from "@components/MultiSelectProcesses";
@@ -275,9 +275,12 @@ const UsersFormPage = () => {
 
         {form.rule && (
           <Grid size={{ xs: 12, sm: 6 }}>
-            <MultiSelectManufacturingPlants
-              values={form.manufacturingPlantNames}
-              onChange={(values) => {
+            <SelectManufacturingPlantsOwn
+              embedded
+              multiple
+              source="catalog"
+              value={form.manufacturingPlantNames}
+              onValuesChange={(values) => {
                 setForm({
                   ...form,
                   manufacturingPlantNames: values,

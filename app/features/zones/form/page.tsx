@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { FormHelperText } from "@mui/material";
 
 import { ZonesService } from "@services";
-import SelectManufacturingPlants from "@components/SelectManufacturingPlants";
+import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
 import { useAreas } from "@hooks";
 import { useFormFieldErrors } from "@hooks/useFieldErrors";
@@ -38,7 +38,10 @@ const ZonesFormPage = () => {
 
   // Cada error se quita al cambiar su campo; los demás siguen marcados.
   const { failAll, failFromApi, errorOf, fieldProps } = useFormFieldErrors(form);
-  const leave = useLeaveConfirm(form, { isEditing: !!idCurrent });
+  const leave = useLeaveConfirm(form, {
+    isEditing: !!idCurrent,
+    ignoreOnCreate: ["manufacturingPlantId"],
+  });
 
   const record = useEditRecord("zones", idCurrent, ZonesService.findOne, (data) => {
     const loaded = {
@@ -129,7 +132,9 @@ const ZonesFormPage = () => {
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 4 }}>
-          <SelectManufacturingPlants
+          <SelectManufacturingPlantsOwn
+            embedded
+            source="catalog"
             value={form.manufacturingPlantId}
             onChange={(e) =>
               setForm({

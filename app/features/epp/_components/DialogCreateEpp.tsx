@@ -1,3 +1,4 @@
+import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import { ReactNode, useMemo, useRef, useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
@@ -30,7 +31,6 @@ import SelectDefault from "@components/SelectDefault";
 import { EppService, EquipmentsService } from "@services";
 import { EMPTY_CATALOG, useCatalog } from "@hooks";
 import DialogSignatureEpp from "./DialogSignatureEpp";
-import { useUserSessionStore } from "@store";
 import { notify } from "@shared/utils";
 import StatusChip from "@shared/components/StatusChip";
 import DetailSection from "@shared/components/DetailSection";
@@ -49,7 +49,6 @@ interface Props {
 }
 
 export default function DialogCreateEpp({ open, create }: Props) {
-  const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
   const [signature, setSignature] = useState<string>("");
   const [equipmentsNew, setEquipmentsNew] = useState<
     {
@@ -68,9 +67,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
   const [openSignature, setOpenSignature] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const savingRef = useRef(false);
-  const [manufacturingPlantId, setManufacturingPlantId] = useState<string>(() =>
-    manufacturingPlants.length === 1 ? String(manufacturingPlants[0].id) : "",
-  );
+  const [manufacturingPlantId, setManufacturingPlantId] = useState<string>("");
 
   const [previousPlant, setPreviousPlant] = useState(manufacturingPlantId);
   if (previousPlant !== manufacturingPlantId) {
@@ -125,6 +122,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
   }, [form, equipmentsNew, signature]);
 
   const resetForm = () => {
+    setManufacturingPlantId("");
     setSignature("");
     setEquipmentsNew([]);
     setForm({
@@ -277,8 +275,8 @@ export default function DialogCreateEpp({ open, create }: Props) {
                   pie dice qué falta. */}
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <SelectDefault
-                    data={manufacturingPlants}
+                  <SelectManufacturingPlantsOwn
+                    embedded
                     label="Planta"
                     value={manufacturingPlantId}
                     onChange={(e) => setManufacturingPlantId(e.target.value)}

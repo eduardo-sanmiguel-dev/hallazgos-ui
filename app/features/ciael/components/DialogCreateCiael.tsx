@@ -1,3 +1,4 @@
+import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import { useMemo, useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
@@ -29,7 +30,6 @@ import FormActions from "@shared/components/FormActions";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { CiaelSelectField } from "./CiaelSelectField";
 import { useFormFieldErrors } from "@hooks/useFieldErrors";
-import { useUserSessionStore } from "@store";
 import { EMPTY_CATALOG, useCatalog, useTypesOfEvents, useZones } from "@hooks";
 import {
   AccidentPositionsService,
@@ -146,8 +146,6 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
     onError: (error) => failFromApi(error, ciaelApiField),
   });
   const isLoading = createMutation.isPending;
-
-  const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
 
   const handleClose = () => {
     setOpen(false);
@@ -299,10 +297,10 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
           title="Evento"
           description="Elige primero la planta: de ella dependen la zona, el colaborador, el cargo, la máquina y la tarea."
         >
-          <CiaelSelectField
+          <SelectManufacturingPlantsOwn
+            size={{ xs: 12, sm: 6, md: 4 }}
             name="manufacturingPlant"
             label="Planta *"
-            data={manufacturingPlants}
             value={form.manufacturingPlant}
             onChange={onChangeSelect}
             error={errorOf("manufacturingPlant")}

@@ -20,7 +20,7 @@ import { useEmployeeCatalogs } from "@hooks";
 import { EmployeesService } from "@services";
 import SelectDefault from "@components/SelectDefault";
 import { SelectChangeEvent } from "@mui/material";
-import MultiSelectManufacturingPlants from "@components/MultiSelectManufacturingPlants";
+import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import { useFormFieldErrors } from "@hooks/useFieldErrors";
 import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
 import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
@@ -281,9 +281,12 @@ const EmployeesFormPage = () => {
           </LocalizationProvider>
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
-          <MultiSelectManufacturingPlants
-            values={form.manufacturingPlantNames}
-            onChange={(values) => {
+          <SelectManufacturingPlantsOwn
+            embedded
+            multiple
+            source="catalog"
+            value={form.manufacturingPlantNames}
+            onValuesChange={(values) => {
               setForm({
                 ...form,
                 manufacturingPlantNames: values,

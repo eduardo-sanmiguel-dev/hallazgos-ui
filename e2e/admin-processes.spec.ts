@@ -133,7 +133,11 @@ test.describe("Procesos: formulario", () => {
     );
     await page.goto(`/processes/form?id=${ID}`);
     await expect(nameInput(page)).toHaveValue("E2E Proceso");
-    await expect(page.getByRole("combobox", { name: "Planta" })).toHaveText(plant.name);
+    await expect(
+      page.locator(".MuiAutocomplete-root", {
+        has: page.getByRole("combobox", { name: "Planta" }),
+      }),
+    ).toContainText(plant.name);
     expect(warnings).toEqual([]);
   });
 

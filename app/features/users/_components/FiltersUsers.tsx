@@ -4,7 +4,7 @@ import { TextField } from "@mui/material";
 
 import { EMPTY_CATALOG, useManufacturingPlants, useProcesses, useZones } from "@hooks";
 import SelectDefault from "@components/SelectDefault";
-import SelectManufacturingPlants from "@components/SelectManufacturingPlants";
+import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectRules from "@components/SelectRules";
 import SelectZones from "@components/SelectZones";
 import FilterBar, { compactFilters, optionLabel } from "@shared/components/FilterBar";
@@ -122,7 +122,9 @@ const FiltersUsers = ({ filters, setFilters, count }: Props) => {
         />
       </Grid>
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <SelectManufacturingPlants
+        <SelectManufacturingPlantsOwn
+          embedded
+          source="catalog"
           value={filters.manufacturingPlantId}
           onChange={(e) =>
             setFilters({

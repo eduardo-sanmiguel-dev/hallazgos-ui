@@ -1,3 +1,4 @@
+import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -522,8 +523,9 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
           md: 2,
         }}
       >
-        <SelectDefault
-          data={manufacturingPlants}
+        <SelectManufacturingPlantsOwn
+          restoreSelection={!filters.evidenceId}
+          embedded
           label="Planta"
           isFilter={true}
           value={filters.manufacturingPlantId}

@@ -1,3 +1,4 @@
+import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import { useEffect, useMemo, useState, type ComponentType, type ReactElement } from "react";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -14,14 +15,13 @@ import PaymentsIcon from "@mui/icons-material/PaymentsOutlined";
 import PersonAddAltIcon from "@mui/icons-material/PersonAddAltOutlined";
 
 import { DashboardService } from "@services";
-import SelectDefault from "@components/SelectDefault";
 import { useUserSessionStore } from "@store";
 import { useHighchartsTheme } from "@hooks/useHighchartsTheme";
 import PageHeader from "@shared/components/PageHeader";
 import EmptyState from "@shared/components/EmptyState";
 import ErrorState from "@shared/components/ErrorState";
 import { ROLE_ADMINISTRADOR } from "@shared/constants";
-import { proposedPlantId, saveLastPlant } from "@shared/utils/lastPlant";
+import { proposedPlantId } from "@shared/utils/lastPlant";
 
 import GroupTabs from "./_components/GroupTabs";
 import KpiTile from "@shared/components/KpiTile";
@@ -105,10 +105,8 @@ const EPPCharts = () => {
   const [activeTitle, setActiveTitle] = useState(chartGroups[0].title);
   const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
   const userId = useUserSessionStore((state) => state.id);
-  const [manufacturingPlantId, setManufacturingPlantId] = useState(
-    () =>
-      proposedPlantId(manufacturingPlants, userId, "bi-epp") ||
-      String(manufacturingPlants[0]?.id ?? ""),
+  const [manufacturingPlantId, setManufacturingPlantId] = useState(() =>
+    proposedPlantId(manufacturingPlants, userId),
   );
   // Por omisión los últimos 30 días (M5); la API calcula la comparación.
   const [period, setPeriod] = useState<PeriodValue>(() => DEFAULT_PERIOD());
@@ -125,12 +123,11 @@ const EPPCharts = () => {
   }, [role, isAdmin, router]);
 
   // La planta es obligatoria: los indicadores se calculan por planta. Se
-  // propone la única del usuario o la última que eligió aquí en este
+  // propone la única del usuario o la última que eligió en este
   // dispositivo (M5); si no hay, la primera, como antes.
 
   const changePlant = (plantId: string) => {
     setManufacturingPlantId(plantId);
-    if (plantId && userId) saveLastPlant(userId, "bi-epp", plantId);
   };
 
   // Al cambiar planta o periodo se conserva lo anterior hasta tener lo
@@ -205,8 +202,9 @@ const EPPCharts = () => {
         >
           <PeriodFilter value={period} onChange={setPeriod} />
           <Box sx={{ minWidth: 220, flex: { xs: "1 1 100%", sm: "0 0 auto" } }}>
-            <SelectDefault
-              data={manufacturingPlants}
+            <SelectManufacturingPlantsOwn
+              defaultToFirst
+              embedded
               label="Planta"
               value={manufacturingPlantId}
               onChange={(e) => changePlant(e.target.value)}

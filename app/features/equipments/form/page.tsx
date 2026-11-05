@@ -12,8 +12,7 @@ import { InputAdornment } from "@mui/material";
 import { toast } from "sonner";
 
 import { EquipmentsService } from "@services";
-import SelectManufacturingPlants from "@components/SelectManufacturingPlants";
-import { useUserSessionStore } from "@store";
+import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import { useFormFieldErrors } from "@hooks/useFieldErrors";
 import { useLeaveConfirm } from "@hooks/useLeaveConfirm";
 import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
@@ -52,12 +51,7 @@ const EquipmentsFormPage = () => {
   const searchParams = useSearchParams();
   const idCurrent = Number(searchParams.get("id") || 0);
 
-  const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
-  const [form, setForm] = useState<EquipmentForm>(() => ({
-    ...EMPTY_FORM,
-    manufacturingPlantId:
-      !idCurrent && manufacturingPlants.length === 1 ? String(manufacturingPlants[0].id) : "",
-  }));
+  const [form, setForm] = useState<EquipmentForm>(EMPTY_FORM);
 
   // Cada error se quita al cambiar su campo; los demás siguen marcados.
   const { failAll, failFromApi, errorOf, fieldProps } = useFormFieldErrors(form);
@@ -135,7 +129,9 @@ const EquipmentsFormPage = () => {
         description="Nombre del equipo y planta donde se entrega."
       >
         <Grid size={{ xs: 12, sm: 6 }}>
-          <SelectManufacturingPlants
+          <SelectManufacturingPlantsOwn
+            embedded
+            source="catalog"
             value={form.manufacturingPlantId}
             onChange={(e) =>
               setForm({

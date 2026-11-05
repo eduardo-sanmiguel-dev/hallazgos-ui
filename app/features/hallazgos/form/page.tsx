@@ -1,3 +1,5 @@
+import { proposedPlantId } from "@shared/utils/lastPlant";
+import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import { useMemo, useState } from "react";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -73,9 +75,6 @@ const FieldError = ({ field, message }: { field: string; message?: string }) =>
 
 export default function HallazgosFormPage() {
   const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
-  const manufacturingPlantsCurrent = useUserSessionStore(
-    (state) => state.manufacturingPlantsCurrent,
-  );
   const userId = useUserSessionStore((state) => state.id);
   const [lastLocation] = useState(() => (userId ? readLastLocation(userId) : null));
   const [typeHallazgo, setTypeHallazgo] = useState<string>("");
@@ -84,7 +83,8 @@ export default function HallazgosFormPage() {
   const [image, setImage] = useState<string>("");
   const [zone, setZone] = useState<string>("");
   const [manufacturingPlantId, setManufacturingPlantId] = useState<string>(() => {
-    if (manufacturingPlantsCurrent.length === 1) return String(manufacturingPlantsCurrent[0]);
+    const preferred = proposedPlantId(manufacturingPlants, userId);
+    if (preferred) return preferred;
     return lastLocation &&
       manufacturingPlants.some(({ id }) => String(id) === lastLocation.manufacturingPlantId)
       ? lastLocation.manufacturingPlantId
@@ -365,8 +365,8 @@ export default function HallazgosFormPage() {
 
       <FormSection title="Ubicación" description="Dónde se observó.">
         <Grid size={{ xs: 12, sm: 4 }}>
-          <SelectDefault
-            data={manufacturingPlants}
+          <SelectManufacturingPlantsOwn
+            embedded
             label="Planta"
             value={manufacturingPlantId}
             onChange={(e) => setManufacturingPlantId(e.target.value)}

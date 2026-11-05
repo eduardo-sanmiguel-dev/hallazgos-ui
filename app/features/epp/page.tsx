@@ -19,9 +19,7 @@ import RefreshButton from "@shared/components/RefreshButton";
 export default function EppPage() {
   const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
   const [open, setOpen] = useState<boolean>(false);
-  const [manufacturingPlantId, setManufacturingPlantId] = useState<string>(() =>
-    manufacturingPlants.length === 1 ? String(manufacturingPlants[0].id) : "",
-  );
+  const [manufacturingPlantId, setManufacturingPlantId] = useState<string>("");
   const [order, setOrder] = useState<SortOrder>("asc");
   const [orderBy, setOrderBy] = useState<EppSortableColumn | null>(null);
   const [filters, setFilters] = useState<IFiltersEpp>(DEFAULT_FILTERS_EPP);

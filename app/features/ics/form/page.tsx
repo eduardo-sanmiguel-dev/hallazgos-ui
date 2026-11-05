@@ -1,3 +1,4 @@
+import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import { useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
@@ -17,7 +18,6 @@ import { v4 as uuidv4 } from "uuid";
 import { EMPTY_CATALOG, useCatalog, useIcsCatalogs, useUploadProgress } from "@hooks";
 import { EmployeesService, IcsService } from "@services";
 import SelectDefault from "@components/SelectDefault";
-import { useUserSessionStore } from "@store";
 import { NUMERIC_INPUT } from "@shared/utils/inputModes";
 import ImageORCamera from "@shared/components/ImageORCamera";
 import { dataURLtoFile, notify } from "@shared/utils";
@@ -109,8 +109,6 @@ const IcsFormPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const idCurrent = Number(searchParams.get("id") || 0);
-
-  const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
 
   // Borrador local (C3), como en Hallazgos: lo capturado y la foto quedan en
   // el dispositivo hasta enviarse. En edición (?id=) no aplica.
@@ -310,8 +308,8 @@ const IcsFormPage = () => {
             md: 3,
           }}
         >
-          <SelectDefault
-            data={manufacturingPlants}
+          <SelectManufacturingPlantsOwn
+            embedded
             label="Planta *"
             value={form.manufacturingPlant}
             onChange={(e) => changeField("manufacturingPlant", e.target.value)}

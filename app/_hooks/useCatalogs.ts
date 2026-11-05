@@ -77,11 +77,12 @@ export const useProcesses = (
     enabled,
   });
 
-export const useManufacturingPlants = () =>
+export const useManufacturingPlants = ({ enabled = true }: CatalogOptions = {}) =>
   useQuery({
     queryKey: catalogKeys.manufacturingPlants(),
     queryFn: () => ManufacturingPlantsService.findAll({}),
     staleTime: CATALOG_STALE_TIME,
+    enabled,
   });
 
 export const useAreas = (filters: AreasFilters = {}, { enabled = true }: CatalogOptions = {}) =>

@@ -1,3 +1,4 @@
+import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import { Grid } from "@mui/material";
 import { Paper } from "@mui/material";
 import { TextField } from "@mui/material";
@@ -124,8 +125,9 @@ const FiltersEpp = ({
         onClick={() => setFilters(DEFAULT_FILTERS_EPP)}
       />
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-        <SelectDefault
-          data={manufacturingPlants}
+        <SelectManufacturingPlantsOwn
+          embedded
+          isFilter
           label="Planta"
           value={manufacturingPlantId}
           onChange={(e) => onManufacturingPlantChange(e.target.value)}

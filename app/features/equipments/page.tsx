@@ -1,3 +1,4 @@
+import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import { useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
@@ -20,7 +21,6 @@ import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { DeleteAction, EditAction, RowActions } from "@shared/components/RowActions";
 import ResponsiveTable, { type ResponsiveColumn } from "@shared/components/ResponsiveTable";
 import { Equipment } from "@interfaces";
-import SelectDefault from "@components/SelectDefault";
 import { stringToDateWithTime, updatedDateLabel } from "@shared/utils";
 import { useUserSessionStore } from "@store";
 import { EquipmentsService } from "@services";
@@ -96,7 +96,7 @@ export default function EquipmentsPage() {
     name: string;
     manufacturingPlantId: string;
   }>({
-    manufacturingPlantId: manufacturingPlants.length === 1 ? String(manufacturingPlants[0].id) : "",
+    manufacturingPlantId: "",
     name: "",
   });
 
@@ -180,8 +180,8 @@ export default function EquipmentsPage() {
             md: 3,
           }}
         >
-          <SelectDefault
-            data={manufacturingPlants}
+          <SelectManufacturingPlantsOwn
+            embedded
             label="Planta"
             isFilter={true}
             value={filters.manufacturingPlantId}
