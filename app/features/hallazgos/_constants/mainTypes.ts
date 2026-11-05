@@ -5,3 +5,8 @@
  */
 export const requiresPhotoEvidence = (mainType?: { requiresEvidence?: boolean | null } | null) =>
   mainType?.requiresEvidence !== false;
+
+/** También protege catálogos en caché anteriores al filtro del API. */
+export const activeSecondaryTypes = <T extends { id: number; isActive?: boolean }>(
+  types: readonly T[],
+): T[] => types.filter((type) => type.isActive !== false);

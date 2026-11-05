@@ -151,6 +151,32 @@ const pendingDraft = async (
 };
 
 test.describe("Borrador de nuevo hallazgo", () => {
+  test("no envía un borrador cuyo tipo dejó de estar disponible", async ({ page }) => {
+    const requests = await routeCreate(page, [
+      (route) => route.fulfill({ status: 201, json: { id: 999999 } }),
+    ]);
+    await fillForm(page);
+    await expect.poll(async () => (await storedDrafts(page)).length).toBe(1);
+    await page.route("**/api/v1/main-types", async (route) => {
+      const response = await route.fetch();
+      const catalog = await response.json();
+      await route.fulfill({
+        response,
+        json: catalog.map((item: Record<string, unknown>) => ({ ...item, secondaryTypes: [] })),
+      });
+    });
+    await page.reload();
+    await notice(page).getByRole("button", { name: "Recuperar" }).click();
+    await expect(description(page)).toHaveValue(DESCRIPTION);
+    await createButton(page).click();
+    await expect(page.locator('[data-error-for="secondaryType"]')).toContainText(
+      "ya no está disponible",
+    );
+    expect(requests).toHaveLength(0);
+    await expect(description(page)).toHaveValue(DESCRIPTION);
+    await expect(page.getByAltText("Vista previa de la evidencia")).toBeVisible();
+  });
+
   test("se guarda mientras se captura y al volver se ofrece recuperarlo, con la foto", async ({
     page,
   }) => {

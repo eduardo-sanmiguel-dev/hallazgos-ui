@@ -1,6 +1,9 @@
 import { describe, expect, test } from "vite-plus/test";
 
-import { requiresPhotoEvidence } from "../../app/features/hallazgos/_constants/mainTypes";
+import {
+  activeSecondaryTypes,
+  requiresPhotoEvidence,
+} from "../../app/features/hallazgos/_constants/mainTypes";
 
 // La foto obligatoria la decide la bandera del catálogo (la misma que valida
 // el API), no el nombre de la clasificación.
@@ -22,5 +25,19 @@ describe("Foto obligatoria por clasificación", () => {
     expect(requiresPhotoEvidence(renamed)).toBe(true);
     const flagged = { name: "Condición insegura", requiresEvidence: false };
     expect(requiresPhotoEvidence(flagged)).toBe(false);
+  });
+});
+
+describe("Tipos disponibles para un nuevo hallazgo", () => {
+  test("excluye el tipo #23 desactivado sin modificar el catálogo original", () => {
+    const inactive = { id: 23, isActive: false };
+    const active = { id: 24, isActive: true };
+    const catalog = [inactive, active];
+    expect(activeSecondaryTypes(catalog)).toEqual([active]);
+    expect(catalog).toEqual([inactive, active]);
+  });
+  test("admite catálogos vacíos y registros anteriores sin bandera", () => {
+    expect(activeSecondaryTypes([])).toEqual([]);
+    expect(activeSecondaryTypes([{ id: 1 }])).toEqual([{ id: 1 }]);
   });
 });

@@ -28,7 +28,10 @@ import { dataURLtoFile, notify } from "@shared/utils";
 import SelectDefault from "@components/SelectDefault";
 import { SecondaryType, User } from "@interfaces";
 import { formatDayLabel, priorityOptions } from "@routes/hallazgos/_constants/priorityOptions";
-import { requiresPhotoEvidence } from "@routes/hallazgos/_constants/mainTypes";
+import {
+  activeSecondaryTypes,
+  requiresPhotoEvidence,
+} from "@routes/hallazgos/_constants/mainTypes";
 import { readLastLocation, saveLastLocation } from "@routes/hallazgos/_constants/lastLocation";
 
 import "./form.css";
@@ -100,8 +103,9 @@ export default function HallazgosFormPage() {
   const mainTypesQuery = useMainTypes();
   const zonesQuery = useZones();
   const mainTypes = mainTypesQuery.data ?? EMPTY_CATALOG;
-  const secondaryTypes: SecondaryType[] =
-    mainTypes.find((data) => data.id === Number(typeHallazgo))?.secondaryTypes ?? EMPTY_CATALOG;
+  const secondaryTypes: SecondaryType[] = activeSecondaryTypes(
+    mainTypes.find((data) => data.id === Number(typeHallazgo))?.secondaryTypes ?? EMPTY_CATALOG,
+  );
   const zones = zonesQuery.data ?? EMPTY_CATALOG;
   const processes = useProcesses().data ?? EMPTY_CATALOG;
 
@@ -236,7 +240,13 @@ export default function HallazgosFormPage() {
   const firstMissing = (): [EvidenceField, string] | null => {
     if (!manufacturingPlantId) return ["manufacturingPlantId", "Selecciona la planta."];
     if (!typeHallazgo) return ["typeHallazgo", "Selecciona el hallazgo."];
+    if (mainTypesQuery.isPending)
+      return ["typeHallazgo", "Espera a que termine de cargar el catálogo."];
+    if (!mainTypes.some((item) => String(item.id) === typeHallazgo && item.isActive !== false))
+      return ["typeHallazgo", "El hallazgo seleccionado ya no está disponible. Selecciona otro."];
     if (!secondaryType) return ["secondaryType", "Selecciona el tipo."];
+    if (!secondaryTypes.some((item) => String(item.id) === secondaryType))
+      return ["secondaryType", "El tipo seleccionado ya no está disponible. Selecciona otro."];
     if (!zone) return ["zone", "Selecciona el lugar."];
     if (!process) return ["process", "Selecciona el proceso."];
     if (!supervisor) return ["supervisor", "Selecciona el supervisor."];
