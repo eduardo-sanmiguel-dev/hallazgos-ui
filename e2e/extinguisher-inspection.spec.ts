@@ -64,6 +64,8 @@ test.describe("Inspección de extintores", () => {
       name: "Evaluación del extintor E2E-501",
     });
     await expect(card.getByText("Sin novedades")).toBeVisible();
+    await fillDate(page, "Próxima recarga", "10/05/2099");
+    await fillDate(page, "Mantenimiento", "15/06/2099");
     await expect(
       concept(page, "Manómetro").getByRole("button", {
         name: "Cumple",
@@ -102,9 +104,6 @@ test.describe("Inspección de extintores", () => {
     await expect(toast(page, "Inspección creada correctamente")).toBeVisible();
     await expect(page).toHaveURL(/\/extinguisher-inspection$/);
 
-    const nextYear = new Date();
-    nextYear.setFullYear(nextYear.getFullYear() + 1);
-    const nextRechargeDate = nextYear.toLocaleDateString("en-CA");
     expect(writes).toEqual([
       {
         method: "POST",
@@ -127,8 +126,8 @@ test.describe("Inspección de extintores", () => {
               access: "C",
               support: "C",
               signaling: "C",
-              nextRechargeDate,
-              maintenanceDate: nextRechargeDate,
+              nextRechargeDate: "2099-05-10",
+              maintenanceDate: "2099-06-15",
               observations: "Etiqueta despegada",
             },
           ],
@@ -149,21 +148,28 @@ test.describe("Inspección de extintores", () => {
     await scan(page);
     await expect(page.getByText("E2E Pasillo norte")).toBeVisible();
 
-    await fillDate(page, "Próxima recarga", "01/01/2020");
     await saveButton(page).click();
-    await expect(
-      toast(page, "La fecha de próxima recarga no puede ser anterior a hoy"),
-    ).toBeVisible();
-
+    const card = page.getByRole("region", { name: "Evaluación del extintor E2E-501" });
+    await expect(card.getByRole("alert")).toContainText("Próxima recarga: elige una fecha.");
+    await expect(card.getByRole("alert")).toContainText("Mantenimiento: elige una fecha.");
+    await fillDate(page, "Próxima recarga", "01/01/2020");
+    await fillDate(page, "Mantenimiento", "15/06/2099");
+    await saveButton(page).click();
+    await expect(card.getByRole("alert")).toHaveText(
+      "Próxima recarga: la fecha no puede ser anterior a hoy.",
+    );
+    await fillDate(page, "Próxima recarga", "10/05/2099");
+    await fillDate(page, "Mantenimiento", "01/01/2020");
+    await saveButton(page).click();
+    await expect(card.getByRole("alert")).toHaveText(
+      "Mantenimiento: la fecha no puede ser anterior a hoy.",
+    );
     await page.getByRole("button", { name: "Eliminar evaluación" }).click();
     await expect(page.getByText("E2E Pasillo norte")).toHaveCount(0);
-    // La fecha sigue en el pasado: es lo primero que se marca, junto al campo.
     await saveButton(page).click();
-    await expect(
-      page
-        .locator("#contenido")
-        .getByText("La fecha de próxima recarga no puede ser anterior a hoy."),
-    ).toBeVisible();
+    await expect(page.locator('[data-error-for="evaluations"]')).toHaveText(
+      "Agrega al menos una evaluación: escanea el QR del extintor.",
+    );
     expect(writes).toEqual([]);
   });
 
@@ -254,12 +260,25 @@ test.describe("Inspección de extintores", () => {
       support: "C",
       signaling: "C",
       nextRechargeDate: "2099-05-10",
+      maintenanceDate: "2099-06-15",
       observations: null,
     };
     await mockGet(page, "/extinguisher-inspections/9600", {
       id: 9600,
       manufacturingPlant: plant,
-      evaluations: [evaluation],
+      evaluations: [
+        evaluation,
+        {
+          ...evaluation,
+          id: 9603,
+          extinguisherNumber: 78,
+          location: "E2E Recepción",
+          valve: "C",
+          hose: "C",
+          nextRechargeDate: "2099-08-20",
+          maintenanceDate: "2099-09-25",
+        },
+      ],
     });
 
     await page.goto("/extinguisher-inspection/form?id=9600");
@@ -269,12 +288,29 @@ test.describe("Inspección de extintores", () => {
       }),
     ).toBeVisible();
     await expect(page.getByText("E2E Bodega")).toBeVisible();
+    const firstCard = page.getByRole("region", { name: "Evaluación del extintor 77", exact: true });
+    const secondCard = page.getByRole("region", {
+      name: "Evaluación del extintor 78",
+      exact: true,
+    });
+    await expect(secondCard).toBeVisible();
+    // Cambiar una fecha del primero conserva su mantenimiento y ambas fechas del segundo.
+    await firstCard
+      .getByRole("group", { name: "Próxima recarga", exact: true })
+      .getByRole("spinbutton")
+      .first()
+      .click();
+    await page.keyboard.type("11072099");
     // Las novedades guardadas aparecen marcadas en su concepto.
     await expect(
-      concept(page, "Válvula").getByRole("button", { name: "No cumple" }),
+      firstCard
+        .getByRole("group", { name: "Válvula", exact: true })
+        .getByRole("button", { name: "No cumple" }),
     ).toHaveAttribute("aria-pressed", "true");
     await expect(
-      concept(page, "Manguera").getByRole("button", { name: "No aplica" }),
+      firstCard
+        .getByRole("group", { name: "Manguera", exact: true })
+        .getByRole("button", { name: "No aplica" }),
     ).toHaveAttribute("aria-pressed", "true");
 
     await saveButton(page).click();
@@ -291,7 +327,13 @@ test.describe("Inspección de extintores", () => {
               valve: "NC",
               hose: "NA",
               pressureManometer: "C",
-              nextRechargeDate: "2099-05-10",
+              nextRechargeDate: "2099-07-11",
+              maintenanceDate: "2099-06-15",
+            }),
+            expect.objectContaining({
+              extinguisherNumber: "78",
+              nextRechargeDate: "2099-08-20",
+              maintenanceDate: "2099-09-25",
             }),
           ],
         },
@@ -363,14 +405,15 @@ test.describe("Inspección de extintores", () => {
     await scan(page);
     await expect(page.getByText("E2E Pasillo norte")).toBeVisible();
 
+    await fillDate(page, "Próxima recarga", "10/05/2099");
+    await fillDate(page, "Mantenimiento", "15/06/2099");
     await saveButton(page).click();
 
     const card = page.getByRole("region", {
       name: "Evaluación del extintor E2E-501",
     });
-    await expect(card.getByRole("alert")).toHaveText("Capacidad: debe ser 1 o mayor.");
-    // La fecha es una sola para todas: su error va al campo de arriba.
-    await expect(page.getByText("Fecha no válida.")).toBeVisible();
+    await expect(card.getByRole("alert")).toContainText("Capacidad: debe ser 1 o mayor.");
+    await expect(card.getByRole("alert")).toContainText("Próxima recarga: fecha no válida.");
     await expect(toast(page, "Revisa los datos")).toBeVisible();
   });
 

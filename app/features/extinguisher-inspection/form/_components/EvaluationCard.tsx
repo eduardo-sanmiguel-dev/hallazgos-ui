@@ -1,3 +1,9 @@
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { esES } from "@mui/x-date-pickers/locales";
+import dayjs from "dayjs";
+import "dayjs/locale/es";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
@@ -33,6 +39,7 @@ interface EvaluationCardProps {
     status: EvaluationValues,
   ) => void;
   updateObservations: (index: number, value: string) => void;
+  updateDate: (index: number, field: "nextRechargeDate" | "maintenanceDate", value: string) => void;
 }
 
 const STATUS_OPTIONS = [
@@ -54,6 +61,7 @@ export const EvaluationCard = ({
   removeEvaluation,
   setConceptStatus,
   updateObservations,
+  updateDate,
 }: EvaluationCardProps) => {
   const statusOf = (key: GroupedConceptKey) =>
     evaluation.noveltyRecords.find(({ conceptKey }) => conceptKey === key)?.status ??
@@ -160,6 +168,43 @@ export const EvaluationCard = ({
           </IconButton>
         </Tooltip>
       </Stack>
+
+      <LocalizationProvider
+        dateAdapter={AdapterDayjs}
+        adapterLocale="es"
+        localeText={esES.components.MuiLocalizationProvider.defaultProps.localeText}
+      >
+        <Box
+          sx={{
+            display: "grid",
+            gap: 2,
+            mt: 2.5,
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+          }}
+        >
+          {(
+            [
+              ["nextRechargeDate", "Próxima recarga"],
+              ["maintenanceDate", "Mantenimiento"],
+            ] as const
+          ).map(([field, label]) => (
+            <DatePicker
+              key={field}
+              label={label}
+              format="DD/MM/YYYY"
+              disablePast
+              value={evaluation[field] ? dayjs(evaluation[field]) : null}
+              onChange={(value) =>
+                updateDate(index, field, value ? value.format("YYYY-MM-DD") : "")
+              }
+              slotProps={{
+                field: { clearable: true, onClear: () => updateDate(index, field, "") },
+                textField: { fullWidth: true, required: true },
+              }}
+            />
+          ))}
+        </Box>
+      </LocalizationProvider>
 
       {/* Conceptos: lista de verificación. */}
       <Typography variant="subtitle2" component="h4" sx={{ mt: 2.5, mb: 0.5, fontWeight: 700 }}>

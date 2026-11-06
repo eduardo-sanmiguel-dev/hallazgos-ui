@@ -37,6 +37,8 @@ export interface LocalEvaluation {
   signaling: EvaluationValues;
   // Conceptos con novedad (NC o NA); los demás se envían como C.
   noveltyRecords: EvaluationNoveltyRecord[];
+  nextRechargeDate: string;
+  maintenanceDate: string;
   observations: string;
 }
 
@@ -95,6 +97,8 @@ export const getDefaultEvaluationFromEmergencyTeam = (
   support: EvaluationValues.C,
   signaling: EvaluationValues.C,
   noveltyRecords: [],
+  nextRechargeDate: "",
+  maintenanceDate: "",
   observations: "",
 });
 
@@ -108,12 +112,10 @@ const evaluationFieldLabels: Record<string, string> = {
   typeOfExtinguisher: "Tipo",
   capacity: "Capacidad",
   observations: "Observaciones generales",
+  nextRechargeDate: "Próxima recarga",
+  maintenanceDate: "Mantenimiento",
   ...groupedConceptLabelMap,
 };
-
-// La fecha de próxima recarga es una sola para toda la inspección: sus
-// errores van al campo de arriba, no a cada evaluación.
-const SHARED_DATE_FIELDS = ["nextRechargeDate", "maintenanceDate"];
 
 const EVALUATION_PATH = /^evaluations\.(\d+)\.(\w+)$/;
 
@@ -125,7 +127,7 @@ const EVALUATION_PATH = /^evaluations\.(\d+)\.(\w+)$/;
 export const inspectionApiField = (path: string) => {
   const match = path.match(EVALUATION_PATH);
   if (!match) return path === "evaluations" ? "evaluations" : path;
-  return SHARED_DATE_FIELDS.includes(match[2]) ? "sharedNextRechargeDate" : null;
+  return null;
 };
 
 /**
@@ -137,7 +139,7 @@ export const evaluationApiErrors = (fieldErrors: Record<string, string>) => {
   const byEvaluation: Record<number, string[]> = {};
   for (const [path, message] of Object.entries(fieldErrors)) {
     const match = path.match(EVALUATION_PATH);
-    if (!match || SHARED_DATE_FIELDS.includes(match[2])) continue;
+    if (!match) continue;
     const label = evaluationFieldLabels[match[2]] ?? match[2];
     const text = message.charAt(0).toLowerCase() + message.slice(1);
     (byEvaluation[Number(match[1])] ??= []).push(`${label}: ${text}`);

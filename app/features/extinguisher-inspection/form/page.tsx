@@ -19,13 +19,9 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import { alpha } from "@mui/material/styles";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { esES } from "@mui/x-date-pickers/locales";
 import { toast } from "sonner";
 import jsQR from "jsqr";
-import dayjs, { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import "dayjs/locale/es";
 
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
@@ -54,7 +50,6 @@ import { EvaluationCard } from "./_components/EvaluationCard";
 
 const ExtinguisherInspectionFormPage = () => {
   const today = dayjs().startOf("day");
-  const defaultNextRechargeDate = dayjs().add(1, "year").format("YYYY-MM-DD");
 
   const [idCurrent, setIdCurrent] = useState<number>(0);
   const [isScannerOpen, setIsScannerOpen] = useState<boolean>(false);
@@ -62,7 +57,6 @@ const ExtinguisherInspectionFormPage = () => {
 
   const [form, setForm] = useState({
     manufacturingPlantId: "",
-    sharedNextRechargeDate: defaultNextRechargeDate,
     evaluations: [] as LocalEvaluation[],
   });
 
@@ -79,9 +73,10 @@ const ExtinguisherInspectionFormPage = () => {
   const searchParams = useSearchParams();
   // Errores junto al campo al intentar guardar (como en el resto de los
   // formularios); se quitan al cambiar el dato.
-  const { fail, failFromApi, errorOf } = useFieldErrors<
-    "manufacturingPlantId" | "sharedNextRechargeDate" | "evaluations"
-  >(form.manufacturingPlantId, form.sharedNextRechargeDate, form.evaluations);
+  const { fail, failFromApi, errorOf } = useFieldErrors<"manufacturingPlantId" | "evaluations">(
+    form.manufacturingPlantId,
+    form.evaluations,
+  );
   // Errores del API de cada evaluación (evaluations.N.campo), en su tarjeta.
   // Se quitan en cuanto cambian las evaluaciones.
   const [evaluationErrors, setEvaluationErrors] = useState<{
@@ -122,6 +117,8 @@ const ExtinguisherInspectionFormPage = () => {
       support: evaluation.support,
       signaling: evaluation.signaling,
       noveltyRecords,
+      nextRechargeDate: evaluation.nextRechargeDate?.slice(0, 10) || "",
+      maintenanceDate: evaluation.maintenanceDate?.slice(0, 10) || "",
       observations: evaluation.observations || "",
     };
   };
@@ -138,13 +135,8 @@ const ExtinguisherInspectionFormPage = () => {
     Number(searchParams.get("id") || 0),
     ExtinguisherInspectionsService.findOne,
     (inspection: ExtinguisherInspection) => {
-      const firstEvaluation = inspection.evaluations?.[0];
-
       setForm({
         manufacturingPlantId: String(inspection.manufacturingPlant?.id || ""),
-        sharedNextRechargeDate: firstEvaluation?.nextRechargeDate
-          ? dayjs(firstEvaluation.nextRechargeDate).format("YYYY-MM-DD")
-          : defaultNextRechargeDate,
         evaluations: (inspection.evaluations || []).map(mapEvaluationToLocal),
       });
     },
@@ -447,6 +439,19 @@ const ExtinguisherInspectionFormPage = () => {
     }));
   };
 
+  const updateDate = (
+    index: number,
+    field: "nextRechargeDate" | "maintenanceDate",
+    value: string,
+  ) => {
+    setForm((prev) => ({
+      ...prev,
+      evaluations: prev.evaluations.map((evaluation, idx) =>
+        idx === index ? { ...evaluation, [field]: value } : evaluation,
+      ),
+    }));
+  };
+
   const updateObservations = (index: number, value: string) => {
     setForm((prev) => ({
       ...prev,
@@ -487,16 +492,6 @@ const ExtinguisherInspectionFormPage = () => {
       return;
     }
 
-    if (!form.sharedNextRechargeDate) {
-      fail("sharedNextRechargeDate", "Elige la fecha de próxima recarga.");
-      return;
-    }
-
-    if (dayjs(form.sharedNextRechargeDate).isBefore(today, "day")) {
-      fail("sharedNextRechargeDate", "La fecha de próxima recarga no puede ser anterior a hoy.");
-      return;
-    }
-
     if (!form.evaluations.length) {
       fail("evaluations", "Agrega al menos una evaluación: escanea el QR del extintor.");
       return;
@@ -524,6 +519,32 @@ const ExtinguisherInspectionFormPage = () => {
 
     if (duplicatedEmergencyTeamIds.size > 0 || duplicatedExtinguisherNumbers.size > 0) {
       toast.error("No se pueden guardar evaluaciones con IDs o números de extintor repetidos");
+      return;
+    }
+
+    const dateErrors: Record<number, string[]> = {};
+    form.evaluations.forEach((evaluation, index) => {
+      for (const [field, label] of [
+        ["nextRechargeDate", "Próxima recarga"],
+        ["maintenanceDate", "Mantenimiento"],
+      ] as const) {
+        const value = evaluation[field];
+        const date = dayjs(value);
+        const message = !value
+          ? `${label}: elige una fecha.`
+          : !date.isValid() || date.format("YYYY-MM-DD") !== value
+            ? `${label}: fecha no válida.`
+            : date.isBefore(today, "day")
+              ? `${label}: la fecha no puede ser anterior a hoy.`
+              : null;
+        if (message) (dateErrors[index] ??= []).push(message);
+      }
+    });
+    if (Object.keys(dateErrors).length) {
+      setEvaluationErrors({ byIndex: dateErrors, evaluations: form.evaluations });
+      document
+        .getElementById(`evaluacion-${Object.keys(dateErrors)[0]}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
@@ -557,8 +578,8 @@ const ExtinguisherInspectionFormPage = () => {
           access: conceptStatuses.access,
           support: conceptStatuses.support,
           signaling: conceptStatuses.signaling,
-          nextRechargeDate: form.sharedNextRechargeDate,
-          maintenanceDate: form.sharedNextRechargeDate,
+          nextRechargeDate: evaluation.nextRechargeDate,
+          maintenanceDate: evaluation.maintenanceDate,
           observations: evaluation.observations.trim() || undefined,
         };
       }),
@@ -586,10 +607,7 @@ const ExtinguisherInspectionFormPage = () => {
         }
       />
       <Stack spacing={3}>
-        <DetailSection
-          title="Inspección"
-          description="Planta y fecha de próxima recarga de todos los extintores."
-        >
+        <DetailSection title="Inspección" description="Selecciona la planta de la inspección.">
           <Grid container spacing={2}>
             <SelectManufacturingPlantsOwn
               value={form.manufacturingPlantId}
@@ -602,51 +620,12 @@ const ExtinguisherInspectionFormPage = () => {
               }
               error={errorOf("manufacturingPlantId")}
             />
-
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <LocalizationProvider
-                dateAdapter={AdapterDayjs}
-                adapterLocale="es"
-                localeText={esES.components.MuiLocalizationProvider.defaultProps.localeText}
-              >
-                <DatePicker
-                  label="Próxima recarga"
-                  format="DD/MM/YYYY"
-                  disablePast
-                  minDate={today}
-                  value={form.sharedNextRechargeDate ? dayjs(form.sharedNextRechargeDate) : null}
-                  onChange={(newValue: Dayjs | null) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      sharedNextRechargeDate: newValue ? newValue.format("YYYY-MM-DD") : "",
-                    }))
-                  }
-                  slotProps={{
-                    field: {
-                      clearable: true,
-                      onClear: () =>
-                        setForm((prev) => ({
-                          ...prev,
-                          sharedNextRechargeDate: "",
-                        })),
-                    },
-                    textField: {
-                      fullWidth: true,
-                      id: "campo-sharedNextRechargeDate",
-                      error: !!errorOf("sharedNextRechargeDate"),
-                      helperText:
-                        errorOf("sharedNextRechargeDate") ?? "Aplica a todas las evaluaciones.",
-                    },
-                  }}
-                />
-              </LocalizationProvider>
-            </Grid>
           </Grid>
         </DetailSection>
 
         <DetailSection
           title="Extintores evaluados"
-          description="Escanea el QR de cada extintor y marca lo que no cumple."
+          description="Escanea el QR de cada extintor, selecciona sus fechas de recarga y mantenimiento y marca lo que no cumple."
           action={
             evaluationsCount > 0 && (
               <StatusChip
@@ -711,6 +690,7 @@ const ExtinguisherInspectionFormPage = () => {
                   removeEvaluation={removeEvaluation}
                   setConceptStatus={setConceptStatus}
                   updateObservations={updateObservations}
+                  updateDate={updateDate}
                 />
               ))}
             </Stack>
