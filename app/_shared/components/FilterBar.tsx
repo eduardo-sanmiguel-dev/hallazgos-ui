@@ -125,6 +125,7 @@ export default function FilterBar({
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, pr: 1 }}>
         <Typography variant="subtitle2" component="h2" sx={{ m: 0, flex: 1, minWidth: 0 }}>
           <ButtonBase
+            data-dd-action-name={expanded ? "Ocultar filtros" : "Mostrar filtros"}
             aria-expanded={expanded}
             aria-controls={contentId}
             onClick={() => setExpanded((prev) => !prev)}
@@ -231,6 +232,7 @@ export default function FilterBar({
             {activeFilters.map((filter) => (
               <Chip
                 key={filter.key}
+                data-dd-action-name={`Quitar filtro: ${filter.label}`}
                 size="small"
                 color="primary"
                 variant="outlined"
@@ -255,6 +257,7 @@ export default function FilterBar({
                 size="small"
                 startIcon={<ClearAllIcon />}
                 onClick={onClearAll}
+                data-dd-action-name="Restablecer todos los filtros"
                 sx={{ textTransform: "none" }}
               >
                 Limpiar todo

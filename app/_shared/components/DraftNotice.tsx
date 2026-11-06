@@ -48,6 +48,7 @@ export default function DraftNotice({
             variant="contained"
             startIcon={<SendIcon />}
             onClick={onRetry}
+            data-dd-action-name="Reintentar envío sin confirmar"
             loading={isSending}
             loadingPosition="start"
           >
@@ -59,7 +60,7 @@ export default function DraftNotice({
             onClick={onDiscard}
             disabled={isSending}
           >
-            Descartar
+            Descartar envío pendiente
           </Button>
         </Stack>
       </PoliteAlert>
@@ -78,10 +79,10 @@ export default function DraftNotice({
         : `Guardado el ${formatWhen(offer.savedAt)}${offer.hasPhoto ? ", con foto" : ""}.`}
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1.5 }}>
         <Button variant="contained" startIcon={<RestoreIcon />} onClick={onRestore}>
-          Recuperar
+          Recuperar borrador
         </Button>
         <Button color="error" startIcon={<DeleteOutlineIcon />} onClick={onDiscard}>
-          Descartar
+          Descartar borrador
         </Button>
       </Stack>
     </PoliteAlert>

@@ -166,7 +166,13 @@ export default function ReassignResponsiblesEvidence({
   };
 
   return (
-    <Dialog open={isOpen} onClose={() => handleClose()} fullWidth maxWidth="sm">
+    <Dialog
+      data-rum-scope="Reasignación de responsables"
+      open={isOpen}
+      onClose={() => handleClose()}
+      fullWidth
+      maxWidth="sm"
+    >
       <DialogTitle>Reasignar responsables</DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 1.5, pb: 2 }}>
@@ -225,7 +231,7 @@ export default function ReassignResponsiblesEvidence({
           loading={isLoading}
           disabled={!hasAtLeastOneResponsible || isLoading}
         >
-          Guardar
+          Guardar responsables
         </Button>
       </DialogActions>
     </Dialog>

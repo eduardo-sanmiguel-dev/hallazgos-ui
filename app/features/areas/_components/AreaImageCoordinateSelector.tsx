@@ -830,8 +830,9 @@ const AreaImageCoordinateSelector = ({
                     variant="contained"
                     startIcon={<RestartAltIcon />}
                     onClick={() => resetTransform()}
+                    data-dd-action-name="Restablecer vista del plano"
                   >
-                    Reset
+                    Restablecer vista
                   </Button>
                 </Stack>
                 <Typography variant="body2" color="text.secondary">
@@ -860,6 +861,7 @@ const AreaImageCoordinateSelector = ({
                 >
                   <Box
                     onPointerDown={handleImagePointerDown}
+                    data-rum-action="Seleccionar ubicación en el plano"
                     onPointerMove={handleImagePointerMove}
                     onPointerUp={handleImagePointerUp}
                     onPointerCancel={handleImagePointerCancel}

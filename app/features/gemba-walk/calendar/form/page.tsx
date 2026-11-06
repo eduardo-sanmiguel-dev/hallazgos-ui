@@ -657,6 +657,8 @@ const GembaWalkCalendarFormPage = () => {
       </Grid>
       <Grid size={{ xs: 12 }}>
         <FormActions
+          saveLabel="Guardar programación"
+          saveActionName="Guardar programación de recorridos"
           onCancel={cancel}
           onSave={save}
           isSaving={isLoading}

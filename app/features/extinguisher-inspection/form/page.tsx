@@ -754,7 +754,10 @@ const ExtinguisherInspectionFormPage = () => {
             onCancel={cancel}
             onSave={save}
             isSaving={isLoading}
-            saveLabel={idCurrent ? "Guardar evaluaciones" : "Guardar"}
+            saveActionName={
+              idCurrent ? "Guardar evaluaciones de extintores" : "Guardar inspección de extintores"
+            }
+            saveLabel={idCurrent ? "Guardar evaluaciones" : "Guardar inspección"}
             inline
           />
         </Paper>

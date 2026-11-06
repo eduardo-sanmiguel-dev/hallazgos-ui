@@ -66,13 +66,19 @@ export default function ConfirmDialog({
         </DialogContent>
       )}
       <DialogActions sx={{ px: 3, pb: 2.5 }}>
-        <Button ref={cancelRef} onClick={onClose} disabled={isBusy}>
+        <Button
+          ref={cancelRef}
+          onClick={onClose}
+          disabled={isBusy}
+          data-dd-action-name={`Cancelar confirmación: ${title.replace(/\s*#\d+/g, "")}`}
+        >
           {cancelLabel}
         </Button>
         <Button
           variant="contained"
           color={tone === "danger" ? "error" : "primary"}
           onClick={onConfirm}
+          data-dd-action-name={`Confirmar: ${title.replace(/\s*#\d+/g, "")}`}
           loading={isBusy}
         >
           {confirmLabel}

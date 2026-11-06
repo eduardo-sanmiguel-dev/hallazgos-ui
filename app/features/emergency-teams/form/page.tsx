@@ -236,6 +236,7 @@ const EmergencyTeamsFormPage = () => {
         </Grid>
       </FormSection>
       <FormActions
+        saveActionName="Guardar equipo de emergencia"
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={saveMutation.isPending}

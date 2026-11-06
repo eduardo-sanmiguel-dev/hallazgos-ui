@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { ApiErrorBody, ParsedApiError, parseApiError } from "./apiError";
 import { notifySessionEnded } from "./sessionEvents";
+import { trackSystemResult } from "@shared/utils/rumActions";
 
 // Tiempos límite: subir una foto de hasta 2 MB con señal 3G lenta; el resto,
 // 30 s. Las descargas (Excel, PDF) arman el archivo en el servidor y tardan
@@ -239,8 +240,29 @@ export default function axiosWrapper({ baseURL }: IAxiosWrapperProps): AxiosInst
   });
 
   api.interceptors.response.use(
-    (response) => response,
-    (error) => handleError(api, error),
+    (response) => {
+      trackSystemResult(
+        baseURL,
+        response.config.url ?? "",
+        response.config.method ?? "get",
+        "success",
+        response.status,
+        response.headers["idempotent-replayed"] === "true",
+      );
+      return response;
+    },
+    (error: AxiosError<ApiErrorBody>) => {
+      if (!axios.isCancel(error) && parseApiError(error).kind !== "inProgress") {
+        trackSystemResult(
+          baseURL,
+          error.config?.url ?? "",
+          error.config?.method ?? "get",
+          "error",
+          error.response?.status,
+        );
+      }
+      return handleError(api, error);
+    },
   );
 
   return api;

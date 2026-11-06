@@ -47,11 +47,12 @@ const EmployeesPage = () => {
     <>
       <PageHeader title="Colaboradores">
         <Button
+          data-dd-action-name="Crear colaborador"
           variant="contained"
           startIcon={<Add />}
           onClick={() => router.push("/employees/form")}
         >
-          Crear
+          Crear colaborador
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>

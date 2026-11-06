@@ -42,8 +42,13 @@ const ZonesPage = () => {
   return (
     <>
       <PageHeader title="Lugares">
-        <Button variant="contained" startIcon={<Add />} onClick={() => router.push("/zones/form")}>
-          Crear
+        <Button
+          data-dd-action-name="Crear zona"
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => router.push("/zones/form")}
+        >
+          Crear zona
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>

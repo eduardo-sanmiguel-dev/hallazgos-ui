@@ -144,11 +144,12 @@ export default function EquipmentsPage() {
       {confirmDialog}
       <PageHeader title="Equipo de protección personal">
         <Button
+          data-dd-action-name="Crear equipo de EPP"
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => router.push("/equipments/form")}
         >
-          Crear
+          Crear equipo
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>

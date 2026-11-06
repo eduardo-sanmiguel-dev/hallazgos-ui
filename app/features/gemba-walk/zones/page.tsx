@@ -47,11 +47,12 @@ const GembaWalkZonesPage = () => {
     <>
       <PageHeader title="Gemba Walk - Zonas">
         <Button
+          data-dd-action-name="Crear zona de Gemba Walk"
           variant="contained"
           startIcon={<Add />}
           onClick={() => router.push("/gemba-walk/zones/form")}
         >
-          Crear
+          Crear zona
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>

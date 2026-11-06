@@ -161,11 +161,12 @@ export default function HallazgosPage() {
     <>
       <PageHeader title="Hallazgos">
         <Button
+          data-dd-action-name="Crear hallazgo"
           variant="contained"
           startIcon={<AddAPhotoIcon />}
           onClick={() => router.push("/hallazgos/form")}
         >
-          Crear
+          Crear hallazgo
         </Button>
         <RefreshButton onClick={() => getData()} />
         <Button

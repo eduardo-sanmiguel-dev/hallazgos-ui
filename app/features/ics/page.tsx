@@ -38,8 +38,13 @@ const IcsPage = () => {
   return (
     <>
       <PageHeader title="Índice de Comportamiento Seguro">
-        <Button variant="contained" startIcon={<Add />} onClick={() => router.push("/ics/form")}>
-          Crear
+        <Button
+          data-dd-action-name="Crear ICS"
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => router.push("/ics/form")}
+        >
+          Crear ICS
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>

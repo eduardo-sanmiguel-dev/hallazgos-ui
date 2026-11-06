@@ -219,6 +219,7 @@ export default function TableEvidences({
           paintRows={(row: EvidenceRow) => (
             <StyledTableRow
               key={row.id}
+              data-rum-action="Ver detalle de hallazgo"
               hover
               sx={{ cursor: "pointer" }}
               // RUM mostraba clics "muertos" en las filas: se esperaba que

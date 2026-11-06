@@ -144,6 +144,7 @@ const ProcessesFormPage = () => {
         </Grid>
       </FormSection>
       <FormActions
+        saveActionName="Guardar proceso"
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={saveMutation.isPending}

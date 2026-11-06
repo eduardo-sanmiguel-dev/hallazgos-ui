@@ -179,6 +179,9 @@ function Row({ epp, manufacturingPlantId, currentUserId, onHistoryEmptied }: His
         <StyledTableCell>
           <IconButton
             aria-label={open ? `Ocultar historial de ${epp.name}` : `Ver historial de ${epp.name}`}
+            data-dd-action-name={
+              open ? "Ocultar historial de entregas" : "Ver historial de entregas"
+            }
             aria-expanded={open}
             size="small"
             onClick={() => setOpen(!open)}
@@ -196,6 +199,7 @@ function Row({ epp, manufacturingPlantId, currentUserId, onHistoryEmptied }: His
           <IconButton
             color="primary"
             aria-label={`Descargar archivo de ${epp.name}`}
+            data-dd-action-name="Descargar comprobante de entregas"
             onClick={() => download.mutate()}
             disabled={download.isPending}
           >
@@ -310,6 +314,7 @@ function Row({ epp, manufacturingPlantId, currentUserId, onHistoryEmptied }: His
                           {item.createBy?.id === currentUserId && (
                             <IconButton
                               aria-label="Eliminar registro del historial"
+                              data-dd-action-name="Eliminar entrega del historial"
                               size="small"
                               color="error"
                               onClick={() => confirmRemoveHistory(item.id)}
@@ -362,6 +367,7 @@ function EppCard({ epp, manufacturingPlantId, currentUserId, onHistoryEmptied }:
         </Box>
         <IconButton
           aria-label={`Descargar archivo de ${epp.name}`}
+          data-dd-action-name="Descargar comprobante de entregas"
           onClick={() => download.mutate()}
           disabled={download.isPending}
           sx={{ color: "text.brand" }}
@@ -469,6 +475,7 @@ function EppCard({ epp, manufacturingPlantId, currentUserId, onHistoryEmptied }:
                 {item.createBy?.id === currentUserId && (
                   <IconButton
                     aria-label="Eliminar registro del historial"
+                    data-dd-action-name="Eliminar entrega del historial"
                     color="error"
                     onClick={() => confirmRemoveHistory(item.id)}
                   >

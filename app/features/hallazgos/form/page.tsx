@@ -543,10 +543,11 @@ export default function HallazgosFormPage() {
         </Box>
       ) : (
         <FormActions
+          saveLabel="Crear hallazgo"
           onCancel={() => router.push("/hallazgos")}
           onSave={saveEvidence}
           isSaving={isLoading}
-          saveLabel="Crear hallazgo"
+          saveActionName="Crear hallazgo"
         />
       )}
     </Box>

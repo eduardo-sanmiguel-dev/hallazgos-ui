@@ -38,8 +38,13 @@ const UsersPage = () => {
   return (
     <>
       <PageHeader title="Usuarios">
-        <Button variant="contained" startIcon={<Add />} onClick={() => router.push("/users/form")}>
-          Crear
+        <Button
+          data-dd-action-name="Crear usuario"
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => router.push("/users/form")}
+        >
+          Crear usuario
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>

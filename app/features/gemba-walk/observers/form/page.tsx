@@ -254,6 +254,7 @@ const GembaWalkObserversFormPage = () => {
         </Grid>
       </FormSection>
       <FormActions
+        saveActionName="Guardar observadores"
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={createMutation.isPending || updateMutation.isPending}

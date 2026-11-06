@@ -111,6 +111,7 @@ export default function StartProcessEvidence({ isOpen, handleClose, idRow }: Pro
 
   return (
     <BootstrapDialog
+      data-rum-scope="Inicio de atención"
       // Mientras se guarda no se permite cerrar (backdrop / Escape).
       onClose={() => {
         if (!isLoading) handleClose();
@@ -162,6 +163,7 @@ export default function StartProcessEvidence({ isOpen, handleClose, idRow }: Pro
       {/* Con un envío pendiente, las acciones son las del aviso. */}
       <DialogActions sx={{ justifyContent: "center", ...(isLocked && { display: "none" }) }}>
         <Button
+          data-dd-action-name="Guardar inicio de atención"
           onClick={saveProcessStart}
           variant="contained"
           loading={isLoading}
@@ -169,7 +171,7 @@ export default function StartProcessEvidence({ isOpen, handleClose, idRow }: Pro
           startIcon={<SaveIcon />}
           disabled={isDisabled}
         >
-          {isLoading ? "Guardando inicio..." : "Guardar imagen"}
+          {isLoading ? "Guardando inicio..." : "Guardar inicio"}
         </Button>
       </DialogActions>
     </BootstrapDialog>

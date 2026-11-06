@@ -15,6 +15,7 @@ export default function RefreshButton({ onClick, label = "Actualizar" }: Refresh
         variant="outlined"
         onClick={onClick}
         aria-label={label}
+        data-dd-action-name="Actualizar listado"
         sx={{ minWidth: 44, px: 1.25 }}
       >
         <RefreshIcon />

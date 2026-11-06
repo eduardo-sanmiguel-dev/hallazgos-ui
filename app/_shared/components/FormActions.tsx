@@ -11,7 +11,9 @@ interface FormActionsProps {
   isSaving?: boolean;
   // Guardar deshabilitado (por ejemplo, mientras faltan campos obligatorios).
   isSaveDisabled?: boolean;
+  // El texto visible puede ser breve; RUM siempre identifica la operación.
   saveLabel?: string;
+  saveActionName: string;
   cancelLabel?: string;
   // Lado a lado también en celular (barras fijas al pie, donde apilados
   // ocupan demasiado alto). Cancelar a su medida, sin ícono en celular;
@@ -27,6 +29,7 @@ export default function FormActions({
   isSaving = false,
   isSaveDisabled = false,
   saveLabel = "Guardar",
+  saveActionName,
   cancelLabel = "Cancelar",
   inline = false,
 }: FormActionsProps) {
@@ -62,6 +65,7 @@ export default function FormActions({
         variant="outlined"
         startIcon={<CloseIcon />}
         onClick={onCancel}
+        data-dd-action-name={`${cancelLabel}: ${saveActionName}`}
       >
         {cancelLabel}
       </Button>
@@ -73,6 +77,7 @@ export default function FormActions({
         variant="contained"
         color="primary"
         onClick={onSave}
+        data-dd-action-name={saveActionName}
         disabled={isSaveDisabled || isSaving}
       >
         {saveLabel}

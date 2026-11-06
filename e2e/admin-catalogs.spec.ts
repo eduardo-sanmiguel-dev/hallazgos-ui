@@ -98,7 +98,7 @@ test.describe("Criterios y tipos de criterios", () => {
 test.describe("Equipos de protección", () => {
   test("Crear abre su propia ruta, con breadcrumbs", async ({ page }) => {
     await page.goto("/equipments");
-    await page.getByRole("button", { name: "Crear", exact: true }).click();
+    await page.getByRole("button", { name: "Crear equipo", exact: true }).click();
     await expect(page).toHaveURL(/\/equipments\/form$/);
     await expect(page.getByRole("heading", { level: 1, name: "Nuevo equipo" })).toBeVisible();
     await expect(trail(page)).toHaveText("Configuración›Equipos›Equipo de protección›Nuevo equipo");

@@ -190,6 +190,7 @@ const SecondaryTypesFormPage = () => {
         </Grid>
       </FormSection>
       <FormActions
+        saveActionName="Guardar tipo de criterio"
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={saveMutation.isPending}

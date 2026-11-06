@@ -87,8 +87,13 @@ export default function EppPage() {
         }}
       />
       <PageHeader title="EPP - Equipos de protección personal">
-        <Button variant="contained" onClick={() => setOpen(true)} startIcon={<AddIcon />}>
-          Crear registro
+        <Button
+          data-dd-action-name="Registrar entrega de EPP"
+          variant="contained"
+          onClick={() => setOpen(true)}
+          startIcon={<AddIcon />}
+        >
+          Registrar entrega
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>

@@ -49,11 +49,12 @@ const GembaWalkObserversPage = () => {
     <>
       <PageHeader title="Gemba Walk - Observadores">
         <Button
+          data-dd-action-name="Asignar observadores de Gemba Walk"
           variant="contained"
           startIcon={<Add />}
           onClick={() => router.push("/gemba-walk/observers/form")}
         >
-          Crear
+          Asignar observadores
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>

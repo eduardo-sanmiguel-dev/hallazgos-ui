@@ -4,12 +4,12 @@ import { trackPageErrors } from "./support/ui";
 test("SPA: conserva la navegación atrás y adelante entre lista y formulario", async ({ page }) => {
   const errors = trackPageErrors(page);
   await page.goto("/processes");
-  await page.getByRole("button", { name: "Crear", exact: true }).click();
+  await page.getByRole("button", { name: "Crear proceso", exact: true }).click();
   await expect(page).toHaveURL(/\/processes\/form$/);
   await expect(page.getByRole("heading", { level: 1, name: "Nuevo proceso" })).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/\/processes$/);
-  await expect(page.getByRole("button", { name: "Crear", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Crear proceso", exact: true })).toBeVisible();
   await page.goForward();
   await expect(page).toHaveURL(/\/processes\/form$/);
   await expect(page.getByRole("heading", { level: 1, name: "Nuevo proceso" })).toBeVisible();

@@ -45,11 +45,12 @@ const MainTypesPage = () => {
     <>
       <PageHeader title="Criterios">
         <Button
+          data-dd-action-name="Crear criterio"
           variant="contained"
           startIcon={<Add />}
           onClick={() => router.push("/main-types/form")}
         >
-          Crear
+          Crear criterio
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>

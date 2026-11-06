@@ -314,7 +314,7 @@ test.describe("Hallazgos: acciones", () => {
     const dialog = page.getByRole("dialog", {
       name: /^Iniciar hallazgo #\d+/,
     });
-    const save = dialog.getByRole("button", { name: "Guardar imagen" });
+    const save = dialog.getByRole("button", { name: "Guardar inicio" });
     await expect(save).toBeDisabled();
     await dialog.getByLabel("Subir foto").setInputFiles({
       name: "proceso.png",
@@ -343,7 +343,7 @@ test.describe("Hallazgos: acciones", () => {
       .click();
     const dialog = page.getByRole("dialog", { name: /^Cerrar hallazgo #\d+/ });
     await expect(dialog.getByText("Lo que se observó:")).toBeVisible();
-    const save = dialog.getByRole("button", { name: "Guardar imagen" });
+    const save = dialog.getByRole("button", { name: "Guardar cierre" });
     await expect(save).toBeDisabled();
     await dialog.locator("#description-multiline-solution").fill("E2E se habló con el equipo");
     await save.click();
@@ -368,14 +368,14 @@ test.describe("Hallazgos: acciones", () => {
       .click();
     const dialog = page.getByRole("dialog", { name: /^Cerrar hallazgo #\d+/ });
     // Clasificación con foto obligatoria: sin imagen no se puede guardar.
-    await expect(dialog.getByRole("button", { name: "Guardar imagen" })).toBeDisabled();
+    await expect(dialog.getByRole("button", { name: "Guardar cierre" })).toBeDisabled();
     await dialog.getByLabel("Subir foto").setInputFiles({
       name: "solucion.png",
       mimeType: "image/png",
       buffer: PNG_1X1,
     });
     await expect(dialog.getByAltText("Vista previa de la evidencia")).toBeVisible();
-    await dialog.getByRole("button", { name: "Guardar imagen" }).click();
+    await dialog.getByRole("button", { name: "Guardar cierre" }).click();
     await confirmClose(page, 9002).click();
     await expect(toast(page, "Hallazgo cerrado correctamente")).toBeVisible();
     expect(String(writes[0].body)).toMatch(/filename="[0-9a-f-]{36}-solution\.png"/);
@@ -409,7 +409,7 @@ test.describe("Hallazgos: acciones", () => {
         name: /^Cerrar hallazgo #\d+/,
       });
       await expect(dialog.locator("#description-multiline-solution")).toHaveCount(0);
-      await expect(dialog.getByRole("button", { name: "Guardar imagen" })).toBeDisabled();
+      await expect(dialog.getByRole("button", { name: "Guardar cierre" })).toBeDisabled();
     });
   }
 
@@ -424,7 +424,7 @@ test.describe("Hallazgos: acciones", () => {
       .click();
     const dialog = page.getByRole("dialog", { name: /^Cerrar hallazgo #\d+/ });
     await dialog.locator("#description-multiline-solution").fill("E2E todavía no");
-    await dialog.getByRole("button", { name: "Guardar imagen" }).click();
+    await dialog.getByRole("button", { name: "Guardar cierre" }).click();
 
     const confirm = page.getByRole("dialog", {
       name: "¿Cerrar el hallazgo #9001?",
@@ -722,7 +722,7 @@ test.describe("Hallazgos en celular", () => {
       mimeType: "image/png",
       buffer: PNG_1X1,
     });
-    await dialog.getByRole("button", { name: "Guardar imagen" }).click();
+    await dialog.getByRole("button", { name: "Guardar cierre" }).click();
     await confirmClose(page, 9002).click();
 
     await expect(dialog.getByText(/Subiendo foto… 40%/)).toBeVisible();

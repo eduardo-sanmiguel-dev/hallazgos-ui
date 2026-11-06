@@ -1,9 +1,12 @@
 import { constants } from "@constants";
+import { contextualActionName, rumModule } from "./rumActionNames";
 
 interface RumEventLike {
   type: string;
   // Otros eventos traen `action` con otra forma (p. ej. solo el id).
   action?: { target?: { name?: string }; [key: string]: unknown };
+  view?: { url?: string };
+  context?: Record<string, unknown>;
 }
 
 interface NavigatorLike {
@@ -41,5 +44,32 @@ export const isLocalHostname = (hostname: string) => LOCAL_HOSTNAME.test(hostnam
  * `beforeSend` del RUM: los trazos de una firma no son interacciones, se
  * descartan para que no marquen la sesión como "frustrada" (rage click).
  */
-export const shouldSendRumEvent = (event: RumEventLike) =>
-  !(event.type === "action" && event.action?.target?.name === constants.rum.ignoredClickName);
+export const shouldSendRumEvent = (event: RumEventLike, context?: unknown) => {
+  if (event.type !== "action") return true;
+  const name = event.action?.target?.name;
+  if (name === constants.rum.ignoredClickName) return false;
+  if (event.action?.type === "custom") return true;
+  // Keep meaningful dead/rage clicks on controls, not clicks on page whitespace.
+  const target = (context as { events?: Event[] } | undefined)?.events?.[0]?.target;
+  const element = typeof Element !== "undefined" && target instanceof Element ? target : undefined;
+  const control = element?.closest(
+    'button, a, input, textarea, select, label, summary, [role="button"], [role="link"], [role="tab"], [role="option"], [role="combobox"], [role="checkbox"], [role="switch"], [tabindex]:not([tabindex="-1"]), [data-dd-action-name], [data-rum-action], .highcharts-point, .fc-event, .fc-daygrid-day',
+  );
+  if (event.action?.type === "click" && element && !control) return false;
+  // Clickable rows/maps must not override nested buttons: a row's "Eliminar"
+  // is a different action from "Ver detalle".
+  const actionName = control?.getAttribute("data-rum-action") ?? name;
+  if (actionName && event.action?.target && event.view?.url) {
+    const surface = element?.closest("[data-rum-scope]")?.getAttribute("data-rum-scope");
+    event.action.target.name = contextualActionName(
+      surface ? `${surface} · ${actionName}` : actionName,
+      event.view.url,
+    );
+    event.context = {
+      ...event.context,
+      ui_module: rumModule(event.view.url),
+      ...(surface && { ui_surface: surface }),
+    };
+  }
+  return true;
+};

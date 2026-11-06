@@ -45,11 +45,12 @@ const ManufacturingPlantsPage = () => {
     <>
       <PageHeader title="Plantas">
         <Button
+          data-dd-action-name="Crear planta"
           variant="contained"
           startIcon={<Add />}
           onClick={() => router.push("/manufacturing-plants/form")}
         >
-          Crear
+          Crear planta
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>

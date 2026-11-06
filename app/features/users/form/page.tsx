@@ -330,6 +330,7 @@ const UsersFormPage = () => {
         )}
       </FormSection>
       <FormActions
+        saveActionName="Guardar usuario"
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={saveMutation.isPending}

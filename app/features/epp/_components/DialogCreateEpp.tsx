@@ -233,6 +233,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
         setSignature={setSignature}
       />
       <Dialog
+        data-rum-scope="Entrega de equipos"
         fullScreen
         open={open}
         onClose={() => handleClose(false)}
@@ -299,7 +300,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
 
             <DetailSection
               title="Equipos a entregar"
-              description="Elige un equipo y toca Agregar; se revisa su frecuencia de entrega."
+              description="Elige un equipo y toca Agregar equipo; se revisa su frecuencia de entrega."
               action={
                 equipmentsNew.length > 0 && (
                   <StatusChip
@@ -349,7 +350,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
                         disabled={isAdding}
                         sx={{ minHeight: 56 }}
                       >
-                        Agregar
+                        Agregar equipo
                       </Button>
                     </Grid>
                   </Grid>
@@ -554,7 +555,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
                     onClick={() => setOpenSignature(true)}
                     sx={{ width: { xs: "100%", sm: "auto" } }}
                   >
-                    Firmar
+                    Firmar entrega
                   </Button>
                 </DashedArea>
               )}
@@ -609,6 +610,8 @@ export default function DialogCreateEpp({ open, create }: Props) {
               )}
             </Stack>
             <FormActions
+              saveLabel="Guardar entrega"
+              saveActionName="Guardar entrega de EPP"
               onCancel={() => handleClose(false)}
               onSave={() => handleClose(true)}
               isSaving={isSaving}

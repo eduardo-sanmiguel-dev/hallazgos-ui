@@ -75,7 +75,13 @@ export default function DialogSignatureEpp({ open, setOpen, setSignature }: Prop
   };
 
   return (
-    <Dialog fullScreen open={open} onClose={handleClose} slots={{ transition: Transition }}>
+    <Dialog
+      data-rum-scope="Firma de entrega"
+      fullScreen
+      open={open}
+      onClose={handleClose}
+      slots={{ transition: Transition }}
+    >
       <AppBar sx={{ position: "relative" }}>
         <Toolbar variant="dense">
           <IconButton
@@ -151,11 +157,21 @@ export default function DialogSignatureEpp({ open, setOpen, setSignature }: Prop
             : "Firma dentro del recuadro para poder guardar."}
         </Typography>
         <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
-          <Button variant="outlined" onClick={clearSignature} disabled={!hasStroke}>
-            Limpiar
+          <Button
+            data-dd-action-name="Limpiar firma"
+            variant="outlined"
+            onClick={clearSignature}
+            disabled={!hasStroke}
+          >
+            Limpiar firma
           </Button>
-          <Button variant="contained" onClick={saveSignature} disabled={!hasStroke}>
-            Guardar
+          <Button
+            data-dd-action-name="Guardar firma"
+            variant="contained"
+            onClick={saveSignature}
+            disabled={!hasStroke}
+          >
+            Guardar firma
           </Button>
         </Box>
       </Box>

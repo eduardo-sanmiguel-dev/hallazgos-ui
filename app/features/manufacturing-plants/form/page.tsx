@@ -207,6 +207,7 @@ const ManufacturingPlantsFormPage = () => {
         </Grid>
       </FormSection>
       <FormActions
+        saveActionName="Guardar planta"
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={saveMutation.isPending}

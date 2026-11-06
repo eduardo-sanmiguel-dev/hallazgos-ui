@@ -700,11 +700,12 @@ const GembaWalkForm = () => {
           )}
           <Box sx={{ flex: { sm: started ? "none" : 1 } }}>
             <FormActions
+              saveLabel="Terminar recorrido"
               onCancel={cancel}
               onSave={confirmSave}
               isSaving={isSaving}
               isSaveDisabled={!canSave}
-              saveLabel="Terminar recorrido"
+              saveActionName="Terminar recorrido"
               inline
             />
           </Box>

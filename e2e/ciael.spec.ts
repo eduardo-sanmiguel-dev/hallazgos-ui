@@ -135,7 +135,7 @@ const openDialog = async (page: Page) => {
     await mockGet(page, path, json);
   }
   await page.goto("/ciael");
-  await page.getByRole("button", { name: "Crear registro" }).click();
+  await page.getByRole("button", { name: "Crear reporte" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByText("Nuevo registro CIAEL")).toBeVisible();
   return dialog;
@@ -261,7 +261,7 @@ test.describe("CIAEL", () => {
     await dialog.getByRole("button", { name: "Cancelar" }).click();
     await expect(page.getByText("Nuevo registro CIAEL")).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Crear registro" }).click();
+    await page.getByRole("button", { name: "Crear reporte" }).click();
     dialog = page.getByRole("dialog", { name: "Nuevo registro CIAEL" });
     await dialog.getByLabel("Días de incapacidad").fill("3");
 
@@ -276,7 +276,7 @@ test.describe("CIAEL", () => {
     await confirmation.getByRole("button", { name: "Descartar" }).click();
     await expect(page.getByText("Nuevo registro CIAEL")).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Crear registro" }).click();
+    await page.getByRole("button", { name: "Crear reporte" }).click();
     await expect(page.getByRole("dialog").getByLabel("Días de incapacidad")).toHaveValue("");
   });
 

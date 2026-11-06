@@ -124,6 +124,7 @@ const MainTypesFormPage = () => {
         )}
       </FormSection>
       <FormActions
+        saveActionName="Guardar criterio"
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={saveMutation.isPending}

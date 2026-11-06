@@ -108,7 +108,13 @@ export default function DialogCalendarEvent({
   };
 
   return (
-    <Dialog open={!!state} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog
+      data-rum-scope="Programación de recorrido"
+      open={!!state}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm"
+    >
       <DialogTitle>{isCreate ? "Agregar eventos" : "Editar evento"}</DialogTitle>
       <DialogContent>
         <Grid container spacing={2} sx={{ pt: 1 }}>
@@ -168,13 +174,25 @@ export default function DialogCalendarEvent({
       </DialogContent>
       <DialogActions>
         {state?.mode === "edit" && state.isNew && (
-          <Button color="error" onClick={() => onRemoveNew(state.eventKey)} sx={{ mr: "auto" }}>
-            Quitar
+          <Button
+            data-dd-action-name="Quitar programación de recorrido"
+            color="error"
+            onClick={() => onRemoveNew(state.eventKey)}
+            sx={{ mr: "auto" }}
+          >
+            Quitar recorrido
           </Button>
         )}
         <Button onClick={onClose}>Cancelar</Button>
-        <Button variant="contained" onClick={confirm} disabled={isInvalid}>
-          {isCreate ? "Agregar" : "Aplicar"}
+        <Button
+          data-dd-action-name={
+            isCreate ? "Agregar programación de recorrido" : "Aplicar cambios de programación"
+          }
+          variant="contained"
+          onClick={confirm}
+          disabled={isInvalid}
+        >
+          {isCreate ? "Agregar recorrido" : "Aplicar cambios"}
         </Button>
       </DialogActions>
     </Dialog>

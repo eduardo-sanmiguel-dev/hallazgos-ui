@@ -50,7 +50,7 @@ test.describe("EPP: equipos", () => {
     const errors = trackPageErrors(page);
     const writes = await captureWrites(page);
     await page.goto("/equipments");
-    await page.getByRole("button", { name: "Crear", exact: true }).click();
+    await page.getByRole("button", { name: "Crear equipo", exact: true }).click();
     await expect(page).toHaveURL(/\/equipments\/form$/);
     // Ahora es su propia ruta: los campos van en la página (antes, diálogo).
     const form = page.getByRole("main");
@@ -141,7 +141,7 @@ test.describe("EPP: entregas", () => {
     );
 
     await page.goto("/epp");
-    await page.getByRole("button", { name: "Crear registro" }).click();
+    await page.getByRole("button", { name: "Registrar entrega" }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByText("Registro de EPP")).toBeVisible();
     const [plant] = await sessionPlants(page);
@@ -166,7 +166,8 @@ test.describe("EPP: entregas", () => {
     await pickOption(page, "Equipo", "E2E Guantes");
     await add.click();
 
-    const save = dialog.getByRole("button", { name: "Guardar", exact: true });
+    const save = dialog.getByRole("button", { name: "Guardar entrega", exact: true });
+    await expect(save).toHaveAttribute("data-dd-action-name", "Guardar entrega de EPP");
     await expect(save).toBeDisabled();
 
     await dialog.getByRole("button", { name: "Firmar" }).click();
@@ -176,6 +177,8 @@ test.describe("EPP: entregas", () => {
     await expect(signature.locator('[data-dd-action-name="firma-trazo"] canvas')).toHaveCount(1);
     // Sin trazo no se puede guardar (antes se aceptaba una firma vacía).
     const saveSignature = signature.getByRole("button", { name: "Guardar" });
+    await expect(saveSignature).toHaveAccessibleName("Guardar firma");
+    await expect(saveSignature).toHaveAttribute("data-dd-action-name", "Guardar firma");
     const clearSignature = signature.getByRole("button", { name: "Limpiar" });
     await expect(saveSignature).toBeDisabled();
     await expect(clearSignature).toBeDisabled();
@@ -231,7 +234,7 @@ test.describe("EPP: entregas", () => {
     });
 
     await page.goto("/epp");
-    await page.getByRole("button", { name: "Crear registro" }).click();
+    await page.getByRole("button", { name: "Registrar entrega" }).click();
     const dialog = page.getByRole("dialog");
     const [plant] = await sessionPlants(page);
     await pickOption(page, "Planta", plant.name);
@@ -269,13 +272,13 @@ test.describe("EPP: entregas", () => {
     });
 
     await page.goto("/epp");
-    await page.getByRole("button", { name: "Crear registro" }).click();
+    await page.getByRole("button", { name: "Registrar entrega" }).click();
     const dialog = page.getByRole("dialog");
     const equipmentsSection = dialog.getByRole("region", {
       name: "Equipos a entregar",
     });
     const signatureSection = dialog.getByRole("region", { name: "Firma" });
-    const save = dialog.getByRole("button", { name: "Guardar", exact: true });
+    const save = dialog.getByRole("button", { name: "Guardar entrega", exact: true });
 
     // Las tres secciones a la vista; las que dependen del colaborador lo dicen.
     await expect(dialog.getByRole("region", { name: "Colaborador" })).toBeVisible();
@@ -330,7 +333,7 @@ test.describe("EPP: entregas", () => {
   test("cerrar sin firmar no registra nada", async ({ page }) => {
     const writes = await captureWrites(page);
     await page.goto("/epp");
-    await page.getByRole("button", { name: "Crear registro" }).click();
+    await page.getByRole("button", { name: "Registrar entrega" }).click();
     const [plant] = await sessionPlants(page);
     await pickOption(page, "Planta", plant.name);
     await page.getByRole("dialog").getByRole("button", { name: "Cerrar" }).click();
@@ -607,7 +610,7 @@ test.describe("EPP: firma en celular", () => {
     await mockGet(page, "/equipments", EQUIPMENTS);
     await mockGet(page, "/employees", [{ id: 9801, code: 501, name: "E2E Colaborador" }]);
     await page.goto("/epp");
-    await page.getByRole("button", { name: "Crear registro" }).click();
+    await page.getByRole("button", { name: "Registrar entrega" }).click();
     const dialog = page.getByRole("dialog");
     const [plant] = await sessionPlants(page);
     await pickOption(page, "Planta", plant.name);
@@ -824,7 +827,9 @@ test.describe("EPP: firma en celular", () => {
     // Sin recortar con "…".
     expect(await chip.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
     await expect(dialog.getByText("Falta: firma")).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Guardar", exact: true })).toBeInViewport();
+    await expect(
+      dialog.getByRole("button", { name: "Guardar entrega", exact: true }),
+    ).toBeInViewport();
   });
 });
 
@@ -856,21 +861,21 @@ test("EPP: conserva el contenido hasta terminar el cierre tras un 201", async ({
   await mockGet(page, "/equipments", EQUIPMENTS);
   await mockGet(page, "/employees", [{ id: 9801, code: 501, name: "E2E Colaborador" }]);
   await page.goto("/epp");
-  await page.getByRole("button", { name: "Crear registro" }).click();
+  await page.getByRole("button", { name: "Registrar entrega" }).click();
   const dialog = page.getByRole("dialog");
   const [plant] = await sessionPlants(page);
   await pickOption(page, "Planta", plant.name);
   await pickOption(page, "Colaborador", "501 - E2E Colaborador");
   await pickOption(page, "Equipo", "E2E Guantes");
   await dialog.getByRole("button", { name: "Agregar" }).click();
-  await dialog.getByRole("button", { name: "Firmar", exact: true }).click();
+  await dialog.getByRole("button", { name: "Firmar entrega", exact: true }).click();
   const signature = page.getByRole("dialog").filter({ hasText: "Firma del colaborador" });
   await sign(page, signature.locator("canvas"));
-  await signature.getByRole("button", { name: "Guardar", exact: true }).click();
+  await signature.getByRole("button", { name: "Guardar firma", exact: true }).click();
   const preview = dialog.getByAltText("Firma del colaborador");
   await expect(preview).toBeVisible();
 
-  const save = dialog.getByRole("button", { name: "Guardar", exact: true });
+  const save = dialog.getByRole("button", { name: "Guardar entrega", exact: true });
   await save.click();
   await expect.poll(() => attempts).toBe(1);
   await expect(save).toBeEnabled();
@@ -917,10 +922,10 @@ test("EPP: conserva el contenido hasta terminar el cierre tras un 201", async ({
   ).toBe(false);
 
   // Otra entrega empieza vacía, después de terminar el cierre anterior.
-  await page.getByRole("button", { name: "Crear registro" }).click();
+  await page.getByRole("button", { name: "Registrar entrega" }).click();
   await expect(dialog.getByAltText("Firma del colaborador")).toHaveCount(0);
   await expect(dialog.getByRole("list", { name: "Equipos a entregar" })).toHaveCount(0);
-  await expect(dialog.getByRole("button", { name: "Guardar", exact: true })).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "Guardar entrega", exact: true })).toBeDisabled();
   expect(errors).toEqual([]);
   expect(consoleErrors.filter((message) => /NotFoundError|removeChild/.test(message))).toEqual([]);
 });

@@ -13,7 +13,7 @@ test("la lista y el dialogo de EPP comparten la seleccion", async ({ page }) => 
   const plants = await sessionPlants(page);
   test.skip(plants.length < 2, "Requiere dos plantas asignadas");
   await pickOption(page, "Planta", plants[0].name);
-  await page.getByRole("button", { name: "Crear registro", exact: true }).click();
+  await page.getByRole("button", { name: "Registrar entrega", exact: true }).click();
   await expect(plantValue(page)).toContainText(plants[0].name);
   await pickOption(page, "Planta", plants[1].name);
   await page.getByRole("button", { name: "Cancelar", exact: true }).click();
@@ -24,11 +24,11 @@ test("la lista y el dialogo de EPP comparten la seleccion", async ({ page }) => 
   await openFilters(page);
   await expect(plantValue(page)).toContainText(plants[1].name);
   await pickOption(page, "Planta", plants[0].name);
-  await page.getByRole("button", { name: "Crear registro", exact: true }).click();
+  await page.getByRole("button", { name: "Registrar entrega", exact: true }).click();
   await expect(plantValue(page)).toContainText(plants[0].name);
   await page.getByRole("button", { name: "Cancelar", exact: true }).click();
   await pickOption(page, "Planta", plants[1].name);
-  await page.getByRole("button", { name: "Crear registro", exact: true }).click();
+  await page.getByRole("button", { name: "Registrar entrega", exact: true }).click();
   await expect(plantValue(page)).toContainText(plants[1].name);
 });
 
@@ -146,6 +146,6 @@ test("sin almacenamiento local la planta se comparte mientras siga abierta la ap
   await page.getByRole("button", { name: "Ir a Hallazgos" }).click();
   await expect(page).toHaveURL(/\/hallazgos\?/);
   // Navegacion SPA: conserva la preferencia en memoria, sin localStorage.
-  await page.getByRole("button", { name: "Crear", exact: true }).click();
+  await page.getByRole("button", { name: "Crear hallazgo", exact: true }).click();
   await expect(plantValue(page)).toContainText(plants[1].name);
 });

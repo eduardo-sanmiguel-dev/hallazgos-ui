@@ -197,6 +197,7 @@ const GembaWalkEvaluationsFormPage = () => {
         </Grid>
       </FormSection>
       <FormActions
+        saveActionName="Guardar concepto de Gemba Walk"
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={saveMutation.isPending}

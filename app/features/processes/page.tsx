@@ -43,11 +43,12 @@ const ProcessesPage = () => {
     <>
       <PageHeader title="Procesos">
         <Button
+          data-dd-action-name="Crear proceso"
           variant="contained"
           startIcon={<Add />}
           onClick={() => router.push("/processes/form")}
         >
-          Crear
+          Crear proceso
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>

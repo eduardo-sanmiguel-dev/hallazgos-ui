@@ -49,11 +49,12 @@ const GembaWalkEvaluationsPage = () => {
     <>
       <PageHeader title="Gemba Walk - Evaluaciones">
         <Button
+          data-dd-action-name="Crear concepto de Gemba Walk"
           variant="contained"
           startIcon={<Add />}
           onClick={() => router.push("/gemba-walk/evaluations/form")}
         >
-          Crear
+          Crear concepto
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>

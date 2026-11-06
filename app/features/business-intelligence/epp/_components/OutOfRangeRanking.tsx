@@ -226,6 +226,7 @@ export default function OutOfRangeRanking({
                   {visible.map((employee) => (
                     <StyledTableRow
                       key={employee.employeeId}
+                      data-rum-action="Ver detalle de entregas fuera de frecuencia"
                       hover
                       tabIndex={0}
                       aria-label={`Ver detalle de ${employee.name}`}

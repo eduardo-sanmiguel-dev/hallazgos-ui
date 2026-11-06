@@ -55,7 +55,7 @@ test.describe("Zona segura inferior", () => {
   test("los diálogos a pantalla completa respetan la zona", async ({ page }) => {
     await emulateBottomInset(page);
     await page.goto("/ciael");
-    await page.getByRole("button", { name: "Crear registro" }).click();
+    await page.getByRole("button", { name: "Crear reporte" }).click();
     await expect(page.getByText("Nuevo registro CIAEL")).toBeVisible();
 
     expect(await paddingBottom(page, ".MuiDialog-paperFullScreen")).toBe(INSET);

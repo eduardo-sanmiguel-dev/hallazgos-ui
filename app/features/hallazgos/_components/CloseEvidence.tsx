@@ -153,6 +153,7 @@ export default function CloseEvidence({ isOpen, handleClose, idRow, evidenceCurr
 
   return (
     <BootstrapDialog
+      data-rum-scope="Cierre de hallazgo"
       // Mientras se guarda no se permite cerrar (backdrop / Escape) para no
       // perder la respuesta del API ni dejar al usuario sin saber el resultado.
       onClose={() => {
@@ -253,6 +254,7 @@ export default function CloseEvidence({ isOpen, handleClose, idRow, evidenceCurr
       {/* Con un envío pendiente, las acciones son las del aviso. */}
       <DialogActions sx={{ justifyContent: "center", ...(isLocked && { display: "none" }) }}>
         <Button
+          data-dd-action-name="Guardar cierre del hallazgo"
           // Cerrar es irreversible: se confirma antes de enviar. La
           // confirmación se cierra al aceptar para que se vea el progreso de
           // subida aquí (antes su spinner lo tapaba).
@@ -271,7 +273,7 @@ export default function CloseEvidence({ isOpen, handleClose, idRow, evidenceCurr
           startIcon={<SaveIcon />}
           disabled={isDisabled}
         >
-          {isLoading ? "Guardando cierre..." : "Guardar imagen"}
+          {isLoading ? "Guardando cierre..." : "Guardar cierre"}
         </Button>
       </DialogActions>
       {confirmDialog}

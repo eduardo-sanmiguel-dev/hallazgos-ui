@@ -113,6 +113,7 @@ export default function EvidenceCards({
             return (
               <Paper
                 key={row.id}
+                data-rum-action="Ver detalle de hallazgo"
                 component="li"
                 variant="outlined"
                 aria-label={`Hallazgo ${row.id}`}

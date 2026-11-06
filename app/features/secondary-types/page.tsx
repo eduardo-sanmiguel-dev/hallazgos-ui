@@ -46,11 +46,12 @@ const SecondaryTypesPage = () => {
     <>
       <PageHeader title="Tipos de criterios">
         <Button
+          data-dd-action-name="Crear tipo de criterio"
           variant="contained"
           startIcon={<Add />}
           onClick={() => router.push("/secondary-types/form")}
         >
-          Crear
+          Crear tipo
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>

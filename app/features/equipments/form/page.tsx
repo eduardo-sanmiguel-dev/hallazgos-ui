@@ -212,6 +212,7 @@ const EquipmentsFormPage = () => {
         </Grid>
       </FormSection>
       <FormActions
+        saveActionName="Guardar equipo de EPP"
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={saveMutation.isPending}

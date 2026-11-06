@@ -263,6 +263,7 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
 
   return (
     <Dialog
+      data-rum-scope="Reporte CIAEL"
       fullScreen
       open={open}
       onClose={requestClose}
@@ -560,7 +561,13 @@ export default function DialogCreateCiael({ open, setOpen, getData }: Props) {
           />
         </FormSection>
 
-        <FormActions onCancel={requestClose} onSave={saveCiael} isSaving={isLoading} />
+        <FormActions
+          saveLabel="Guardar reporte"
+          saveActionName="Guardar reporte CIAEL"
+          onCancel={requestClose}
+          onSave={saveCiael}
+          isSaving={isLoading}
+        />
       </Box>
       {confirmDialog}
     </Dialog>

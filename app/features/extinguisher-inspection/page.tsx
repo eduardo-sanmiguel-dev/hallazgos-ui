@@ -44,11 +44,12 @@ const ExtinguisherInspectionPage = () => {
     <>
       <PageHeader title="Inspecciones de extintores">
         <Button
+          data-dd-action-name="Crear inspección"
           variant="contained"
           startIcon={<Add />}
           onClick={() => router.push("/extinguisher-inspection/form")}
         >
-          Crear
+          Crear inspección
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>

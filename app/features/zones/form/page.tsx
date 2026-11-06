@@ -165,6 +165,7 @@ const ZonesFormPage = () => {
         </Grid>
       </FormSection>
       <FormActions
+        saveActionName="Guardar zona"
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={saveMutation.isPending}

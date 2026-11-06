@@ -329,6 +329,7 @@ const EmployeesFormPage = () => {
         </Grid>
       </FormSection>
       <FormActions
+        saveActionName="Guardar colaborador"
         onCancel={() => leave.go(LIST_HREF)}
         onSave={save}
         isSaving={saveMutation.isPending}

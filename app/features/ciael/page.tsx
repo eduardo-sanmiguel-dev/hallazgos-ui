@@ -42,8 +42,13 @@ const CiaelPage = () => {
     <>
       <DialogCreateCiael open={open} setOpen={setOpen} getData={getData} />
       <PageHeader title="CIAEL">
-        <Button variant="contained" onClick={() => setOpen(true)} startIcon={<AddIcon />}>
-          Crear registro
+        <Button
+          data-dd-action-name="Crear reporte CIAEL"
+          variant="contained"
+          onClick={() => setOpen(true)}
+          startIcon={<AddIcon />}
+        >
+          Crear reporte
         </Button>
         <Button
           variant="outlined"

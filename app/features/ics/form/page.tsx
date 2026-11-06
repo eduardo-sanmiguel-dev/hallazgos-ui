@@ -541,7 +541,14 @@ const IcsFormPage = () => {
         </Grid>
       </FormSection>
       {/* Con un envío pendiente, las acciones son las del aviso. */}
-      <FormActions onCancel={cancel} onSave={save} isSaving={isLoading} isSaveDisabled={isLocked} />
+      <FormActions
+        saveLabel="Guardar ICS"
+        saveActionName="Guardar ICS"
+        onCancel={cancel}
+        onSave={save}
+        isSaving={isLoading}
+        isSaveDisabled={isLocked}
+      />
       {confirmDialog}
     </>
   );

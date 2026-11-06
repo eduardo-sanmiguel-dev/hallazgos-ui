@@ -213,11 +213,12 @@ const EmergencyTeamsPage = () => {
     <>
       <PageHeader title="Equipos de emergencia">
         <Button
+          data-dd-action-name="Crear equipo de emergencia"
           variant="contained"
           startIcon={<Add />}
           onClick={() => router.push("/emergency-teams/form")}
         >
-          Crear
+          Crear equipo
         </Button>
         <Button
           variant="outlined"

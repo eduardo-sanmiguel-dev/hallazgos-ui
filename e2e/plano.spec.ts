@@ -45,7 +45,7 @@ test.describe("Plano", () => {
     await expect(page.getByText("Haz click sobre la imagen para marcar un punto")).toBeVisible();
     await page.getByRole("button", { name: "Acercar" }).click();
     await page.getByRole("button", { name: "Alejar" }).click();
-    await page.getByRole("button", { name: "Reset" }).click();
+    await page.getByRole("button", { name: "Restablecer vista" }).click();
 
     // La rueda del mouse acerca y aleja.
     const image = plano(page);
