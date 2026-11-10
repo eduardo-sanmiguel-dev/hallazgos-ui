@@ -3,6 +3,7 @@ import type { User } from "@interfaces";
 import { useUserSessionStore } from "@store";
 import { getQueryClient } from "@shared/libs/queryClient";
 import { loginPathFor, safeNextPath } from "@shared/utils/nextPath";
+import { networkRetryDelay, retryNetworkErrors } from "@shared/utils/networkRetry";
 
 // HttpOnly cookies stay with the browser. Nest validates identity and permissions.
 export async function sessionLoader({ request }: LoaderFunctionArgs) {
@@ -29,7 +30,10 @@ export async function sessionLoader({ request }: LoaderFunctionArgs) {
   const user = await client.fetchQuery({
     queryKey: ["authenticated-user"],
     staleTime: 60_000,
-    retry: false,
+    // Un corte de red se reintenta solo (antes uno de medio segundo mostraba
+    // "No se pudo mostrar esta página" y el usuario debía pulsar Reintentar).
+    retry: retryNetworkErrors,
+    retryDelay: networkRetryDelay,
     queryFn: async () => {
       const response = await fetch(`${apiUrl}/users/get-information-current-user`, {
         headers,
