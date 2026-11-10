@@ -16,6 +16,7 @@ import TableEvidences from "./_components/TableEvidences";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import ErrorState from "@shared/components/ErrorState";
 import FiltersEvidence, { FiltersEvidences } from "./_components/FiltersEvidence";
+import DownloadExcelDialog from "./_components/DownloadExcelDialog";
 import { useEvidences } from "@hooks";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
@@ -127,9 +128,9 @@ export default function HallazgosPage() {
 
   const router = useRouter();
 
-  const downloadExcel = useMutation({
-    mutationFn: EvidencesService.downloadExcel,
-  });
+  // El Excel pide planta y período en un diálogo (se monta al abrirlo, con
+  // los filtros vigentes de la lista).
+  const [excelDialogOpen, setExcelDialogOpen] = useState(false);
   const downloadPdf = useMutation({ mutationFn: EvidencesService.downloadPdf });
 
   const createPdf = () => {
@@ -172,8 +173,7 @@ export default function HallazgosPage() {
         <Button
           variant="outlined"
           startIcon={<SimCardDownloadIcon />}
-          onClick={() => downloadExcel.mutate(filters)}
-          loading={downloadExcel.isPending}
+          onClick={() => setExcelDialogOpen(true)}
         >
           Excel
         </Button>
@@ -186,6 +186,9 @@ export default function HallazgosPage() {
           PDF
         </Button>
       </PageHeader>
+      {excelDialogOpen && (
+        <DownloadExcelDialog filters={filters} onClose={() => setExcelDialogOpen(false)} />
+      )}
       <Grid container>
         <Grid
           size={{

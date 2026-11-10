@@ -23,6 +23,24 @@ const serveDownload = (page: Page, path: RegExp, disposition?: string) =>
     }),
   );
 
+/** Total del diálogo del Excel (lista con limit=1): fijo, sin depender de la base. */
+const mockExportCount = (page: Page, count = 5) =>
+  mockGet(
+    page,
+    "/evidences",
+    { data: [], count },
+    { when: (url) => url.searchParams.get("limit") === "1" },
+  );
+
+/** Botón Excel → diálogo de planta y período → Descargar. */
+const downloadExcel = async (page: Page) => {
+  await page.getByRole("button", { name: "Excel" }).click();
+  const dialog = page.getByRole("dialog", { name: "Descargar Excel de hallazgos" });
+  await expect(dialog.getByText(/Se exportarán/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Descargar" }).click();
+  return dialog;
+};
+
 const CASES: Array<[string, string | undefined, RegExp]> = [
   [
     "nombre UTF-8 del back",
@@ -50,10 +68,13 @@ test.describe("Nombres de descarga", () => {
       await serveDownload(page, /\/api\/v1\/evidences\/download\/xlsx/, disposition);
       await page.goto("/hallazgos");
       await expect.poll(() => recordCount(page), { timeout: 30_000 }).toBeGreaterThan(0);
+      await mockExportCount(page);
 
       const download = page.waitForEvent("download");
-      await page.getByRole("button", { name: "Excel" }).click();
+      const dialog = await downloadExcel(page);
       expect((await download).suggestedFilename()).toMatch(expected);
+      // Al terminar la descarga, el diálogo se cierra.
+      await expect(dialog).toBeHidden();
     });
   }
 
@@ -88,6 +109,74 @@ test.describe("Nombres de descarga", () => {
     expect((await download).suggestedFilename()).toMatch(/^RGOSGSST49_\d+\.xlsx$/);
   });
 
+  test("Excel de hallazgos: propone los últimos 90 días, muestra el total y sin registros no descarga", async ({
+    page,
+  }) => {
+    await serveDownload(page, /\/api\/v1\/evidences\/download\/xlsx/);
+    await page.goto("/hallazgos");
+    await expect.poll(() => recordCount(page), { timeout: 30_000 }).toBeGreaterThan(0);
+    const ddMmYyyy = (date: Date) =>
+      `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+    const today = new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 89);
+
+    // Sin registros: el diálogo lo dice y no deja descargar.
+    await mockExportCount(page, 0);
+    await page.getByRole("button", { name: "Excel" }).click();
+    const dialog = page.getByRole("dialog", { name: "Descargar Excel de hallazgos" });
+    await expect(
+      dialog.getByText("No hay hallazgos con esta planta, período y filtros."),
+    ).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Descargar" })).toBeDisabled();
+    await dialog.getByRole("button", { name: "Cancelar" }).click();
+    await expect(dialog).toBeHidden();
+
+    // Con registros: muestra el total y descarga los últimos 90 días. Se
+    // recarga porque el total se guarda un momento; la ruta más nueva manda.
+    await mockExportCount(page, 1234);
+    await page.reload();
+    await expect.poll(() => recordCount(page), { timeout: 30_000 }).toBeGreaterThan(0);
+    await page.getByRole("button", { name: "Excel" }).click();
+    await expect(dialog.getByText("Se exportarán 1,234 hallazgos.")).toBeVisible();
+    const request = page.waitForRequest((r) => r.url().includes("/download/xlsx"));
+    await dialog.getByRole("button", { name: "Descargar" }).click();
+    const url = new URL((await request).url());
+    expect(url.searchParams.get("startDate")).toBe(ddMmYyyy(start));
+    expect(url.searchParams.get("endDate")).toBe(ddMmYyyy(today));
+  });
+
+  test("Excel de hallazgos: con el período incompleto se bloquea en la pantalla, sin llamar a la API", async ({
+    page,
+  }) => {
+    await page.goto("/hallazgos");
+    await expect.poll(() => recordCount(page), { timeout: 30_000 }).toBeGreaterThan(0);
+    await mockExportCount(page);
+    await page.getByRole("button", { name: "Excel" }).click();
+    const dialog = page.getByRole("dialog", { name: "Descargar Excel de hallazgos" });
+    await expect(dialog.getByText(/Se exportarán/)).toBeVisible();
+
+    // Desde aquí no debe salir ni el conteo ni la descarga.
+    const calls: string[] = [];
+    page.on("request", (request) => {
+      const url = new URL(request.url());
+      if (url.pathname.includes("/download/xlsx") || url.searchParams.get("limit") === "1")
+        calls.push(request.url());
+    });
+
+    // Borrar la fecha de inicio (todas las secciones del campo).
+    const start = dialog.getByRole("group", { name: "Fecha inicio" });
+    await start.click();
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.press("Backspace");
+
+    await expect(dialog.getByText("Seleccione la fecha de inicio y la de fin")).toBeVisible();
+    const button = dialog.getByRole("button", { name: "Descargar" });
+    await expect(button).toBeDisabled();
+    await button.click({ force: true });
+    await page.waitForTimeout(500);
+    expect(calls).toEqual([]);
+  });
+
   test("Excel y PDF de hallazgos llevan todos los filtros", async ({ page }) => {
     await serveDownload(page, /\/api\/v1\/evidences\/download\/(xlsx|pdf)/);
     await page.goto("/hallazgos");
@@ -117,6 +206,7 @@ test.describe("Nombres de descarga", () => {
     await page.goto(
       `/hallazgos?manufacturingPlantId=${plant.id}&startDate=01/01/2026&endDate=31/12/2026`,
     );
+    await mockExportCount(page);
     // Cada filtro depende del anterior: se eligen en orden desde la pantalla.
     for (const label of ["Clasificación", "Tipo", "Zonas", "Lugar", "Responsables"]) {
       await pickMany(page, label);
@@ -129,7 +219,7 @@ test.describe("Nombres de descarga", () => {
       await page.waitForTimeout(1200);
       const request = page.waitForRequest((r) => r.url().includes("/download/xlsx"));
       const download = page.waitForEvent("download");
-      await page.getByRole("button", { name: "Excel" }).click();
+      await downloadExcel(page);
       const url = new URL((await request).url());
       await download;
       expect(url.searchParams.get(ids.includes(",") ? "ids" : "id")).toBe(ids);

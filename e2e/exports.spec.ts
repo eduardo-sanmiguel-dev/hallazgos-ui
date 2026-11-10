@@ -15,11 +15,20 @@ const expectXlsx = async (download: Download) => {
 
 test.describe("Exportaciones", () => {
   test("descarga el Excel de hallazgos", async ({ page }) => {
-    await page.goto("/hallazgos");
+    // El Excel exige período (hasta 12 meses): los últimos 12 meses desde la
+    // lista, para que el diálogo parta de ahí.
+    const ddMmYyyy = (date: Date) =>
+      `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+    const today = new Date();
+    const yearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate() + 1);
+    await page.goto(`/hallazgos?startDate=${ddMmYyyy(yearAgo)}&endDate=${ddMmYyyy(today)}`);
     await expect.poll(() => recordCount(page), { timeout: 30_000 }).toBeGreaterThan(0);
 
     const download = page.waitForEvent("download", { timeout: 120_000 });
     await page.getByRole("button", { name: "Excel" }).click();
+    const dialog = page.getByRole("dialog", { name: "Descargar Excel de hallazgos" });
+    await expect(dialog.getByText(/Se exportarán/)).toBeVisible();
+    await dialog.getByRole("button", { name: "Descargar" }).click();
     const file = await download;
 
     await expectXlsx(file);
