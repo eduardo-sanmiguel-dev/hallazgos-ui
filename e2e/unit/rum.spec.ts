@@ -94,6 +94,36 @@ describe("RUM: identidad del usuario", () => {
     unsubscribe();
   });
 
+  test("sin elección en la sesión usa la planta recordada y, con una sola, esa", () => {
+    const store = createStore(() => ({
+      id: 7,
+      name: "Admin",
+      email: "admin@example.com",
+      role: "Administrador",
+      manufacturingPlants: PLANTS,
+    }));
+    const plants = createStore(() => ({ byUser: {} as Record<number, string> }));
+    const remembered = fakeRum();
+    syncRumUser(store, remembered.client, plants, (userId) => (userId === 7 ? "3" : null));
+    expect(remembered.calls.context).toEqual({ [SELECTED_PLANT_CONTEXT]: "Bogotá" });
+    // La elección de la sesión manda sobre la recordada.
+    plants.setState({ byUser: { 7: "1" } });
+    expect(remembered.calls.context).toEqual({ [SELECTED_PLANT_CONTEXT]: "Tepotzotlán" });
+
+    const single = fakeRum();
+    syncRumUser(
+      createStore(() => ({
+        id: 9,
+        name: "S",
+        email: "s@example.com",
+        manufacturingPlants: [PLANTS[1]],
+      })),
+      single.client,
+      createStore(() => ({ byUser: {} as Record<number, string> })),
+    );
+    expect(single.calls.context).toEqual({ [SELECTED_PLANT_CONTEXT]: "Bogotá" });
+  });
+
   test("la planta elegida en los filtros va al contexto global y se actualiza", () => {
     const store = createStore(() => ({
       id: 7,

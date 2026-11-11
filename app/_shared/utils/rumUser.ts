@@ -68,6 +68,9 @@ export const syncRumUser = (
   store: Store<UserIdentity>,
   rum: RumIdentityClient,
   plantSelection?: Store<PlantSelection>,
+  // Planta recordada en este dispositivo (lastPlant): el filtro la usa sin
+  // pasar por plantSelection hasta que el usuario vuelve a elegir.
+  readLastPlant: (userId: number) => string | null = () => null,
 ) => {
   // undefined: aún no se informó nada a RUM (al iniciar se limpia o identifica).
   let current: RumUser | null | undefined;
@@ -87,9 +90,16 @@ export const syncRumUser = (
 
   const syncSelectedPlant = () => {
     const user = store.getState();
-    const plantId = user.id ? plantSelection?.getState().byUser[user.id] : undefined;
+    const plants = user.manufacturingPlants ?? [];
+    // Misma regla que SelectManufacturingPlantsOwn: elección de la sesión,
+    // luego la recordada y, con una sola planta, esa.
+    const plantId = user.id
+      ? (plantSelection?.getState().byUser[user.id] ??
+        readLastPlant(user.id) ??
+        (plants.length === 1 ? String(plants[0].id) : undefined))
+      : undefined;
     const name = plantId
-      ? (user.manufacturingPlants ?? []).find((plant) => String(plant.id) === String(plantId))?.name
+      ? plants.find((plant) => String(plant.id) === String(plantId))?.name
       : undefined;
     const value = name ?? null;
     if (value === selectedPlant) return;

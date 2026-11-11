@@ -12,6 +12,7 @@ import { usePlantSelectionStore } from "@store/plantSelection.store";
 import { isBotNavigator, isLocalHostname, shouldSendRumEvent } from "@shared/utils/rum";
 import { listenInstallPrompt } from "@shared/utils/installPrompt";
 import { syncRumUser } from "@shared/utils/rumUser";
+import { readLastPlant } from "@shared/utils/lastPlant";
 
 // Botón "Instalar app": el navegador avisa una sola vez al cargar, así que
 // se escucha aquí, antes que cualquier componente (en todos los ambientes).
@@ -70,7 +71,7 @@ if (import.meta.env.MODE === "production" && site && clientToken && !isBot && !i
     openobserveLogs.init({ ...common, forwardErrorsToLogs: true });
 
     // También actualiza nombre y correo cuando cambia el perfil del mismo ID.
-    syncRumUser(useUserSessionStore, openobserveRum, usePlantSelectionStore);
+    syncRumUser(useUserSessionStore, openobserveRum, usePlantSelectionStore, readLastPlant);
   } catch (error) {
     console.error("No se pudo iniciar el monitoreo de OpenObserve", error);
   }
