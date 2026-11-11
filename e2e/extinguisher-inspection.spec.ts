@@ -527,3 +527,34 @@ test.describe("Inspección de extintores", () => {
     });
   });
 });
+
+// En celular el calendario es un diálogo táctil. RUM registraba ~35 rage
+// clicks por sesión en "Mes anterior": tras elegir el año volvía al mes actual
+// y había que retroceder mes por mes. Ahora: año → mes → día, sin "OK".
+test.describe("Inspección de extintores en celular", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+
+  test("la fecha se elige con año, mes y día, sin flechas ni OK", async ({ page }) => {
+    const errors = trackPageErrors(page);
+    const plant = await openWithCamera(page, String(TEAM_ID));
+    await mockGet(page, `/emergency-teams/${TEAM_ID}`, emergencyTeam(plant.id));
+    await scan(page);
+
+    const field = page.getByRole("group", { name: "Próxima recarga", exact: true });
+    await page
+      .getByRole("button", { name: /^Elige fecha/ })
+      .first()
+      .click();
+    const dialog = page.getByRole("dialog");
+
+    // Abre directo en los años.
+    await dialog.getByRole("radio", { name: "2028" }).click();
+    await dialog.getByRole("radio", { name: /^sept?/i }).click();
+    await dialog.getByRole("gridcell", { name: "30" }).click();
+
+    // Se cierra al elegir el día y el campo queda con la fecha.
+    await expect(dialog).toHaveCount(0);
+    await expect(field).toContainText(/30.*09.*2028/);
+    expect(errors).toEqual([]);
+  });
+});

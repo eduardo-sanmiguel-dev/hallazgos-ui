@@ -12,6 +12,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { TextField } from "@mui/material";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { YEAR_FIRST_DATE_PICKER } from "@shared/constants/datePicker";
 import { esES } from "@mui/x-date-pickers/locales";
 import dayjs, { Dayjs } from "dayjs";
 import "dayjs/locale/es";
@@ -224,6 +225,7 @@ const EmployeesFormPage = () => {
               label="Fecha de nacimiento *"
               format="DD/MM/YYYY"
               maxDate={dayjs()}
+              {...YEAR_FIRST_DATE_PICKER}
               value={form.birthdate}
               onChange={(newValue: Dayjs | null) => setForm({ ...form, birthdate: newValue })}
               slotProps={{
@@ -265,6 +267,7 @@ const EmployeesFormPage = () => {
               label="Fecha de admisión *"
               format="DD/MM/YYYY"
               maxDate={dayjs()}
+              {...YEAR_FIRST_DATE_PICKER}
               value={form.dateOfAdmission}
               onChange={(newValue: Dayjs | null) => setForm({ ...form, dateOfAdmission: newValue })}
               slotProps={{

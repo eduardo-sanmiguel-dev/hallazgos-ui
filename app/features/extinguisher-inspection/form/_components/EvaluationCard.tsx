@@ -1,5 +1,6 @@
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { YEAR_FIRST_DATE_PICKER } from "@shared/constants/datePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { esES } from "@mui/x-date-pickers/locales";
 import dayjs from "dayjs";
@@ -193,6 +194,7 @@ export const EvaluationCard = ({
               label={label}
               format="DD/MM/YYYY"
               disablePast
+              {...YEAR_FIRST_DATE_PICKER}
               value={evaluation[field] ? dayjs(evaluation[field]) : null}
               onChange={(value) =>
                 updateDate(index, field, value ? value.format("YYYY-MM-DD") : "")
