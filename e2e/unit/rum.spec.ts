@@ -1,56 +1,126 @@
 import { describe, expect, test } from "vite-plus/test";
 import { createStore } from "zustand/vanilla";
 
-import { syncRumUser } from "../../app/_shared/utils/rumUser";
+import { SELECTED_PLANT_CONTEXT, syncRumUser, type RumUser } from "../../app/_shared/utils/rumUser";
 
 import { isBotNavigator, isLocalHostname, shouldSendRumEvent } from "../../app/_shared/utils/rum";
 
 describe("RUM: identidad del usuario", () => {
-  test("restaura la identidad y actualiza nombre y correo con el mismo ID", () => {
+  const PLANTS = [
+    { id: 1, name: "Tepotzotlán" },
+    { id: 3, name: "Bogotá" },
+  ];
+  /** Cliente de RUM simulado que registra cada llamada. */
+  const fakeRum = () => {
+    const calls = {
+      users: [] as RumUser[],
+      clears: 0,
+      context: {} as Record<string, unknown>,
+      contextChanges: 0,
+    };
+    return {
+      calls,
+      client: {
+        setUser: (user: RumUser) => calls.users.push(user),
+        clearUser: () => {
+          calls.clears++;
+        },
+        setGlobalContextProperty: (key: string, value: unknown) => {
+          calls.context[key] = value;
+          calls.contextChanges++;
+        },
+        removeGlobalContextProperty: (key: string) => {
+          delete calls.context[key];
+          calls.contextChanges++;
+        },
+      },
+    };
+  };
+
+  test("identifica con rol y plantas (por nombre) y actualiza al cambiar el perfil", () => {
     const store = createStore(() => ({
       id: 1,
       name: "Nombre anterior",
       email: "anterior@example.com",
-      role: "usuario",
+      role: "Supervisor",
+      manufacturingPlants: PLANTS,
     }));
-    const users: { id: string; name: string; email: string }[] = [];
-    let clears = 0;
-    const unsubscribe = syncRumUser(store, {
-      setUser: (user) => users.push(user),
-      clearUser: () => {
-        clears++;
-      },
-    });
+    const { calls, client } = fakeRum();
+    const unsubscribe = syncRumUser(store, client);
 
-    expect(users).toEqual([{ id: "1", name: "Nombre anterior", email: "anterior@example.com" }]);
+    expect(calls.users).toEqual([
+      {
+        id: "1",
+        name: "Nombre anterior",
+        email: "anterior@example.com",
+        role: "Supervisor",
+        plants: "Bogotá, Tepotzotlán",
+      },
+    ]);
     store.setState({ name: "Nombre actualizado" });
-    expect(users.at(-1)?.name).toBe("Nombre actualizado");
+    expect(calls.users.at(-1)?.name).toBe("Nombre actualizado");
     store.setState({ email: "actual@example.com" });
-    expect(users.at(-1)?.email).toBe("actual@example.com");
-    store.setState({ role: "administrador" });
-    expect(users).toHaveLength(3);
+    expect(calls.users.at(-1)?.email).toBe("actual@example.com");
+    // El rol y las plantas ahora también son parte de la identidad.
+    store.setState({ role: "Administrador" });
+    expect(calls.users.at(-1)?.role).toBe("Administrador");
+    store.setState({ manufacturingPlants: [PLANTS[0]] });
+    expect(calls.users.at(-1)?.plants).toBe("Tepotzotlán");
+    expect(calls.users).toHaveLength(5);
+    // Un cambio ajeno a la identidad no vuelve a llamar a RUM.
+    store.setState({ manufacturingPlants: [{ id: 1, name: "Tepotzotlán" }] });
+    expect(calls.users).toHaveLength(5);
+
     store.setState({ id: 0, name: "", email: "" });
-    expect(clears).toBe(1);
+    expect(calls.clears).toBe(1);
     unsubscribe();
     store.setState({ id: 2 });
-    expect(users).toHaveLength(3);
+    expect(calls.users).toHaveLength(5);
   });
 
   test("identifica al usuario al iniciar sesión después de una visita anónima", () => {
     const store = createStore(() => ({ id: 0, name: "", email: "" }));
-    const users: { id: string; name: string; email: string }[] = [];
-    let clears = 0;
-    const unsubscribe = syncRumUser(store, {
-      setUser: (user) => users.push(user),
-      clearUser: () => {
-        clears++;
-      },
-    });
-    expect(clears).toBe(1);
-    expect(users).toHaveLength(0);
+    const { calls, client } = fakeRum();
+    const unsubscribe = syncRumUser(store, client);
+    expect(calls.clears).toBe(1);
+    expect(calls.users).toHaveLength(0);
+    // Mientras sigue anónima no repite clearUser.
+    store.setState({ name: "" });
+    expect(calls.clears).toBe(1);
     store.setState({ id: 2, name: "Usuario", email: "user@example.com" });
-    expect(users).toEqual([{ id: "2", name: "Usuario", email: "user@example.com" }]);
+    expect(calls.users).toEqual([
+      { id: "2", name: "Usuario", email: "user@example.com", role: "", plants: "" },
+    ]);
     unsubscribe();
+  });
+
+  test("la planta elegida en los filtros va al contexto global y se actualiza", () => {
+    const store = createStore(() => ({
+      id: 7,
+      name: "Admin",
+      email: "admin@example.com",
+      role: "Administrador",
+      manufacturingPlants: PLANTS,
+    }));
+    const plants = createStore(() => ({ byUser: {} as Record<number, string> }));
+    const { calls, client } = fakeRum();
+    const unsubscribe = syncRumUser(store, client, plants);
+
+    expect(calls.context).toEqual({});
+    plants.setState({ byUser: { 7: "3" } });
+    expect(calls.context).toEqual({ [SELECTED_PLANT_CONTEXT]: "Bogotá" });
+    plants.setState({ byUser: { 7: "1" } });
+    expect(calls.context).toEqual({ [SELECTED_PLANT_CONTEXT]: "Tepotzotlán" });
+    // La misma planta no vuelve a escribir el contexto.
+    const changes = calls.contextChanges;
+    plants.setState({ byUser: { 7: "1", 8: "3" } });
+    expect(calls.contextChanges).toBe(changes);
+    // Al cerrar sesión se quita.
+    store.setState({ id: 0, name: "", email: "" });
+    expect(calls.context).toEqual({});
+    unsubscribe();
+    plants.setState({ byUser: { 7: "3" } });
+    expect(calls.context).toEqual({});
   });
 });
 

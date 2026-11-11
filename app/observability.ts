@@ -8,6 +8,7 @@ import { openobserveLogs } from "@openobserve/browser-logs";
 import { openobserveRum } from "@openobserve/browser-rum";
 
 import { useUserSessionStore } from "@store";
+import { usePlantSelectionStore } from "@store/plantSelection.store";
 import { isBotNavigator, isLocalHostname, shouldSendRumEvent } from "@shared/utils/rum";
 import { listenInstallPrompt } from "@shared/utils/installPrompt";
 import { syncRumUser } from "@shared/utils/rumUser";
@@ -69,7 +70,7 @@ if (import.meta.env.MODE === "production" && site && clientToken && !isBot && !i
     openobserveLogs.init({ ...common, forwardErrorsToLogs: true });
 
     // También actualiza nombre y correo cuando cambia el perfil del mismo ID.
-    syncRumUser(useUserSessionStore, openobserveRum);
+    syncRumUser(useUserSessionStore, openobserveRum, usePlantSelectionStore);
   } catch (error) {
     console.error("No se pudo iniciar el monitoreo de OpenObserve", error);
   }

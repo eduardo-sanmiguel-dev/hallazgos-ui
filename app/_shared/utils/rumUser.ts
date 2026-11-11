@@ -2,33 +2,112 @@ interface UserIdentity {
   id: number;
   name: string;
   email: string;
+  role?: string;
+  manufacturingPlants?: { id: number | string; name: string }[];
 }
 
-interface IdentityStore {
-  getState: () => UserIdentity;
-  subscribe: (listener: (state: UserIdentity, previous: UserIdentity) => void) => () => void;
+interface Store<T> {
+  getState: () => T;
+  subscribe: (listener: (state: T, previous: T) => void) => () => void;
 }
+
+/** Última planta elegida en los filtros, por usuario (plantSelection.store). */
+interface PlantSelection {
+  byUser: Record<number, string>;
+}
+
+// `type` (no interface): el SDK espera un objeto con índice de texto.
+export type RumUser = {
+  id: string;
+  name: string;
+  email: string;
+  /** Rol en ComportArte: filtra sesiones por General, Supervisor o Administrador. */
+  role: string;
+  /** Plantas asignadas por nombre (filtra sesiones por planta o país). */
+  plants: string;
+};
 
 interface RumIdentityClient {
-  setUser: (user: { id: string; name: string; email: string }) => void;
+  setUser: (user: RumUser) => void;
   clearUser: () => void;
+  setGlobalContextProperty: (key: string, value: unknown) => void;
+  removeGlobalContextProperty: (key: string) => void;
 }
 
-/** Conserva la identidad al restaurar la sesión y al actualizar el perfil. */
-export const syncRumUser = (store: IdentityStore, rum: RumIdentityClient) => {
-  const identify = ({ id, name, email }: UserIdentity) => {
-    if (id) rum.setUser({ id: String(id), name, email });
-    else rum.clearUser();
+/** Contexto global de RUM con la planta elegida (columna context_selected_plant). */
+export const SELECTED_PLANT_CONTEXT = "selected_plant";
+
+const plantNames = (plants: UserIdentity["manufacturingPlants"] = []) =>
+  plants
+    .map(({ name }) => name)
+    .sort((a, b) => a.localeCompare(b))
+    .join(", ");
+
+const toRumUser = ({ id, name, email, role, manufacturingPlants }: UserIdentity): RumUser => ({
+  id: String(id),
+  name,
+  email,
+  role: role ?? "",
+  plants: plantNames(manufacturingPlants),
+});
+
+const sameUser = (a: RumUser, b: RumUser) =>
+  a.id === b.id &&
+  a.name === b.name &&
+  a.email === b.email &&
+  a.role === b.role &&
+  a.plants === b.plants;
+
+/**
+ * Identidad de la sesión de RUM: usuario con rol y plantas, y la planta que
+ * eligió en los filtros. Así las sesiones, errores y frustraciones se pueden
+ * filtrar por rol, planta o país. Se conserva al restaurar la sesión y se
+ * actualiza cuando cambia el perfil o la planta elegida.
+ */
+export const syncRumUser = (
+  store: Store<UserIdentity>,
+  rum: RumIdentityClient,
+  plantSelection?: Store<PlantSelection>,
+) => {
+  // undefined: aún no se informó nada a RUM (al iniciar se limpia o identifica).
+  let current: RumUser | null | undefined;
+  let selectedPlant: string | null = null;
+
+  const identify = (state: UserIdentity) => {
+    if (!state.id) {
+      if (current !== null) rum.clearUser();
+      current = null;
+      return;
+    }
+    const next = toRumUser(state);
+    if (current && sameUser(current, next)) return;
+    current = next;
+    rum.setUser(next);
+  };
+
+  const syncSelectedPlant = () => {
+    const user = store.getState();
+    const plantId = user.id ? plantSelection?.getState().byUser[user.id] : undefined;
+    const name = plantId
+      ? (user.manufacturingPlants ?? []).find((plant) => String(plant.id) === String(plantId))?.name
+      : undefined;
+    const value = name ?? null;
+    if (value === selectedPlant) return;
+    selectedPlant = value;
+    if (value) rum.setGlobalContextProperty(SELECTED_PLANT_CONTEXT, value);
+    else rum.removeGlobalContextProperty(SELECTED_PLANT_CONTEXT);
   };
 
   identify(store.getState());
-  return store.subscribe((state, previous) => {
-    if (
-      state.id !== previous.id ||
-      state.name !== previous.name ||
-      state.email !== previous.email
-    ) {
-      identify(state);
-    }
+  if (plantSelection) syncSelectedPlant();
+
+  const unsubscribeUser = store.subscribe((state) => {
+    identify(state);
+    if (plantSelection) syncSelectedPlant();
   });
+  const unsubscribePlant = plantSelection?.subscribe(syncSelectedPlant);
+  return () => {
+    unsubscribeUser();
+    unsubscribePlant?.();
+  };
 };
