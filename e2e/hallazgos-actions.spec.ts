@@ -506,10 +506,8 @@ test.describe("Hallazgos: acciones", () => {
       isActive: true,
       manufacturingPlants: [PLANT],
       zones: [],
-    });
-    await mockGet(page, "/evidences/permissions/config", {
-      supervisorOverrideEmails: [email],
-      cancelEvidenceEmails: [email],
+      // Calculados por el API: ya no se envían las listas de correos.
+      evidencePermissions: { supervisorOverride: true, cancelEvidence: true },
     });
     await openList(page);
 

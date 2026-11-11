@@ -1,6 +1,6 @@
 import { redirect, type LoaderFunctionArgs } from "react-router-dom";
 import type { User } from "@interfaces";
-import { useUserSessionStore } from "@store";
+import { NO_EVIDENCE_PERMISSIONS, useUserSessionStore } from "@store";
 import { getQueryClient } from "@shared/libs/queryClient";
 import { loginPathFor, safeNextPath } from "@shared/utils/nextPath";
 import { networkRetryDelay, retryNetworkErrors } from "@shared/utils/networkRetry";
@@ -55,6 +55,7 @@ export async function sessionLoader({ request }: LoaderFunctionArgs) {
   const current = store.id === user.id ? store.manufacturingPlantsCurrent : [];
   store.setSession({
     ...user,
+    evidencePermissions: user.evidencePermissions ?? NO_EVIDENCE_PERMISSIONS,
     manufacturingPlantsCurrent:
       user.manufacturingPlants.length === 1
         ? [user.manufacturingPlants[0].id]

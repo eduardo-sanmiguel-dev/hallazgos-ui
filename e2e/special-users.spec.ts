@@ -63,10 +63,17 @@ test.describe("Usuarios especiales", () => {
     await expect(nav(page).getByRole("button", { name: "Gemba Walk - Recorridos" })).toHaveCount(0);
   });
 
-  test("hallazgos funciona aunque falle la configuración de permisos", async ({ page }) => {
-    await mockGet(page, "/evidences/permissions/config", { message: "Error" }, { status: 500 });
+  test("hallazgos funciona con una sesión sin permisos especiales (API anterior)", async ({
+    page,
+  }) => {
+    // Sin evidencePermissions en la sesión: sin acciones especiales, sin error.
+    await asUser(page, "e2e-sin-permisos@example.com");
     await page.goto("/hallazgos");
     await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
     await sessionPlants(page);
+    const permissions = await page.evaluate(
+      () => JSON.parse(sessionStorage.getItem("user-session") || "{}").state?.evidencePermissions,
+    );
+    expect(permissions).toEqual({ supervisorOverride: false, cancelEvidence: false });
   });
 });

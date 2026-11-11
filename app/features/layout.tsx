@@ -28,7 +28,7 @@ import MobileBottomNav from "@shared/components/MobileBottomNav";
 import ScrollTopButton from "@shared/components/ScrollTopButton";
 import SessionEndedDialog from "@shared/components/SessionEndedDialog";
 import { purgeExpiredDrafts } from "@shared/drafts/draftStore";
-import { useUserSessionStore } from "@store";
+import { NO_EVIDENCE_PERMISSIONS, useUserSessionStore } from "@store";
 import { useThemePreference } from "../ThemePreferenceProvider";
 import { UsersService } from "@services";
 
@@ -168,6 +168,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
     const { manufacturingPlants } = currentUser;
     setSession({
       ...currentUser,
+      evidencePermissions: currentUser.evidencePermissions ?? NO_EVIDENCE_PERMISSIONS,
       manufacturingPlantsCurrent:
         manufacturingPlants.length === 1 ? [manufacturingPlants[0].id] : [],
     });

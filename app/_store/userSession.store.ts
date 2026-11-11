@@ -1,7 +1,13 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-import { UserSession } from "@interfaces";
+import type { EvidencePermissions, UserSession } from "@interfaces";
+
+/** Sin permisos especiales (también si el API aún no los envía). */
+export const NO_EVIDENCE_PERMISSIONS: EvidencePermissions = {
+  supervisorOverride: false,
+  cancelEvidence: false,
+};
 
 const stateInitial = {
   id: 0,
@@ -14,6 +20,7 @@ const stateInitial = {
   manufacturingPlants: [],
   zones: [],
   manufacturingPlantsCurrent: [],
+  evidencePermissions: NO_EVIDENCE_PERMISSIONS,
 };
 
 type Actions = {

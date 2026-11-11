@@ -97,8 +97,9 @@ test.describe("Sin datos", () => {
     await expect(page.getByRole("table")).toBeVisible();
     await expect(alert).toHaveCount(0);
     expect(queries).toBe(2);
-    // Los permisos de las acciones se piden una vez, no en cada búsqueda.
-    expect(permissions).toBe(1);
+    // Los permisos de las acciones llegan en la sesión: el endpoint anterior
+    // (que enviaba las listas de correos) ya no se consulta.
+    expect(permissions).toBe(0);
   });
 
   test("si la lista no carga, lo dice y deja reintentar", async ({ page }) => {

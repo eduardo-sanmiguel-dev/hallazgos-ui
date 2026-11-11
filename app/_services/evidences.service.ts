@@ -72,11 +72,6 @@ const uploadConfig = (options: UploadOptions) => ({
 
 export type { SubmitResult };
 
-interface PermissionsConfigResponse {
-  supervisorOverrideEmails: string[];
-  cancelEvidenceEmails: string[];
-}
-
 /** Lista de hallazgos paginada con los filtros (`page` empieza en 1). */
 const findPaginated = async (
   filters: FiltersEvidences,
@@ -126,11 +121,6 @@ const addComment = async (id: number, comment: string) => {
     { comment },
     { headers: idempotencyHeaders() },
   );
-  return data;
-};
-
-const getPermissionsConfig = async () => {
-  const { data } = await api.get<PermissionsConfigResponse>(`/permissions/config`);
   return data;
 };
 
@@ -208,7 +198,6 @@ export const EvidencesService = {
   solution,
   processStart,
   addComment,
-  getPermissionsConfig,
   reassignResponsibles,
   downloadExcel,
   downloadPdf,
