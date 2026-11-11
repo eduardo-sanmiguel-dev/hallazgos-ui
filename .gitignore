@@ -16,12 +16,7 @@ AGENTS.md
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
-
 # production
-/build
 /dist/
 /dist.*/
 /.vite/
@@ -39,12 +34,8 @@ yarn-error.log*
 # local env files
 .env*.local
 
-# vercel
-.vercel
-
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
 # Pruebas e2e (Playwright)
 /e2e/.env.e2e

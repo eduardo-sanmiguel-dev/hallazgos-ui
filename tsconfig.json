@@ -46,5 +46,5 @@
     "noUnusedParameters": true
   },
   "include": ["app/**/*.ts", "app/**/*.tsx", "e2e/**/*.ts", "*.config.ts", "vite.config.ts"],
-  "exclude": ["node_modules", "dist", ".next"]
+  "exclude": ["node_modules", "dist"]
 }

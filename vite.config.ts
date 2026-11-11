@@ -98,7 +98,6 @@ export default defineConfig(({ mode }) => {
       ignorePatterns: [
         "dist/**",
         "dist.*/**",
-        ".next/**",
         "coverage/**",
         "playwright-report/**",
         "test-results/**",
@@ -113,7 +112,6 @@ export default defineConfig(({ mode }) => {
       ignorePatterns: [
         "dist/**",
         "dist.*/**",
-        ".next/**",
         "coverage/**",
         "playwright-report/**",
         "test-results/**",
