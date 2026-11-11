@@ -51,14 +51,15 @@ describe("RUM: identidad del usuario", () => {
     expect(calls.users).toEqual([
       {
         id: "1",
-        name: "Nombre anterior",
+        // Rol y planta en el nombre: la lista de Sesiones solo muestra el nombre.
+        name: "Nombre anterior · Supervisor · Bogotá, Tepotzotlán",
         email: "anterior@example.com",
         role: "Supervisor",
         plants: "Bogotá, Tepotzotlán",
       },
     ]);
     store.setState({ name: "Nombre actualizado" });
-    expect(calls.users.at(-1)?.name).toBe("Nombre actualizado");
+    expect(calls.users.at(-1)?.name).toBe("Nombre actualizado · Supervisor · Bogotá, Tepotzotlán");
     store.setState({ email: "actual@example.com" });
     expect(calls.users.at(-1)?.email).toBe("actual@example.com");
     // El rol y las plantas ahora también son parte de la identidad.
@@ -66,6 +67,7 @@ describe("RUM: identidad del usuario", () => {
     expect(calls.users.at(-1)?.role).toBe("Administrador");
     store.setState({ manufacturingPlants: [PLANTS[0]] });
     expect(calls.users.at(-1)?.plants).toBe("Tepotzotlán");
+    expect(calls.users.at(-1)?.name).toBe("Nombre actualizado · Administrador · Tepotzotlán");
     expect(calls.users).toHaveLength(5);
     // Un cambio ajeno a la identidad no vuelve a llamar a RUM.
     store.setState({ manufacturingPlants: [{ id: 1, name: "Tepotzotlán" }] });
@@ -92,6 +94,27 @@ describe("RUM: identidad del usuario", () => {
       { id: "2", name: "Usuario", email: "user@example.com", role: "", plants: "" },
     ]);
     unsubscribe();
+  });
+
+  test("el nombre muestra la planta elegida y cambia con ella", () => {
+    const store = createStore(() => ({
+      id: 7,
+      name: "Admin",
+      email: "admin@example.com",
+      role: "Administrador",
+      manufacturingPlants: PLANTS,
+    }));
+    const plants = createStore(() => ({ byUser: {} as Record<number, string> }));
+    const { calls, client } = fakeRum();
+    syncRumUser(store, client, plants);
+    // Sin planta elegida: sus plantas asignadas.
+    expect(calls.users.at(-1)?.name).toBe("Admin · Administrador · Bogotá, Tepotzotlán");
+    plants.setState({ byUser: { 7: "3" } });
+    expect(calls.users.at(-1)?.name).toBe("Admin · Administrador · Bogotá");
+    expect(calls.users.at(-1)?.plants).toBe("Bogotá, Tepotzotlán");
+    plants.setState({ byUser: { 7: "1" } });
+    expect(calls.users.at(-1)?.name).toBe("Admin · Administrador · Tepotzotlán");
+    expect(calls.users).toHaveLength(3);
   });
 
   test("sin elección en la sesión usa la planta recordada y, con una sola, esa", () => {

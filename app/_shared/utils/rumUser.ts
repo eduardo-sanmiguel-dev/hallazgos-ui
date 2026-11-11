@@ -43,13 +43,27 @@ const plantNames = (plants: UserIdentity["manufacturingPlants"] = []) =>
     .sort((a, b) => a.localeCompare(b))
     .join(", ");
 
-const toRumUser = ({ id, name, email, role, manufacturingPlants }: UserIdentity): RumUser => ({
-  id: String(id),
-  name,
-  email,
-  role: role ?? "",
-  plants: plantNames(manufacturingPlants),
-});
+/** Separador del nombre en RUM: "Nombre · Rol · Planta". */
+export const RUM_NAME_SEPARATOR = " · ";
+
+/**
+ * El nombre lleva rol y planta porque la lista de Sesiones de OpenObserve
+ * tiene columnas fijas y solo muestra el nombre del usuario: así se ven ahí
+ * sin abrir cada sesión. Los campos role y plants siguen aparte para filtrar.
+ */
+const toRumUser = (
+  { id, name, email, role, manufacturingPlants }: UserIdentity,
+  selectedPlant: string | null,
+): RumUser => {
+  const plants = plantNames(manufacturingPlants);
+  return {
+    id: String(id),
+    name: [name, role, selectedPlant ?? plants].filter(Boolean).join(RUM_NAME_SEPARATOR),
+    email,
+    role: role ?? "",
+    plants,
+  };
+};
 
 const sameUser = (a: RumUser, b: RumUser) =>
   a.id === b.id &&
@@ -76,46 +90,39 @@ export const syncRumUser = (
   let current: RumUser | null | undefined;
   let selectedPlant: string | null = null;
 
-  const identify = (state: UserIdentity) => {
+  /** Misma regla que SelectManufacturingPlantsOwn: sesión, recordada o la única. */
+  const selectedPlantName = (user: UserIdentity) => {
+    if (!plantSelection || !user.id) return null;
+    const plants = user.manufacturingPlants ?? [];
+    const plantId =
+      plantSelection.getState().byUser[user.id] ??
+      readLastPlant(user.id) ??
+      (plants.length === 1 ? String(plants[0].id) : undefined);
+    return (plantId && plants.find((plant) => String(plant.id) === String(plantId))?.name) || null;
+  };
+
+  const sync = () => {
+    const state = store.getState();
+    const plant = selectedPlantName(state);
+    if (plant !== selectedPlant) {
+      selectedPlant = plant;
+      if (plant) rum.setGlobalContextProperty(SELECTED_PLANT_CONTEXT, plant);
+      else rum.removeGlobalContextProperty(SELECTED_PLANT_CONTEXT);
+    }
     if (!state.id) {
       if (current !== null) rum.clearUser();
       current = null;
       return;
     }
-    const next = toRumUser(state);
+    const next = toRumUser(state, plant);
     if (current && sameUser(current, next)) return;
     current = next;
     rum.setUser(next);
   };
 
-  const syncSelectedPlant = () => {
-    const user = store.getState();
-    const plants = user.manufacturingPlants ?? [];
-    // Misma regla que SelectManufacturingPlantsOwn: elección de la sesión,
-    // luego la recordada y, con una sola planta, esa.
-    const plantId = user.id
-      ? (plantSelection?.getState().byUser[user.id] ??
-        readLastPlant(user.id) ??
-        (plants.length === 1 ? String(plants[0].id) : undefined))
-      : undefined;
-    const name = plantId
-      ? plants.find((plant) => String(plant.id) === String(plantId))?.name
-      : undefined;
-    const value = name ?? null;
-    if (value === selectedPlant) return;
-    selectedPlant = value;
-    if (value) rum.setGlobalContextProperty(SELECTED_PLANT_CONTEXT, value);
-    else rum.removeGlobalContextProperty(SELECTED_PLANT_CONTEXT);
-  };
-
-  identify(store.getState());
-  if (plantSelection) syncSelectedPlant();
-
-  const unsubscribeUser = store.subscribe((state) => {
-    identify(state);
-    if (plantSelection) syncSelectedPlant();
-  });
-  const unsubscribePlant = plantSelection?.subscribe(syncSelectedPlant);
+  sync();
+  const unsubscribeUser = store.subscribe(sync);
+  const unsubscribePlant = plantSelection?.subscribe(sync);
   return () => {
     unsubscribeUser();
     unsubscribePlant?.();
