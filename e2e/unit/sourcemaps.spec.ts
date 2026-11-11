@@ -8,7 +8,9 @@ import {
   createZip,
   findSourceMaps,
   moveSourceMaps,
+  pruneSourceMaps,
   uploadSourceMaps,
+  versionsToPrune,
   zipSourceMaps,
 } from "../../scripts/sourcemaps.mjs";
 
@@ -121,5 +123,79 @@ describe("source maps del deploy", () => {
         fetchImpl,
       }),
     ).rejects.toThrow("OpenObserve respondió 403: sin permiso");
+  });
+
+  test("retención: conserva las versiones más recientes y nunca la actual", () => {
+    // Una fila por archivo: la fecha de la versión es la de su subida.
+    const rows = [
+      { version: "v1", created_at: 100 },
+      { version: "v1", created_at: 110 },
+      { version: "v2", created_at: 200 },
+      { version: "v3", created_at: 300 },
+      { version: "v4", created_at: 400 },
+    ];
+    expect(versionsToPrune(rows, { keep: 2, current: "v4" })).toEqual(["v2", "v1"]);
+    expect(versionsToPrune(rows, { keep: 10, current: "v4" })).toEqual([]);
+    // Aunque la actual quedara fuera por fecha, no se borra.
+    expect(versionsToPrune(rows, { keep: 1, current: "v1" })).toEqual(["v3", "v2"]);
+    // keep < 1 se trata como 1: OpenObserve nunca queda vacío.
+    expect(versionsToPrune(rows, { keep: 0, current: "v4" })).toEqual(["v3", "v2", "v1"]);
+  });
+
+  test("pruneSourceMaps lista por servicio y entorno y borra cada versión vieja", async () => {
+    const calls: { url: string; method: string }[] = [];
+    const fetchImpl = (async (url: string, init: RequestInit = {}) => {
+      calls.push({ url, method: init.method ?? "GET" });
+      if ((init.method ?? "GET") === "GET")
+        return Response.json([
+          { version: "viejo", created_at: 1 },
+          { version: "nuevo", created_at: 2 },
+        ]);
+      return new Response('{"code":200}');
+    }) as typeof fetch;
+
+    const removed = await pruneSourceMaps({
+      url: "http://o2",
+      org: "default",
+      credentials: "a:b",
+      service: "ui-comportarte",
+      env: "production",
+      keep: 1,
+      current: "nuevo",
+      fetchImpl,
+    });
+
+    expect(removed).toEqual(["viejo"]);
+    expect(calls).toEqual([
+      {
+        url: "http://o2/api/default/sourcemaps?service=ui-comportarte&env=production",
+        method: "GET",
+      },
+      {
+        url: "http://o2/api/default/sourcemaps?service=ui-comportarte&version=viejo&env=production",
+        method: "DELETE",
+      },
+    ]);
+  });
+
+  test("si no puede listar, no borra nada y lo informa", async () => {
+    let deletes = 0;
+    const fetchImpl = (async (_url: string, init: RequestInit = {}) => {
+      if (init.method === "DELETE") deletes++;
+      return new Response("error", { status: 500 });
+    }) as typeof fetch;
+    await expect(
+      pruneSourceMaps({
+        url: "http://o2",
+        org: "default",
+        credentials: "a:b",
+        service: "s",
+        env: "e",
+        keep: 1,
+        current: "v",
+        fetchImpl,
+      }),
+    ).rejects.toThrow("OpenObserve respondió 500 al listar");
+    expect(deletes).toBe(0);
   });
 });

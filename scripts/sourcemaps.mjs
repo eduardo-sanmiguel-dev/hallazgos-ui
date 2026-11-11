@@ -112,3 +112,55 @@ export async function uploadSourceMaps({
     throw new Error(`OpenObserve respondió ${response.status}: ${text.slice(0, 300)}`);
   return text;
 }
+
+/**
+ * Versiones a borrar: se conservan las `keep` más recientes (por fecha de
+ * subida) y nunca la que se acaba de publicar.
+ */
+export function versionsToPrune(entries, { keep, current }) {
+  const latest = new Map();
+  for (const { version, created_at: createdAt = 0 } of entries) {
+    if (!version) continue;
+    latest.set(version, Math.max(latest.get(version) ?? 0, Number(createdAt) || 0));
+  }
+  return [...latest]
+    .sort((a, b) => b[1] - a[1])
+    .slice(Math.max(1, keep))
+    .map(([version]) => version)
+    .filter((version) => version !== current);
+}
+
+/**
+ * Borra de OpenObserve los source maps de versiones viejas (cada deploy sube
+ * ~6 MB). Las últimas `keep` cubren pestañas que aún no recargan.
+ */
+export async function pruneSourceMaps({
+  url,
+  org,
+  credentials,
+  service,
+  env,
+  keep,
+  current,
+  fetchImpl = fetch,
+  timeoutMs = 60_000,
+}) {
+  const base = `${url.replace(/\/+$/, "")}/api/${org}/sourcemaps`;
+  const headers = { Authorization: `Basic ${Buffer.from(credentials).toString("base64")}` };
+  const listed = await fetchImpl(`${base}?${new URLSearchParams({ service, env })}`, {
+    headers,
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!listed.ok) throw new Error(`OpenObserve respondió ${listed.status} al listar`);
+  const stale = versionsToPrune(await listed.json(), { keep, current });
+  for (const version of stale) {
+    const response = await fetchImpl(`${base}?${new URLSearchParams({ service, version, env })}`, {
+      method: "DELETE",
+      headers,
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!response.ok)
+      throw new Error(`OpenObserve respondió ${response.status} al borrar ${version}`);
+  }
+  return stale;
+}
