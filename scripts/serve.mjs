@@ -20,7 +20,6 @@ const mime = {
   ".ico": "image/x-icon",
   ".woff2": "font/woff2",
   ".woff": "font/woff",
-  ".map": "application/json",
   ".pdf": "application/pdf",
   ".webp": "image/webp",
 };
@@ -48,6 +47,9 @@ const server = createServer(async (req, res) => {
     return fail(400);
   }
   if (pathname.includes("\\") || pathname.includes("\0")) return fail(400);
+  // Los source maps son privados (se suben a OpenObserve en el deploy): aunque
+  // alguno quedara en dist, nunca se entregan; exponían todo el código fuente.
+  if (pathname.toLowerCase().endsWith(".map")) return fail(404);
   if (pathname === "/api/deployment-version") pathname = "/deployment-version.json";
   let file = resolve(root, `.${pathname}`);
   if (!file.startsWith(root + sep) && file !== root) return fail(403);
@@ -74,7 +76,7 @@ const server = createServer(async (req, res) => {
     const compress =
       /\bgzip\b/.test(req.headers["accept-encoding"] || "") &&
       info.size > 1024 &&
-      /\.(html|js|css|json|svg|map|webmanifest)$/.test(actual);
+      /\.(html|js|css|json|svg|webmanifest)$/.test(actual);
     res.setHeader("Vary", "Accept-Encoding");
     if (compress) res.setHeader("Content-Encoding", "gzip");
     else res.setHeader("Content-Length", info.size);

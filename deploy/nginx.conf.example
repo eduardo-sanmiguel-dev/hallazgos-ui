@@ -21,7 +21,11 @@ location = /api/deployment-version {
 location /api/ {
     return 404;
 }
-location ~* \.(?:js|css|map|json|png|jpe?g|svg|ico|webp|woff2?|pdf|webmanifest)$ {
+# Source maps: privados (se suben a OpenObserve en el deploy).
+location ~* \.map$ {
+    return 404;
+}
+location ~* \.(?:js|css|json|png|jpe?g|svg|ico|webp|woff2?|pdf|webmanifest)$ {
     try_files $uri =404;
     add_header Cache-Control "no-store" always;
 }

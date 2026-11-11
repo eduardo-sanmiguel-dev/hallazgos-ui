@@ -97,6 +97,10 @@ main() {
   pnpm test
   pnpm build
   version=$(node -p 'require("./dist/deployment-version.json").version')
+  # Source maps: fuera de dist antes de publicar (exponían el código fuente) y
+  # a OpenObserve para leer los stack traces de RUM. Si la subida falla solo
+  # avisa; si quedara algún .map en dist, el deploy se detiene aquí.
+  node scripts/upload-sourcemaps.mjs dist "$RELEASE/sourcemaps"
 
   # PM2 cannot reliably change a Next executable into a different script on reload.
   # Replace only this app after its new release has passed all build checks.

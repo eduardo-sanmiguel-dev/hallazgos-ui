@@ -83,7 +83,14 @@ export default defineConfig(({ mode }) => {
         })),
       ],
     },
-    build: { outDir: process.env.VITE_BUILD_OUT_DIR ?? "dist", target: "es2022", sourcemap: true },
+    build: {
+      outDir: process.env.VITE_BUILD_OUT_DIR ?? "dist",
+      target: "es2022",
+      // "hidden": genera los .map sin el comentario sourceMappingURL en el JS.
+      // El deploy los sube a OpenObserve (stack traces legibles en RUM) y los
+      // saca de dist: antes se publicaban con todo el código fuente.
+      sourcemap: "hidden",
+    },
     test: { include: ["e2e/unit/**/*.spec.ts"], environment: "node" },
     lint: {
       plugins: ["typescript", "react", "jsx-a11y"],

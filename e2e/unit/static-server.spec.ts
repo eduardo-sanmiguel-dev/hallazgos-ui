@@ -15,6 +15,7 @@ beforeAll(async () => {
   await mkdir(join(directory, "assets"));
   await writeFile(join(directory, "index.html"), '<div id="root">ComportArte</div>');
   await writeFile(join(directory, "assets/main-test.js"), 'console.log("UI")');
+  await writeFile(join(directory, "assets/main-test.js.map"), '{"version":3,"sources":[]}');
   await writeFile(join(directory, "assets/cancel-test.js"), randomBytes(4 * 1024 * 1024));
   await writeFile(
     join(directory, "deployment-version.json"),
@@ -66,6 +67,13 @@ test("cachea assets con hash y no responde HTML para assets inexistentes", async
   expect(asset.headers.get("content-type")).toContain("javascript");
   for (const path of ["/assets/missing.js", "/api/missing", "/missing.png"]) {
     expect((await fetch(origin + path)).status).toBe(404);
+  }
+});
+test("nunca entrega source maps aunque existan en dist", async () => {
+  for (const path of ["/assets/main-test.js.map", "/assets/MAIN-TEST.JS.MAP"]) {
+    const response = await fetch(origin + path);
+    expect(response.status).toBe(404);
+    expect(await response.text()).toBe("");
   }
 });
 test("rechaza escrituras, Server Actions antiguas y rutas con separadores inválidos", async () => {
