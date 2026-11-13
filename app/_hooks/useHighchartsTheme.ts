@@ -2,6 +2,11 @@ import Highcharts from "highcharts/esm/highcharts.src.js";
 import { lighten, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
+import { patchSeriesSetData } from "@shared/libs/highchartsSeriesData";
+
+// Evita que seleccionar un segmento de una dona truene tras actualizar datos.
+patchSeriesSetData(Highcharts as unknown as Parameters<typeof patchSeriesSetData>[0]);
+
 // Paletas de series que ya usaba el sistema en cada modo.
 const SERIES_COLORS = {
   light: [
