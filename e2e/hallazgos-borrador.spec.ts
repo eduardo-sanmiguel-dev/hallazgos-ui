@@ -314,6 +314,29 @@ test.describe("Borrador de nuevo hallazgo", () => {
     await expect.poll(async () => (await storedDrafts(page)).length).toBe(0);
   });
 
+  // Regresión: tras guardar, el guardado automático (~0.8 s) volvía a crear el
+  // borrador si la navegación a la lista tardaba más (celular lento): luego
+  // se ofrecía "recuperar" un hallazgo que ya estaba guardado.
+  test("con navegación lenta tras guardar, el borrador no reaparece", async ({ page }) => {
+    const requests = await pendingDraft(page, (route) =>
+      route.fulfill({ status: 201, json: { id: 557 } }),
+    );
+    // La página de la lista tarda 2 s en cargar (su JS aún no se descargó).
+    await page.route("**/assets/*.js", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await route.fallback();
+    });
+
+    await notice(page).getByRole("button", { name: "Reintentar envío" }).click();
+
+    await expect(toast(page, "Hallazgo creado correctamente")).toBeVisible();
+    await expect(page).toHaveURL(/\/hallazgos$/);
+    expect(requests).toHaveLength(2);
+    // Pasado el tiempo del guardado automático, sigue sin borrador.
+    await page.waitForTimeout(1500);
+    expect(await storedDrafts(page)).toHaveLength(0);
+  });
+
   test("reintentar un envío que no había llegado: se guarda ahora", async ({ page }) => {
     const requests = await pendingDraft(page, (route) =>
       route.fulfill({ status: 201, json: { id: 556 } }),

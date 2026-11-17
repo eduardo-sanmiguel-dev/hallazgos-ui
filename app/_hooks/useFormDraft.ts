@@ -88,6 +88,16 @@ export function useFormDraft<T>({ form, content, hasContent, onRestore }: Option
     hasContentRef.current = hasContent;
   });
 
+  // Lo que ya se envió con éxito: no se vuelve a guardar como borrador
+  // mientras no cambie. Antes, si la navegación tras guardar tardaba más que
+  // el guardado automático (celular lento), el borrador reaparecía y luego
+  // se ofrecía "recuperar" un hallazgo ya guardado.
+  const sentRef = useRef<{ fieldsKey: string; photo: unknown } | null>(null);
+  const isAlreadySent = () =>
+    !!sentRef.current &&
+    sentRef.current.fieldsKey === JSON.stringify(contentRef.current.fields) &&
+    sentRef.current.photo === contentRef.current.photo;
+
   const reset = () => {
     keyRef.current = null;
     createdAtRef.current = null;
@@ -149,6 +159,7 @@ export function useFormDraft<T>({ form, content, hasContent, onRestore }: Option
   useEffect(() => {
     if (!ready || lock || !form || !userId) return;
     const timer = setTimeout(() => {
+      if (isAlreadySent()) return;
       if (hasContentRef.current(contentRef.current)) {
         void save("none");
       } else if (createdAtRef.current) {
@@ -171,7 +182,7 @@ export function useFormDraft<T>({ form, content, hasContent, onRestore }: Option
    * pisa un borrador que todavía se está ofreciendo ni uno en solo lectura.
    */
   const flush = async () => {
-    if (!ready || lock || !form || !userId) return;
+    if (!ready || lock || !form || !userId || isAlreadySent()) return;
     if (hasContentRef.current(contentRef.current)) await save("none");
   };
 
@@ -211,6 +222,7 @@ export function useFormDraft<T>({ form, content, hasContent, onRestore }: Option
 
   /** Antes de enviar: queda guardado como envío pendiente con su clave. */
   const markSending = async () => {
+    sentRef.current = null;
     key();
     lastSendAtRef.current = new Date().toISOString();
     setOfferRecord(null);
@@ -225,6 +237,10 @@ export function useFormDraft<T>({ form, content, hasContent, onRestore }: Option
    */
   const settle = async (error?: unknown) => {
     if (error === undefined) {
+      sentRef.current = {
+        fieldsKey: JSON.stringify(contentRef.current.fields),
+        photo: contentRef.current.photo,
+      };
       if (form && userId) await deleteDraft(userId, form);
       reset();
       setLock(null);
