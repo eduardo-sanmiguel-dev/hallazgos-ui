@@ -9,6 +9,7 @@ import SelectRules from "@components/SelectRules";
 import SelectZones from "@components/SelectZones";
 import FilterBar, { compactFilters, optionLabel } from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
+import type { TableSortControl } from "@hooks/useTableSort";
 
 export interface IFiltersUsers {
   // Nombre o correo electrónico.
@@ -32,9 +33,11 @@ interface Props {
   filters: IFiltersUsers;
   setFilters: (filters: IFiltersUsers) => void;
   count: number;
+  // Orden de la tabla: referencia y controles en la barra.
+  sort?: TableSortControl;
 }
 
-const FiltersUsers = ({ filters, setFilters, count }: Props) => {
+const FiltersUsers = ({ filters, setFilters, count, sort }: Props) => {
   // Zonas y procesos dependen de la planta.
   const processes =
     useProcesses(
@@ -94,6 +97,7 @@ const FiltersUsers = ({ filters, setFilters, count }: Props) => {
 
   return (
     <FilterBar
+      sort={sort}
       count={count}
       activeFilters={activeFilters}
       onClearAll={() => setFilters(DEFAULT_FILTERS_USERS)}

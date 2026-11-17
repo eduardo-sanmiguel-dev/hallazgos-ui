@@ -1,6 +1,7 @@
 import { IFiltersHds } from "@routes/hds/page";
 import axiosWrapper from "./axiosWrapper";
 import { Hds } from "@interfaces";
+import { sortQueryParams, type SortQuery } from "@shared/utils/tableSort";
 
 const api = axiosWrapper({
   baseURL: "/safety-data-files",
@@ -17,16 +18,17 @@ const findAll = async ({ name }: IFiltersHds) => {
 
 const findAllPaginated = async ({
   name,
-  order,
   page,
   limit,
-}: IFiltersHds & { page: number; limit: number }) => {
+  orderBy,
+  order,
+}: IFiltersHds & { page: number; limit: number } & SortQuery) => {
   const { data } = await api.get<{ data: Hds[]; count: number }>("", {
     params: {
       page,
       limit,
+      ...sortQueryParams({ orderBy, order }),
       ...(name?.trim() && { name: name.trim() }),
-      ...(order && { order }),
     },
   });
   return data;

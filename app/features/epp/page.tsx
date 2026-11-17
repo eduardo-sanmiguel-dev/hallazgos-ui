@@ -6,13 +6,13 @@ import { Button, Grid } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 
 import DialogCreateEpp from "./_components/DialogCreateEpp";
-import TableEpps from "./_components/TableEpps";
+import TableEpps, { EPP_DEFAULT_SORT, EPP_SORT_OPTIONS } from "./_components/TableEpps";
 import FiltersEpp, { DEFAULT_FILTERS_EPP, type IFiltersEpp } from "./_components/FiltersEpp";
-import { useIdempotencyKey, usePaginatedList } from "@hooks";
+import { useIdempotencyKey, usePaginatedList, useTableSort } from "@hooks";
 import { useUserSessionStore } from "@store";
 import { EppService } from "@services";
 import { EppSortableColumn } from "@interfaces";
-import { notify, SortOrder } from "@shared/utils";
+import { notify } from "@shared/utils";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 
@@ -20,8 +20,7 @@ export default function EppPage() {
   const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
   const [open, setOpen] = useState<boolean>(false);
   const [manufacturingPlantId, setManufacturingPlantId] = useState<string>("");
-  const [order, setOrder] = useState<SortOrder>("asc");
-  const [orderBy, setOrderBy] = useState<EppSortableColumn | null>(null);
+  const sort = useTableSort("epp", EPP_SORT_OPTIONS, EPP_DEFAULT_SORT);
   const [filters, setFilters] = useState<IFiltersEpp>(DEFAULT_FILTERS_EPP);
   // Una clave por entrega: un reintento tras un corte no la duplica.
   const submission = useIdempotencyKey();
@@ -36,13 +35,15 @@ export default function EppPage() {
     refresh: getData,
   } = usePaginatedList({
     key: "epp",
-    filters: { manufacturingPlantId, ...filters, order, orderBy },
-    fetcher: ({ order, orderBy, ...query }, { page, limit }) =>
+    filters: { manufacturingPlantId, ...filters },
+    sort: sort.sort,
+    fetcher: (query, { page, limit, orderBy, order }) =>
       EppService.findPaginated({
         ...query,
         page,
         limit,
-        ...(orderBy && { orderBy, order }),
+        orderBy: orderBy as EppSortableColumn | undefined,
+        order,
       }),
     debounceMs: 400,
     // La planta seleccionada debe estar también en los filtros del debounce.
@@ -109,6 +110,7 @@ export default function EppPage() {
         filters={filters}
         setFilters={setFilters}
         count={count}
+        sort={sort}
       />
       <Grid container spacing={2}>
         <Grid
@@ -126,14 +128,9 @@ export default function EppPage() {
             page={page}
             rowsPerPage={rowsPerPage}
             hasFilters={Object.values(filters).some(Boolean)}
-            order={order}
-            orderBy={orderBy}
+            sorting={sort}
             onPageChange={setPage}
             onRowsPerPageChange={setRowsPerPage}
-            onSortChange={(nextOrder, nextOrderBy) => {
-              setOrder(nextOrder);
-              setOrderBy(nextOrderBy);
-            }}
             onHistoryDeleted={getData}
             isError={isError}
             onRetry={onRetry}

@@ -5,12 +5,12 @@ import { useRouter } from "@shared/navigation";
 import { Button } from "@mui/material";
 import Add from "@mui/icons-material/Add";
 
-import { usePaginatedList } from "@hooks";
+import { usePaginatedList, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { AreasService } from "@services";
-import TableAreas from "./_components/TableAreas";
+import TableAreas, { AREA_DEFAULT_SORT, AREA_SORT_OPTIONS } from "./_components/TableAreas";
 import FiltersAreas, {
   DEFAULT_FILTERS_AREAS,
   type IFiltersAreas,
@@ -20,6 +20,8 @@ const AreasPage = () => {
   const [filters, setFilters] = useState<IFiltersAreas>(DEFAULT_FILTERS_AREAS);
 
   const router = useRouter();
+
+  const sort = useTableSort("areas", AREA_SORT_OPTIONS, AREA_DEFAULT_SORT);
 
   const {
     rows: data,
@@ -31,11 +33,13 @@ const AreasPage = () => {
     key: "areas",
     allowAllRows: true,
     filters,
-    fetcher: (filters, { page, limit }) =>
+    sort: sort.sort,
+    fetcher: (filters, { page, limit, ...sorting }) =>
       AreasService.findAllPaginated({
         ...filters,
         page,
         limit,
+        ...sorting,
       }),
   });
 
@@ -52,11 +56,11 @@ const AreasPage = () => {
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
-      <FiltersAreas filters={filters} setFilters={setFilters} count={count} />
+      <FiltersAreas sort={sort} filters={filters} setFilters={setFilters} count={count} />
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <TableAreas rows={data} getData={getData} pagination={pagination} />
+        <TableAreas sorting={sort} rows={data} getData={getData} pagination={pagination} />
       )}
     </>
   );

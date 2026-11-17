@@ -1,5 +1,6 @@
 import axiosWrapper from "./axiosWrapper";
 import { EmergencyTeam, ExtinguisherType } from "@interfaces";
+import { sortQueryParams, type SortQuery } from "@shared/utils/tableSort";
 
 interface Payload {
   location: string;
@@ -52,17 +53,20 @@ const remove = async (id: number) => {
 const findAllPaginated = async ({
   page,
   limit,
+  orderBy,
+  order,
   ...filters
 }: {
   page: number;
   limit: number;
   [key: string]: string | number | undefined;
-}) => {
+} & SortQuery) => {
   const { data } = await api.get<{ data: EmergencyTeam[]; count: number }>("", {
     params: {
       includeInactive: true,
       page,
       limit,
+      ...sortQueryParams({ orderBy, order }),
       ...Object.fromEntries(
         Object.entries(filters).filter(([, value]) => value !== "" && value !== undefined),
       ),

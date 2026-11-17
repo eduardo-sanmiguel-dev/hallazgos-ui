@@ -5,12 +5,15 @@ import { useRouter } from "@shared/navigation";
 import Button from "@mui/material/Button";
 import Add from "@mui/icons-material/Add";
 
-import { usePaginatedList } from "@hooks";
+import { usePaginatedList, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { ExtinguisherInspectionsService } from "@services";
-import ExtinguisherInspectionsTable from "./_components/ExtinguisherInspectionsTable";
+import ExtinguisherInspectionsTable, {
+  EXTINGUISHER_INSPECTION_DEFAULT_SORT,
+  EXTINGUISHER_INSPECTION_SORT_OPTIONS,
+} from "./_components/ExtinguisherInspectionsTable";
 import FiltersExtinguisherInspections, {
   DEFAULT_FILTERS_EXTINGUISHER_INSPECTIONS,
   IFiltersExtinguisherInspections,
@@ -23,6 +26,12 @@ const ExtinguisherInspectionPage = () => {
 
   const router = useRouter();
 
+  const sort = useTableSort(
+    "extinguisher-inspection",
+    EXTINGUISHER_INSPECTION_SORT_OPTIONS,
+    EXTINGUISHER_INSPECTION_DEFAULT_SORT,
+  );
+
   const {
     rows: data,
     count,
@@ -32,12 +41,9 @@ const ExtinguisherInspectionPage = () => {
   } = usePaginatedList({
     key: "extinguisher-inspection",
     filters,
-    fetcher: (filters, { page, limit }) =>
-      ExtinguisherInspectionsService.findAllPaginated({
-        ...filters,
-        page,
-        limit,
-      }),
+    sort: sort.sort,
+    fetcher: (filters, params) =>
+      ExtinguisherInspectionsService.findAllPaginated({ ...filters, ...params }),
   });
 
   return (
@@ -53,11 +59,16 @@ const ExtinguisherInspectionPage = () => {
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
-      <FiltersExtinguisherInspections filters={filters} setFilters={setFilters} count={count} />
+      <FiltersExtinguisherInspections
+        filters={filters}
+        setFilters={setFilters}
+        count={count}
+        sort={sort}
+      />
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <ExtinguisherInspectionsTable rows={data} pagination={pagination} />
+        <ExtinguisherInspectionsTable sorting={sort} rows={data} pagination={pagination} />
       )}
     </>
   );

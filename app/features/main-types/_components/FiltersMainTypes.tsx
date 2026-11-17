@@ -4,6 +4,7 @@ import { TextField } from "@mui/material";
 
 import FilterBar from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
+import type { TableSortControl } from "@hooks/useTableSort";
 
 export interface IFiltersMainTypes {
   name: string;
@@ -16,11 +17,21 @@ interface Props {
   // Visible cuando algún filtro difiere del valor por defecto.
   canClear?: boolean;
   onClear?: () => void;
+  // Orden de la tabla: referencia y controles en la barra.
+  sort?: TableSortControl;
 }
 
-const FiltersMainTypes = ({ filters, setFilters, count, canClear = false, onClear }: Props) => {
+const FiltersMainTypes = ({
+  filters,
+  setFilters,
+  count,
+  canClear = false,
+  onClear,
+  sort,
+}: Props) => {
   return (
     <FilterBar
+      sort={sort}
       count={count}
       activeFilters={
         filters.name

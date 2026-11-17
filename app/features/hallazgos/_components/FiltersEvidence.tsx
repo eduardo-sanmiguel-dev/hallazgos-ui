@@ -28,6 +28,7 @@ import { UsersService } from "@services";
 import { STATUS_CLOSED, STATUS_IN_PROGRESS, STATUS_OPEN } from "@shared/constants";
 import { evidenceStatusColor, STATUS_CANCELLED } from "@shared/constants/semanticTones";
 import FilterBar, { ActiveFilter, joinNames } from "@shared/components/FilterBar";
+import type { TableSortControl } from "@hooks/useTableSort";
 
 export interface FiltersEvidences {
   evidenceId: string;
@@ -46,11 +47,13 @@ interface Props {
   filters: FiltersEvidences;
   setFilters: Dispatch<SetStateAction<FiltersEvidences>>;
   count: number;
+  // Orden de la tabla: referencia y controles en la barra.
+  sort?: TableSortControl;
 }
 
 const STATUSES = [STATUS_OPEN, STATUS_IN_PROGRESS, STATUS_CLOSED, STATUS_CANCELLED];
 
-const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
+const FiltersEvidence = ({ filters, setFilters, count, sort }: Props) => {
   // Cada estatus con su color (círculo en la lista), legible en el tema.
   const themeMode = useTheme().palette.mode;
   const STATUS_OPTIONS = useMemo(
@@ -451,7 +454,12 @@ const FiltersEvidence = ({ filters, setFilters, count }: Props) => {
   );
 
   return (
-    <FilterBar count={count} activeFilters={selectedFilterChips} onClearAll={clearAllFilters}>
+    <FilterBar
+      sort={sort}
+      count={count}
+      activeFilters={selectedFilterChips}
+      onClearAll={clearAllFilters}
+    >
       <Grid
         size={{
           xs: 12,

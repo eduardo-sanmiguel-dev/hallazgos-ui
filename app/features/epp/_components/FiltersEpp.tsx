@@ -15,6 +15,7 @@ import FilterBar, {
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 import { Equipment } from "@interfaces";
 import { EquipmentsService } from "@services";
+import type { TableSortControl } from "@hooks/useTableSort";
 
 export interface IFiltersEpp {
   // Nombre o cédula del colaborador (área y cargo tienen su propio select).
@@ -43,6 +44,8 @@ interface Props {
   filters: IFiltersEpp;
   setFilters: (filters: IFiltersEpp) => void;
   count: number;
+  // Orden de la tabla: referencia y controles en la barra.
+  sort?: TableSortControl;
 }
 
 const FiltersEpp = ({
@@ -52,6 +55,7 @@ const FiltersEpp = ({
   filters,
   setFilters,
   count,
+  sort,
 }: Props) => {
   const { data: catalogs } = useEmployeeCatalogs();
   // Los equipos dependen de la planta. Si falla, el interceptor ya mostró
@@ -116,6 +120,7 @@ const FiltersEpp = ({
 
   return (
     <FilterBar
+      sort={sort}
       count={count}
       activeFilters={activeFilters}
       onClearAll={() => setFilters(DEFAULT_FILTERS_EPP)}

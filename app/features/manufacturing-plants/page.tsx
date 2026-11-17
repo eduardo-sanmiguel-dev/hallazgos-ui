@@ -5,12 +5,15 @@ import { useRouter } from "@shared/navigation";
 import { Button } from "@mui/material";
 import Add from "@mui/icons-material/Add";
 
-import { usePaginatedList } from "@hooks";
+import { usePaginatedList, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { ManufacturingPlantsService } from "@services";
-import TableManufacturingPlants from "./_components/TableManufacturingPlants";
+import TableManufacturingPlants, {
+  MANUFACTURING_PLANT_DEFAULT_SORT,
+  MANUFACTURING_PLANT_SORT_OPTIONS,
+} from "./_components/TableManufacturingPlants";
 import FiltersManufacturingPlants, {
   DEFAULT_FILTERS_MANUFACTURING_PLANTS,
   type IFiltersManufacturingPlants,
@@ -23,6 +26,12 @@ const ManufacturingPlantsPage = () => {
 
   const router = useRouter();
 
+  const sort = useTableSort(
+    "manufacturing-plants",
+    MANUFACTURING_PLANT_SORT_OPTIONS,
+    MANUFACTURING_PLANT_DEFAULT_SORT,
+  );
+
   const {
     rows: data,
     count,
@@ -33,11 +42,13 @@ const ManufacturingPlantsPage = () => {
     key: "manufacturing-plants",
     allowAllRows: true,
     filters,
-    fetcher: (filters, { page, limit }) =>
+    sort: sort.sort,
+    fetcher: (filters, { page, limit, ...sorting }) =>
       ManufacturingPlantsService.findAllPaginated({
         ...filters,
         page,
         limit,
+        ...sorting,
       }),
   });
 
@@ -54,11 +65,21 @@ const ManufacturingPlantsPage = () => {
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
-      <FiltersManufacturingPlants filters={filters} setFilters={setFilters} count={count} />
+      <FiltersManufacturingPlants
+        sort={sort}
+        filters={filters}
+        setFilters={setFilters}
+        count={count}
+      />
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <TableManufacturingPlants rows={data} getData={getData} pagination={pagination} />
+        <TableManufacturingPlants
+          sorting={sort}
+          rows={data}
+          getData={getData}
+          pagination={pagination}
+        />
       )}
     </>
   );

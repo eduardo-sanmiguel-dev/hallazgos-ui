@@ -10,6 +10,7 @@ import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsO
 
 import FilterBar, { compactFilters, optionLabel } from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
+import type { TableSortControl } from "@hooks/useTableSort";
 
 export interface IFiltersZones {
   name: string;
@@ -27,9 +28,11 @@ interface Props {
   filters: IFiltersZones;
   setFilters: (filters: IFiltersZones) => void;
   count: number;
+  // Orden de la tabla: referencia y controles en la barra.
+  sort?: TableSortControl;
 }
 
-const FiltersZones = ({ filters, setFilters, count }: Props) => {
+const FiltersZones = ({ filters, setFilters, count, sort }: Props) => {
   // Las zonas (areas) se acotan a la planta elegida.
   const { data: areasData } = useAreas({
     manufacturingPlantId: filters.manufacturingPlantId,
@@ -72,6 +75,7 @@ const FiltersZones = ({ filters, setFilters, count }: Props) => {
 
   return (
     <FilterBar
+      sort={sort}
       count={count}
       activeFilters={activeFilters}
       onClearAll={() => setFilters(DEFAULT_FILTERS_ZONES)}

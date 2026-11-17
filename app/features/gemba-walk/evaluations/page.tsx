@@ -5,12 +5,15 @@ import { useRouter } from "@shared/navigation";
 import { Button } from "@mui/material";
 import Add from "@mui/icons-material/Add";
 
-import { usePaginatedList } from "@hooks";
+import { usePaginatedList, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { GembaWalkEvaluationsService } from "@services";
-import TableGembaWalkEvaluations from "./_components/TableGembaWalkEvaluations";
+import TableGembaWalkEvaluations, {
+  GEMBA_WALK_EVALUATION_DEFAULT_SORT,
+  GEMBA_WALK_EVALUATION_SORT_OPTIONS,
+} from "./_components/TableGembaWalkEvaluations";
 import FiltersGembaWalkEvaluations, {
   IFiltersGembaWalkEvaluations,
 } from "./_components/FiltersGembaWalkEvaluations";
@@ -27,6 +30,12 @@ const GembaWalkEvaluationsPage = () => {
 
   const router = useRouter();
 
+  const sort = useTableSort(
+    "gemba-walk/evaluations",
+    GEMBA_WALK_EVALUATION_SORT_OPTIONS,
+    GEMBA_WALK_EVALUATION_DEFAULT_SORT,
+  );
+
   const {
     rows: data,
     count,
@@ -37,11 +46,13 @@ const GembaWalkEvaluationsPage = () => {
     key: "gemba-walk/evaluations",
     allowAllRows: true,
     filters,
-    fetcher: (filters, { page, limit }) =>
+    sort: sort.sort,
+    fetcher: (filters, { page, limit, ...sorting }) =>
       GembaWalkEvaluationsService.findAllPaginated({
         ...filters,
         page,
         limit,
+        ...sorting,
       }),
   });
 
@@ -59,6 +70,7 @@ const GembaWalkEvaluationsPage = () => {
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
       <FiltersGembaWalkEvaluations
+        sort={sort}
         filters={filters}
         setFilters={setFilters}
         count={count}
@@ -68,7 +80,12 @@ const GembaWalkEvaluationsPage = () => {
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <TableGembaWalkEvaluations rows={data} getData={getData} pagination={pagination} />
+        <TableGembaWalkEvaluations
+          sorting={sort}
+          rows={data}
+          getData={getData}
+          pagination={pagination}
+        />
       )}
     </>
   );

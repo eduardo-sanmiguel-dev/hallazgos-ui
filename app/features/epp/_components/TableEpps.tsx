@@ -16,7 +16,6 @@ import { TableBody } from "@mui/material";
 import { TableContainer } from "@mui/material";
 import { TableHead } from "@mui/material";
 import { TablePagination } from "@mui/material";
-import { TableSortLabel } from "@mui/material";
 import { Typography } from "@mui/material";
 import { Paper } from "@mui/material";
 import { Skeleton } from "@mui/material";
@@ -27,12 +26,14 @@ import SimCardDownloadIcon from "@mui/icons-material/SimCardDownload";
 import DeleteIcon from "@mui/icons-material/Delete";
 
 import { stringYYYYMMDDToDDMMYYYY } from "@shared/utils";
-import { resolveTriStateSort, SortOrder } from "@shared/utils";
+import type { SortOption, SortState } from "@shared/utils";
+import type { TableSortControl } from "@hooks/useTableSort";
+import { SortHeaderCell } from "@shared/components/SortableHeader";
 import { StyledTableCell, StyledTableRow } from "@shared/components/TableDefault";
 import { useUserSessionStore } from "@store";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
 import { EppService } from "@services";
-import { Epp, EppHistoryItem, EppSortableColumn } from "@interfaces";
+import { Epp, EppHistoryItem } from "@interfaces";
 import { useMediaQuery } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 import ErrorState from "@shared/components/ErrorState";
@@ -503,23 +504,25 @@ interface Props {
   rowsPerPage: number;
   // Solo para el mensaje de "sin resultados".
   hasFilters: boolean;
-  order: SortOrder;
-  orderBy: EppSortableColumn | null;
+  // Orden en la API (useTableSort): encabezados ordenables.
+  sorting: TableSortControl;
   onPageChange: (page: number) => void;
   onRowsPerPageChange: (rowsPerPage: number) => void;
-  onSortChange: (order: SortOrder, orderBy: EppSortableColumn | null) => void;
   onHistoryDeleted: () => void;
   // La consulta falló: sin filas se muestra ErrorState con "Reintentar".
   isError?: boolean;
   onRetry?: () => void;
 }
 
-const SORTABLE_HEADERS: Array<{ column: EppSortableColumn; label: string }> = [
-  { column: "name", label: "Empleado" },
-  { column: "code", label: "Cédula" },
-  { column: "position", label: "Cargo" },
-  { column: "area", label: "Área" },
+/** Columnas que la API puede ordenar (misma lista blanca que el backend). */
+export const EPP_SORT_OPTIONS: SortOption[] = [
+  { key: "name", label: "Empleado", kind: "text" },
+  { key: "code", label: "Cédula", kind: "number" },
+  { key: "position", label: "Cargo", kind: "text" },
+  { key: "area", label: "Área", kind: "text" },
 ];
+
+export const EPP_DEFAULT_SORT: SortState = { orderBy: "name", order: "asc" };
 
 // Tabla controlada: los filtros, el orden y la paginación los resuelve la API;
 // aquí solo se muestra la página recibida.
@@ -531,11 +534,9 @@ export default function TableEpps({
   page,
   rowsPerPage,
   hasFilters,
-  order,
-  orderBy,
+  sorting,
   onPageChange,
   onRowsPerPageChange,
-  onSortChange,
   onHistoryDeleted,
   isError = false,
   onRetry,
@@ -566,12 +567,6 @@ export default function TableEpps({
       }
     />
   );
-
-  const handleRequestSort = (property: EppSortableColumn) => {
-    const { nextOrder, nextOrderBy } = resolveTriStateSort(order, orderBy, property);
-
-    onSortChange(nextOrder, nextOrderBy);
-  };
 
   // Primera carga (sin filas todavía): esqueleto. Al cambiar de página o de
   // filtro se conservan las filas con la barra arriba.
@@ -613,16 +608,8 @@ export default function TableEpps({
             <TableHead>
               <StyledTableRow>
                 <StyledTableCell />
-                {SORTABLE_HEADERS.map(({ column, label }) => (
-                  <StyledTableCell key={column} sortDirection={orderBy === column ? order : false}>
-                    <TableSortLabel
-                      active={orderBy === column}
-                      direction={orderBy === column ? order : "asc"}
-                      onClick={() => handleRequestSort(column)}
-                    >
-                      {label}
-                    </TableSortLabel>
-                  </StyledTableCell>
+                {EPP_SORT_OPTIONS.map(({ key, label }) => (
+                  <SortHeaderCell key={key} label={label} sortKey={key} sorting={sorting} />
                 ))}
                 <StyledTableCell align="center">Descargar archivo</StyledTableCell>
               </StyledTableRow>

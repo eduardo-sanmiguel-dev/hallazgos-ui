@@ -1,5 +1,6 @@
 import axiosWrapper from "./axiosWrapper";
 import { GembaWalkCalendar } from "@interfaces";
+import { sortQueryParams, type SortQuery } from "@shared/utils/tableSort";
 
 // scheduledAt / startDate / endDate viajan en ISO 8601 con zona (toISOString).
 interface PayloadCreate {
@@ -73,17 +74,20 @@ const remove = async (id: number) => {
 const findAllPaginated = async ({
   page,
   limit,
+  orderBy,
+  order,
   ...filters
 }: {
   page: number;
   limit: number;
   [key: string]: string | number | undefined;
-}) => {
+} & SortQuery) => {
   const { data } = await api.get<{ data: GembaWalkCalendar[]; count: number }>("", {
     params: {
       includeInactive: true,
       page,
       limit,
+      ...sortQueryParams({ orderBy, order }),
       ...Object.fromEntries(
         Object.entries(filters).filter(([, value]) => value !== "" && value !== undefined),
       ),

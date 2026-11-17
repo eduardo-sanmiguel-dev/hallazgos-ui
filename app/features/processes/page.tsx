@@ -5,12 +5,15 @@ import { useRouter } from "@shared/navigation";
 import { Button } from "@mui/material";
 import Add from "@mui/icons-material/Add";
 
-import { usePaginatedList } from "@hooks";
+import { usePaginatedList, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { ProcessesService } from "@services";
-import TableProcesses from "./_components/TableProcesses";
+import TableProcesses, {
+  PROCESS_DEFAULT_SORT,
+  PROCESS_SORT_OPTIONS,
+} from "./_components/TableProcesses";
 import FiltersProcesses, {
   DEFAULT_FILTERS_PROCESSES,
   type IFiltersProcesses,
@@ -20,6 +23,8 @@ const ProcessesPage = () => {
   const [filters, setFilters] = useState<IFiltersProcesses>(DEFAULT_FILTERS_PROCESSES);
 
   const router = useRouter();
+
+  const sort = useTableSort("processes", PROCESS_SORT_OPTIONS, PROCESS_DEFAULT_SORT);
 
   const {
     rows: data,
@@ -31,11 +36,13 @@ const ProcessesPage = () => {
     key: "processes",
     allowAllRows: true,
     filters,
-    fetcher: (filters, { page, limit }) =>
+    sort: sort.sort,
+    fetcher: (filters, { page, limit, ...sorting }) =>
       ProcessesService.findAllPaginated({
         ...filters,
         page,
         limit,
+        ...sorting,
       }),
   });
 
@@ -52,11 +59,11 @@ const ProcessesPage = () => {
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
-      <FiltersProcesses filters={filters} setFilters={setFilters} count={count} />
+      <FiltersProcesses sort={sort} filters={filters} setFilters={setFilters} count={count} />
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <TableProcesses rows={data} getData={getData} pagination={pagination} />
+        <TableProcesses sorting={sort} rows={data} getData={getData} pagination={pagination} />
       )}
     </>
   );

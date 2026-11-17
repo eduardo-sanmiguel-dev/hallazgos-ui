@@ -40,6 +40,44 @@ import {
   getRemainingDays,
   getResolutionDays,
 } from "@routes/hallazgos/_constants/priorityOptions";
+import type { TableSortControl } from "@hooks/useTableSort";
+import type { SortOption, SortState } from "@shared/utils";
+
+// Clave de orden en la API de cada columna (misma posición que `columns`).
+const sortKeys = [
+  "id",
+  "manufacturingPlant",
+  "mainType",
+  "secondaryType",
+  "area",
+  "zone",
+  "process",
+  "user",
+  undefined,
+  "status",
+  "priority",
+  "createdAt",
+  undefined,
+];
+
+/** Columnas que la API puede ordenar (misma lista blanca que el backend). */
+export const EVIDENCE_SORT_OPTIONS: SortOption[] = [
+  { key: "id", label: "ID", kind: "number" },
+  { key: "createdAt", label: "Fecha de registro", kind: "date" },
+  { key: "updatedAt", label: "Fecha de actualización", kind: "date" },
+  { key: "solutionDate", label: "Fecha de cierre", kind: "date" },
+  { key: "manufacturingPlant", label: "Planta", kind: "text" },
+  { key: "mainType", label: "Clasificación", kind: "text" },
+  { key: "secondaryType", label: "Tipo", kind: "text" },
+  { key: "area", label: "Zona", kind: "text" },
+  { key: "zone", label: "Lugar", kind: "text" },
+  { key: "process", label: "Proceso", kind: "text" },
+  { key: "user", label: "Creado por", kind: "text" },
+  { key: "status", label: "Estatus", kind: "text" },
+  { key: "priority", label: "Prioridad (días para resolver)", kind: "number" },
+];
+
+export const EVIDENCE_DEFAULT_SORT: SortState = { orderBy: "id", order: "desc" };
 
 const columns = [
   "ID",
@@ -69,6 +107,8 @@ interface Props {
   openEvidenceId?: number;
   /** Al cerrar ese detalle: ya no se vuelve a abrir. */
   onCloseLinkedEvidence?: () => void;
+  // Orden en la API (useTableSort): encabezados ordenables.
+  sorting?: TableSortControl;
 }
 
 export default function TableEvidences({
@@ -81,6 +121,7 @@ export default function TableEvidences({
   countEvidence,
   openEvidenceId = 0,
   onCloseLinkedEvidence,
+  sorting,
 }: Props) {
   const [evidenceCurrent, setEvidenceCurrent] = useState<EvidenceRow | null>(null);
   const [idRow, setIdRow] = useState<number>(0);
@@ -216,6 +257,8 @@ export default function TableEvidences({
         <TableDefaultServer
           rows={rows}
           columns={columns}
+          sorting={sorting}
+          sortKeys={sortKeys}
           paintRows={(row: EvidenceRow) => (
             <StyledTableRow
               key={row.id}

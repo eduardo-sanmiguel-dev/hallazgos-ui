@@ -10,17 +10,22 @@ import type { ResponsiveColumn } from "@shared/components/ResponsiveTable";
 import CatalogTable from "@shared/components/CatalogTable";
 import { GembaWalkObserver } from "@interfaces";
 import { GembaWalkObserversService } from "@services";
+import type { TableSortControl } from "@hooks/useTableSort";
+import type { SortOption, SortState } from "@shared/utils";
 
 interface Props {
   rows: GembaWalkObserver[];
   getData: () => void;
   pagination: ServerPagination;
+  // Orden en la API (useTableSort): encabezados ordenables.
+  sorting?: TableSortControl;
 }
 
 // Tabla en tablet y escritorio; tarjetas en celular (ResponsiveTable, G8).
 const columns: ResponsiveColumn<GembaWalkObserver>[] = [
   {
     id: "id",
+    sortKey: "id",
     header: "ID",
     cell: (row) => row.id,
     rowHeader: true,
@@ -42,51 +47,59 @@ const columns: ResponsiveColumn<GembaWalkObserver>[] = [
   },
   {
     id: "manufacturingPlant",
+    sortKey: "manufacturingPlant",
     header: "Planta",
     cell: (row) => row.manufacturingPlant?.name || "-",
   },
   {
     id: "nameZone",
+    sortKey: "nameZone",
     header: "Zona",
     cell: (row) => row.gembaWalkZone?.nameZone || "-",
   },
   {
     id: "nameLocation",
+    sortKey: "nameLocation",
     header: "Ubicación",
     cell: (row) => row.gembaWalkZone?.nameLocation || "-",
   },
   {
     id: "user",
+    sortKey: "user",
     header: "Usuario",
     cell: (row) => (row.user ? `${row.user.name} - ${row.user.email}` : "-"),
     card: "hidden",
   },
   {
     id: "createdBy",
+    sortKey: "createdBy",
     header: "Creado por",
     cell: (row) => row.createdBy?.name || "-",
     card: "hidden",
   },
   {
     id: "updatedBy",
+    sortKey: "updatedBy",
     header: "Actualizado por",
     cell: (row) => row.updatedBy?.name || "-",
     card: "hidden",
   },
   {
     id: "createdAt",
+    sortKey: "createdAt",
     header: "Creación",
     cell: (row) => stringToDateWithTime(row.createdAt),
     card: "hidden",
   },
   {
     id: "updatedAt",
+    sortKey: "updatedAt",
     header: "Última actualización",
     cell: (row) => updatedDateLabel(row.createdAt, row.updatedAt) ?? "-",
   },
 ];
 
-export default function TableGembaWalkObservers({ rows, getData, pagination }: Props) {
+export default function TableGembaWalkObservers({ rows, getData, pagination, sorting }: Props) {
   const router = useRouter();
   const { confirm, confirmDialog } = useConfirmDialog();
 
@@ -113,6 +126,7 @@ export default function TableGembaWalkObservers({ rows, getData, pagination }: P
   return (
     <>
       <CatalogTable
+        sorting={sorting}
         catalog="gemba-walk-observers"
         onActivated={getData}
         rows={rows}
@@ -133,3 +147,19 @@ export default function TableGembaWalkObservers({ rows, getData, pagination }: P
     </>
   );
 }
+
+/** Columnas que la API puede ordenar (misma lista blanca que el backend). */
+export const GEMBA_WALK_OBSERVER_SORT_OPTIONS: SortOption[] = [
+  { key: "id", label: "ID", kind: "number" },
+  { key: "user", label: "Usuario", kind: "text" },
+  { key: "manufacturingPlant", label: "Planta", kind: "text" },
+  { key: "nameZone", label: "Zona", kind: "text" },
+  { key: "nameLocation", label: "Ubicación", kind: "text" },
+  { key: "createdBy", label: "Creado por", kind: "text" },
+  { key: "updatedBy", label: "Actualizado por", kind: "text" },
+  { key: "createdAt", label: "Fecha de creación", kind: "date" },
+  { key: "updatedAt", label: "Última actualización", kind: "date" },
+  { key: "isActive", label: "Estado", kind: "status" },
+];
+
+export const GEMBA_WALK_OBSERVER_DEFAULT_SORT: SortState = { orderBy: "id", order: "desc" };

@@ -1,6 +1,7 @@
 import axiosWrapper from "./axiosWrapper";
 import { resolveDownloadFileName } from "@shared/utils/downloadFileName";
 import { EvaluationValues, ExtinguisherInspection, ExtinguisherType } from "@interfaces";
+import { sortQueryParams, type SortQuery } from "@shared/utils/tableSort";
 
 interface EvaluationPayload {
   location: string;
@@ -71,7 +72,7 @@ const findAllPaginated = async (
     endDate?: string;
     page: number;
     limit: number;
-  },
+  } & SortQuery,
 ) => {
   const { data } = await api.get<{
     data: ExtinguisherInspection[];
@@ -80,6 +81,7 @@ const findAllPaginated = async (
     params: {
       page: filters.page,
       limit: filters.limit,
+      ...sortQueryParams(filters),
       ...(filters.search && { search: filters.search }),
       ...(filters.manufacturingPlantId && {
         manufacturingPlantId: filters.manufacturingPlantId,

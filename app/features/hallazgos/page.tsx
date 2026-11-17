@@ -12,12 +12,16 @@ import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import SimCardDownloadIcon from "@mui/icons-material/SimCardDownload";
 import { toast } from "sonner";
 
-import TableEvidences from "./_components/TableEvidences";
+import TableEvidences, {
+  EVIDENCE_DEFAULT_SORT,
+  EVIDENCE_SORT_OPTIONS,
+} from "./_components/TableEvidences";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import ErrorState from "@shared/components/ErrorState";
 import FiltersEvidence, { FiltersEvidences } from "./_components/FiltersEvidence";
 import DownloadExcelDialog from "./_components/DownloadExcelDialog";
-import { useEvidences } from "@hooks";
+import { useEvidences, useTableSort } from "@hooks";
+import { sortSummary } from "@shared/utils/tableSort";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { EvidencesService } from "@services";
@@ -114,6 +118,9 @@ export default function HallazgosPage() {
   // mientras carga; se olvida al cerrar su detalle.
   const [linkedEvidenceId, setLinkedEvidenceId] = useState(0);
 
+  // El orden lo resuelve la API; también se aplica a las descargas.
+  const sort = useTableSort("evidences", EVIDENCE_SORT_OPTIONS, EVIDENCE_DEFAULT_SORT);
+
   const {
     refresh: getData,
     evidences,
@@ -124,14 +131,17 @@ export default function HallazgosPage() {
     setPage,
     rowsPerPage,
     setRowsPerPage,
-  } = useEvidences(filters);
+  } = useEvidences(filters, sort.sort);
 
   const router = useRouter();
 
   // El Excel pide planta y período en un diálogo (se monta al abrirlo, con
   // los filtros vigentes de la lista).
   const [excelDialogOpen, setExcelDialogOpen] = useState(false);
-  const downloadPdf = useMutation({ mutationFn: EvidencesService.downloadPdf });
+  const downloadPdf = useMutation({
+    mutationFn: (pdfFilters: FiltersEvidences) =>
+      EvidencesService.downloadPdf(pdfFilters, sort.sort),
+  });
 
   const createPdf = () => {
     if (!filters.manufacturingPlantId) {
@@ -187,7 +197,12 @@ export default function HallazgosPage() {
         </Button>
       </PageHeader>
       {excelDialogOpen && (
-        <DownloadExcelDialog filters={filters} onClose={() => setExcelDialogOpen(false)} />
+        <DownloadExcelDialog
+          filters={filters}
+          sort={sort.sort}
+          sortLabel={sortSummary(sort.sort, sort.options)}
+          onClose={() => setExcelDialogOpen(false)}
+        />
       )}
       <Grid container>
         <Grid
@@ -197,7 +212,12 @@ export default function HallazgosPage() {
             md: 12,
           }}
         >
-          <FiltersEvidence filters={filters} setFilters={setFilters} count={countEvidence} />
+          <FiltersEvidence
+            filters={filters}
+            setFilters={setFilters}
+            count={countEvidence}
+            sort={sort}
+          />
         </Grid>
         <Grid
           size={{
@@ -224,6 +244,7 @@ export default function HallazgosPage() {
               countEvidence={countEvidence}
               openEvidenceId={linkedEvidenceId}
               onCloseLinkedEvidence={() => setLinkedEvidenceId(0)}
+              sorting={sort}
             />
           )}
         </Grid>

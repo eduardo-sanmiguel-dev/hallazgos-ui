@@ -5,7 +5,7 @@ import { useRouter } from "@shared/navigation";
 import { Button } from "@mui/material";
 import Add from "@mui/icons-material/Add";
 
-import { usePaginatedList } from "@hooks";
+import { usePaginatedList, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
@@ -14,12 +14,17 @@ import FiltersEmployees, {
   DEFAULT_FILTERS_EMPLOYEES,
   type IFiltersEmployeesList,
 } from "./_components/FiltersEmployees";
-import TableEmployees from "./_components/TableEmployees.";
+import TableEmployees, {
+  EMPLOYEE_DEFAULT_SORT,
+  EMPLOYEE_SORT_OPTIONS,
+} from "./_components/TableEmployees.";
 
 const EmployeesPage = () => {
   const [filters, setFilters] = useState<IFiltersEmployeesList>(DEFAULT_FILTERS_EMPLOYEES);
 
   const router = useRouter();
+
+  const sort = useTableSort("employees", EMPLOYEE_SORT_OPTIONS, EMPLOYEE_DEFAULT_SORT);
 
   const {
     rows: data,
@@ -30,10 +35,12 @@ const EmployeesPage = () => {
   } = usePaginatedList({
     key: "employees",
     filters,
-    fetcher: (filters, { page, limit }) =>
+    sort: sort.sort,
+    fetcher: (filters, { page, limit, ...sorting }) =>
       EmployeesService.findAllPaginated({
         page,
         limit,
+        ...sorting,
         name: filters.name,
         manufacturingPlantId: Number(filters.manufacturingPlantId || 0),
         areaId: filters.areaId,
@@ -56,11 +63,11 @@ const EmployeesPage = () => {
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
-      <FiltersEmployees filters={filters} setFilters={setFilters} count={count} />
+      <FiltersEmployees sort={sort} filters={filters} setFilters={setFilters} count={count} />
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <TableEmployees rows={data} getData={getData} pagination={pagination} />
+        <TableEmployees sorting={sort} rows={data} getData={getData} pagination={pagination} />
       )}
     </>
   );

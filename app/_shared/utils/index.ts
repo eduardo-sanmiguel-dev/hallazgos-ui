@@ -83,5 +83,15 @@ export const stringYYYYMMDDToDDMMYYYY = (dateString: string) => {
   return `${date[2]}/${date[1]}/${date[0]}`;
 };
 
-export { resolveTriStateSort } from "./triStateSort";
-export type { SortOrder } from "./triStateSort";
+export {
+  directionLabel,
+  findSortOption,
+  headerSortHint,
+  isSameSort,
+  naturalOrder,
+  nextHeaderSort,
+  sortParams,
+  sortSummary,
+} from "./tableSort";
+export { sortQueryParams } from "./tableSort";
+export type { SortKind, SortOption, SortOrder, SortQuery, SortState } from "./tableSort";

@@ -1,5 +1,6 @@
 import axiosWrapper, { idempotencyHeaders, submitResult, type SubmitResult } from "./axiosWrapper";
 import { GembaWalk, GembaWalkCalendar } from "@interfaces";
+import { sortQueryParams, type SortQuery } from "@shared/utils/tableSort";
 
 interface PayloadCreate {
   gembaWalkCalendarId: number;
@@ -102,20 +103,23 @@ const findAll = async (filters: {
 };
 
 // Igual que findAll, pero paginado en base de datos.
-const findAllPaginated = async (filters: {
-  manufacturingPlantId?: string;
-  startDate?: string;
-  endDate?: string;
-  nameZone?: string;
-  nameLocation?: string;
-  isAdditional?: string;
-  page: number;
-  limit: number;
-}) => {
+const findAllPaginated = async (
+  filters: {
+    manufacturingPlantId?: string;
+    startDate?: string;
+    endDate?: string;
+    nameZone?: string;
+    nameLocation?: string;
+    isAdditional?: string;
+    page: number;
+    limit: number;
+  } & SortQuery,
+) => {
   const { data } = await api.get<{ data: GembaWalk[]; count: number }>("", {
     params: {
       page: filters.page,
       limit: filters.limit,
+      ...sortQueryParams(filters),
       ...(filters.manufacturingPlantId && {
         manufacturingPlantId: filters.manufacturingPlantId,
       }),

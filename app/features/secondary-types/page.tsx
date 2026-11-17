@@ -5,12 +5,15 @@ import { useRouter } from "@shared/navigation";
 import { Button } from "@mui/material";
 import Add from "@mui/icons-material/Add";
 
-import { usePaginatedList } from "@hooks";
+import { usePaginatedList, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { SecondaryTypesService } from "@services";
-import TableSecondaryTypes from "./_components/TableSecondaryTypes";
+import TableSecondaryTypes, {
+  SECONDARY_TYPE_DEFAULT_SORT,
+  SECONDARY_TYPE_SORT_OPTIONS,
+} from "./_components/TableSecondaryTypes";
 import FiltersSecondaryTypes, { IFiltersSecondaryTypes } from "./_components/FiltersSecondaryTypes";
 
 // Valores iniciales de los filtros (también para "Limpiar filtros").
@@ -24,6 +27,12 @@ const SecondaryTypesPage = () => {
 
   const router = useRouter();
 
+  const sort = useTableSort(
+    "secondary-types",
+    SECONDARY_TYPE_SORT_OPTIONS,
+    SECONDARY_TYPE_DEFAULT_SORT,
+  );
+
   const {
     rows: data,
     count,
@@ -34,11 +43,13 @@ const SecondaryTypesPage = () => {
     key: "secondary-types",
     allowAllRows: true,
     filters,
-    fetcher: (filters, { page, limit }) =>
+    sort: sort.sort,
+    fetcher: (filters, { page, limit, ...sorting }) =>
       SecondaryTypesService.findAllPaginated({
         ...filters,
         page,
         limit,
+        ...sorting,
       }),
   });
 
@@ -56,6 +67,7 @@ const SecondaryTypesPage = () => {
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
       <FiltersSecondaryTypes
+        sort={sort}
         filters={filters}
         setFilters={setFilters}
         count={count}
@@ -65,7 +77,7 @@ const SecondaryTypesPage = () => {
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <TableSecondaryTypes rows={data} getData={getData} pagination={pagination} />
+        <TableSecondaryTypes sorting={sort} rows={data} getData={getData} pagination={pagination} />
       )}
     </>
   );

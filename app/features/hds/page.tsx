@@ -5,38 +5,36 @@ import { useMutation } from "@tanstack/react-query";
 import { Grid } from "@mui/material";
 import { TextField } from "@mui/material";
 
-import SelectDefault from "@components/SelectDefault";
-import { usePaginatedList } from "@hooks";
+import { usePaginatedList, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
-import FilterBar, { compactFilters, optionLabel } from "@shared/components/FilterBar";
+import FilterBar, { compactFilters } from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 import { RowActions, ViewAction } from "@shared/components/RowActions";
 import ResponsiveTable, { type ResponsiveColumn } from "@shared/components/ResponsiveTable";
 import { HdsService } from "@services";
 import { Hds } from "@interfaces";
+import type { SortOption, SortState } from "@shared/utils";
 
 export interface IFiltersHds {
   name?: string;
-  // Orden alfabético por nombre: "asc" | "desc".
-  order?: string;
 }
 
 const DEFAULT_FILTERS_HDS: IFiltersHds = {
   name: "",
-  order: "",
 };
 
-const ORDER_OPTIONS = [
-  { id: "asc", name: "A - Z" },
-  { id: "desc", name: "Z - A" },
-];
+// Solo hay una columna: el orden (A → Z / Z → A) se elige en el encabezado o
+// en la barra de filtros, como en las demás tablas (antes era un filtro).
+const HDS_SORT_OPTIONS: SortOption[] = [{ key: "name", label: "Nombre", kind: "text" }];
+const HDS_DEFAULT_SORT: SortState = { orderBy: "name", order: "asc" };
 
 // Tabla en tablet y escritorio; tarjetas en celular (ResponsiveTable).
 const columns: ResponsiveColumn<Hds>[] = [
   {
     id: "name",
+    sortKey: "name",
     header: "Nombre",
     cell: (row) => row.name,
     rowHeader: true,
@@ -51,6 +49,8 @@ const HdsPage = () => {
     mutationFn: (name: string) => HdsService.downloadFile(name),
   });
 
+  const sort = useTableSort("hds", HDS_SORT_OPTIONS, HDS_DEFAULT_SORT);
+
   const {
     rows: data,
     count,
@@ -60,12 +60,8 @@ const HdsPage = () => {
   } = usePaginatedList({
     key: "hds",
     filters,
-    fetcher: (filters, { page, limit }) =>
-      HdsService.findAllPaginated({
-        ...filters,
-        page,
-        limit,
-      }),
+    sort: sort.sort,
+    fetcher: (filters, params) => HdsService.findAllPaginated({ ...filters, ...params }),
   });
 
   return (
@@ -74,6 +70,7 @@ const HdsPage = () => {
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
       <FilterBar
+        sort={sort}
         count={count}
         activeFilters={compactFilters(
           !!filters.name && {
@@ -82,17 +79,11 @@ const HdsPage = () => {
             value: filters.name,
             onRemove: () => setFilters({ ...filters, name: "" }),
           },
-          !!filters.order && {
-            key: "order",
-            label: "Orden",
-            value: optionLabel(filters.order, ORDER_OPTIONS),
-            onRemove: () => setFilters({ ...filters, order: "" }),
-          },
         )}
         onClearAll={() => setFilters(DEFAULT_FILTERS_HDS)}
       >
         <ClearFiltersButton
-          visible={!!filters.name || !!filters.order}
+          visible={!!filters.name}
           onClick={() => setFilters(DEFAULT_FILTERS_HDS)}
         />
         <Grid
@@ -116,26 +107,12 @@ const HdsPage = () => {
             }}
           />
         </Grid>
-        <Grid
-          size={{
-            xs: 12,
-            sm: 6,
-            md: 3,
-          }}
-        >
-          <SelectDefault
-            data={ORDER_OPTIONS}
-            label="Orden"
-            value={filters.order || ""}
-            onChange={(e) => setFilters({ ...filters, order: e.target.value })}
-            isFilter={true}
-          />
-        </Grid>
       </FilterBar>
       {isLoading ? (
         <TableSkeleton />
       ) : (
         <ResponsiveTable
+          sorting={sort}
           rows={data}
           columns={columns}
           getRowKey={(row) => row.name}

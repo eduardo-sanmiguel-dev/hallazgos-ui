@@ -10,11 +10,15 @@ import type { ResponsiveColumn } from "@shared/components/ResponsiveTable";
 import CatalogTable from "@shared/components/CatalogTable";
 import { User } from "@interfaces";
 import { UsersService } from "@services";
+import type { TableSortControl } from "@hooks/useTableSort";
+import type { SortOption, SortState } from "@shared/utils";
 
 interface Props {
   rows: User[];
   getData: () => void;
   pagination: ServerPagination;
+  // Orden en la API (useTableSort): encabezados ordenables.
+  sorting?: TableSortControl;
 }
 
 // En celular cada usuario es una tarjeta: nombre, correo y lo demás como
@@ -22,14 +26,16 @@ interface Props {
 const columns: ResponsiveColumn<User>[] = [
   {
     id: "id",
+    sortKey: "id",
     header: "ID",
     cell: (row) => row.id,
     rowHeader: true,
     card: "hidden",
   },
-  { id: "name", header: "Nombre", cell: (row) => row.name, card: "title" },
+  { id: "name", sortKey: "name", header: "Nombre", cell: (row) => row.name, card: "title" },
   {
     id: "email",
+    sortKey: "email",
     header: "Correo electrónico",
     cell: (row) => row.email,
     card: "subtitle",
@@ -39,20 +45,22 @@ const columns: ResponsiveColumn<User>[] = [
     header: "Plantas",
     cell: (row) => row.manufacturingPlants.map(({ name }) => name).join(", "),
   },
-  { id: "role", header: "Role", cell: (row) => row.role },
+  { id: "role", sortKey: "role", header: "Role", cell: (row) => row.role },
   {
     id: "createdAt",
+    sortKey: "createdAt",
     header: "Creación",
     cell: (row) => stringToDateWithTime(row.createdAt),
   },
   {
     id: "updatedAt",
+    sortKey: "updatedAt",
     header: "Ultima actualización",
     cell: (row) => updatedDateLabel(row.createdAt, row.updatedAt) ?? "-",
   },
 ];
 
-export default function TableUsers({ rows, getData, pagination }: Props) {
+export default function TableUsers({ rows, getData, pagination, sorting }: Props) {
   const router = useRouter();
   const { confirm, confirmDialog } = useConfirmDialog();
 
@@ -81,6 +89,7 @@ export default function TableUsers({ rows, getData, pagination }: Props) {
   return (
     <>
       <CatalogTable
+        sorting={sorting}
         catalog="users"
         onActivated={getData}
         rows={rows}
@@ -99,3 +108,16 @@ export default function TableUsers({ rows, getData, pagination }: Props) {
     </>
   );
 }
+
+/** Columnas que la API puede ordenar (misma lista blanca que el backend). */
+export const USER_SORT_OPTIONS: SortOption[] = [
+  { key: "id", label: "ID", kind: "number" },
+  { key: "name", label: "Nombre", kind: "text" },
+  { key: "email", label: "Correo electrónico", kind: "text" },
+  { key: "role", label: "Rol", kind: "text" },
+  { key: "createdAt", label: "Fecha de creación", kind: "date" },
+  { key: "updatedAt", label: "Última actualización", kind: "date" },
+  { key: "isActive", label: "Estado", kind: "status" },
+];
+
+export const USER_DEFAULT_SORT: SortState = { orderBy: "id", order: "desc" };

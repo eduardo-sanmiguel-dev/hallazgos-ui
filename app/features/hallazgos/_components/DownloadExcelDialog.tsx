@@ -24,11 +24,16 @@ import {
   type ExportPeriod,
 } from "@shared/utils/exportPeriod";
 import { FiltersEvidences } from "./FiltersEvidence";
+import type { SortQuery } from "@shared/utils/tableSort";
 
 interface Props {
   /** Filtros de la lista: se aplican también al Excel. */
   filters: FiltersEvidences;
   onClose: () => void;
+  /** Orden de la lista: el Excel sale en el mismo orden. */
+  sort?: SortQuery;
+  /** Texto del orden ("Fecha de registro · Más reciente primero"). */
+  sortLabel?: string;
 }
 
 const ALL_PLANTS = "";
@@ -43,7 +48,7 @@ const toDayjs = (value: string): Dayjs | null => {
  * filtros; ahora se proponen los últimos 90 días (hasta 12 meses por
  * descarga, la API también lo valida) y se muestra cuántos registros saldrán.
  */
-export default function DownloadExcelDialog({ filters, onClose }: Props) {
+export default function DownloadExcelDialog({ filters, onClose, sort, sortLabel }: Props) {
   const titleId = useId();
   const plants = useUserSessionStore((state) => state.manufacturingPlants);
   const [plantId, setPlantId] = useState(() =>
@@ -81,7 +86,8 @@ export default function DownloadExcelDialog({ filters, onClose }: Props) {
     refetchOnWindowFocus: false,
   });
   const download = useMutation({
-    mutationFn: EvidencesService.downloadExcel,
+    mutationFn: (exportFilters: FiltersEvidences) =>
+      EvidencesService.downloadExcel(exportFilters, sort),
     onSuccess: onClose,
   });
 
@@ -161,6 +167,12 @@ export default function DownloadExcelDialog({ filters, onClose }: Props) {
               {otherFilters && "También se aplican los demás filtros de la lista. "}
               {dropsPlantFilters &&
                 "Con otra planta no se aplican las zonas, lugares ni responsables elegidos en la lista."}
+            </Typography>
+          )}
+
+          {sortLabel && (
+            <Typography variant="body2" color="text.secondary">
+              Orden de las filas: <strong>{sortLabel}</strong> (el mismo de la lista).
             </Typography>
           )}
 

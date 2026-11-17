@@ -15,6 +15,9 @@ import TableFooterDefault from "./TableFooterDefault";
 import { StyledTableCell, StyledTableRow } from "./TableDefault";
 import EmptyState from "./EmptyState";
 import ErrorState from "./ErrorState";
+import SortableHeader from "./SortableHeader";
+import type { TableSortControl } from "@hooks/useTableSort";
+import { findSortOption } from "@shared/utils/tableSort";
 
 type RowsPerPageOptions = (number | { label: string; value: number })[];
 
@@ -54,6 +57,10 @@ interface Props<T> {
   // Mensaje cuando no hay filas (por omisión "Sin registros").
   emptyTitle?: string;
   emptyDescription?: ReactNode;
+  // Orden en la API: `sortKeys[i]` es la clave de la columna `columns[i]`
+  // (vacía si no se ordena). Sin `sorting`, encabezados de solo texto.
+  sorting?: TableSortControl;
+  sortKeys?: ReadonlyArray<string | undefined>;
 }
 
 // Fila de la tabla sin registros: vacío o, si la consulta falló, error con
@@ -91,6 +98,8 @@ const TableDefaultServer = <T,>({
   onRetry,
   emptyTitle,
   emptyDescription,
+  sorting,
+  sortKeys,
 }: Props<T>) => {
   const [pageLocal, setPageLocal] = useState(pageCtrl || 0);
   const [rowsPerPageLocal, setRowsPerPageLocal] = useState(
@@ -120,17 +129,28 @@ const TableDefaultServer = <T,>({
       <Table sx={{ minWidth: 500 }} aria-label={ariaLabel}>
         <TableHead>
           <StyledTableRow>
-            {columns.map((column) => (
-              <StyledTableCell
-                key={column}
-                sx={{
-                  whiteSpace: "pre-line",
-                  lineHeight: 1.35,
-                }}
-              >
-                {column}
-              </StyledTableCell>
-            ))}
+            {columns.map((column, index) => {
+              const sortKey = sortKeys?.[index];
+              const option =
+                sorting && sortKey ? findSortOption(sorting.options, sortKey) : undefined;
+              const active = !!option && sorting?.sort.orderBy === option.key;
+              return (
+                <StyledTableCell
+                  key={column}
+                  sortDirection={active ? sorting?.sort.order : false}
+                  sx={{
+                    whiteSpace: "pre-line",
+                    lineHeight: 1.35,
+                  }}
+                >
+                  {option && sorting ? (
+                    <SortableHeader label={column} option={option} sorting={sorting} />
+                  ) : (
+                    column
+                  )}
+                </StyledTableCell>
+              );
+            })}
           </StyledTableRow>
         </TableHead>
         <TableBody>

@@ -1,6 +1,7 @@
 import { withCatalogInvalidation } from "@shared/libs/catalogKeys";
 import axiosWrapper from "./axiosWrapper";
 import { Processes, Zone } from "@interfaces";
+import { sortQueryParams, type SortQuery } from "@shared/utils/tableSort";
 
 interface Payload {
   name: string;
@@ -56,17 +57,20 @@ const remove = async (id: number) => {
 };
 
 // Igual que findAll, pero paginado en la BD (page 1-based).
-const findAllPaginated = async (filters: {
-  name?: string;
-  manufacturingPlantId?: string;
-  page: number;
-  limit: number;
-}) => {
+const findAllPaginated = async (
+  filters: {
+    name?: string;
+    manufacturingPlantId?: string;
+    page: number;
+    limit: number;
+  } & SortQuery,
+) => {
   const { data } = await api.get<{ data: Processes[]; count: number }>("", {
     params: {
       includeInactive: true,
       page: filters.page,
       limit: filters.limit,
+      ...sortQueryParams(filters),
       ...(filters.name && { name: filters.name }),
       ...(filters.manufacturingPlantId && { manufacturingPlantId: filters.manufacturingPlantId }),
     },

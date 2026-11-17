@@ -5,12 +5,15 @@ import { useRouter } from "@shared/navigation";
 import { Button } from "@mui/material";
 import Add from "@mui/icons-material/Add";
 
-import { usePaginatedList } from "@hooks";
+import { usePaginatedList, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { GembaWalkZonesService } from "@services";
-import TableGembaWalkZones from "./_components/TableGembaWalkZones";
+import TableGembaWalkZones, {
+  GEMBA_WALK_ZONE_DEFAULT_SORT,
+  GEMBA_WALK_ZONE_SORT_OPTIONS,
+} from "./_components/TableGembaWalkZones";
 import FiltersGembaWalkZones, { IFiltersGembaWalkZones } from "./_components/FiltersGembaWalkZones";
 
 // Valores iniciales de los filtros (también para "Limpiar filtros").
@@ -25,6 +28,12 @@ const GembaWalkZonesPage = () => {
 
   const router = useRouter();
 
+  const sort = useTableSort(
+    "gemba-walk/zones",
+    GEMBA_WALK_ZONE_SORT_OPTIONS,
+    GEMBA_WALK_ZONE_DEFAULT_SORT,
+  );
+
   const {
     rows: data,
     count,
@@ -35,11 +44,13 @@ const GembaWalkZonesPage = () => {
     key: "gemba-walk/zones",
     allowAllRows: true,
     filters,
-    fetcher: (filters, { page, limit }) =>
+    sort: sort.sort,
+    fetcher: (filters, { page, limit, ...sorting }) =>
       GembaWalkZonesService.findAllPaginated({
         ...filters,
         page,
         limit,
+        ...sorting,
       }),
   });
 
@@ -57,6 +68,7 @@ const GembaWalkZonesPage = () => {
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
       <FiltersGembaWalkZones
+        sort={sort}
         filters={filters}
         setFilters={setFilters}
         count={count}
@@ -66,7 +78,7 @@ const GembaWalkZonesPage = () => {
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <TableGembaWalkZones rows={data} getData={getData} pagination={pagination} />
+        <TableGembaWalkZones sorting={sort} rows={data} getData={getData} pagination={pagination} />
       )}
     </>
   );

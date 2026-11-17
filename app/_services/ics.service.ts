@@ -2,6 +2,7 @@ import axiosWrapper, { idempotencyHeaders, submitResult, type SubmitResult } fro
 import { CatalogICS, ICSData } from "@interfaces";
 import { IFiltersIcs } from "@routes/ics/_components/FiltersIcs";
 import type { UploadOptions } from "./evidences.service";
+import { sortQueryParams, type SortQuery } from "@shared/utils/tableSort";
 
 const baseURL = "/ics";
 
@@ -34,11 +35,14 @@ const findAllPaginated = async ({
   name,
   page,
   limit,
-}: IFiltersIcs & { page: number; limit: number }) => {
+  orderBy,
+  order,
+}: IFiltersIcs & { page: number; limit: number } & SortQuery) => {
   const { data } = await api.get<{ data: ICSData[]; count: number }>("", {
     params: {
       page,
       limit,
+      ...sortQueryParams({ orderBy, order }),
       ...(manufacturingPlantId && { manufacturingPlantId }),
       ...(areaOfBehaviorId && { areaOfBehaviorId }),
       ...(name && { name }),

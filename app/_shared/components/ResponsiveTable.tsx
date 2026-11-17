@@ -14,6 +14,7 @@ import { constants } from "@constants";
 import { StyledTableCell, StyledTableRow } from "./TableDefault";
 import TableDefaultServer, { TableBodyState, type ServerPagination } from "./TableDefaultServer";
 import TablePaginationActions from "./TablePaginationActions";
+import type { TableSortControl } from "@hooks/useTableSort";
 
 export interface ResponsiveColumn<T> {
   id: string;
@@ -27,6 +28,9 @@ export interface ResponsiveColumn<T> {
   hideInTable?: boolean;
   // Primera columna como encabezado de fila (`<th scope="row">`).
   rowHeader?: boolean;
+  // Clave de orden en la API: el encabezado se vuelve ordenable si la tabla
+  // recibe `sorting` y la clave está entre sus opciones.
+  sortKey?: string;
   cellSx?: SxProps<Theme>;
 }
 
@@ -40,6 +44,8 @@ export interface ResponsiveTableProps<T> {
   ariaLabel?: string;
   emptyTitle?: string;
   emptyDescription?: ReactNode;
+  // Orden (useTableSort). En celular se elige desde la barra de filtros.
+  sorting?: TableSortControl;
 }
 
 const ACTIONS_HEADER = "Acciones";
@@ -55,6 +61,7 @@ export default function ResponsiveTable<T>({
   ariaLabel = "Tabla de registros",
   emptyTitle,
   emptyDescription,
+  sorting,
 }: ResponsiveTableProps<T>) {
   const isPhone = useMediaQuery((theme: Theme) => theme.breakpoints.down("sm"));
 
@@ -71,6 +78,8 @@ export default function ResponsiveTable<T>({
         ariaLabel={ariaLabel}
         emptyTitle={emptyTitle}
         emptyDescription={emptyDescription}
+        sorting={sorting}
+        sortKeys={tableColumns.map((column) => column.sortKey)}
         paintRows={(row: T) => (
           <StyledTableRow key={getRowKey(row)}>
             {tableColumns.map((column) => (

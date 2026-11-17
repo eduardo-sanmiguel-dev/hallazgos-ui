@@ -1,6 +1,7 @@
 import { withCatalogInvalidation } from "@shared/libs/catalogKeys";
 import axiosWrapper from "./axiosWrapper";
 import { User, UserOption } from "@interfaces";
+import { sortQueryParams, type SortQuery } from "@shared/utils/tableSort";
 
 interface Payload {
   name: string;
@@ -60,21 +61,24 @@ const findAll = async (filters: {
   return data;
 };
 
-const findAllPaginated = async (filters: {
-  // Nombre o correo electrónico.
-  search?: string;
-  manufacturingPlantId?: string;
-  rule?: string;
-  zoneId?: string;
-  processId?: string;
-  page: number;
-  limit: number;
-}) => {
+const findAllPaginated = async (
+  filters: {
+    // Nombre o correo electrónico.
+    search?: string;
+    manufacturingPlantId?: string;
+    rule?: string;
+    zoneId?: string;
+    processId?: string;
+    page: number;
+    limit: number;
+  } & SortQuery,
+) => {
   const { data } = await api.get<{ data: User[]; count: number }>("", {
     params: {
       includeInactive: true,
       page: filters.page,
       limit: filters.limit,
+      ...sortQueryParams(filters),
       ...(filters.search?.trim() && { search: filters.search.trim() }),
       ...(filters.manufacturingPlantId && {
         manufacturingPlantId: filters.manufacturingPlantId,

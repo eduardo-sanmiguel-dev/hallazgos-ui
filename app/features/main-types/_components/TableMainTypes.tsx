@@ -10,37 +10,44 @@ import type { ResponsiveColumn } from "@shared/components/ResponsiveTable";
 import CatalogTable from "@shared/components/CatalogTable";
 import { MainType } from "@interfaces";
 import { MainTypesService } from "@services";
+import type { TableSortControl } from "@hooks/useTableSort";
+import type { SortOption, SortState } from "@shared/utils";
 
 interface Props {
   rows: MainType[];
   getData: () => void;
   pagination: ServerPagination;
+  // Orden en la API (useTableSort): encabezados ordenables.
+  sorting?: TableSortControl;
 }
 
 // Tabla en tablet y escritorio; tarjetas en celular (ResponsiveTable).
 const columns: ResponsiveColumn<MainType>[] = [
   {
     id: "id",
+    sortKey: "id",
     header: "ID",
     cell: (row) => row.id,
     rowHeader: true,
     card: "hidden",
   },
-  { id: "name", header: "Nombre", cell: (row) => row.name, card: "title" },
+  { id: "name", sortKey: "name", header: "Nombre", cell: (row) => row.name, card: "title" },
   {
     id: "createdAt",
+    sortKey: "createdAt",
     header: "Creación",
     cell: (row) => stringToDateWithTime(row.createdAt),
     card: "hidden",
   },
   {
     id: "updatedAt",
+    sortKey: "updatedAt",
     header: "Última actualización",
     cell: (row) => updatedDateLabel(row.createdAt, row.updatedAt) ?? "-",
   },
 ];
 
-export default function TableMainTypes({ rows, getData, pagination }: Props) {
+export default function TableMainTypes({ rows, getData, pagination, sorting }: Props) {
   const router = useRouter();
   const { confirm, confirmDialog } = useConfirmDialog();
 
@@ -67,6 +74,7 @@ export default function TableMainTypes({ rows, getData, pagination }: Props) {
   return (
     <>
       <CatalogTable
+        sorting={sorting}
         catalog="main-types"
         onActivated={getData}
         rows={rows}
@@ -87,3 +95,14 @@ export default function TableMainTypes({ rows, getData, pagination }: Props) {
     </>
   );
 }
+
+/** Columnas que la API puede ordenar (misma lista blanca que el backend). */
+export const MAIN_TYPE_SORT_OPTIONS: SortOption[] = [
+  { key: "id", label: "ID", kind: "number" },
+  { key: "name", label: "Nombre", kind: "text" },
+  { key: "createdAt", label: "Fecha de creación", kind: "date" },
+  { key: "updatedAt", label: "Última actualización", kind: "date" },
+  { key: "isActive", label: "Estado", kind: "status" },
+];
+
+export const MAIN_TYPE_DEFAULT_SORT: SortState = { orderBy: "id", order: "desc" };

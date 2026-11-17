@@ -9,6 +9,7 @@ import { useUserSessionStore } from "@store";
 
 import FilterBar, { compactFilters, optionLabel } from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
+import type { TableSortControl } from "@hooks/useTableSort";
 
 export interface IFiltersEmergencyTeams {
   search: string;
@@ -31,9 +32,11 @@ interface Props {
   filters: IFiltersEmergencyTeams;
   setFilters: (filters: IFiltersEmergencyTeams) => void;
   count: number;
+  // Orden de la tabla: referencia y controles en la barra.
+  sort?: TableSortControl;
 }
 
-const FiltersEmergencyTeams = ({ filters, setFilters, count }: Props) => {
+const FiltersEmergencyTeams = ({ filters, setFilters, count, sort }: Props) => {
   const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
 
   const activeFilters = compactFilters(
@@ -59,6 +62,7 @@ const FiltersEmergencyTeams = ({ filters, setFilters, count }: Props) => {
 
   return (
     <FilterBar
+      sort={sort}
       count={count}
       activeFilters={activeFilters}
       onClearAll={() => setFilters(DEFAULT_FILTERS_EMERGENCY_TEAMS)}

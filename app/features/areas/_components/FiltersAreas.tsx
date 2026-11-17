@@ -6,6 +6,7 @@ import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsO
 import { useUserSessionStore } from "@store";
 import FilterBar, { compactFilters, optionLabel } from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
+import type { TableSortControl } from "@hooks/useTableSort";
 
 export interface IFiltersAreas {
   name: string;
@@ -21,9 +22,11 @@ interface Props {
   filters: IFiltersAreas;
   setFilters: (filters: IFiltersAreas) => void;
   count: number;
+  // Orden de la tabla: referencia y controles en la barra.
+  sort?: TableSortControl;
 }
 
-const FiltersAreas = ({ filters, setFilters, count }: Props) => {
+const FiltersAreas = ({ filters, setFilters, count, sort }: Props) => {
   const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
 
   const activeFilters = compactFilters(
@@ -43,6 +46,7 @@ const FiltersAreas = ({ filters, setFilters, count }: Props) => {
 
   return (
     <FilterBar
+      sort={sort}
       count={count}
       activeFilters={activeFilters}
       onClearAll={() => setFilters(DEFAULT_FILTERS_AREAS)}

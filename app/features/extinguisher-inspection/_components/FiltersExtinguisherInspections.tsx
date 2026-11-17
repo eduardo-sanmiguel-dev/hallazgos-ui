@@ -13,6 +13,7 @@ import FilterBar, {
   optionLabel,
 } from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
+import type { TableSortControl } from "@hooks/useTableSort";
 
 export interface IFiltersExtinguisherInspections {
   search: string;
@@ -33,9 +34,11 @@ interface Props {
   filters: IFiltersExtinguisherInspections;
   setFilters: (filters: IFiltersExtinguisherInspections) => void;
   count: number;
+  // Orden de la tabla: referencia y controles en la barra.
+  sort?: TableSortControl;
 }
 
-const FiltersExtinguisherInspections = ({ filters, setFilters, count }: Props) => {
+const FiltersExtinguisherInspections = ({ filters, setFilters, count, sort }: Props) => {
   const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
 
   const activeFilters = compactFilters(
@@ -67,6 +70,7 @@ const FiltersExtinguisherInspections = ({ filters, setFilters, count }: Props) =
 
   return (
     <FilterBar
+      sort={sort}
       count={count}
       activeFilters={activeFilters}
       onClearAll={() => setFilters(DEFAULT_FILTERS_EXTINGUISHER_INSPECTIONS)}

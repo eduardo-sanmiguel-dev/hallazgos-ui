@@ -6,6 +6,7 @@ import { useUserSessionStore } from "@store";
 
 import FilterBar, { compactFilters, optionLabel } from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
+import type { TableSortControl } from "@hooks/useTableSort";
 
 export interface IFiltersGembaWalkZones {
   nameZone: string;
@@ -20,6 +21,8 @@ interface Props {
   // Visible cuando algún filtro difiere del valor por defecto.
   canClear?: boolean;
   onClear?: () => void;
+  // Orden de la tabla: referencia y controles en la barra.
+  sort?: TableSortControl;
 }
 
 const FiltersGembaWalkZones = ({
@@ -28,6 +31,7 @@ const FiltersGembaWalkZones = ({
   count,
   canClear = false,
   onClear,
+  sort,
 }: Props) => {
   const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
 
@@ -53,7 +57,7 @@ const FiltersGembaWalkZones = ({
   );
 
   return (
-    <FilterBar count={count} activeFilters={activeFilters} onClearAll={onClear}>
+    <FilterBar sort={sort} count={count} activeFilters={activeFilters} onClearAll={onClear}>
       <ClearFiltersButton visible={canClear} onClick={() => onClear?.()} />
       <SelectManufacturingPlantsOwn
         value={filters.manufacturingPlantId}

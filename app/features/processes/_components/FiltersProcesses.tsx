@@ -7,6 +7,7 @@ import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsO
 
 import FilterBar, { compactFilters, optionLabel } from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
+import type { TableSortControl } from "@hooks/useTableSort";
 
 export interface IFiltersProcesses {
   name: string;
@@ -22,9 +23,11 @@ interface Props {
   filters: IFiltersProcesses;
   setFilters: (filters: IFiltersProcesses) => void;
   count: number;
+  // Orden de la tabla: referencia y controles en la barra.
+  sort?: TableSortControl;
 }
 
-const FiltersProcesses = ({ filters, setFilters, count }: Props) => {
+const FiltersProcesses = ({ filters, setFilters, count, sort }: Props) => {
   const manufacturingPlants = useManufacturingPlants().data ?? EMPTY_CATALOG;
 
   const activeFilters = compactFilters(
@@ -44,6 +47,7 @@ const FiltersProcesses = ({ filters, setFilters, count }: Props) => {
 
   return (
     <FilterBar
+      sort={sort}
       count={count}
       activeFilters={activeFilters}
       onClearAll={() => setFilters(DEFAULT_FILTERS_PROCESSES)}

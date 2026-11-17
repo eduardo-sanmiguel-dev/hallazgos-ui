@@ -10,6 +10,7 @@ import ClearFiltersButton from "@shared/components/ClearFiltersButton";
 import SelectDefault from "@components/SelectDefault";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import { useUserSessionStore } from "@store";
+import type { TableSortControl } from "@hooks/useTableSort";
 
 export interface IFiltersIcs {
   // Busca por regla de vida o estándar de comportamiento.
@@ -28,9 +29,11 @@ interface Props {
   filters: IFiltersIcs;
   setFilters: (filters: IFiltersIcs) => void;
   count: number;
+  // Orden de la tabla: referencia y controles en la barra.
+  sort?: TableSortControl;
 }
 
-const FiltersIcs = ({ filters, setFilters, count }: Props) => {
+const FiltersIcs = ({ filters, setFilters, count, sort }: Props) => {
   const catalogs = useIcsCatalogs().data ?? EMPTY_CATALOG;
 
   // Las áreas cuelgan de cada estándar; se aplanan sin repetir.
@@ -69,6 +72,7 @@ const FiltersIcs = ({ filters, setFilters, count }: Props) => {
 
   return (
     <FilterBar
+      sort={sort}
       count={count}
       activeFilters={activeFilters}
       onClearAll={() => setFilters(DEFAULT_FILTERS_ICS)}

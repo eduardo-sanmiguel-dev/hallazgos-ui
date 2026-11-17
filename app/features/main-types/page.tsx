@@ -5,12 +5,15 @@ import { useRouter } from "@shared/navigation";
 import { Button } from "@mui/material";
 import Add from "@mui/icons-material/Add";
 
-import { usePaginatedList } from "@hooks";
+import { usePaginatedList, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { MainTypesService } from "@services";
-import TableMainTypes from "./_components/TableMainTypes";
+import TableMainTypes, {
+  MAIN_TYPE_DEFAULT_SORT,
+  MAIN_TYPE_SORT_OPTIONS,
+} from "./_components/TableMainTypes";
 import FiltersMainTypes, { IFiltersMainTypes } from "./_components/FiltersMainTypes";
 
 // Valores iniciales de los filtros (también para "Limpiar filtros").
@@ -23,6 +26,8 @@ const MainTypesPage = () => {
 
   const router = useRouter();
 
+  const sort = useTableSort("main-types", MAIN_TYPE_SORT_OPTIONS, MAIN_TYPE_DEFAULT_SORT);
+
   const {
     rows: data,
     count,
@@ -33,11 +38,13 @@ const MainTypesPage = () => {
     key: "main-types",
     allowAllRows: true,
     filters,
-    fetcher: (filters, { page, limit }) =>
+    sort: sort.sort,
+    fetcher: (filters, { page, limit, ...sorting }) =>
       MainTypesService.findAllPaginated({
         ...filters,
         page,
         limit,
+        ...sorting,
       }),
   });
 
@@ -55,6 +62,7 @@ const MainTypesPage = () => {
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
       <FiltersMainTypes
+        sort={sort}
         filters={filters}
         setFilters={setFilters}
         count={count}
@@ -64,7 +72,7 @@ const MainTypesPage = () => {
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <TableMainTypes rows={data} getData={getData} pagination={pagination} />
+        <TableMainTypes sorting={sort} rows={data} getData={getData} pagination={pagination} />
       )}
     </>
   );

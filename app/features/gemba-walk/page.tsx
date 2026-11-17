@@ -9,7 +9,7 @@ import Add from "@mui/icons-material/Add";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import dayjs, { toISOStringOrNull } from "@shared/libs/dayjs";
 
-import { EMPTY_CATALOG, useGembaWalkZones, usePaginatedList } from "@hooks";
+import { EMPTY_CATALOG, useGembaWalkZones, usePaginatedList, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import SelectDefault from "@components/SelectDefault";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
@@ -24,7 +24,10 @@ import FilterBar, {
   optionLabel,
 } from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
-import TableGembaWalks from "./_components/TableGembaWalks";
+import TableGembaWalks, {
+  GEMBA_WALK_DEFAULT_SORT,
+  GEMBA_WALK_SORT_OPTIONS,
+} from "./_components/TableGembaWalks";
 import DateFieldDMY from "./calendar/_components/DateFieldDMY";
 
 const TITLE = "Gemba Walk - Recorridos";
@@ -102,6 +105,8 @@ const GembaWalksList = () => {
     [ownZones, filters.nameZone],
   );
 
+  const sort = useTableSort("gemba-walk", GEMBA_WALK_SORT_OPTIONS, GEMBA_WALK_DEFAULT_SORT);
+
   const {
     rows: data,
     count,
@@ -111,11 +116,13 @@ const GembaWalksList = () => {
   } = usePaginatedList({
     key: "gemba-walk",
     filters,
-    fetcher: (filters, { page, limit }) =>
+    sort: sort.sort,
+    fetcher: (filters, { page, limit, ...sorting }) =>
       // Días locales del filtro; endDate se envía exclusivo (día siguiente).
       GembaWalksService.findAllPaginated({
         page,
         limit,
+        ...sorting,
         manufacturingPlantId: filters.manufacturingPlantId,
         nameZone: filters.nameZone,
         nameLocation: filters.nameLocation,
@@ -149,6 +156,7 @@ const GembaWalksList = () => {
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
       <FilterBar
+        sort={sort}
         count={count}
         activeFilters={compactFilters(
           !!filters.manufacturingPlantId && {
@@ -269,7 +277,11 @@ const GembaWalksList = () => {
           />
         </Grid>
       </FilterBar>
-      {isLoading ? <TableSkeleton /> : <TableGembaWalks rows={data} pagination={pagination} />}
+      {isLoading ? (
+        <TableSkeleton />
+      ) : (
+        <TableGembaWalks sorting={sort} rows={data} pagination={pagination} />
+      )}
     </>
   );
 };

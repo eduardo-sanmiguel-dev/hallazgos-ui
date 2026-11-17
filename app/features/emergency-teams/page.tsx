@@ -7,14 +7,17 @@ import Add from "@mui/icons-material/Add";
 import PrintIcon from "@mui/icons-material/Print";
 import QRCode from "qrcode";
 
-import { usePaginatedList } from "@hooks";
+import { usePaginatedList, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { notify } from "@shared/utils";
 import { EmergencyTeamsService } from "@services";
 import { EmergencyTeam } from "@interfaces";
-import EmergencyTeamsTable from "./_components/EmergencyTeamsTable";
+import EmergencyTeamsTable, {
+  EMERGENCY_TEAM_DEFAULT_SORT,
+  EMERGENCY_TEAM_SORT_OPTIONS,
+} from "./_components/EmergencyTeamsTable";
 import FiltersEmergencyTeams, {
   DEFAULT_FILTERS_EMERGENCY_TEAMS,
   IFiltersEmergencyTeams,
@@ -29,6 +32,12 @@ const EmergencyTeamsPage = () => {
 
   const router = useRouter();
 
+  const sort = useTableSort(
+    "emergency-teams",
+    EMERGENCY_TEAM_SORT_OPTIONS,
+    EMERGENCY_TEAM_DEFAULT_SORT,
+  );
+
   const {
     rows: data,
     count,
@@ -38,8 +47,8 @@ const EmergencyTeamsPage = () => {
   } = usePaginatedList({
     key: "emergency-teams",
     filters,
-    fetcher: (filters, { page, limit }) =>
-      EmergencyTeamsService.findAllPaginated({ ...filters, page, limit }),
+    sort: sort.sort,
+    fetcher: (filters, params) => EmergencyTeamsService.findAllPaginated({ ...filters, ...params }),
   });
 
   // Cada página recibida se agrega al caché de filas para imprimir.
@@ -230,7 +239,7 @@ const EmergencyTeamsPage = () => {
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
-      <FiltersEmergencyTeams filters={filters} setFilters={setFilters} count={count} />
+      <FiltersEmergencyTeams filters={filters} setFilters={setFilters} count={count} sort={sort} />
       {isLoading ? (
         <TableSkeleton />
       ) : (
@@ -240,6 +249,7 @@ const EmergencyTeamsPage = () => {
           setSelectedIds={setSelectedIds}
           getData={getData}
           pagination={pagination}
+          sorting={sort}
         />
       )}
     </>

@@ -8,6 +8,7 @@ import { useUserSessionStore } from "@store";
 
 import FilterBar, { compactFilters, optionLabel } from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
+import type { TableSortControl } from "@hooks/useTableSort";
 
 // Filtros de EmployeesService.findAll (lo usan otras pantallas).
 export interface IFiltersEmployees {
@@ -48,9 +49,11 @@ interface Props {
   filters: IFiltersEmployeesList;
   setFilters: (filters: IFiltersEmployeesList) => void;
   count: number;
+  // Orden de la tabla: referencia y controles en la barra.
+  sort?: TableSortControl;
 }
 
-const FiltersEmployees = ({ filters, setFilters, count }: Props) => {
+const FiltersEmployees = ({ filters, setFilters, count, sort }: Props) => {
   const { data: catalogs } = useEmployeeCatalogs();
 
   const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
@@ -108,6 +111,7 @@ const FiltersEmployees = ({ filters, setFilters, count }: Props) => {
 
   return (
     <FilterBar
+      sort={sort}
       count={count}
       activeFilters={activeFilters}
       onClearAll={() => setFilters(DEFAULT_FILTERS_EMPLOYEES)}

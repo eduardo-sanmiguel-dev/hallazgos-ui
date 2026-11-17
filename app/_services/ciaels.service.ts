@@ -1,5 +1,6 @@
 import axiosWrapper from "./axiosWrapper";
 import { Ciael } from "@interfaces";
+import { sortQueryParams, type SortQuery } from "@shared/utils/tableSort";
 
 const api = axiosWrapper({
   baseURL: "/ciaels",
@@ -39,20 +40,23 @@ const findAll = async () => {
 };
 
 // startDate / endDate: YYYY-MM-DD, rango inclusivo sobre la fecha del evento.
-const findAllPaginated = async (filters: {
-  manufacturingPlantId?: string;
-  typeOfEventId?: string;
-  zoneId?: string;
-  employee?: string;
-  startDate?: string;
-  endDate?: string;
-  page: number;
-  limit: number;
-}) => {
+const findAllPaginated = async (
+  filters: {
+    manufacturingPlantId?: string;
+    typeOfEventId?: string;
+    zoneId?: string;
+    employee?: string;
+    startDate?: string;
+    endDate?: string;
+    page: number;
+    limit: number;
+  } & SortQuery,
+) => {
   const { data } = await api.get<{ data: Ciael[]; count: number }>("", {
     params: {
       page: filters.page,
       limit: filters.limit,
+      ...sortQueryParams(filters),
       ...(filters.manufacturingPlantId && {
         manufacturingPlantId: filters.manufacturingPlantId,
       }),

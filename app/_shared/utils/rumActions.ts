@@ -1,6 +1,7 @@
 import { openobserveRum } from "@openobserve/browser-rum";
 
 import { rowsPerPageActionContext } from "@shared/utils/pagination";
+import { sortActionContext, type SortState } from "@shared/utils/tableSort";
 import { mutationAction } from "./rumActionNames";
 
 export const trackSystemResult = (
@@ -40,6 +41,19 @@ export const trackRowsPerPageChange = (table: string, previous: number, rowsPerP
       "filas_por_pagina",
       rowsPerPageActionContext(table, previous, rowsPerPage),
     );
+  } catch {
+    // Sin monitoreo: no hay nada que registrar.
+  }
+};
+
+/**
+ * Cambio de orden de una tabla (encabezado o barra de filtros): qué columnas
+ * se usan para ordenar. Igual que filas por página, un fallo del monitoreo
+ * nunca afecta la tabla.
+ */
+export const trackSortChange = (table: string, previous: SortState, next: SortState) => {
+  try {
+    openobserveRum.addAction("orden_tabla", sortActionContext(table, previous, next));
   } catch {
     // Sin monitoreo: no hay nada que registrar.
   }

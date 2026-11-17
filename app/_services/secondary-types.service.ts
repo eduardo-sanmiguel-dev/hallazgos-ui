@@ -1,6 +1,7 @@
 import { withCatalogInvalidation } from "@shared/libs/catalogKeys";
 import axiosWrapper from "./axiosWrapper";
 import { SecondaryType } from "@interfaces";
+import { sortQueryParams, type SortQuery } from "@shared/utils/tableSort";
 
 interface Payload {
   name: string;
@@ -56,17 +57,20 @@ const remove = async (id: number) => {
 const findAllPaginated = async ({
   page,
   limit,
+  orderBy,
+  order,
   ...filters
 }: {
   page: number;
   limit: number;
   [key: string]: string | number | undefined;
-}) => {
+} & SortQuery) => {
   const { data } = await api.get<{ data: SecondaryType[]; count: number }>("", {
     params: {
       includeInactive: true,
       page,
       limit,
+      ...sortQueryParams({ orderBy, order }),
       ...Object.fromEntries(
         Object.entries(filters).filter(([, value]) => value !== "" && value !== undefined),
       ),

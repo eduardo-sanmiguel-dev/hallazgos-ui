@@ -8,6 +8,7 @@ import {
 } from "@shared/utils/downloadFileName";
 import { Evidence, EvidenceRow } from "_interfaces/evicences.interfaces";
 import { FiltersEvidences } from "features/hallazgos/_components/FiltersEvidence";
+import { sortQueryParams, type SortQuery } from "@shared/utils/tableSort";
 
 const baseURL = "/evidences";
 
@@ -75,10 +76,10 @@ export type { SubmitResult };
 /** Lista de hallazgos paginada con los filtros (`page` empieza en 1). */
 const findPaginated = async (
   filters: FiltersEvidences,
-  { page, limit }: { page: number; limit: number },
+  { page, limit, ...sort }: { page: number; limit: number } & SortQuery,
 ) => {
   const { data } = await api.get<{ data: EvidenceRow[]; count: number }>("", {
-    params: { page, limit, ...paramsFilter(filters) },
+    params: { page, limit, ...sortQueryParams(sort), ...paramsFilter(filters) },
   });
   return data;
 };
@@ -133,11 +134,13 @@ const reassignResponsibles = async (id: number, responsibleIds: number[]) => {
   return data;
 };
 
-const downloadExcel = async (filters: FiltersEvidences) => {
+// Las descargas respetan el orden de la lista (`sort`).
+const downloadExcel = async (filters: FiltersEvidences, sort: SortQuery = {}) => {
   const { data, headers } = await api.get(`/download/xlsx`, {
     responseType: "blob",
     params: {
       ...paramsFilter(filters),
+      ...sortQueryParams(sort),
       timeZone: getBrowserTimeZone(),
     },
   });
@@ -162,11 +165,12 @@ const downloadExcel = async (filters: FiltersEvidences) => {
   return "ok";
 };
 
-const downloadPdf = async (filters: FiltersEvidences) => {
+const downloadPdf = async (filters: FiltersEvidences, sort: SortQuery = {}) => {
   const { data, headers } = await api.get(`/download/pdf`, {
     responseType: "blob",
     params: {
       ...paramsFilter(filters),
+      ...sortQueryParams(sort),
       timeZone: getBrowserTimeZone(),
     },
   });

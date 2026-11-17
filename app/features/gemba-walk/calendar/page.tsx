@@ -6,12 +6,15 @@ import { Button } from "@mui/material";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import dayjs, { toISOStringOrNull } from "@shared/libs/dayjs";
 
-import { usePaginatedList } from "@hooks";
+import { usePaginatedList, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { GembaWalkCalendarService } from "@services";
-import TableGembaWalkCalendar from "./_components/TableGembaWalkCalendar";
+import TableGembaWalkCalendar, {
+  GEMBA_WALK_CALENDAR_DEFAULT_SORT,
+  GEMBA_WALK_CALENDAR_SORT_OPTIONS,
+} from "./_components/TableGembaWalkCalendar";
 import FiltersGembaWalkCalendar, {
   IFiltersGembaWalkCalendar,
 } from "./_components/FiltersGembaWalkCalendar";
@@ -30,6 +33,12 @@ const GembaWalkCalendarPage = () => {
 
   const router = useRouter();
 
+  const sort = useTableSort(
+    "gemba-walk/calendar",
+    GEMBA_WALK_CALENDAR_SORT_OPTIONS,
+    GEMBA_WALK_CALENDAR_DEFAULT_SORT,
+  );
+
   const {
     rows: data,
     count,
@@ -39,11 +48,13 @@ const GembaWalkCalendarPage = () => {
   } = usePaginatedList({
     key: "gemba-walk/calendar",
     filters,
-    fetcher: (filters, { page, limit }) =>
+    sort: sort.sort,
+    fetcher: (filters, { page, limit, ...sorting }) =>
       // Los días del filtro son locales; endDate se envía exclusivo (día siguiente).
       GembaWalkCalendarService.findAllPaginated({
         page,
         limit,
+        ...sorting,
         manufacturingPlantId: filters.manufacturingPlantId,
         gembaWalkZoneId: filters.gembaWalkZoneId,
         isAdditional: filters.isAdditional,
@@ -78,6 +89,7 @@ const GembaWalkCalendarPage = () => {
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
       <FiltersGembaWalkCalendar
+        sort={sort}
         filters={filters}
         setFilters={setFilters}
         count={count}
@@ -87,7 +99,12 @@ const GembaWalkCalendarPage = () => {
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <TableGembaWalkCalendar rows={data} getData={getData} pagination={pagination} />
+        <TableGembaWalkCalendar
+          sorting={sort}
+          rows={data}
+          getData={getData}
+          pagination={pagination}
+        />
       )}
     </>
   );

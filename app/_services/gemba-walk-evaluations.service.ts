@@ -1,5 +1,6 @@
 import axiosWrapper from "./axiosWrapper";
 import { GembaWalkEvaluation } from "@interfaces";
+import { sortQueryParams, type SortQuery } from "@shared/utils/tableSort";
 
 interface Payload {
   manufacturingPlantId: number;
@@ -58,12 +59,14 @@ const remove = async (id: number) => {
 const findAllPaginated = async ({
   page,
   limit,
+  orderBy,
+  order,
   ...filters
 }: {
   page: number;
   limit: number;
   [key: string]: string | number | undefined;
-}) => {
+} & SortQuery) => {
   const { data } = await api.get<{
     data: GembaWalkEvaluation[];
     count: number;
@@ -72,6 +75,7 @@ const findAllPaginated = async ({
       includeInactive: true,
       page,
       limit,
+      ...sortQueryParams({ orderBy, order }),
       ...Object.fromEntries(
         Object.entries(filters).filter(([, value]) => value !== "" && value !== undefined),
       ),

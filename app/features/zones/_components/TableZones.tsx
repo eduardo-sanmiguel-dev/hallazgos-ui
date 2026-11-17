@@ -10,55 +10,65 @@ import type { ResponsiveColumn } from "@shared/components/ResponsiveTable";
 import CatalogTable from "@shared/components/CatalogTable";
 import { Zone } from "@interfaces";
 import { ZonesService } from "@services";
+import type { TableSortControl } from "@hooks/useTableSort";
+import type { SortOption, SortState } from "@shared/utils";
 
 interface Props {
   rows: Zone[];
   getData: () => void;
   pagination: ServerPagination;
+  // Orden en la API (useTableSort): encabezados ordenables.
+  sorting?: TableSortControl;
 }
 
 // Tabla en tablet y escritorio; tarjetas en celular (ResponsiveTable).
 const columns: ResponsiveColumn<Zone>[] = [
   {
     id: "id",
+    sortKey: "id",
     header: "ID",
     cell: (row) => row.id,
     rowHeader: true,
     card: "hidden",
   },
-  { id: "name", header: "Nombre", cell: (row) => row.name, card: "title" },
+  { id: "name", sortKey: "name", header: "Nombre", cell: (row) => row.name, card: "title" },
   {
     id: "manufacturingPlant",
+    sortKey: "manufacturingPlant",
     header: "Planta",
     cell: (row) => row.manufacturingPlant.name,
     card: "subtitle",
   },
-  { id: "area", header: "Zona", cell: (row) => row.area?.name || "-" },
+  { id: "area", sortKey: "area", header: "Zona", cell: (row) => row.area?.name || "-" },
   {
     id: "createdBy",
+    sortKey: "createdBy",
     header: "Creado por",
     cell: (row) => row.createdBy?.name || "-",
   },
   {
     id: "updatedBy",
+    sortKey: "updatedBy",
     header: "Actualizado por",
     cell: (row) => row.updatedBy?.name || "-",
     card: "hidden",
   },
   {
     id: "createdAt",
+    sortKey: "createdAt",
     header: "Creación",
     cell: (row) => stringToDateWithTime(row.createdAt),
     card: "hidden",
   },
   {
     id: "updatedAt",
+    sortKey: "updatedAt",
     header: "Última actualización",
     cell: (row) => updatedDateLabel(row.createdAt, row.updatedAt) ?? "-",
   },
 ];
 
-export default function TableZones({ rows, getData, pagination }: Props) {
+export default function TableZones({ rows, getData, pagination, sorting }: Props) {
   const router = useRouter();
   const { confirm, confirmDialog } = useConfirmDialog();
 
@@ -85,6 +95,7 @@ export default function TableZones({ rows, getData, pagination }: Props) {
   return (
     <>
       <CatalogTable
+        sorting={sorting}
         catalog="zones"
         onActivated={getData}
         rows={rows}
@@ -105,3 +116,18 @@ export default function TableZones({ rows, getData, pagination }: Props) {
     </>
   );
 }
+
+/** Columnas que la API puede ordenar (misma lista blanca que el backend). */
+export const ZONE_SORT_OPTIONS: SortOption[] = [
+  { key: "id", label: "ID", kind: "number" },
+  { key: "name", label: "Nombre", kind: "text" },
+  { key: "manufacturingPlant", label: "Planta", kind: "text" },
+  { key: "area", label: "Zona", kind: "text" },
+  { key: "createdBy", label: "Creado por", kind: "text" },
+  { key: "updatedBy", label: "Actualizado por", kind: "text" },
+  { key: "createdAt", label: "Fecha de creación", kind: "date" },
+  { key: "updatedAt", label: "Última actualización", kind: "date" },
+  { key: "isActive", label: "Estado", kind: "status" },
+];
+
+export const ZONE_DEFAULT_SORT: SortState = { orderBy: "id", order: "desc" };

@@ -5,12 +5,15 @@ import { useRouter } from "@shared/navigation";
 import { Button } from "@mui/material";
 import Add from "@mui/icons-material/Add";
 
-import { usePaginatedList } from "@hooks";
+import { usePaginatedList, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { GembaWalkObserversService } from "@services";
-import TableGembaWalkObservers from "./_components/TableGembaWalkObservers";
+import TableGembaWalkObservers, {
+  GEMBA_WALK_OBSERVER_DEFAULT_SORT,
+  GEMBA_WALK_OBSERVER_SORT_OPTIONS,
+} from "./_components/TableGembaWalkObservers";
 import FiltersGembaWalkObservers, {
   IFiltersGembaWalkObservers,
 } from "./_components/FiltersGembaWalkObservers";
@@ -27,6 +30,12 @@ const GembaWalkObserversPage = () => {
 
   const router = useRouter();
 
+  const sort = useTableSort(
+    "gemba-walk/observers",
+    GEMBA_WALK_OBSERVER_SORT_OPTIONS,
+    GEMBA_WALK_OBSERVER_DEFAULT_SORT,
+  );
+
   const {
     rows: data,
     count,
@@ -37,11 +46,13 @@ const GembaWalkObserversPage = () => {
     key: "gemba-walk/observers",
     allowAllRows: true,
     filters,
-    fetcher: (filters, { page, limit }) =>
+    sort: sort.sort,
+    fetcher: (filters, { page, limit, ...sorting }) =>
       GembaWalkObserversService.findAllPaginated({
         ...filters,
         page,
         limit,
+        ...sorting,
       }),
   });
 
@@ -59,6 +70,7 @@ const GembaWalkObserversPage = () => {
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
       <FiltersGembaWalkObservers
+        sort={sort}
         filters={filters}
         setFilters={setFilters}
         count={count}
@@ -68,7 +80,12 @@ const GembaWalkObserversPage = () => {
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <TableGembaWalkObservers rows={data} getData={getData} pagination={pagination} />
+        <TableGembaWalkObservers
+          sorting={sort}
+          rows={data}
+          getData={getData}
+          pagination={pagination}
+        />
       )}
     </>
   );

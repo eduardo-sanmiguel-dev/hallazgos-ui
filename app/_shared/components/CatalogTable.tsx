@@ -87,6 +87,7 @@ export default function CatalogTable<T extends CatalogRow>({
           id: "isActive",
           header: "Estado",
           cell: (row: T) => <CatalogStatus active={row.isActive} />,
+          sortKey: "isActive",
         },
       ];
   return (

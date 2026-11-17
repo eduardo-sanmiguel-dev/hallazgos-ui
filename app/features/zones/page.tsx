@@ -5,12 +5,12 @@ import { useRouter } from "@shared/navigation";
 import { Button } from "@mui/material";
 import Add from "@mui/icons-material/Add";
 
-import { usePaginatedList } from "@hooks";
+import { usePaginatedList, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { ZonesService } from "@services";
-import TableZones from "./_components/TableZones";
+import TableZones, { ZONE_DEFAULT_SORT, ZONE_SORT_OPTIONS } from "./_components/TableZones";
 import FiltersZones, {
   DEFAULT_FILTERS_ZONES,
   type IFiltersZones,
@@ -20,6 +20,8 @@ const ZonesPage = () => {
   const [filters, setFilters] = useState<IFiltersZones>(DEFAULT_FILTERS_ZONES);
 
   const router = useRouter();
+
+  const sort = useTableSort("zones", ZONE_SORT_OPTIONS, ZONE_DEFAULT_SORT);
 
   const {
     rows: data,
@@ -31,11 +33,13 @@ const ZonesPage = () => {
     key: "zones",
     allowAllRows: true,
     filters,
-    fetcher: (filters, { page, limit }) =>
+    sort: sort.sort,
+    fetcher: (filters, { page, limit, ...sorting }) =>
       ZonesService.findAllPaginated({
         ...filters,
         page,
         limit,
+        ...sorting,
       }),
   });
 
@@ -52,11 +56,11 @@ const ZonesPage = () => {
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
-      <FiltersZones filters={filters} setFilters={setFilters} count={count} />
+      <FiltersZones sort={sort} filters={filters} setFilters={setFilters} count={count} />
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <TableZones rows={data} getData={getData} pagination={pagination} />
+        <TableZones sorting={sort} rows={data} getData={getData} pagination={pagination} />
       )}
     </>
   );

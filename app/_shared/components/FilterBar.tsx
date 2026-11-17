@@ -1,4 +1,4 @@
-import { ReactNode, useId, useState } from "react";
+import { ReactNode, Ref, useId, useRef, useState } from "react";
 
 import type { SxProps, Theme } from "@mui/material";
 
@@ -7,14 +7,32 @@ import { Button } from "@mui/material";
 import { ButtonBase } from "@mui/material";
 import { Chip } from "@mui/material";
 import { Collapse } from "@mui/material";
+import { Divider } from "@mui/material";
 import { Fade } from "@mui/material";
 import { Grid } from "@mui/material";
+import { MenuItem } from "@mui/material";
 import { Paper } from "@mui/material";
+import { TextField } from "@mui/material";
+import { ToggleButton } from "@mui/material";
+import { ToggleButtonGroup } from "@mui/material";
 import { Typography } from "@mui/material";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import CancelIcon from "@mui/icons-material/Cancel";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FilterListIcon from "@mui/icons-material/FilterList";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import SwapVertIcon from "@mui/icons-material/SwapVert";
+
+import type { TableSortControl } from "@hooks/useTableSort";
+import {
+  directionLabel,
+  findSortOption,
+  naturalOrder,
+  sortSummary,
+  type SortOrder,
+} from "@shared/utils";
 
 // Filtro aplicado, para el resumen visible con el panel cerrado.
 export interface ActiveFilter {
@@ -37,6 +55,10 @@ interface FilterBarProps {
   onClearAll?: () => void;
   // Acciones siempre visibles a la derecha del encabezado.
   actions?: ReactNode;
+  // Orden de la tabla (useTableSort): referencia siempre visible de por qué
+  // está ordenada la respuesta y controles para cambiarlo dentro del panel
+  // (en celular no hay encabezados que tocar).
+  sort?: TableSortControl;
   sx?: SxProps<Theme>;
   // Campos de filtro, cada uno envuelto en un <Grid size={...}>.
   children: ReactNode;
@@ -93,12 +115,14 @@ export default function FilterBar({
   activeFilters = [],
   onClearAll,
   actions,
+  sort,
   sx,
   children,
 }: FilterBarProps) {
   const titleId = useId();
   const contentId = useId();
   const [expanded, setExpanded] = useState(false);
+  const sortFieldRef = useRef<HTMLInputElement>(null);
 
   const activeCount = activeFilters.length;
   const hasActive = activeCount > 0;
@@ -211,6 +235,17 @@ export default function FilterBar({
         {actions}
       </Box>
 
+      {sort && (
+        <SortReference
+          sort={sort}
+          onEdit={() => {
+            setExpanded(true);
+            // Tras abrir el panel, el foco va al selector de columna.
+            setTimeout(() => sortFieldRef.current?.focus(), 250);
+          }}
+        />
+      )}
+
       {!expanded && hasActive && (
         <Fade in>
           <Box
@@ -272,8 +307,150 @@ export default function FilterBar({
           <Grid container spacing={2}>
             {children}
           </Grid>
+          {sort && <SortControls sort={sort} inputRef={sortFieldRef} />}
         </Box>
       </Collapse>
     </Paper>
+  );
+}
+
+// Referencia del orden vigente, visible con el panel abierto o cerrado.
+// <output> (estado vivo): un lector de pantalla anuncia el cambio de orden.
+function SortReference({ sort, onEdit }: { sort: TableSortControl; onEdit: () => void }) {
+  const summary = sortSummary(sort.sort, sort.options);
+  if (!summary) return null;
+
+  return (
+    <Box
+      component="output"
+      aria-live="polite"
+      aria-label="Orden de los resultados"
+      sx={{
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 1,
+        px: { xs: 2, sm: 2.5 },
+        pb: 1.5,
+      }}
+    >
+      <SwapVertIcon fontSize="small" aria-hidden sx={{ color: "text.secondary" }} />
+      <Typography component="span" variant="body2" sx={{ color: "text.secondary" }}>
+        Ordenado por
+      </Typography>
+      <Chip
+        size="small"
+        color={sort.isDefault ? "default" : "secondary"}
+        variant={sort.isDefault ? "outlined" : "filled"}
+        label={summary}
+        title={"Ordenado por " + summary + ". Clic para cambiar el orden."}
+        onClick={onEdit}
+        data-dd-action-name="Cambiar orden"
+        {...(!sort.isDefault && {
+          onDelete: sort.reset,
+          deleteIcon: <RestartAltIcon titleAccess="Restablecer orden predeterminado" />,
+        })}
+        sx={{ maxWidth: "100%", fontWeight: 600 }}
+      />
+      {sort.isDefault && (
+        <Typography component="span" variant="caption" sx={{ color: "text.secondary" }}>
+          (predeterminado)
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
+// Selector de columna y dirección dentro del panel de filtros. Las
+// direcciones se nombran según el dato ("A → Z", "Más reciente primero").
+function SortControls({
+  sort,
+  inputRef,
+}: {
+  sort: TableSortControl;
+  inputRef: Ref<HTMLInputElement>;
+}) {
+  const option = findSortOption(sort.options, sort.sort.orderBy);
+  if (!option) return null;
+  // Primero la dirección natural del dato (A → Z, más reciente primero…).
+  const directions: SortOrder[] =
+    naturalOrder(option.kind) === "asc" ? ["asc", "desc"] : ["desc", "asc"];
+
+  return (
+    <Box component="fieldset" sx={{ border: 0, m: 0, p: 0, minWidth: 0, mt: 2 }}>
+      <Divider sx={{ mb: 2 }} />
+      <Typography
+        component="legend"
+        variant="subtitle2"
+        sx={{ mb: 1.5, p: 0, float: "left", width: "100%" }}
+      >
+        Orden de los resultados
+      </Typography>
+      <Grid container spacing={2} sx={{ alignItems: "center", clear: "both" }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <Paper>
+            <TextField
+              select
+              fullWidth
+              label="Ordenar por"
+              value={sort.sort.orderBy}
+              inputRef={inputRef}
+              onChange={(event) => {
+                const next = findSortOption(sort.options, event.target.value);
+                if (next) sort.setSort({ orderBy: next.key, order: naturalOrder(next.kind) });
+              }}
+            >
+              {sort.options.map((item) => (
+                <MenuItem key={item.key} value={item.key}>
+                  {item.label}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Paper>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: "auto" }}>
+          <ToggleButtonGroup
+            exclusive
+            size="small"
+            color="primary"
+            aria-label="Dirección del orden"
+            value={sort.sort.order}
+            onChange={(_, order: SortOrder | null) => {
+              if (order) sort.setSort({ orderBy: option.key, order });
+            }}
+            sx={{ flexWrap: "wrap" }}
+          >
+            {directions.map((order) => (
+              <ToggleButton
+                key={order}
+                value={order}
+                data-dd-action-name={"Orden: " + directionLabel(option.kind, order)}
+                sx={{ textTransform: "none", gap: 0.75, px: 1.5 }}
+              >
+                {order === "asc" ? (
+                  <ArrowUpwardIcon fontSize="small" aria-hidden />
+                ) : (
+                  <ArrowDownwardIcon fontSize="small" aria-hidden />
+                )}
+                {directionLabel(option.kind, order)}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </Grid>
+        {!sort.isDefault && (
+          <Grid size={{ xs: 12, md: "auto" }}>
+            <Button
+              size="small"
+              startIcon={<RestartAltIcon />}
+              onClick={sort.reset}
+              data-dd-action-name="Restablecer orden"
+              sx={{ textTransform: "none" }}
+            >
+              Restablecer orden
+            </Button>
+          </Grid>
+        )}
+      </Grid>
+    </Box>
   );
 }

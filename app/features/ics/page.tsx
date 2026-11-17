@@ -5,18 +5,20 @@ import { useRouter } from "@shared/navigation";
 import Add from "@mui/icons-material/Add";
 import { Button } from "@mui/material";
 
-import { usePaginatedList } from "@hooks";
+import { usePaginatedList, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import FiltersIcs, { DEFAULT_FILTERS_ICS, type IFiltersIcs } from "./_components/FiltersIcs";
-import TableIcs from "./_components/TableIcs";
+import TableIcs, { ICS_DEFAULT_SORT, ICS_SORT_OPTIONS } from "./_components/TableIcs";
 import { IcsService } from "@services";
 
 const IcsPage = () => {
   const [filters, setFilters] = useState<IFiltersIcs>(DEFAULT_FILTERS_ICS);
 
   const router = useRouter();
+
+  const sort = useTableSort("ics", ICS_SORT_OPTIONS, ICS_DEFAULT_SORT);
 
   const {
     rows: data,
@@ -27,12 +29,8 @@ const IcsPage = () => {
   } = usePaginatedList({
     key: "ics",
     filters,
-    fetcher: (filters, { page, limit }) =>
-      IcsService.findAllPaginated({
-        ...filters,
-        page,
-        limit,
-      }),
+    sort: sort.sort,
+    fetcher: (filters, params) => IcsService.findAllPaginated({ ...filters, ...params }),
   });
 
   return (
@@ -48,11 +46,11 @@ const IcsPage = () => {
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
-      <FiltersIcs filters={filters} setFilters={setFilters} count={count} />
+      <FiltersIcs filters={filters} setFilters={setFilters} count={count} sort={sort} />
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <TableIcs rows={data} getData={getData} pagination={pagination} />
+        <TableIcs sorting={sort} rows={data} getData={getData} pagination={pagination} />
       )}
     </>
   );

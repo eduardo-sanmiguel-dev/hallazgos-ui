@@ -4,6 +4,7 @@ import { TextField } from "@mui/material";
 
 import FilterBar from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
+import type { TableSortControl } from "@hooks/useTableSort";
 
 export interface IFiltersManufacturingPlants {
   name: string;
@@ -15,11 +16,14 @@ interface Props {
   filters: IFiltersManufacturingPlants;
   setFilters: (filters: IFiltersManufacturingPlants) => void;
   count: number;
+  // Orden de la tabla: referencia y controles en la barra.
+  sort?: TableSortControl;
 }
 
-const FiltersManufacturingPlants = ({ filters, setFilters, count }: Props) => {
+const FiltersManufacturingPlants = ({ filters, setFilters, count, sort }: Props) => {
   return (
     <FilterBar
+      sort={sort}
       count={count}
       activeFilters={
         filters.name

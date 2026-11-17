@@ -11,7 +11,7 @@ import { Button } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { toast } from "sonner";
 
-import { usePaginatedList } from "@hooks";
+import { usePaginatedList, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
@@ -22,7 +22,12 @@ import { DeleteAction, EditAction, RowActions } from "@shared/components/RowActi
 import type { ResponsiveColumn } from "@shared/components/ResponsiveTable";
 import CatalogTable from "@shared/components/CatalogTable";
 import { Equipment } from "@interfaces";
-import { stringToDateWithTime, updatedDateLabel } from "@shared/utils";
+import {
+  stringToDateWithTime,
+  updatedDateLabel,
+  type SortOption,
+  type SortState,
+} from "@shared/utils";
 import { useUserSessionStore } from "@store";
 import { EquipmentsService } from "@services";
 
@@ -35,12 +40,13 @@ export interface IFiltersTopics {
 const columns: ResponsiveColumn<Equipment>[] = [
   {
     id: "id",
+    sortKey: "id",
     header: "ID",
     cell: (row) => row.id,
     rowHeader: true,
     card: "hidden",
   },
-  { id: "name", header: "Nombre", cell: (row) => row.name, card: "title" },
+  { id: "name", sortKey: "name", header: "Nombre", cell: (row) => row.name, card: "title" },
   {
     id: "manufacturingPlantCard",
     header: "Planta",
@@ -50,6 +56,7 @@ const columns: ResponsiveColumn<Equipment>[] = [
   },
   {
     id: "deliveryFrequency",
+    sortKey: "deliveryFrequency",
     header: "Frecuencia de entrega (días)",
     cell: (row) => row.deliveryFrequency,
   },
@@ -60,34 +67,54 @@ const columns: ResponsiveColumn<Equipment>[] = [
   },
   {
     id: "manufacturingPlant",
+    sortKey: "manufacturingPlant",
     header: "Planta",
     cell: (row) => row.manufacturingPlant.name,
     card: "hidden",
   },
   {
     id: "createdAt",
+    sortKey: "createdAt",
     header: "Fecha de creación",
     cell: (row) => stringToDateWithTime(row.createdAt),
     card: "hidden",
   },
   {
     id: "createdBy",
+    sortKey: "createdBy",
     header: "Creado por",
     cell: (row) => row.createdBy.name,
     card: "hidden",
   },
   {
     id: "updatedAt",
+    sortKey: "updatedAt",
     header: "Fecha de actualización",
     cell: (row) => updatedDateLabel(row.createdAt, row.updatedAt) ?? "-",
   },
   {
     id: "updatedBy",
+    sortKey: "updatedBy",
     header: "Actualizado por",
     cell: (row) => row.updatedBy?.name,
     card: "hidden",
   },
 ];
+
+/** Columnas que la API puede ordenar (misma lista blanca que el backend). */
+const EQUIPMENT_SORT_OPTIONS: SortOption[] = [
+  { key: "name", label: "Nombre", kind: "text" },
+  { key: "id", label: "ID", kind: "number" },
+  { key: "deliveryFrequency", label: "Frecuencia de entrega (días)", kind: "number" },
+  { key: "manufacturingPlant", label: "Planta", kind: "text" },
+  { key: "createdAt", label: "Fecha de creación", kind: "date" },
+  { key: "createdBy", label: "Creado por", kind: "text" },
+  { key: "updatedAt", label: "Fecha de actualización", kind: "date" },
+  { key: "updatedBy", label: "Actualizado por", kind: "text" },
+  { key: "isActive", label: "Estado", kind: "status" },
+];
+
+const EQUIPMENT_DEFAULT_SORT: SortState = { orderBy: "name", order: "asc" };
 
 export default function EquipmentsPage() {
   const router = useRouter();
@@ -102,6 +129,7 @@ export default function EquipmentsPage() {
   });
 
   const { confirm, confirmDialog } = useConfirmDialog();
+  const sort = useTableSort("equipments", EQUIPMENT_SORT_OPTIONS, EQUIPMENT_DEFAULT_SORT);
 
   const {
     rows,
@@ -112,10 +140,12 @@ export default function EquipmentsPage() {
   } = usePaginatedList({
     key: "equipments",
     filters,
-    fetcher: (filters, { page, limit }) =>
+    sort: sort.sort,
+    fetcher: (filters, { page, limit, ...sorting }) =>
       EquipmentsService.findAllPaginated({
         page,
         limit,
+        ...sorting,
         manufacturingPlantId: filters.manufacturingPlantId,
         name: filters.name,
       }),
@@ -154,6 +184,7 @@ export default function EquipmentsPage() {
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
       <FilterBar
+        sort={sort}
         count={count}
         activeFilters={compactFilters(
           !!filters.manufacturingPlantId && {
@@ -221,6 +252,7 @@ export default function EquipmentsPage() {
         <TableSkeleton />
       ) : (
         <CatalogTable
+          sorting={sort}
           catalog="equipments"
           onActivated={getData}
           rows={rows}

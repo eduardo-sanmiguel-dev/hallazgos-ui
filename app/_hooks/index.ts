@@ -2,6 +2,7 @@ export * from "./useEvidences";
 export * from "./useCatalogs";
 export * from "./usePaginatedList";
 export * from "./useRowsPerPage";
+export * from "./useTableSort";
 export * from "./useInstallApp";
 export * from "./useUploadProgress";
 export * from "./useGembaWalkAccess";

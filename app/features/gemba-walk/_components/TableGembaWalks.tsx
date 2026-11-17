@@ -9,10 +9,14 @@ import { type ServerPagination } from "@shared/components/TableDefaultServer";
 import ResponsiveTable, { type ResponsiveColumn } from "@shared/components/ResponsiveTable";
 import { GembaWalk } from "@interfaces";
 import { formatDuration } from "./formatDuration";
+import type { TableSortControl } from "@hooks/useTableSort";
+import type { SortOption, SortState } from "@shared/utils";
 
 interface Props {
   rows: GembaWalk[];
   pagination: ServerPagination;
+  // Orden en la API (useTableSort): encabezados ordenables.
+  sorting?: TableSortControl;
 }
 
 export const complianceOf = (gembaWalk: GembaWalk) => {
@@ -45,6 +49,7 @@ const ComplianceChips = ({ row }: { row: GembaWalk }) => {
 const columns: ResponsiveColumn<GembaWalk>[] = [
   {
     id: "id",
+    sortKey: "id",
     header: "ID",
     cell: (row) => row.id,
     rowHeader: true,
@@ -59,39 +64,46 @@ const columns: ResponsiveColumn<GembaWalk>[] = [
   },
   {
     id: "plant",
+    sortKey: "manufacturingPlant",
     header: "Planta",
     cell: (row) => zoneOf(row)?.manufacturingPlant?.name || "-",
     card: "subtitle",
   },
   {
     id: "zone",
+    sortKey: "nameZone",
     header: "Zona",
     cell: (row) => zoneOf(row)?.nameZone || "-",
     card: "hidden",
   },
   {
     id: "location",
+    sortKey: "nameLocation",
     header: "Ubicación",
     cell: (row) => zoneOf(row)?.nameLocation || "-",
     card: "hidden",
   },
   {
     id: "scheduledAt",
+    sortKey: "scheduledAt",
     header: "Programado",
     cell: (row) => `${stringToDateWithTime(row.gembaWalkCalendar.scheduledAt)}`,
   },
   {
     id: "isAdditional",
+    sortKey: "isAdditional",
     header: "Adicional",
     cell: (row) => (row.gembaWalkCalendar.isAdditional ? "Sí" : "No"),
   },
   {
     id: "performedAt",
+    sortKey: "performedAt",
     header: "Realizado",
     cell: (row) => stringToDateWithTime(row.performedAt),
   },
   {
     id: "duration",
+    sortKey: "duration",
     header: "Duración",
     cell: (row) => formatDuration(row.durationSeconds),
   },
@@ -107,16 +119,18 @@ const columns: ResponsiveColumn<GembaWalk>[] = [
   },
   {
     id: "createdBy",
+    sortKey: "createdBy",
     header: "Observador",
     cell: (row) => row.createdBy?.name || "-",
   },
 ];
 
-export default function TableGembaWalks({ rows, pagination }: Props) {
+export default function TableGembaWalks({ rows, pagination, sorting }: Props) {
   const router = useRouter();
 
   return (
     <ResponsiveTable
+      sorting={sorting}
       rows={rows}
       columns={columns}
       getRowKey={(row) => row.id}
@@ -131,3 +145,18 @@ export default function TableGembaWalks({ rows, pagination }: Props) {
     />
   );
 }
+
+/** Columnas que la API puede ordenar (misma lista blanca que el backend). */
+export const GEMBA_WALK_SORT_OPTIONS: SortOption[] = [
+  { key: "performedAt", label: "Fecha de realización", kind: "date" },
+  { key: "scheduledAt", label: "Fecha programada", kind: "date" },
+  { key: "id", label: "ID", kind: "number" },
+  { key: "manufacturingPlant", label: "Planta", kind: "text" },
+  { key: "nameZone", label: "Zona", kind: "text" },
+  { key: "nameLocation", label: "Ubicación", kind: "text" },
+  { key: "isAdditional", label: "Adicional", kind: "boolean" },
+  { key: "duration", label: "Duración", kind: "number" },
+  { key: "createdBy", label: "Observador", kind: "text" },
+];
+
+export const GEMBA_WALK_DEFAULT_SORT: SortState = { orderBy: "performedAt", order: "desc" };

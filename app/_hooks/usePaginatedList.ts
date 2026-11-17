@@ -4,6 +4,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useDebounce } from "use-debounce";
 
 import type { ServerPagination } from "@shared/components/TableDefaultServer";
+import type { SortState } from "@shared/utils/tableSort";
 import { useRowsPerPage } from "./useRowsPerPage";
 
 export interface PaginatedResponse<TItem> {
@@ -16,6 +17,9 @@ export interface PaginationParams {
   page: number;
   /** -1 = todos. */
   limit: number;
+  /** Orden pedido a la API (solo si la lista recibe `sort`). */
+  orderBy?: string;
+  order?: "asc" | "desc";
 }
 
 interface Options<TFilters, TItem> {
@@ -33,6 +37,11 @@ interface Options<TFilters, TItem> {
   debounceMs?: number;
   /** Valida los filtros efectivos tras el debounce antes de pedir datos. */
   enabled?: boolean | ((filters: TFilters) => boolean);
+  /**
+   * Orden que resuelve la API (useTableSort). Se aplica sin debounce (es un
+   * clic) y, como un filtro, vuelve a la página 1.
+   */
+  sort?: SortState;
 }
 
 const EMPTY_ROWS: never[] = [];
@@ -45,6 +54,7 @@ const EMPTY_ROWS: never[] = [];
  * - Solo se muestra la respuesta de los filtros vigentes: una respuesta lenta
  *   de filtros viejos nunca pisa a la actual.
  * - Al volver a la pantalla muestra lo que había y revalida en segundo plano.
+ * - Con `sort`, el orden va a la API y cambiarlo vuelve a la página 1.
  */
 export function usePaginatedList<TFilters, TItem>({
   key,
@@ -54,14 +64,18 @@ export function usePaginatedList<TFilters, TItem>({
   allowAllRows = false,
   debounceMs = 500,
   enabled = true,
+  sort,
 }: Options<TFilters, TItem>) {
   const [debouncedFilters] = useDebounce(filters, debounceMs, {
     equalityFn: (previous, next) => JSON.stringify(previous) === JSON.stringify(next),
   });
-  const filtersKey = JSON.stringify(debouncedFilters);
+  // El orden forma parte de la consulta: cambiarlo reinicia la página igual
+  // que un filtro.
+  const sortKey = sort ? `${sort.orderBy}:${sort.order}` : "";
+  const filtersKey = JSON.stringify(debouncedFilters) + sortKey;
   // Mientras el debounce conserva filtros anteriores, no consultar ni
   // recargar esa consulta por paginación, foco de ventana o refresh.
-  const filtersAreCurrent = filtersKey === JSON.stringify(filters);
+  const filtersAreCurrent = filtersKey === JSON.stringify(filters) + sortKey;
   const canQuery =
     filtersAreCurrent && (typeof enabled === "function" ? enabled(debouncedFilters) : enabled);
   // Filas por página recordadas por tabla; se espera a leerlas para no
@@ -95,8 +109,13 @@ export function usePaginatedList<TFilters, TItem>({
   };
 
   const query = useQuery({
-    queryKey: ["list", key, debouncedFilters, page, rowsPerPage],
-    queryFn: () => fetcher(debouncedFilters, { page: page + 1, limit: rowsPerPage }),
+    queryKey: ["list", key, debouncedFilters, sortKey, page, rowsPerPage],
+    queryFn: () =>
+      fetcher(debouncedFilters, {
+        page: page + 1,
+        limit: rowsPerPage,
+        ...(sort && { orderBy: sort.orderBy, order: sort.order }),
+      }),
     placeholderData: keepPreviousData,
     // Las listas siempre se revalidan al volver a la pantalla (pudo crearse
     // o editarse algo); mientras, se muestra lo que había.

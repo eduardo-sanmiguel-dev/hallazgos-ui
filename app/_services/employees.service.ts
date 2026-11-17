@@ -2,6 +2,7 @@ import { IFiltersEmployees } from "@routes/employees/_components/FiltersEmployee
 import { CatalogEmployee, Employee, EmployeeOption } from "@interfaces";
 import axiosWrapper from "./axiosWrapper";
 import { withCatalogInvalidation } from "@shared/libs/catalogKeys";
+import { sortQueryParams, type SortQuery } from "@shared/utils/tableSort";
 
 const api = axiosWrapper({
   baseURL: "/employees",
@@ -39,6 +40,8 @@ const findAll = async ({
 const findAllPaginated = async ({
   page,
   limit,
+  orderBy,
+  order,
   ...filters
 }: Omit<IFiltersEmployees, "areaId" | "positionId"> & {
   areaId?: string;
@@ -46,13 +49,14 @@ const findAllPaginated = async ({
   genreId?: string;
   page: number;
   limit: number;
-}) => {
+} & SortQuery) => {
   const { manufacturingPlantId, name, areaId, positionId, genreId, isActive } = filters;
   const { data } = await api.get<{ data: Employee[]; count: number }>("", {
     params: {
       includeInactive: true,
       page,
       limit,
+      ...sortQueryParams({ orderBy, order }),
       ...(manufacturingPlantId && { manufacturingPlantId }),
       ...(name && { name }),
       ...(areaId && { areaId }),

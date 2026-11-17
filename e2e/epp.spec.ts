@@ -433,12 +433,32 @@ test.describe("EPP: lista de entregas", () => {
     expect(listRequests.at(-1)!.searchParams.get("withHistory")).toBe("false");
     expect(historyRequests).toEqual([]);
 
-    // Orden de tres estados: asc, desc y sin orden.
-    for (let i = 0; i < 3; i++) {
-      await page.getByRole("button", { name: "Empleado" }).click();
-      await page.waitForLoadState("networkidle");
-    }
-    await page.getByRole("button", { name: "Cédula" }).click();
+    // El orden lo resuelve la API. Por omisión, Empleado A → Z; en su columna
+    // el encabezado solo alterna la dirección.
+    const lastList = () => listRequests.at(-1)!.searchParams;
+    expect(lastList().get("orderBy")).toBe("name");
+    expect(lastList().get("order")).toBe("asc");
+    await page
+      .getByRole("columnheader", { name: /^Empleado/ })
+      .getByRole("button")
+      .click();
+    await expect.poll(() => lastList().get("order")).toBe("desc");
+    expect(lastList().get("orderBy")).toBe("name");
+    await expect(
+      page.getByRole("region", { name: "Filtros" }).getByText("Empleado · Z → A"),
+    ).toBeVisible();
+    await page
+      .getByRole("columnheader", { name: /^Empleado/ })
+      .getByRole("button")
+      .click();
+    await expect.poll(() => lastList().get("order")).toBe("asc");
+    // Otra columna: su dirección natural (número, mayor a menor).
+    await page
+      .getByRole("columnheader", { name: /^Cédula/ })
+      .getByRole("button")
+      .click();
+    await expect.poll(() => lastList().get("orderBy")).toBe("code");
+    expect(lastList().get("order")).toBe("desc");
 
     await page.getByRole("button", { name: "Ver historial de E2E Ana" }).click();
     const history = page.getByRole("table", {
@@ -487,7 +507,7 @@ test.describe("EPP: lista de entregas", () => {
     });
 
     await page.getByRole("button", { name: "Ver historial de E2E Beto" }).click();
-    await expect(page.getByRole("status")).toContainText("Cargando historial…");
+    await expect(page.getByRole("status").filter({ hasText: "Cargando historial…" })).toBeVisible();
     await expect(
       page.getByRole("table", { name: "Historial de entrega de E2E Beto" }),
     ).toHaveAttribute("aria-busy", "true");

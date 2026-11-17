@@ -5,18 +5,20 @@ import { useRouter } from "@shared/navigation";
 import { Button } from "@mui/material";
 import Add from "@mui/icons-material/Add";
 
-import { usePaginatedList } from "@hooks";
+import { usePaginatedList, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 import { UsersService } from "@services";
-import TableUsers from "./_components/TableUsers";
+import TableUsers, { USER_DEFAULT_SORT, USER_SORT_OPTIONS } from "./_components/TableUsers";
 import FiltersUsers, { DEFAULT_FILTERS_USERS, IFiltersUsers } from "./_components/FiltersUsers";
 
 const UsersPage = () => {
   const [filters, setFilters] = useState<IFiltersUsers>(DEFAULT_FILTERS_USERS);
 
   const router = useRouter();
+
+  const sort = useTableSort("users", USER_SORT_OPTIONS, USER_DEFAULT_SORT);
 
   const {
     rows: data,
@@ -27,11 +29,13 @@ const UsersPage = () => {
   } = usePaginatedList({
     key: "users",
     filters,
-    fetcher: (filters, { page, limit }) =>
+    sort: sort.sort,
+    fetcher: (filters, { page, limit, ...sorting }) =>
       UsersService.findAllPaginated({
         ...filters,
         page,
         limit,
+        ...sorting,
       }),
   });
 
@@ -48,11 +52,11 @@ const UsersPage = () => {
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
-      <FiltersUsers filters={filters} setFilters={setFilters} count={count} />
+      <FiltersUsers sort={sort} filters={filters} setFilters={setFilters} count={count} />
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <TableUsers rows={data} getData={getData} pagination={pagination} />
+        <TableUsers sorting={sort} rows={data} getData={getData} pagination={pagination} />
       )}
     </>
   );

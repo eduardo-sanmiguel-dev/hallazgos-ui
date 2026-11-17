@@ -29,6 +29,9 @@ import { EmergencyTeam } from "@interfaces";
 import { EmergencyTeamsService } from "@services";
 import { constants } from "@constants";
 import { StyledTableCell, StyledTableRow } from "@shared/components/TableDefault";
+import { SortHeaderCell } from "@shared/components/SortableHeader";
+import type { TableSortControl } from "@hooks/useTableSort";
+import type { SortOption, SortState } from "@shared/utils";
 
 interface Props {
   // Filas de la página actual (paginadas en la API).
@@ -38,6 +41,8 @@ interface Props {
   getData: () => void;
   // De usePaginatedList: página, filas por página, total y error.
   pagination: ServerPagination;
+  // Orden en la API (useTableSort): encabezados ordenables.
+  sorting?: TableSortControl;
 }
 
 const EMPTY_TITLE = "Sin registros de equipos de emergencia";
@@ -48,6 +53,7 @@ export default function EmergencyTeamsTable({
   setSelectedIds,
   getData,
   pagination,
+  sorting,
 }: Props) {
   const { page, setPage, rowsPerPage, setRowsPerPage, count } = pagination;
   // En celular, tarjetas (ResponsiveTable) con su casilla para imprimir.
@@ -225,17 +231,17 @@ export default function EmergencyTeamsTable({
                   }}
                 />
               </StyledTableCell>
-              <StyledTableCell>ID</StyledTableCell>
-              <StyledTableCell>Planta</StyledTableCell>
-              <StyledTableCell>Ubicación</StyledTableCell>
-              <StyledTableCell>N. Extintor</StyledTableCell>
-              <StyledTableCell>Tipo</StyledTableCell>
-              <StyledTableCell>Capacidad</StyledTableCell>
-              <StyledTableCell>Creación</StyledTableCell>
-              <StyledTableCell>Creado por</StyledTableCell>
-              <StyledTableCell>Última actualización</StyledTableCell>
-              <StyledTableCell>Actualizado por</StyledTableCell>
-              <StyledTableCell>Estado</StyledTableCell>
+              <SortHeaderCell label="ID" sortKey="id" sorting={sorting} />
+              <SortHeaderCell label="Planta" sortKey="manufacturingPlant" sorting={sorting} />
+              <SortHeaderCell label="Ubicación" sortKey="location" sorting={sorting} />
+              <SortHeaderCell label="N. Extintor" sortKey="extinguisherNumber" sorting={sorting} />
+              <SortHeaderCell label="Tipo" sortKey="typeOfExtinguisher" sorting={sorting} />
+              <SortHeaderCell label="Capacidad" sortKey="capacity" sorting={sorting} />
+              <SortHeaderCell label="Creación" sortKey="createdAt" sorting={sorting} />
+              <SortHeaderCell label="Creado por" sortKey="createdBy" sorting={sorting} />
+              <SortHeaderCell label="Última actualización" sortKey="updatedAt" sorting={sorting} />
+              <SortHeaderCell label="Actualizado por" sortKey="updatedBy" sorting={sorting} />
+              <SortHeaderCell label="Estado" sortKey="isActive" sorting={sorting} />
               <StyledTableCell>Acciones</StyledTableCell>
             </StyledTableRow>
           </TableHead>
@@ -317,3 +323,20 @@ export default function EmergencyTeamsTable({
     </>
   );
 }
+
+/** Columnas que la API puede ordenar (misma lista blanca que el backend). */
+export const EMERGENCY_TEAM_SORT_OPTIONS: SortOption[] = [
+  { key: "id", label: "ID", kind: "number" },
+  { key: "manufacturingPlant", label: "Planta", kind: "text" },
+  { key: "location", label: "Ubicación", kind: "text" },
+  { key: "extinguisherNumber", label: "N. Extintor", kind: "text" },
+  { key: "typeOfExtinguisher", label: "Tipo", kind: "text" },
+  { key: "capacity", label: "Capacidad", kind: "number" },
+  { key: "createdAt", label: "Fecha de creación", kind: "date" },
+  { key: "createdBy", label: "Creado por", kind: "text" },
+  { key: "updatedAt", label: "Última actualización", kind: "date" },
+  { key: "updatedBy", label: "Actualizado por", kind: "text" },
+  { key: "isActive", label: "Estado", kind: "status" },
+];
+
+export const EMERGENCY_TEAM_DEFAULT_SORT: SortState = { orderBy: "id", order: "desc" };

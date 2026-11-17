@@ -14,6 +14,7 @@ import FilterBar, {
   optionLabel,
 } from "@shared/components/FilterBar";
 import ClearFiltersButton from "@shared/components/ClearFiltersButton";
+import type { TableSortControl } from "@hooks/useTableSort";
 
 export interface IFiltersCiaels {
   manufacturingPlantId: string;
@@ -39,9 +40,11 @@ interface Props {
   filters: IFiltersCiaels;
   setFilters: (filters: IFiltersCiaels) => void;
   count: number;
+  // Orden de la tabla: referencia y controles en la barra.
+  sort?: TableSortControl;
 }
 
-const FiltersCiaels = ({ filters, setFilters, count }: Props) => {
+const FiltersCiaels = ({ filters, setFilters, count, sort }: Props) => {
   const typesOfEvents = useTypesOfEvents().data ?? EMPTY_CATALOG;
   // Las zonas dependen de la planta elegida.
   const zones =
@@ -97,6 +100,7 @@ const FiltersCiaels = ({ filters, setFilters, count }: Props) => {
 
   return (
     <FilterBar
+      sort={sort}
       count={count}
       activeFilters={activeFilters}
       onClearAll={() => setFilters(DEFAULT_FILTERS_CIAELS)}

@@ -6,14 +6,14 @@ import AddIcon from "@mui/icons-material/Add";
 import { Button } from "@mui/material";
 
 import DialogCreateCiael from "./components/DialogCreateCiael";
-import TableCiaels from "./components/TableCiaels";
+import TableCiaels, { CIAEL_DEFAULT_SORT, CIAEL_SORT_OPTIONS } from "./components/TableCiaels";
 import FiltersCiaels, {
   DEFAULT_FILTERS_CIAELS,
   type IFiltersCiaels,
 } from "./components/FiltersCiaels";
 import { CiaelsService } from "@services";
 import SimCardDownloadIcon from "@mui/icons-material/SimCardDownload";
-import { usePaginatedList } from "@hooks";
+import { usePaginatedList, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
@@ -25,6 +25,8 @@ const CiaelPage = () => {
     mutationFn: () => CiaelsService.downloadExcel(),
   });
 
+  const sort = useTableSort("ciael", CIAEL_SORT_OPTIONS, CIAEL_DEFAULT_SORT);
+
   const {
     rows: ciaels,
     count,
@@ -34,8 +36,8 @@ const CiaelPage = () => {
   } = usePaginatedList({
     key: "ciael",
     filters,
-    fetcher: (filters, { page, limit }) =>
-      CiaelsService.findAllPaginated({ ...filters, page, limit }),
+    sort: sort.sort,
+    fetcher: (filters, params) => CiaelsService.findAllPaginated({ ...filters, ...params }),
   });
 
   return (
@@ -60,8 +62,12 @@ const CiaelPage = () => {
         </Button>
         <RefreshButton onClick={() => getData()} />
       </PageHeader>
-      <FiltersCiaels filters={filters} setFilters={setFilters} count={count} />
-      {isLoading ? <TableSkeleton /> : <TableCiaels data={ciaels} pagination={pagination} />}
+      <FiltersCiaels filters={filters} setFilters={setFilters} count={count} sort={sort} />
+      {isLoading ? (
+        <TableSkeleton />
+      ) : (
+        <TableCiaels sorting={sort} data={ciaels} pagination={pagination} />
+      )}
     </>
   );
 };
