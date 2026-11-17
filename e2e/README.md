@@ -16,6 +16,9 @@ leen datos fijos con `mockGet`.
 - `exports.spec.ts`: Excel de hallazgos y de CIAEL; el PDF de hallazgos exige
   planta.
 - `smoke.spec.ts`: las pantallas principales cargan sin errores.
+- `hds.spec.ts`: hojas de datos de seguridad: subir, reemplazar y eliminar
+  PDF (solo administradores), validación de PDF y 30 MB, y confirmación al
+  eliminar (incluye cancelar y confirmar de inmediato).
 - `catalogs.spec.ts`: alta y edición (desde la tabla) de criterios, tipos de
   criterio, procesos, lugares, zonas y plantas; validaciones de requeridos.
 - `people.spec.ts`: usuarios (supervisor con zonas, general, contraseña),

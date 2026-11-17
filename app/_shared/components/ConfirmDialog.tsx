@@ -99,10 +99,13 @@ export function useConfirmDialog() {
   const [isBusy, setIsBusy] = useState(false);
   const [options, setOptions] = useState<ConfirmOptions>({ title: "" });
   const resolver = useRef<((confirmed: boolean) => void) | null>(null);
+  // Se lee al instante (no espera al siguiente render): ver handleConfirm.
+  const acceptsConfirm = useRef(false);
 
   const confirm = useCallback((nextOptions: ConfirmOptions) => {
     setOptions(nextOptions);
     setOpen(true);
+    acceptsConfirm.current = true;
 
     return new Promise<boolean>((resolve) => {
       resolver.current = resolve;
@@ -110,17 +113,23 @@ export function useConfirmDialog() {
   }, []);
 
   const settle = (confirmed: boolean) => {
+    acceptsConfirm.current = false;
     setOpen(false);
     resolver.current?.(confirmed);
     resolver.current = null;
   };
 
   const handleConfirm = async () => {
+    // Al cancelar, el diálogo tarda en desaparecer (animación) y su botón
+    // seguía activo: un clic rápido ejecutaba la acción recién cancelada.
+    // Tampoco se ejecuta dos veces (doble clic).
+    if (!acceptsConfirm.current) return;
     if (!options.action) {
       settle(true);
       return;
     }
 
+    acceptsConfirm.current = false;
     setIsBusy(true);
     try {
       await options.action();
