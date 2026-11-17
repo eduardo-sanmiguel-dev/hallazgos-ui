@@ -46,9 +46,18 @@ const logout = async () => {
   return data;
 };
 
+// Cierra la sesión en todos los dispositivos del usuario (este incluido): el
+// API invalida todos sus tokens.
+const logoutAll = async () => {
+  const { data } = await api.post<{ message: string }>("/logout-all");
+  clearSession();
+  return data;
+};
+
 export const AuthService = {
   login,
   logout,
+  logoutAll,
   forgotPassword,
   loginRestorePassword,
 };

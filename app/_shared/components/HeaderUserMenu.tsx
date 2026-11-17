@@ -23,6 +23,7 @@ import { Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import LogoutIcon from "@mui/icons-material/Logout";
+import DevicesOutlinedIcon from "@mui/icons-material/DevicesOutlined";
 import FactoryOutlinedIcon from "@mui/icons-material/FactoryOutlined";
 import InstallMobileIcon from "@mui/icons-material/InstallMobile";
 import IosShareIcon from "@mui/icons-material/IosShare";
@@ -82,8 +83,11 @@ export default function HeaderUserMenu() {
   // Cerrar sesión a propósito borra los borradores del usuario en este
   // dispositivo (hay celulares compartidos); si tiene alguno, se avisa antes.
   // Si la sesión vence, en cambio, se conservan para recuperarlos.
+  // "everywhere": también cierra la sesión en los demás dispositivos del
+  // usuario (el API invalida todos sus tokens).
   const logoutMutation = useMutation({
-    mutationFn: AuthService.logout,
+    mutationFn: (everywhere: boolean) =>
+      everywhere ? AuthService.logoutAll() : AuthService.logout(),
     onSuccess: ({ message }) => {
       notify(message, true);
       // Nada de la cuenta que sale queda en memoria para la siguiente.
@@ -93,6 +97,11 @@ export default function HeaderUserMenu() {
     },
   });
 
+  const draftsWarning = (count: number) =>
+    count === 1
+      ? "Tienes un borrador sin enviar en este dispositivo. Si cierras sesión, se borrará."
+      : `Tienes ${count} borradores sin enviar en este dispositivo. Si cierras sesión, se borrarán.`;
+
   const logout = async () => {
     setAnchorEl(null);
     if (userId) {
@@ -100,10 +109,7 @@ export default function HeaderUserMenu() {
       if (drafts.length) {
         const confirmed = await confirm({
           title: "¿Cerrar sesión?",
-          description:
-            drafts.length === 1
-              ? "Tienes un borrador sin enviar en este dispositivo. Si cierras sesión, se borrará."
-              : `Tienes ${drafts.length} borradores sin enviar en este dispositivo. Si cierras sesión, se borrarán.`,
+          description: draftsWarning(drafts.length),
           confirmLabel: "Cerrar sesión",
           cancelLabel: "Volver",
           tone: "danger",
@@ -112,7 +118,28 @@ export default function HeaderUserMenu() {
       }
       await deleteUserDrafts(userId);
     }
-    logoutMutation.mutate();
+    logoutMutation.mutate(false);
+  };
+
+  // Afecta a otros dispositivos: siempre se confirma.
+  const logoutEverywhere = async () => {
+    setAnchorEl(null);
+    const drafts = userId ? await listUserDrafts(userId) : [];
+    const confirmed = await confirm({
+      title: "¿Cerrar todas tus sesiones?",
+      description: [
+        "Se cerrará tu sesión en este y en todos tus dispositivos (celulares, computadoras). Úsalo si perdiste un dispositivo o crees que alguien más entró a tu cuenta.",
+        drafts.length ? draftsWarning(drafts.length) : "",
+      ]
+        .filter(Boolean)
+        .join(" "),
+      confirmLabel: "Cerrar todas",
+      cancelLabel: "Volver",
+      tone: "danger",
+    });
+    if (!confirmed) return;
+    if (userId) await deleteUserDrafts(userId);
+    logoutMutation.mutate(true);
   };
 
   const installApp = async () => {
@@ -288,6 +315,21 @@ export default function HeaderUserMenu() {
             <LogoutIcon fontSize="small" />
           </ListItemIcon>
           Cerrar sesión
+        </MenuItem>
+        <MenuItem onClick={logoutEverywhere} sx={{ py: 1.25, alignItems: "flex-start" }}>
+          <ListItemIcon sx={{ mt: 0.25 }}>
+            <DevicesOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <Box>
+            Cerrar todas mis sesiones
+            <Typography
+              variant="caption"
+              component="div"
+              sx={{ color: "text.secondary", lineHeight: 1.3 }}
+            >
+              En todos tus dispositivos
+            </Typography>
+          </Box>
         </MenuItem>
         <Divider />
         <Typography

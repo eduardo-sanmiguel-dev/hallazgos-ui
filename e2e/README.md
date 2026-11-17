@@ -9,7 +9,8 @@ leen datos fijos con `mockGet`.
 ## Qué cubren
 
 - `auth.spec.ts`: ruta protegida sin sesión, validación del formulario,
-  contraseña incorrecta, inicio y cierre de sesión.
+  contraseña incorrecta, inicio y cierre de sesión, y "Cerrar todas mis
+  sesiones" (interceptado: la revocación real la prueba hallazgos-api).
 - `hallazgos.spec.ts`: lista con filtro por planta y alta de un hallazgo con
   evidencia (sin guardar).
 - `exports.spec.ts`: Excel de hallazgos y de CIAEL; el PDF de hallazgos exige

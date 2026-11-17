@@ -54,4 +54,43 @@ test.describe("Sesión", () => {
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/\/\?next=%2Fdashboard$/);
   });
+
+  // El API real invalidaría también la sesión guardada que usan las demás
+  // pruebas en paralelo: aquí se intercepta y se prueba el UI. La
+  // revocación real la cubre hallazgos-api (test/db/auth.db-spec.ts).
+  test("cerrar todas las sesiones pide confirmación y sale", async ({ page }) => {
+    const { email, password } = e2eCredentials();
+    let logoutAllCalls = 0;
+    await page.route("**/api/v1/auth/logout-all", async (route) => {
+      logoutAllCalls++;
+      // Como el API: la respuesta borra la cookie de sesión.
+      await page.context().clearCookies({ name: "token" });
+      return route.fulfill({
+        json: { message: "Sesión cerrada en todos los dispositivos." },
+      });
+    });
+
+    await loginWithForm(page, email, password);
+    await expectLoggedIn(page);
+
+    const openOption = async () => {
+      await page.getByRole("button", { name: /^Cuenta de / }).click();
+      await page.getByRole("menuitem", { name: /Cerrar todas mis sesiones/ }).click();
+    };
+    const dialog = page.getByRole("dialog", { name: "¿Cerrar todas tus sesiones?" });
+
+    // Volver no cierra nada.
+    await openOption();
+    await expect(dialog).toContainText("en todos tus dispositivos");
+    await dialog.getByRole("button", { name: "Volver" }).click();
+    await expect(dialog).toBeHidden();
+    expect(logoutAllCalls).toBe(0);
+
+    await openOption();
+    await dialog.getByRole("button", { name: "Cerrar todas" }).click();
+
+    await expect(toast(page, "Sesión cerrada en todos los dispositivos.")).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
+    expect(logoutAllCalls).toBe(1);
+  });
 });
