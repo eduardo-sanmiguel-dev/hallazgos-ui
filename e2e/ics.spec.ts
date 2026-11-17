@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { captureWrites, mockGet } from "./support/api";
-import { fakeCamera } from "./support/camera";
+import { fakeCamera, waitForCameraImage } from "./support/camera";
 import { expect, test } from "./support/fixtures";
 import { pickMany, pickOption, sessionPlants, toast, trackPageErrors } from "./support/ui";
 
@@ -87,6 +87,7 @@ test.describe("ICS", () => {
     // Alternativa a la cámara del teléfono: la del navegador. La foto se
     // comprime y se sube como JPG (antes, un PNG al tamaño del visor).
     await page.getByRole("button", { name: "Usar cámara del navegador" }).click();
+    await waitForCameraImage(page);
     await page.locator("#outer-circle").click();
     await expect(page.getByAltText("Vista previa de la evidencia")).toBeVisible();
 

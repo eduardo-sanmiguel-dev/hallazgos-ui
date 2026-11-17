@@ -113,6 +113,13 @@ export default function PhotoCapture({
   };
 
   const handleBrowserPhoto = async (dataUri: string) => {
+    // Si se dispara antes de que la cámara muestre imagen (celular lento), la
+    // librería entrega una foto vacía ("data:,"): antes se veía "El archivo
+    // no es una imagen". La cámara sigue abierta para intentarlo de nuevo.
+    if (!dataUri.startsWith("data:image/")) {
+      setError("La cámara todavía no está lista. Espera un momento y toma la foto de nuevo.");
+      return;
+    }
     const blob = await (await fetch(dataUri)).blob();
     await process(blob);
   };

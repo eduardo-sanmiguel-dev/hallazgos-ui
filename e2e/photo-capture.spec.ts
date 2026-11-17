@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 
+import { fakeCamera, waitForCameraImage } from "./support/camera";
 import { expect, test } from "./support/fixtures";
 
 // Foto de evidencia (PhotoCapture) en el formulario de ICS: en pantalla táctil,
@@ -131,5 +132,29 @@ test.describe("Foto de evidencia: escritorio", () => {
     await page.getByRole("button", { name: "Quitar foto" }).click();
     await expect(preview(page)).toHaveCount(0);
     await expect(page.getByText("Subir foto")).toBeVisible();
+  });
+});
+
+test.describe("Foto de evidencia: cámara del navegador lenta", () => {
+  test("disparar antes de que la cámara muestre imagen pide esperar y luego funciona", async ({
+    page,
+  }) => {
+    // Celular o equipo lento: la cámara tarda en arrancar.
+    await fakeCamera(page, { qr: "foto", delayMs: 1500 });
+    await page.goto("/ics/form");
+    await page.getByRole("button", { name: "Usar cámara del navegador" }).click();
+
+    // Antes: "El archivo no es una imagen." (la foto salía vacía).
+    await page.locator("#outer-circle").click();
+    await expect(
+      page.getByRole("alert").filter({ hasText: "La cámara todavía no está lista" }),
+    ).toBeVisible();
+    await expect(page.getByText("El archivo no es una imagen.")).toHaveCount(0);
+    await expect(preview(page)).toHaveCount(0);
+
+    // La cámara sigue abierta: al tener imagen, la foto sí sale.
+    await waitForCameraImage(page);
+    await page.locator("#outer-circle").click();
+    await expect(preview(page)).toBeVisible();
   });
 });

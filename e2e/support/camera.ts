@@ -1,13 +1,18 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import QRCode from "qrcode";
 
 /**
  * Sustituye la cámara del navegador: `qr` la hace "ver" ese QR (dibujado en
  * un canvas, lo lee jsQR como en un equipo real); `error` hace que
  * getUserMedia falle con ese nombre de DOMException; "unsupported" simula un
- * navegador sin getUserMedia. Debe llamarse antes de page.goto.
+ * navegador sin getUserMedia. `delayMs` retrasa el arranque (celular lento).
+ * Debe llamarse antes de page.goto.
  */
-export const fakeCamera = async (page: Page, options: { qr: string } | { error: string }) => {
+export const fakeCamera = async (
+  page: Page,
+  options: ({ qr: string } | { error: string }) & { delayMs?: number },
+) => {
+  const delayMs = options.delayMs ?? 0;
   const qr =
     "qr" in options
       ? (() => {
@@ -20,7 +25,7 @@ export const fakeCamera = async (page: Page, options: { qr: string } | { error: 
   const error = "error" in options ? options.error : null;
 
   await page.addInitScript(
-    ({ qr, error }) => {
+    ({ qr, error, delayMs }) => {
       if (error === "unsupported") {
         Object.defineProperty(navigator.mediaDevices, "getUserMedia", {
           value: undefined,
@@ -29,6 +34,7 @@ export const fakeCamera = async (page: Page, options: { qr: string } | { error: 
       }
 
       navigator.mediaDevices.getUserMedia = async () => {
+        if (delayMs) await new Promise((resolve) => setTimeout(resolve, delayMs));
         if (error) throw new DOMException("Cámara simulada", error);
         if (!qr) throw new Error("Sin QR");
 
@@ -56,6 +62,22 @@ export const fakeCamera = async (page: Page, options: { qr: string } | { error: 
         return canvas.captureStream(10);
       };
     },
-    { qr, error },
+    { qr, error, delayMs },
   );
 };
+
+/**
+ * Espera a que el visor de la cámara del navegador ya muestre imagen, como
+ * haría una persona antes de tocar el disparador. Con la máquina cargada
+ * (muchos workers) el video tarda: disparar antes da una foto vacía.
+ */
+export const waitForCameraImage = (page: Page) =>
+  expect
+    .poll(() =>
+      page
+        .locator("video")
+        .first()
+        .evaluate((video: HTMLVideoElement) => video.videoWidth)
+        .catch(() => 0),
+    )
+    .toBeGreaterThan(0);
