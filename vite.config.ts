@@ -15,7 +15,6 @@ export default defineConfig(({ mode }) => {
   const publicEnv = {
     VITE_API_URL: env.VITE_API_URL ?? env.NEXT_PUBLIC_URL_API ?? "http://localhost:4000/api/v1",
     VITE_API_ORIGIN: env.VITE_API_ORIGIN ?? env.NEXT_PUBLIC_URL_API_RAW ?? "http://localhost:4000",
-    VITE_APP_KEY: env.VITE_APP_KEY ?? env.NEXT_PUBLIC_APP_KEY ?? "",
     VITE_APP_VERSION: version,
     VITE_OPENOBSERVE_SITE: env.VITE_OPENOBSERVE_SITE ?? env.NEXT_PUBLIC_OPENOBSERVE_SITE ?? "",
     VITE_OPENOBSERVE_CLIENT_TOKEN:

@@ -13,7 +13,7 @@ export async function sessionLoader({ request }: LoaderFunctionArgs) {
   }
   if (url.pathname === "/privacy") return null;
   const apiUrl = import.meta.env.VITE_API_URL;
-  const headers = { "Content-Type": "application/json", "x-app-key": import.meta.env.VITE_APP_KEY };
+  const headers = { "Content-Type": "application/json" };
   const token = url.searchParams.get("token");
   if (url.pathname === "/" && token) {
     const response = await fetch(`${apiUrl}/auth/check-token-restore-password`, {

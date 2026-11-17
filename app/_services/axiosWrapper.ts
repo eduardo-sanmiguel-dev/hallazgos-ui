@@ -231,7 +231,6 @@ export default function axiosWrapper({ baseURL }: IAxiosWrapperProps): AxiosInst
     if (!(config.data instanceof FormData)) {
       config.headers["Content-Type"] = "application/json";
     }
-    config.headers["x-app-key"] = import.meta.env.VITE_APP_KEY;
 
     config.withCredentials = true;
     config.timeout = config.timeout || timeoutFor(config);

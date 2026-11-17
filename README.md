@@ -15,7 +15,7 @@ Requisitos: Node `^22.18`, `^24.11` o `>=26` y **pnpm 12.16.1** (`packageManager
 
 ```bash
 pnpm install --frozen-lockfile
-cp .env.example .env.development   # VITE_APP_KEY = APP_KEY de la API
+cp .env.example .env.development
 pnpm dev                           # http://localhost:3000
 ```
 
@@ -33,14 +33,15 @@ incorpora al navegador la lista explícita de `vite.config.ts`.
 | ------------------------------- | ------------------------------------------------------------------------------- |
 | `VITE_API_URL`                  | Base de la API y de su WebSocket de versiones (`http://localhost:4000/api/v1`). |
 | `VITE_API_ORIGIN`               | Origen de la API: imágenes de evidencias y trazas enlazadas en RUM.             |
-| `VITE_APP_KEY`                  | Cabecera `x-app-key`; debe coincidir con `APP_KEY` de la API.                   |
 | `VITE_OPENOBSERVE_SITE`         | Servidor de OpenObserve para RUM (vacío = sin monitoreo).                       |
 | `VITE_OPENOBSERVE_CLIENT_TOKEN` | Token **público** de ingesta de RUM (no es una credencial de administración).   |
 | `VITE_OPENOBSERVE_ORG`          | Organización de OpenObserve (`default`).                                        |
 
 `VITE_APP_VERSION` lo genera el build; no se define a mano. Los nombres
-anteriores `NEXT_PUBLIC_URL_API`, `NEXT_PUBLIC_URL_API_RAW` y
-`NEXT_PUBLIC_APP_KEY` se aceptan como respaldo para `.env` existentes.
+anteriores `NEXT_PUBLIC_URL_API` y `NEXT_PUBLIC_URL_API_RAW` se aceptan como
+respaldo para `.env` existentes. `VITE_APP_KEY` ya no existe: el API dejó de
+pedir la cabecera `x-app-key` (la protección contra CSRF es la cookie
+`SameSite=Lax` más la revisión del `Origin` en el API).
 
 Variables del entorno de ejecución (no van en `.env`):
 
