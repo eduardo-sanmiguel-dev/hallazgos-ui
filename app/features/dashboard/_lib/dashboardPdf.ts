@@ -11,6 +11,13 @@ import type { jsPDF } from "jspdf";
 import Highcharts from "highcharts/esm/highcharts.src.js";
 
 import { layoutPdfBlocks, PDF_LINE_HEIGHT, type PdfBlock } from "./dashboardPdfLayout";
+import {
+  isDarkBackground,
+  PAPER_LINE,
+  PAPER_PANE,
+  parseColor,
+  textColorForPaper,
+} from "./pdfColors";
 
 export interface DashboardPdfHeader {
   title: string;
@@ -20,7 +27,13 @@ export interface DashboardPdfHeader {
 
 type PreparedBlock = PdfBlock &
   (
-    | { kind: "vector"; chart: Highcharts.Chart; svg: SVGSVGElement; texts: string[] }
+    | {
+        kind: "vector";
+        chart: Highcharts.Chart;
+        svg: SVGSVGElement;
+        onDark: boolean;
+        texts: string[];
+      }
     | { kind: "image"; data: string }
   );
 
@@ -44,9 +57,29 @@ const textsOutside = (block: HTMLElement, chart: Highcharts.Chart) =>
  * px. Highcharts 12 los da en `em` (relativos al contenedor) y svg2pdf, fuera
  * de la página, los resolvía como 0: el texto quedaba invisible. Helvetica es
  * la fuente estándar del PDF (con acentos y ñ).
+ *
+ * El papel es blanco: si la gráfica se dibujó en modo oscuro, el fondo pasa a
+ * blanco y los textos y líneas claros, a tonos oscuros (en el PDF casi no se
+ * leían).
  */
+/**
+ * Color de fondo que se ve detrás del elemento: el primero no transparente
+ * subiendo por sus contenedores (las gráficas tienen fondo transparente y el
+ * color lo pone la tarjeta de MUI).
+ */
+const visibleBackground = (element: Element) => {
+  for (let node: Element | null = element; node; node = node.parentElement) {
+    const color = getComputedStyle(node).backgroundColor;
+    const alpha = color.match(/rgba\([^)]*,\s*([\d.]+)\)/)?.[1];
+    if (color && color !== "transparent" && (alpha === undefined || Number(alpha) > 0.5))
+      return color;
+  }
+  return "rgb(255, 255, 255)";
+};
+
 const svgForPdf = (svg: SVGSVGElement) => {
   const clone = svg.cloneNode(true) as SVGSVGElement;
+  const onDark = isDarkBackground(visibleBackground(svg));
   const live = svg.querySelectorAll<SVGElement>("text, tspan");
   const copies = clone.querySelectorAll<SVGElement>("text, tspan");
   live.forEach((element, index) => {
@@ -54,16 +87,27 @@ const svgForPdf = (svg: SVGSVGElement) => {
     const copy = copies[index];
     copy.style.fontSize = style.fontSize;
     copy.style.fontWeight = style.fontWeight;
-    copy.style.fill = style.fill;
+    copy.style.fill = onDark ? textColorForPaper(style.fill) : style.fill;
     copy.style.fontFamily = "helvetica";
   });
-  return clone;
+  if (onDark) {
+    clone
+      .querySelectorAll(".highcharts-background, .highcharts-plot-background")
+      .forEach((element) => element.setAttribute("fill", "#ffffff"));
+    clone
+      .querySelectorAll(".highcharts-grid-line, .highcharts-axis-line, .highcharts-tick")
+      .forEach((element) => element.setAttribute("stroke", PAPER_LINE));
+    // Fondo de los arcos de los KPI (gauge) y caja de la leyenda: oscuros
+    // para la pantalla, pesados en papel.
+    clone.querySelectorAll(".highcharts-pane, .highcharts-legend-box").forEach((element) => {
+      if (isDarkBackground(element.getAttribute("fill"))) element.setAttribute("fill", PAPER_PANE);
+      if (element.getAttribute("stroke")) element.setAttribute("stroke", PAPER_LINE);
+    });
+  }
+  return { svg: clone, onDark };
 };
 
-const rgb = (color: string): [number, number, number] => {
-  const [r = 0, g = 0, b = 0] = (color.match(/\d+(\.\d+)?/g) ?? []).map(Number);
-  return [r, g, b];
-};
+const rgb = (color: string): [number, number, number] => parseColor(color) ?? [0, 0, 0];
 
 const isShown = (element: HTMLElement, until: HTMLElement) => {
   for (let node: HTMLElement | null = element; node && node !== until; node = node.parentElement) {
@@ -83,6 +127,7 @@ const drawHtmlLabels = (
   pdf: jsPDF,
   chart: Highcharts.Chart,
   place: { x: number; y: number; width: number },
+  onDark: boolean,
 ) => {
   const box = chart.container.getBoundingClientRect();
   if (!box.width) return;
@@ -100,7 +145,7 @@ const drawHtmlLabels = (
       const bold = style.fontWeight === "bold" || Number(style.fontWeight) >= 600;
       pdf.setFont("helvetica", bold ? "bold" : "normal");
       pdf.setFontSize(parseFloat(style.fontSize) * scale * MM_TO_PT);
-      pdf.setTextColor(...rgb(style.color));
+      pdf.setTextColor(...rgb(onDark ? textColorForPaper(style.color) : style.color));
       pdf.text(
         leaf.textContent!.trim(),
         place.x + (rect.left + rect.width / 2 - box.left) * scale,
@@ -147,10 +192,12 @@ export async function downloadDashboardPdf(blocks: HTMLElement[], header: Dashbo
     const svg = chart?.container.querySelector("svg");
     if (chart && svg) {
       const texts = textsOutside(block, chart);
+      const forPdf = svgForPdf(svg);
       prepared.push({
         kind: "vector",
         chart,
-        svg: svgForPdf(svg),
+        svg: forPdf.svg,
+        onDark: forPdf.onDark,
         texts,
         width: chart.chartWidth,
         height: chart.chartHeight,
@@ -214,7 +261,7 @@ export async function downloadDashboardPdf(blocks: HTMLElement[], header: Dashbo
         width: place.width,
         height: place.height,
       });
-      drawHtmlLabels(pdf, block.chart, place);
+      drawHtmlLabels(pdf, block.chart, place, block.onDark);
     } else {
       pdf.addImage(block.data, "JPEG", place.x, place.y, place.width, place.height);
     }

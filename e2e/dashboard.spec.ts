@@ -364,3 +364,30 @@ test.describe("Dashboard: al entrar y estado de la pantalla", () => {
     });
   });
 });
+
+// En modo oscuro las gráficas tienen texto claro; el PDF es papel blanco y
+// antes ese texto casi no se leía. Ahora se pasa a tonos oscuros.
+test.describe("Dashboard: informe PDF en modo oscuro", () => {
+  test.use({ colorScheme: "dark" });
+
+  test("el texto de las gráficas sale oscuro y legible", async ({ page }) => {
+    test.setTimeout(120_000);
+    await choosePlantAndWait(page);
+
+    const downloadPromise = page.waitForEvent("download", { timeout: 90_000 });
+    await page.getByRole("button", { name: "Descargar informe PDF" }).click();
+    const content = readFileSync(await (await downloadPromise).path()).toString("latin1");
+
+    // Color de relleno de cada bloque de texto del PDF (BT … r g b rg … ET).
+    const textColors = [...content.matchAll(/BT[\s\S]*?ET/g)]
+      .map((block) => block[0].match(/([\d.]+) ([\d.]+) ([\d.]+) rg/))
+      .filter((match): match is RegExpMatchArray => !!match)
+      .map((match) => match.slice(1, 4).map(Number));
+    expect(textColors.length).toBeGreaterThan(20);
+    // Luminancia aproximada: ningún texto claro (el blanco del tema oscuro era 1).
+    const lightest = Math.max(
+      ...textColors.map(([r, g, b]) => 0.2126 * r + 0.7152 * g + 0.0722 * b),
+    );
+    expect(lightest).toBeLessThan(0.65);
+  });
+});
