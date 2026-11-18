@@ -50,7 +50,9 @@ type EvidenceField =
   | "priorityDays"
   | "photo";
 
-// Lo que se guarda en el borrador local (la foto va aparte).
+// Campos del formulario; también es lo que se guarda en el borrador local
+// (la foto va aparte). Un solo objeto: un campo nuevo no se puede olvidar en
+// el borrador, al recuperarlo ni al limpiar.
 interface EvidenceDraftFields {
   manufacturingPlantId: string;
   typeHallazgo: string;
@@ -61,6 +63,16 @@ interface EvidenceDraftFields {
   description: string;
   priorityDays: string;
 }
+
+// Lo capturado (la planta y el lugar son propuesta y se conservan al limpiar).
+const EMPTY_CAPTURE = {
+  typeHallazgo: "",
+  secondaryType: "",
+  process: "",
+  supervisor: "",
+  description: "",
+  priorityDays: "",
+} satisfies Partial<EvidenceDraftFields>;
 
 // Campos del API con otro nombre en el formulario (type es el tipo).
 const EVIDENCE_API_FIELDS = { type: "secondaryType", file: "photo" };
@@ -80,23 +92,30 @@ export default function HallazgosFormPage() {
   const manufacturingPlants = useUserSessionStore((state) => state.manufacturingPlants);
   const userId = useUserSessionStore((state) => state.id);
   const [lastLocation] = useState(() => (userId ? readLastLocation(userId) : null));
-  const [typeHallazgo, setTypeHallazgo] = useState<string>("");
-  const [process, setProcess] = useState<string>("");
-  const [secondaryType, setSecondaryType] = useState<string>("");
-  const [image, setImage] = useState<string>("");
-  const [zone, setZone] = useState<string>("");
-  const [manufacturingPlantId, setManufacturingPlantId] = useState<string>(() => {
+  const [fields, setFields] = useState<EvidenceDraftFields>(() => {
     const preferred = proposedPlantId(manufacturingPlants, userId);
-    if (preferred) return preferred;
-    return lastLocation &&
+    const fromLastLocation =
+      lastLocation &&
       manufacturingPlants.some(({ id }) => String(id) === lastLocation.manufacturingPlantId)
-      ? lastLocation.manufacturingPlantId
-      : "";
+        ? lastLocation.manufacturingPlantId
+        : "";
+    return { ...EMPTY_CAPTURE, manufacturingPlantId: preferred || fromLastLocation, zone: "" };
   });
-  const [supervisor, setSupervisor] = useState<string>("");
+  const setField = <K extends keyof EvidenceDraftFields>(key: K, value: EvidenceDraftFields[K]) =>
+    setFields((current) => ({ ...current, [key]: value }));
+  const {
+    manufacturingPlantId,
+    typeHallazgo,
+    secondaryType,
+    zone,
+    process,
+    supervisor,
+    description,
+    priorityDays,
+  } = fields;
+  // La foto va aparte: no se guarda como texto en el borrador.
+  const [image, setImage] = useState<string>("");
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
-  const [description, setDescription] = useState<string>("");
-  const [priorityDays, setPriorityDays] = useState<string>("");
 
   // Con señal lenta, "Cargando…" en su campo mientras llega el catálogo
   // (antes la lista se veía vacía), como en ICS y CIAEL.
@@ -125,19 +144,9 @@ export default function HallazgosFormPage() {
 
   // Borrador local (C3): lo capturado y la foto quedan en el dispositivo
   // hasta enviarse; la planta y el lugar propuestos no cuentan como captura.
-  const draftFields: EvidenceDraftFields = {
-    manufacturingPlantId,
-    typeHallazgo,
-    secondaryType,
-    zone,
-    process,
-    supervisor,
-    description,
-    priorityDays,
-  };
   const draft = useFormDraft<EvidenceDraftFields>({
     form: "nuevo-hallazgo",
-    content: { fields: draftFields, photo: attachedFile },
+    content: { fields, photo: attachedFile },
     hasContent: ({ fields, photo }) =>
       !!photo ||
       [
@@ -148,17 +157,10 @@ export default function HallazgosFormPage() {
         fields.description.trim(),
         fields.priorityDays,
       ].some(Boolean),
-    onRestore: ({ fields, photo }) => {
+    onRestore: ({ fields: restored, photo }) => {
       // El lugar recuperado gana al último usado.
       setLastZoneRestored(true);
-      setManufacturingPlantId(fields.manufacturingPlantId);
-      setTypeHallazgo(fields.typeHallazgo);
-      setSecondaryType(fields.secondaryType);
-      setZone(fields.zone);
-      setProcess(fields.process);
-      setSupervisor(fields.supervisor);
-      setDescription(fields.description);
-      setPriorityDays(fields.priorityDays);
+      setFields(restored);
       setImage("");
       setAttachedFile(photo);
     },
@@ -166,14 +168,7 @@ export default function HallazgosFormPage() {
   const isLocked = !!draft.lock;
   // Los errores aparecen al intentar guardar, no desde que se abre (A5).
   const { fail, failFromApi, errorOf, fieldProps } = useFieldErrors<EvidenceField>(
-    manufacturingPlantId,
-    typeHallazgo,
-    secondaryType,
-    zone,
-    process,
-    supervisor,
-    description,
-    priorityDays,
+    fields,
     image,
     attachedFile,
   );
@@ -190,7 +185,7 @@ export default function HallazgosFormPage() {
           data.manufacturingPlant.id === Number(manufacturingPlantId),
       )
     ) {
-      setZone(lastLocation.zoneId);
+      setField("zone", lastLocation.zoneId);
     }
   }
 
@@ -231,7 +226,7 @@ export default function HallazgosFormPage() {
       supervisorsFailed ||
       (supervisorsList && !supervisorsList.some(({ id }) => String(id) === supervisor))
     )
-      setSupervisor("");
+      setField("supervisor", "");
   }
 
   const currentDescription = useMemo(() => description.trim(), [description]);
@@ -362,12 +357,7 @@ export default function HallazgosFormPage() {
   // (la planta y el lugar se quedan como propuesta).
   const discardDraft = async () => {
     if (!(await draft.discard())) return;
-    setTypeHallazgo("");
-    setSecondaryType("");
-    setProcess("");
-    setSupervisor("");
-    setDescription("");
-    setPriorityDays("");
+    setFields((current) => ({ ...current, ...EMPTY_CAPTURE }));
     setImage("");
     setAttachedFile(null);
   };
@@ -404,7 +394,7 @@ export default function HallazgosFormPage() {
             embedded
             label="Planta"
             value={manufacturingPlantId}
-            onChange={(e) => setManufacturingPlantId(e.target.value)}
+            onChange={(e) => setField("manufacturingPlantId", e.target.value)}
             disabled={isLocked}
           />
           <FieldError field="manufacturingPlantId" message={errorOf("manufacturingPlantId")} />
@@ -417,7 +407,7 @@ export default function HallazgosFormPage() {
             label="Lugar"
             loading={zonesQuery.isLoading}
             value={zone}
-            onChange={(e) => setZone(e.target.value)}
+            onChange={(e) => setField("zone", e.target.value)}
             helperText={!manufacturingPlantId ? "Seleccione una planta" : ""}
             disabled={isLocked}
           />
@@ -430,7 +420,7 @@ export default function HallazgosFormPage() {
             )}
             label="Proceso"
             value={process}
-            onChange={(e) => setProcess(e.target.value)}
+            onChange={(e) => setField("process", e.target.value)}
             helperText={!manufacturingPlantId ? "Seleccione una planta" : ""}
             disabled={isLocked}
           />
@@ -445,10 +435,9 @@ export default function HallazgosFormPage() {
             label="Hallazgo"
             loading={mainTypesQuery.isLoading}
             value={typeHallazgo}
-            onChange={({ target: { value } }) => {
-              setTypeHallazgo(value);
-              setSecondaryType("");
-            }}
+            onChange={({ target: { value } }) =>
+              setFields((current) => ({ ...current, typeHallazgo: value, secondaryType: "" }))
+            }
             disabled={isLocked}
           />
           <FieldError field="typeHallazgo" message={errorOf("typeHallazgo")} />
@@ -458,7 +447,7 @@ export default function HallazgosFormPage() {
             data={secondaryTypes}
             label="Tipo"
             value={secondaryType}
-            onChange={(e) => setSecondaryType(e.target.value)}
+            onChange={(e) => setField("secondaryType", e.target.value)}
             helperText={!typeHallazgo ? "Seleccione un hallazgo" : ""}
             disabled={isLocked}
           />
@@ -472,7 +461,7 @@ export default function HallazgosFormPage() {
             minRows={4}
             fullWidth
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e) => setField("description", e.target.value)}
             label="Describe lo que observaste"
             slotProps={{ input: { readOnly: isLocked } }}
             helperText={errorOf("description") ?? "Qué viste, dónde y por qué es un riesgo."}
@@ -500,7 +489,7 @@ export default function HallazgosFormPage() {
             data={supervisorsCurrent}
             label="Supervisor"
             value={supervisor}
-            onChange={(e) => setSupervisor(e.target.value)}
+            onChange={(e) => setField("supervisor", e.target.value)}
             helperText={!manufacturingPlantId || !zone ? "Seleccione una planta y lugar" : ""}
             loading={supervisorsStatus === "loading"}
             attention={
@@ -522,7 +511,7 @@ export default function HallazgosFormPage() {
             }))}
             label="Prioridad (opcional)"
             value={priorityDays}
-            onChange={(e) => setPriorityDays(e.target.value)}
+            onChange={(e) => setField("priorityDays", e.target.value)}
             isFilter={true}
             disabled={isLocked}
           />

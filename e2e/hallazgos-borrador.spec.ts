@@ -182,7 +182,9 @@ test.describe("Borrador de nuevo hallazgo", () => {
       (route) => route.fulfill({ status: 201, json: { id: 999999 } }),
     ]);
     await fillForm(page);
-    await expect.poll(async () => (await storedDrafts(page)).length).toBe(1);
+    // Con la foto ya en el borrador: la foto se comprime aparte y el primer
+    // guardado automático podía quedar sin ella antes de recargar.
+    await expect.poll(async () => (await storedDrafts(page))[0]?.hasPhoto).toBe(true);
     await page.route("**/api/v1/main-types", async (route) => {
       const response = await route.fetch();
       const catalog = await response.json();

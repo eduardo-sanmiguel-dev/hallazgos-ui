@@ -413,96 +413,19 @@ const DashboardPage = () => {
         return;
       }
 
-      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-        import("html2canvas"),
-        import("jspdf"),
-      ]);
-
-      const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 10;
-      const maxWidth = pageWidth - margin * 2;
-      const title = "Informe de Dashboard de Hallazgos";
-      const generatedAt = `Generado: ${dayjs().format("DD/MM/YYYY HH:mm")}`;
-      const plantLabel = filters.manufacturingPlantName
-        ? `Planta: ${filters.manufacturingPlantName}`
-        : "Planta: Sin especificar";
-
-      pdf.setFontSize(16);
-      pdf.text(title, margin, margin + 2);
-
-      pdf.setFontSize(10);
-      pdf.text(generatedAt, margin, margin + 10);
-      pdf.text(plantLabel, margin, margin + 16);
-
-      const summaryLines = pdf.splitTextToSize(
-        `Filtros: ${heatmapFiltersTitle || "Sin filtros adicionales"}`,
-        maxWidth,
-      );
-      pdf.text(summaryLines, margin, margin + 22);
-
-      let currentY = margin + 22 + summaryLines.length * 4 + 4;
-      const sectionGap = 6;
-      const maxChartsPerPage = 2;
-      let chartsInCurrentPage = 0;
-
-      for (let index = 0; index < visibleCharts.length; index += 1) {
-        if (chartsInCurrentPage >= maxChartsPerPage) {
-          pdf.addPage();
-          currentY = margin;
-          chartsInCurrentPage = 0;
-        }
-
-        const chartElement = visibleCharts[index];
-        const canvas = await html2canvas(chartElement, {
-          backgroundColor: "#ffffff",
-          scale: 2,
-          useCORS: true,
-        });
-
-        const imageData = canvas.toDataURL("image/png");
-
-        let renderWidth = maxWidth;
-        let renderHeight = (canvas.height * renderWidth) / canvas.width;
-        const availableHeight = pageHeight - margin - currentY;
-
-        if (renderHeight > availableHeight) {
-          if (availableHeight < 40) {
-            pdf.addPage();
-            currentY = margin;
-            chartsInCurrentPage = 0;
-            renderHeight = (canvas.height * renderWidth) / canvas.width;
-          }
-
-          const refreshedAvailableHeight = pageHeight - margin - currentY;
-          if (renderHeight > refreshedAvailableHeight) {
-            renderHeight = refreshedAvailableHeight;
-            renderWidth = (canvas.width * renderHeight) / canvas.height;
-          }
-        }
-
-        if (renderHeight <= 0) {
-          pdf.addPage();
-          currentY = margin;
-          chartsInCurrentPage = 0;
-          renderWidth = maxWidth;
-          renderHeight = (canvas.height * renderWidth) / canvas.width;
-        }
-
-        const x = (pageWidth - renderWidth) / 2;
-        pdf.addImage(imageData, "PNG", x, currentY, renderWidth, renderHeight);
-        currentY += renderHeight + sectionGap;
-        chartsInCurrentPage += 1;
-
-        if (index < visibleCharts.length - 1 && currentY >= pageHeight - margin) {
-          pdf.addPage();
-          currentY = margin;
-          chartsInCurrentPage = 0;
-        }
-      }
-
-      pdf.save(`Informe_Dashboard_${dayjs().format("YYYYMMDD_HHmm")}.pdf`);
+      // Gráficas como vector (ver _lib/dashboardPdf); se carga al exportar.
+      const { downloadDashboardPdf } = await import("./_lib/dashboardPdf");
+      await downloadDashboardPdf(visibleCharts, {
+        title: "Informe de Dashboard de Hallazgos",
+        lines: [
+          `Generado: ${dayjs().format("DD/MM/YYYY HH:mm")}`,
+          filters.manufacturingPlantName
+            ? `Planta: ${filters.manufacturingPlantName}`
+            : "Planta: Sin especificar",
+          `Filtros: ${heatmapFiltersTitle || "Sin filtros adicionales"}`,
+        ],
+        fileName: `Informe_Dashboard_${dayjs().format("YYYYMMDD_HHmm")}.pdf`,
+      });
     } catch {
       toast.error("No se pudo generar el informe PDF");
     } finally {

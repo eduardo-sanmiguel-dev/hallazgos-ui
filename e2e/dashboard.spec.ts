@@ -127,10 +127,34 @@ test.describe("Dashboard", () => {
     const pdf = readFileSync(await download.path());
     expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
     const visible = await page.locator("[data-dashboard-export=chart]").count();
-    const pages = pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? [];
+    const content = pdf.toString("latin1");
+    const pages = content.match(/\/Type\s*\/Page[^s]/g) ?? [];
     expect(visible).toBeGreaterThan(0);
     expect(pages.length).toBeGreaterThanOrEqual(Math.ceil(visible / 2));
     expect(pages.length).toBeLessThanOrEqual(visible);
+    // Vectorial: sin imágenes, con el texto de las gráficas (antes, una foto
+    // PNG por gráfica: ~45 MB y sin texto) y el "Total" HTML de las donas.
+    expect(content).not.toMatch(/\/Subtype\s*\/Image/);
+    expect(content).toContain("(Total) Tj");
+    expect(pdf.length).toBeLessThan(2 * 1024 * 1024);
+  });
+
+  test("el informe PDF del mapa de calor lo incluye como imagen", async ({ page }) => {
+    test.setTimeout(120_000);
+    await choosePlantAndWait(page);
+    await page.getByRole("button", { name: "Mapa de calor" }).click();
+    await expect(page.getByText(/Planta: .+ \| Periodo: /)).toBeVisible();
+    await page.waitForLoadState("networkidle");
+
+    const downloadPromise = page.waitForEvent("download", { timeout: 90_000 });
+    await page.getByRole("button", { name: "Descargar informe PDF" }).click();
+    const pdf = readFileSync(await (await downloadPromise).path());
+
+    // El plano con las marcas no es una gráfica: va como imagen (JPEG).
+    expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
+    expect(pdf.toString("latin1")).toMatch(
+      /\/Subtype\s*\/Image[\s\S]*?\/DCTDecode|\/DCTDecode[\s\S]*?\/Subtype\s*\/Image/,
+    );
   });
 
   test("sin planta lleva a hallazgos sin filtros de planta", async ({ page }) => {
