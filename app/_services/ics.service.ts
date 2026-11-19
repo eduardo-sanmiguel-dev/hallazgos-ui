@@ -19,16 +19,6 @@ interface Payload {
   employeeIds: number[];
 }
 
-const findAll = async ({ manufacturingPlantId, name }: Partial<IFiltersIcs>) => {
-  const { data } = await api.get<ICSData[]>("", {
-    params: {
-      ...(manufacturingPlantId && { manufacturingPlantId }),
-      ...(name && { name }),
-    },
-  });
-  return data;
-};
-
 const findAllPaginated = async ({
   manufacturingPlantId,
   areaOfBehaviorId,
@@ -70,11 +60,6 @@ const update = async (id: number, payload: Payload) => {
   return data;
 };
 
-const findOne = async (id: number) => {
-  const { data } = await api.get<ICSData>(`/${id}`);
-  return data;
-};
-
 const catalogs = async () => {
   const { data } = await api.get<CatalogICS[]>(`/catalogs`);
   return data;
@@ -86,11 +71,9 @@ const remove = async (id: number) => {
 };
 
 export const IcsService = {
-  findAll,
   findAllPaginated,
   create,
   update,
-  findOne,
   catalogs,
   remove,
 };

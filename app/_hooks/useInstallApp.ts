@@ -8,10 +8,10 @@ import {
 
 /**
  * Si la app se puede instalar y cómo ("prompt" o "ios"); null oculta el
- * botón. En el servidor no hay navegador: también null.
+ * botón.
  */
 export function useInstallApp() {
-  const mode = useSyncExternalStore(subscribeInstallMode, getCurrentInstallMode, () => null);
+  const mode = useSyncExternalStore(subscribeInstallMode, getCurrentInstallMode);
 
   return { mode, promptInstall };
 }

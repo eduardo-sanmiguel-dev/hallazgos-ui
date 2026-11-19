@@ -52,19 +52,6 @@ const update = async (id: number, payload: Payload) => {
   return data;
 };
 
-const findAll = async (filters: Filters) => {
-  const { data } = await api.get<ExtinguisherInspection[]>("", {
-    params: {
-      ...(filters?.search && { search: filters.search }),
-      ...(filters?.manufacturingPlantId && {
-        manufacturingPlantId: filters.manufacturingPlantId,
-      }),
-    },
-  });
-
-  return data;
-};
-
 // startDate / endDate: YYYY-MM-DD, rango inclusivo sobre la fecha de inspección.
 const findAllPaginated = async (
   filters: Filters & {
@@ -123,7 +110,6 @@ export const ExtinguisherInspectionsService = {
   create,
   findOne,
   update,
-  findAll,
   findAllPaginated,
   downloadFile,
 };

@@ -8,15 +8,6 @@ const api = axiosWrapper({
   baseURL: "/safety-data-files",
 });
 
-const findAll = async ({ name }: IFiltersHds) => {
-  const { data } = await api.get<Hds[]>("", {
-    params: {
-      ...(name && { name }),
-    },
-  });
-  return data;
-};
-
 const findAllPaginated = async ({
   name,
   page,
@@ -80,7 +71,6 @@ const remove = async (id: number) => {
 };
 
 export const HdsService = {
-  findAll,
   findAllPaginated,
   downloadFile,
   upload,

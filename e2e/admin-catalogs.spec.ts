@@ -242,6 +242,62 @@ test.describe("Equipos de emergencia", () => {
     });
   });
 
+  test("en escritorio: selecciona e imprime los QR en una ventana nueva", async ({ page }) => {
+    // La ventana imprime y se cierra sola: aquí se queda abierta para revisarla.
+    await page.addInitScript(() => {
+      const open = window.open.bind(window);
+      window.open = (...args) => {
+        const opened = open(...args);
+        if (opened) {
+          opened.print = () => undefined;
+          opened.close = () => undefined;
+        }
+        return opened;
+      };
+    });
+    await servePage(page, "/emergency-teams", [
+      EMERGENCY_TEAM,
+      { ...EMERGENCY_TEAM, id: 9802, location: "E2E Almacén", extinguisherNumber: null },
+    ]);
+    await page.goto("/emergency-teams");
+    const print = page.getByRole("button", { name: /^Imprimir/ });
+    const selectAll = page.getByRole("checkbox", { name: "Seleccionar todos los de esta página" });
+    const first = page.getByRole("checkbox", { name: "Seleccionar el equipo 9801" });
+
+    await first.check();
+    await expect(print).toHaveText("Imprimir (1)");
+    await first.uncheck();
+    await expect(print).toBeDisabled();
+    await selectAll.check();
+    await expect(print).toHaveText("Imprimir (2)");
+    await selectAll.uncheck();
+    await expect(print).toBeDisabled();
+    await selectAll.check();
+
+    const popupPromise = page.waitForEvent("popup");
+    await print.click();
+    const popup = await popupPromise;
+    await expect(popup.getByRole("img", { name: "QR equipo 9801" })).toBeVisible();
+    await expect(popup.getByText("E2E Almacén")).toBeVisible();
+    await popup.close();
+
+    // Las filas por página reinician la página actual.
+    const rowsPerPage = page.getByRole("combobox", { name: "Filas por página" });
+    await rowsPerPage.selectOption("25");
+    await expect(rowsPerPage).toHaveValue("25");
+  });
+
+  test("si el navegador bloquea la ventana de impresión, lo avisa", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.open = () => null;
+    });
+    await servePage(page, "/emergency-teams", [EMERGENCY_TEAM]);
+    await page.goto("/emergency-teams");
+    await page.getByRole("checkbox", { name: "Seleccionar el equipo 9801" }).check();
+    await page.getByRole("button", { name: "Imprimir (1)" }).click();
+    await expect(toast(page, "No se pudo abrir la ventana de impresión")).toBeVisible();
+  });
+
   test("en escritorio, si falla la lista: error con Reintentar", async ({ page }) => {
     await page.route(
       (url) => url.pathname.endsWith("/api/v1/emergency-teams") && url.searchParams.has("page"),

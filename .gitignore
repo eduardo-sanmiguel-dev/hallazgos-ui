@@ -1,9 +1,6 @@
 .last_lock_hash
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-CLAUDE.md
-AGENTS.md
-
 # enviroments
 .env.development
 .env.production

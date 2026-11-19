@@ -1,17 +1,34 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { test, expect } from "@playwright/test";
 import ts from "typescript";
 
-// Se prueba el cliente real en Chrome, sin API, BD ni credenciales.
-const source = ts
-  .transpileModule(
-    readFileSync(join(process.cwd(), "app/_services/deploymentUpdates.ts"), "utf8"),
-    { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } },
-  )
-  .outputText.replace(
-    "export function connectDeploymentUpdates",
-    "window.connectDeploymentUpdates = function",
+import { expect, test } from "./support/fixtures";
+
+// Se prueba el cliente real en Chrome, sin API, BD ni credenciales. El código
+// lleva source map y sourceURL para sumar al coverage (pnpm test:e2e:coverage):
+// el mapa apunta a app/_services/deploymentUpdates.ts.
+const SOURCE_FILE = "app/_services/deploymentUpdates.ts";
+const transpiled = ts.transpileModule(readFileSync(join(process.cwd(), SOURCE_FILE), "utf8"), {
+  fileName: "deploymentUpdates.ts",
+  compilerOptions: {
+    target: ts.ScriptTarget.ES2022,
+    module: ts.ModuleKind.ESNext,
+    sourceMap: true,
+    inlineSources: true,
+  },
+});
+const sourceMap = Buffer.from(
+  JSON.stringify({
+    ...JSON.parse(transpiled.sourceMapText!),
+    sources: [`http://localhost/${SOURCE_FILE}`],
+  }),
+).toString("base64");
+const source = transpiled.outputText
+  .replace(/\/\/# sourceMappingURL=.*$/m, "")
+  .replace("export function connectDeploymentUpdates", "window.connectDeploymentUpdates = function")
+  .concat(
+    `\n//# sourceMappingURL=data:application/json;base64,${sourceMap}`,
+    "\n//# sourceURL=http://localhost/app/_services/deploymentUpdates.js\n",
   );
 
 test("recarga una sola vez con una versión distinta e ignora mensajes inválidos", async ({
@@ -137,7 +154,10 @@ async function openApiClient(
 ) {
   if (navigate) {
     await page.route("http://app.example/**", (route) =>
-      route.fulfill({ contentType: "text/html", body: "<html><body>App</body></html>" }),
+      route.fulfill({
+        contentType: "text/html",
+        body: "<html><body>App</body></html>",
+      }),
     );
     await page.goto("http://app.example/");
   }
@@ -151,7 +171,11 @@ async function openApiClient(
         socketUrl,
         "ui-A",
         (version, target) => {
-          state.updates.push({ version, target, stored: sessionStorage.getItem(apiKey) });
+          state.updates.push({
+            version,
+            target,
+            stored: sessionStorage.getItem(apiKey),
+          });
           return state.acceptUpdate;
         },
       );
@@ -209,7 +233,9 @@ test("tras recargar, la misma versión de API no vuelve a provocar una recarga",
     route.fulfill({ contentType: "text/html", body: "<html></html>" }),
   );
   await page.goto("http://app.example/");
-  await page.evaluate(({ key }) => sessionStorage.setItem(key, "api-B"), { key: apiKey });
+  await page.evaluate(({ key }) => sessionStorage.setItem(key, "api-B"), {
+    key: apiKey,
+  });
   await openApiClient(page, { navigate: false });
   await page.reload();
   await openApiClient(page, { navigate: false });
@@ -248,7 +274,10 @@ test("recupera un deploy de API perdido al cerrarse el WebSocket", async ({ page
     connections++;
     close = () => socket.close();
     socket.send(
-      JSON.stringify({ type: "api-version", version: connections === 1 ? "api-A" : "api-B" }),
+      JSON.stringify({
+        type: "api-version",
+        version: connections === 1 ? "api-A" : "api-B",
+      }),
     );
   });
   await openApiClient(page);
@@ -289,4 +318,71 @@ test("si se pospone la recarga de API, se conserva la referencia anterior para r
     .poll(() => page.evaluate(() => (window as unknown as DeploymentWindow).updates.length))
     .toBe(2);
   expect(await page.evaluate((key) => sessionStorage.getItem(key), apiKey)).toBe("api-B");
+});
+
+test("tolera fallos al avisar y al conectar, y deja de escuchar al desconectar", async ({
+  page,
+}) => {
+  let send: (message: string) => void = () => {};
+  await page.routeWebSocket("wss://api.example/deployments/ws", async (socket) => {
+    send = (message) => socket.send(message);
+  });
+  await page.goto("about:blank");
+  await page.addScriptTag({ content: source });
+  await page.evaluate(() => {
+    const state = window as unknown as {
+      calls: number;
+      stop: () => void;
+      connectDeploymentUpdates: (
+        url: string,
+        version: string,
+        callback: () => boolean,
+      ) => () => void;
+    };
+    state.calls = 0;
+    // Un aviso que falla no deja la conexión "actualizando" para siempre.
+    state.stop = state.connectDeploymentUpdates(
+      "wss://api.example/deployments/ws",
+      "build-A",
+      () => {
+        state.calls++;
+        throw new Error("sin red");
+      },
+    );
+    // Una URL inválida no rompe la app (se reintenta) y un servidor caído
+    // tampoco (el error cierra la conexión para reintentar).
+    state.connectDeploymentUpdates("no es una url", "build-A", () => true)();
+    const refused: WebSocket[] = [];
+    const NativeWebSocket = window.WebSocket;
+    window.WebSocket = class extends NativeWebSocket {
+      constructor(url: string | URL) {
+        super(url);
+        refused.push(this);
+      }
+    };
+    state.connectDeploymentUpdates("ws://127.0.0.1:9/", "build-A", () => true);
+    window.WebSocket = NativeWebSocket;
+    (window as unknown as { refused: WebSocket[] }).refused = refused;
+  });
+  await expect.poll(() => page.evaluate(() => document.readyState)).toBe("complete");
+  // El servidor caído responde con error y la conexión se cierra.
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as unknown as { refused: WebSocket[] }).refused[0].readyState),
+    )
+    .toBe(3);
+
+  send(JSON.stringify({ type: "ui-version", version: "build-B" }));
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { calls: number }).calls))
+    .toBe(1);
+  send(JSON.stringify({ type: "ui-version", version: "build-C" }));
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { calls: number }).calls))
+    .toBe(2);
+
+  await page.evaluate(() => (window as unknown as { stop: () => void }).stop());
+  send(JSON.stringify({ type: "ui-version", version: "build-D" }));
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => (window as unknown as { calls: number }).calls)).toBe(2);
 });

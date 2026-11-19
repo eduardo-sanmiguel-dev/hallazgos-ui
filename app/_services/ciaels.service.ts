@@ -34,11 +34,6 @@ interface Payload {
   cieDiagnosisId: string;
 }
 
-const findAll = async () => {
-  const { data } = await api.get<Ciael[]>("");
-  return data;
-};
-
 // startDate / endDate: YYYY-MM-DD, rango inclusivo sobre la fecha del evento.
 const findAllPaginated = async (
   filters: {
@@ -95,7 +90,6 @@ const downloadExcel = async () => {
 };
 
 export const CiaelsService = {
-  findAll,
   findAllPaginated,
   create,
   downloadExcel,

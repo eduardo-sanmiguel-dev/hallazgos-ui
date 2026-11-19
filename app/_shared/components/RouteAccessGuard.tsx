@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useSyncExternalStore } from "react";
+import { ReactNode, useEffect } from "react";
 
 import { usePathname, useRouter } from "@shared/navigation";
 
@@ -8,23 +8,10 @@ import { canAccessPath, firstAccessiblePath, type RouteAccessContext } from "./m
 import LoadingLinear from "./LoadingLinear";
 import NoAccessState from "./NoAccessState";
 
-const noopSubscribe = () => () => {};
-
-// La sesión vive en sessionStorage: en el servidor no existe. Hasta montar en
-// el navegador se pinta lo mismo que en el servidor (evita el error de
-// hidratación).
-const useIsClient = () =>
-  useSyncExternalStore(
-    noopSubscribe,
-    () => true,
-    () => false,
-  );
-
 // Bloquea las páginas que el menú no le muestra al usuario (entrar por URL
 // directa) con un "sin acceso" en vez de una pantalla vacía o con errores.
 // No cambia permisos: el API sigue validando cada petición.
 export default function RouteAccessGuard({ children }: { children: ReactNode }) {
-  const isClient = useIsClient();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -40,7 +27,8 @@ export default function RouteAccessGuard({ children }: { children: ReactNode }) 
     isGembaWalkObserver: true,
   };
 
-  const isReady = isClient && !!userId;
+  // SPA (createRoot): no hay render en servidor, basta con tener sesión.
+  const isReady = !!userId;
   const allowed = isReady && canAccessPath(pathname, ctx);
   // El dashboard es el inicio tras el login: quien no lo ve va a su primera
   // página disponible en lugar de quedarse en un "sin acceso".

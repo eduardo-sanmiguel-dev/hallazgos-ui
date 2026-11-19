@@ -25,7 +25,10 @@ export default defineConfig(({ mode }) => {
     envPrefix: [],
     plugins: lazyPlugins(() => [
       react(),
-      babel({ presets: [reactCompilerPreset()] }),
+      // El build de coverage (pnpm test:e2e:coverage) va sin React Compiler: sus
+      // cachés de memoización agregan ramas y funciones que no están en app/ y
+      // el reporte dejaría de reflejar el código fuente. test:e2e sí lo usa.
+      ...(process.env.E2E_COVERAGE === "1" ? [] : [babel({ presets: [reactCompilerPreset()] })]),
       {
         name: "app-metadata",
         configureServer(server) {
@@ -88,9 +91,16 @@ export default defineConfig(({ mode }) => {
       // "hidden": genera los .map sin el comentario sourceMappingURL en el JS.
       // El deploy los sube a OpenObserve (stack traces legibles en RUM) y los
       // saca de dist: antes se publicaban con todo el código fuente.
-      sourcemap: "hidden",
+      // El build de pruebas (--mode development, dist.e2e) sí los enlaza: el
+      // coverage de Playwright los necesita para llevar el JS a app/.
+      sourcemap: mode === "development" ? true : "hidden",
     },
-    test: { include: ["e2e/unit/**/*.spec.ts"], environment: "node" },
+    test: {
+      include: ["e2e/unit/**/*.spec.ts"],
+      environment: "node",
+      // pnpm test:e2e:coverage suma el coverage unitario al reporte (ver el setup).
+      setupFiles: process.env.UNIT_COVERAGE === "1" ? ["e2e/unit/coverage-setup.ts"] : [],
+    },
     lint: {
       plugins: ["typescript", "react", "jsx-a11y"],
       options: { typeAware: true, typeCheck: true },

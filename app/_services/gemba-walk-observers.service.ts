@@ -23,27 +23,6 @@ const create = async (payload: PayloadCreate) => {
   return data;
 };
 
-const findAll = async (filters: {
-  manufacturingPlantId?: string;
-  gembaWalkZoneId?: string;
-  userName?: string;
-}) => {
-  const { data } = await api.get<GembaWalkObserver[]>("", {
-    params: {
-      ...(filters?.manufacturingPlantId && {
-        manufacturingPlantId: filters.manufacturingPlantId,
-      }),
-      ...(filters?.gembaWalkZoneId && {
-        gembaWalkZoneId: filters.gembaWalkZoneId,
-      }),
-      ...(filters?.userName && {
-        userName: filters.userName,
-      }),
-    },
-  });
-  return data;
-};
-
 const findOne = async (id: number) => {
   const { data } = await api.get<GembaWalkObserver>(`/${id}`);
   return data;
@@ -89,7 +68,6 @@ const findAllPaginated = async ({
 export const GembaWalkObserversService = {
   findAllPaginated,
   create,
-  findAll,
   findOne,
   update,
   remove,

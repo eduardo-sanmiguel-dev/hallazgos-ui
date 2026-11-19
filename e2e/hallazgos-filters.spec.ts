@@ -159,3 +159,61 @@ test.describe("Hallazgos: filtros", () => {
     ).toBeVisible();
   });
 });
+
+test.describe("Hallazgos: quitar filtros", () => {
+  test("cada chip quita su filtro y las fechas se limpian desde su campo", async ({ page }) => {
+    test.setTimeout(120_000);
+    const errors = trackPageErrors(page);
+    await page.goto("/hallazgos");
+    const [plant] = await sessionPlants(page);
+    // Planta, responsables, estatus y periodo por la URL (como llegan desde el
+    // dashboard); el resto, desde la barra.
+    await page.goto(
+      `/hallazgos?manufacturingPlantId=${plant.id}&responsibleIds=1&states=Abierto&startDate=01/01/2026&endDate=31/12/2026`,
+    );
+    await openFilters(page);
+    await page.getByLabel("ID(s)").fill("1");
+    await pickMany(page, "Clasificación");
+    await pickMany(page, "Tipo");
+    await pickMany(page, "Zonas");
+    await pickMany(page, "Lugar");
+
+    const toggle = page
+      .getByRole("region", { name: "Filtros" })
+      .getByRole("button", { name: /^Filtros/ });
+    await toggle.click();
+    const applied = page.getByRole("group", { name: "Filtros aplicados" });
+    const removeIcons = applied.locator(".MuiChip-deleteIcon");
+    await expect(removeIcons.first()).toBeVisible();
+    const total = await removeIcons.count();
+    expect(total).toBeGreaterThanOrEqual(8);
+    for (let i = total - 1; i >= 0; i--) {
+      if (i >= (await removeIcons.count())) continue;
+      await removeIcons.nth(i).click();
+      await page.waitForTimeout(300);
+    }
+    // Quitar la planta limpia también lo que depende de ella y recorre los
+    // chips: se quitan los que queden.
+    for (let i = 0; i < total && (await removeIcons.count()); i++) {
+      await removeIcons.first().click();
+      await page.waitForTimeout(300);
+    }
+    await expect(page.getByRole("region", { name: "Filtros" })).toContainText(
+      /Sin filtros (aplicados|seleccionados)/,
+    );
+
+    // Fechas: el botón "Limpiar valor" de cada campo.
+    const year = new Date().getFullYear();
+    await fillDate(page, "Fecha inicio", `01/01/${year}`);
+    await fillDate(page, "Fecha fin", `31/12/${year}`);
+    for (const label of ["Fecha inicio", "Fecha fin"]) {
+      const field = page.getByRole("group", { name: label });
+      await field.click();
+      await field.locator("..").getByRole("button", { name: "Limpiar valor" }).click();
+    }
+    await expect(page.getByRole("region", { name: "Filtros" })).toContainText(
+      /Sin filtros (aplicados|seleccionados)/,
+    );
+    expect(errors).toEqual([]);
+  });
+});

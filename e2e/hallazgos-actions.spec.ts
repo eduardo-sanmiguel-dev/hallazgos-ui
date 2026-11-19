@@ -279,7 +279,13 @@ test.describe("Hallazgos: acciones", () => {
     await expect(page.getByRole("dialog", { name: "Foto del hallazgo" })).toContainText("1 de 3");
     await page.keyboard.press("ArrowLeft");
     await expect(page.getByRole("dialog", { name: "Foto de la solución" })).toContainText("3 de 3");
-    await page.getByRole("button", { name: "Cerrar imagen" }).click();
+    await page.getByRole("button", { name: "Foto anterior" }).click();
+    await expect(page.getByRole("dialog", { name: "Foto del progreso" })).toContainText("2 de 3");
+    await page.getByRole("button", { name: "Foto siguiente" }).click();
+    // Escape cierra solo el visor; el detalle sigue abierto.
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog", { name: /^Foto/ })).toHaveCount(0);
+    await expect(page.getByRole("dialog", { name: "Hallazgo #9003" })).toBeVisible();
     await page
       .getByRole("dialog", { name: "Hallazgo #9003" })
       .getByRole("button", { name: "Cerrar" })
@@ -782,3 +788,65 @@ const card9002Close = async (page: Page) => {
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("Tienes un borrador")).toHaveCount(0);
 };
+
+test.describe("Hallazgos en celular: menú y paginación de las tarjetas", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  const card = (page: Page, id: number) => page.getByRole("listitem", { name: `Hallazgo ${id}` });
+
+  test("cada opción del menú abre su diálogo y se puede cerrar sin cambios", async ({ page }) => {
+    const errors = trackPageErrors(page);
+    const writes = await captureWrites(page);
+    await openList(page);
+
+    // El título de la tarjeta también abre el detalle.
+    await card(page, 9001).getByRole("button", { name: "Hallazgo #9001" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    const more = card(page, 9001).getByRole("button", { name: "Más acciones del hallazgo 9001" });
+    await more.click();
+    await page.getByRole("menuitem", { name: "Ver detalles" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    await more.click();
+    await page.getByRole("menuitem", { name: "Reasignar" }).click();
+    const reassign = page.getByRole("dialog");
+    await expect(reassign).toBeVisible();
+    await reassign.getByRole("button", { name: "Cancelar" }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await more.click();
+    await page.getByRole("menuitem", { name: "Reasignar" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    await more.click();
+    await page.getByRole("menuitem", { name: "Cancelar" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    expect(writes).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+
+  test("las tarjetas se paginan y se puede cambiar cuántas se ven", async ({ page }) => {
+    await openList(page);
+    const requests: URL[] = [];
+    page.on("request", (request) => {
+      const url = new URL(request.url());
+      if (url.pathname.endsWith("/api/v1/evidences")) requests.push(url);
+    });
+
+    await page.getByRole("button", { name: /Página siguiente|Ir a la página siguiente/ }).click();
+    await expect.poll(() => requests.at(-1)?.searchParams.get("page")).toBe("2");
+
+    await page.getByRole("combobox", { name: /Filas por página|Por página/ }).click();
+    await page.getByRole("option", { name: "25" }).click();
+    await expect.poll(() => requests.at(-1)?.searchParams.get("limit")).toBe("25");
+  });
+});

@@ -1,4 +1,4 @@
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { fileURLToPath } from "url";
 
@@ -17,6 +17,21 @@ const toAppPath = (filePath: string) => {
   return index >= 0 ? normalized.slice(index) : normalized;
 };
 
+/**
+ * Archivos que solo reexportan (`export ... from`): el bundler los elimina, así
+ * que siempre saldrían sin cubrir aunque se use todo lo que exportan.
+ */
+const isReexportOnly = (sourcePath: string) =>
+  readFileSync(join(UI_ROOT, sourcePath), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/.*$/gm, "")
+    .split(";")
+    .map((statement) => statement.trim())
+    .filter(Boolean)
+    .every((statement) =>
+      /^export\s+(type\s+)?(\*(\s+as\s+\w+)?|\{[\s\S]*\})\s+from\s+["'][^"']+["']$/.test(statement),
+    );
+
 const isOwnSource = (filePath: string) => {
   const sourcePath = toAppPath(filePath);
   return (
@@ -25,7 +40,8 @@ const isOwnSource = (filePath: string) => {
     !sourcePath.endsWith(".d.ts") &&
     !NOT_MEASURABLE.some((prefix) => sourcePath.startsWith(prefix)) &&
     // Next también publica fuentes internas bajo ".../app/...".
-    existsSync(join(UI_ROOT, sourcePath))
+    existsSync(join(UI_ROOT, sourcePath)) &&
+    !isReexportOnly(sourcePath)
   );
 };
 
@@ -41,6 +57,13 @@ export const coverageOptions: CoverageReportOptions = {
   entryFilter: (entry) =>
     (entry.url.includes("/app/") || entry.url.includes("/assets/")) &&
     !entry.url.includes("node_modules"),
+  // El servidor de pruebas no publica los .map (en producción son privados):
+  // se leen del build en disco (dist.e2e/assets/...).
+  sourceMapResolver: async (url, defaultResolver) => {
+    const { pathname } = new URL(url);
+    const file = join(UI_ROOT, "dist.e2e", decodeURIComponent(pathname));
+    return existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : defaultResolver(url);
+  },
   sourceFilter: isOwnSource,
   sourcePath: toAppPath,
   // Descarta chunks sin source map (Next, librerías) que pasan tal cual.

@@ -532,3 +532,100 @@ test.describe("Análisis de datos EPP: al entrar y estado de la pantalla", () =>
     });
   });
 });
+
+test.describe("Análisis de EPP: vista de tabla", () => {
+  test("cada gráfica se puede ver como tabla y volver a la gráfica", async ({ page }) => {
+    const errors = trackPageErrors(page);
+    await mockOutOfRange(page);
+    // Filas en cada gráfica (en las demás pruebas van vacías).
+    const month = (mes_label: string, mes: string) => ({ mes_label, mes, mes_date: mes });
+    await mockGet(page, "/dashboard/business-intelligence/epp", {
+      ...biData(true),
+      chart1: [
+        {
+          equipment_name: "Casco",
+          gasto_mes_actual: "500",
+          unidades_mes_actual: "5",
+          gasto_mes_anterior: "300",
+          unidades_mes_anterior: "3",
+        },
+        {
+          equipment_name: "Guante",
+          gasto_mes_actual: "700",
+          unidades_mes_actual: "5",
+          gasto_mes_anterior: "500",
+          unidades_mes_anterior: "3",
+        },
+      ],
+      chart3: [
+        {
+          ...month("2026-09", "2026-09-01"),
+          total_entregas: "5",
+          fuera_de_rango: "1",
+          en_rango: "4",
+          pct_fuera_de_rango: "20",
+        },
+        {
+          ...month("2026-10", "2026-10-01"),
+          total_entregas: "8",
+          fuera_de_rango: "2",
+          en_rango: "6",
+          pct_fuera_de_rango: "25",
+        },
+      ],
+      chart4: [
+        {
+          equipment_name: "Casco",
+          unidades_mes_actual: "5",
+          unidades_mes_anterior: "3",
+          empleados_mes_actual: "2",
+          empleados_mes_anterior: "1",
+        },
+        {
+          equipment_name: "Guante",
+          unidades_mes_actual: "7",
+          unidades_mes_anterior: "2",
+          empleados_mes_actual: "3",
+          empleados_mes_anterior: "1",
+        },
+      ],
+      chart8: [
+        {
+          ...month("2026-10", "2026-10-01"),
+          empleados_con_entrega: "4",
+          gasto_total: "1200",
+          gasto_promedio_por_empleado: "300",
+          unidades_total: "10",
+        },
+      ],
+      chart9: [
+        { equipment_name: "Casco", gasto_total: "500", unidades_total: "5", pct_del_total: "41.7" },
+        {
+          equipment_name: "Guante",
+          gasto_total: "700",
+          unidades_total: "5",
+          pct_del_total: "58.3",
+        },
+      ],
+    });
+    await page.goto("/business-intelligence/epp");
+    await expect(page.getByRole("tab", { name: "Entregas" })).toBeVisible();
+
+    for (const tab of ["Gasto", "Entregas", "Fuera de rango"]) {
+      await page.getByRole("tab", { name: new RegExp(`^${tab}`) }).click();
+      const panel = page.getByRole("tabpanel");
+      const toTable = panel.getByRole("button", { name: "Ver tabla" });
+      await expect(toTable.first()).toBeVisible();
+      const charts = await toTable.count();
+      // Algunas pestañas ya traen una tabla fija (p. ej. el ranking).
+      const fixed = await panel.getByRole("table").count();
+      for (let i = 0; i < charts; i++) {
+        await toTable.nth(i).click();
+      }
+      await expect(panel.getByRole("table")).toHaveCount(fixed + charts);
+      await panel.getByRole("button", { name: "Ver gráfica" }).first().click();
+      await expect(panel.getByRole("table")).toHaveCount(fixed + charts - 1);
+    }
+    expect(errors).toEqual([]);
+  });
+});

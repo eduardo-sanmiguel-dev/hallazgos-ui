@@ -19,20 +19,6 @@ const create = async (payload: Payload) => {
   return data;
 };
 
-const findAll = async (filters: { search?: string; manufacturingPlantId?: string }) => {
-  const { data } = await api.get<EmergencyTeam[]>("", {
-    params: {
-      ...(filters?.search && {
-        search: filters.search,
-      }),
-      ...(filters?.manufacturingPlantId && {
-        manufacturingPlantId: filters.manufacturingPlantId,
-      }),
-    },
-  });
-  return data;
-};
-
 const findOne = async (id: number) => {
   const { data } = await api.get<EmergencyTeam>(`/${id}`);
   return data;
@@ -78,7 +64,6 @@ const findAllPaginated = async ({
 export const EmergencyTeamsService = {
   findAllPaginated,
   create,
-  findAll,
   findOne,
   update,
   remove,

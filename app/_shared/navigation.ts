@@ -16,9 +16,6 @@ export function useRouter() {
       replace: (href: string, options?: { scroll?: boolean }) => {
         void navigate(href, { replace: true, preventScrollReset: options?.scroll === false });
       },
-      back: () => {
-        void navigate(-1);
-      },
     }),
     [navigate],
   );

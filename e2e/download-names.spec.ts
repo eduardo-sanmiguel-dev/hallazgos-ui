@@ -261,3 +261,17 @@ test.describe("Nombres de descarga", () => {
     );
   });
 });
+
+test("Excel: se elige la planta y Escape cierra el diálogo sin descargar", async ({ page }) => {
+  await page.goto("/hallazgos");
+  await page.getByRole("button", { name: "Excel" }).click();
+  const dialog = page.getByRole("dialog", { name: "Descargar Excel de hallazgos" });
+  await expect(dialog).toBeVisible();
+  const plant = dialog.getByRole("combobox", { name: "Planta" });
+  if (await plant.count()) {
+    await plant.click();
+    await page.getByRole("option").nth(1).click();
+  }
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+});

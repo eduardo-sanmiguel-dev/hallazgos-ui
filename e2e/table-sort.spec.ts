@@ -153,3 +153,29 @@ test("hallazgos: el Excel indica que sale en el orden de la lista", async ({ pag
   await expect(page.getByRole("dialog")).toContainText("Orden de las filas: Planta · A → Z");
   expect(errors).toEqual([]);
 });
+
+test("en celular, el chip de orden abre el panel y ahí se cambia columna y dirección", async ({
+  page,
+}) => {
+  const errors = trackPageErrors(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/users");
+  await page.waitForLoadState("networkidle");
+
+  // Con la barra cerrada, el orden actual es un chip que abre el panel.
+  await page.getByTitle(/^Ordenado por .*Clic para cambiar el orden\.$/).click();
+  const bar = page.getByRole("region", { name: "Filtros" });
+  const field = bar.getByRole("combobox", { name: "Ordenar por" });
+  await expect(field).toBeFocused();
+
+  const byEmail = listRequest(page, "users", "email", "asc");
+  await field.click();
+  await page.getByRole("option", { name: "Correo electrónico" }).click();
+  expect((await byEmail).status()).toBe(200);
+
+  const desc = listRequest(page, "users", "email", "desc");
+  await bar.getByRole("button", { name: "Z → A" }).click();
+  expect((await desc).status()).toBe(200);
+  await expect(sortReference(page)).toContainText("Correo electrónico · Z → A");
+  expect(errors).toEqual([]);
+});

@@ -80,28 +80,6 @@ const create = async (
     }),
   );
 
-// startDate / endDate en ISO 8601 con zona (toISOString).
-const findAll = async (filters: {
-  manufacturingPlantId?: string;
-  gembaWalkZoneId?: string;
-  startDate?: string;
-  endDate?: string;
-}) => {
-  const { data } = await api.get<GembaWalk[]>("", {
-    params: {
-      ...(filters?.manufacturingPlantId && {
-        manufacturingPlantId: filters.manufacturingPlantId,
-      }),
-      ...(filters?.gembaWalkZoneId && {
-        gembaWalkZoneId: filters.gembaWalkZoneId,
-      }),
-      ...(filters?.startDate && { startDate: filters.startDate }),
-      ...(filters?.endDate && { endDate: filters.endDate }),
-    },
-  });
-  return data;
-};
-
 // Igual que findAll, pero paginado en base de datos.
 const findAllPaginated = async (
   filters: {
@@ -144,7 +122,6 @@ export const GembaWalksService = {
   findCalendar,
   start,
   create,
-  findAll,
   findAllPaginated,
   findOne,
 };

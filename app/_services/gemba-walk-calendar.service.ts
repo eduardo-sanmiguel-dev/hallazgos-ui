@@ -54,11 +54,6 @@ const findAll = async (filters: {
   return data;
 };
 
-const findOne = async (id: number) => {
-  const { data } = await api.get<GembaWalkCalendar>(`/${id}`);
-  return data;
-};
-
 const update = async (payload: PayloadUpdate) => {
   const { data } = await api.patch<GembaWalkCalendar[]>("", payload);
   return data;
@@ -100,7 +95,6 @@ export const GembaWalkCalendarService = {
   findAllPaginated,
   create,
   findAll,
-  findOne,
   update,
   remove,
 };

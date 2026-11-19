@@ -18,25 +18,6 @@ const create = async (payload: Payload) => {
   return data;
 };
 
-const findAll = async (filters: { name?: string; mainTypeId?: string }) => {
-  const { data } = await api.get<SecondaryType[]>("", {
-    params: {
-      ...(filters?.name && {
-        name: filters.name,
-      }),
-      ...(filters?.mainTypeId && {
-        mainTypeId: filters.mainTypeId,
-      }),
-    },
-  });
-  return data;
-};
-
-const findAllByManufacturingPlant = async (id: number) => {
-  const { data } = await api.get<SecondaryType[]>(`/by/manufacturing-plant/${id}`);
-  return data;
-};
-
 const findOne = async (id: number) => {
   const { data } = await api.get<SecondaryType>(`/${id}`);
   return data;
@@ -82,8 +63,6 @@ const findAllPaginated = async ({
 export const SecondaryTypesService = {
   findAllPaginated,
   create: withCatalogInvalidation(create, "mainTypes"),
-  findAll,
-  findAllByManufacturingPlant,
   findOne,
   update: withCatalogInvalidation(update, "mainTypes"),
   remove: withCatalogInvalidation(remove, "mainTypes"),

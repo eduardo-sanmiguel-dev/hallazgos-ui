@@ -86,8 +86,24 @@ La misma variable se aplica al ejecutar `git push`.
 `test:e2e:coverage` graba el coverage JS del navegador en cada prueba (V8) y
 lo lleva a los `.tsx` de `app/` con los source maps del build. Los
 archivos que ninguna prueba cargó cuentan con 0%. Quedan fuera las
-interfaces (solo tipos) y el generador estático `app/manifest.ts`. La configuración está en
+interfaces (solo tipos), el generador estático `app/manifest.ts` y los
+`index.ts` que solo reexportan (el bundler los elimina). La configuración está en
 `e2e/support/coverage.ts`.
+
+- Antes de los e2e corre las pruebas unitarias (`e2e/unit`) grabando su
+  coverage (`UNIT_COVERAGE=1`, ver `e2e/unit/coverage-setup.ts`): el reporte
+  junta ambas. Así cuenta la lógica que el navegador de pruebas no ejecuta
+  (p. ej. RUM, que se apaga en `localhost`).
+- El build de coverage sale **sin React Compiler** (`E2E_COVERAGE=1`): sus
+  cachés de memoización agregaban ramas y funciones que no están en `app/`.
+  `pnpm test:e2e` (y el pre-push) sigue probando el build con el compilador.
+- El build de pruebas (`--mode development`) enlaza sus source maps; como el
+  servidor no publica los `.map`, el reporte los lee de `dist.e2e`.
+- Falla si la cobertura baja de los pisos de `e2e/global-teardown.ts`.
+- Una prueba que termina con una recarga completa (`reload`,
+  `location.replace`) pierde el coverage de los scripts que solo existían en
+  la página anterior. Para medirlos, abortar esa última navegación (ver
+  `misc-interactions.spec.ts`).
 
 - `coverage/index.html`: reporte navegable por archivo.
 - `coverage/lcov.info`: para VS Code (Coverage Gutters) o CI.

@@ -65,6 +65,36 @@ test.describe("Dashboard", () => {
     expect(errors).toEqual([]);
   });
 
+  test("cada chip quita su filtro; el periodo no se puede quitar", async ({ page }) => {
+    test.setTimeout(120_000);
+    const errors = trackPageErrors(page);
+    await choosePlantAndWait(page);
+    await pickOption(page, "Periodo", "Este año");
+    await page.waitForLoadState("networkidle");
+    await pickMany(page, "Zonas", 2);
+    await page.waitForLoadState("networkidle");
+    await pickMany(page, "Responsables");
+    await pickMany(page, "Clasificación");
+    await pickMany(page, "Estatus");
+    await page.waitForLoadState("networkidle");
+
+    const toggle = page
+      .getByRole("region", { name: "Filtros" })
+      .getByRole("button", { name: /^Filtros/ });
+    await toggle.click();
+    const applied = page.getByRole("group", { name: "Filtros aplicados" });
+    const removeIcons = applied.locator(".MuiChip-deleteIcon");
+    // Estatus, planta, zonas, responsables y clasificación (el periodo, sin "x").
+    await expect(removeIcons).toHaveCount(5);
+    for (let i = 4; i >= 0; i--) {
+      await removeIcons.nth(i).click();
+      await page.waitForLoadState("networkidle");
+    }
+    await expect(removeIcons).toHaveCount(0);
+    await expect(applied.locator(".MuiChip-root").filter({ hasText: "Periodo" })).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
   test("filtra por varios estatus y los conserva al ir a Hallazgos", async ({ page }) => {
     await choosePlantAndWait(page);
     const request = page.waitForRequest((request) => {

@@ -67,6 +67,57 @@ test.describe("Usuarios", () => {
     expect(errors).toEqual([]);
   });
 
+  test("zonas y procesos: 'Todos' elige todo y 'Ninguno' lo quita", async ({ page }) => {
+    await page.goto("/users/form");
+    await pickOption(page, "Rol", "Supervisor");
+    await pickMany(page, "Plantas");
+
+    for (const label of ["Zonas", "Procesos (opcional)"]) {
+      const select = page.getByRole("combobox", { name: label, exact: true });
+      await select.click();
+      const listbox = page.getByRole("listbox");
+      await listbox.getByRole("option", { name: "Todos" }).click();
+      const total = await listbox
+        .getByRole("option")
+        .filter({ hasNotText: /^(Todos|Ninguno)$/ })
+        .count();
+      await expect(listbox.locator("[aria-selected=true]")).toHaveCount(total);
+      await listbox.getByRole("option", { name: "Ninguno" }).click();
+      await expect(listbox.locator("[aria-selected=true]")).toHaveCount(0);
+      await page.keyboard.press("Escape");
+    }
+  });
+
+  test("al editar un supervisor carga sus zonas y procesos", async ({ page }) => {
+    const errors = trackPageErrors(page);
+    await page.goto("/users");
+    const plants = await page.waitForFunction(
+      () => JSON.parse(sessionStorage.getItem("user-session") || "{}").state?.manufacturingPlants,
+    );
+    const [plant] = (await plants.jsonValue()) as { id: number; name: string }[];
+    await mockGet(page, "/users/9852", {
+      id: 9852,
+      name: "E2E Supervisor",
+      email: "e2e-sup@example.com",
+      role: "Supervisor",
+      isActive: true,
+      manufacturingPlants: [plant],
+      zones: [{ id: 1, name: "E2E Zona", manufacturingPlant: plant }],
+      processes: [{ id: 1, name: "E2E Proceso", manufacturingPlant: plant }],
+    });
+
+    await page.goto("/users/form?id=9852");
+
+    await expect(page.getByLabel("Nombre")).toHaveValue("E2E Supervisor");
+    await expect(page.getByRole("combobox", { name: "Zonas", exact: true })).toContainText(
+      `${plant.name} - E2E Zona`,
+    );
+    await expect(
+      page.getByRole("combobox", { name: "Procesos (opcional)", exact: true }),
+    ).toContainText(`${plant.name} - E2E Proceso`);
+    expect(errors).toEqual([]);
+  });
+
   test("un usuario General no envía zonas ni procesos", async ({ page }) => {
     const writes = await captureWrites(page);
 
