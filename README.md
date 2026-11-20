@@ -118,6 +118,14 @@ puede servir `dist/` con fallback a `index.html` para las rutas, sin aplicarlo a
 los assets (ver `deploy/nginx.conf.example`). `scripts/serve.mjs` mantiene el
 puerto 3000 y el proceso PM2 `ui-comp` sin exigir cambios al reverse proxy.
 
+**Assets con hash (`/assets/`):** el build deja un `.gz` de cada uno
+(`scripts/precompress.mjs`). En producción los entrega nginx directo desde
+`/var/www/comportarte-ui/assets` con `gzip_static` y caché de 1 año
+(`deploy/nginx-ui.conf`); el deploy los copia ahí antes de cambiar de versión
+y conserva los de versiones anteriores 30 días (`UI_ASSETS_KEEP_DAYS`) para las
+pestañas abiertas. Sin esa carpeta, o si falta un archivo, los sirve
+`scripts/serve.mjs`, que también usa los `.gz`.
+
 El build genera un ID único en el bundle y `dist/deployment-version.json`.
 Se conservan los eventos WebSocket `ui-version`/`api-version`, la verificación
 previa a recargar y la publicación atómica con `scripts/publish-ui-version.mjs`.

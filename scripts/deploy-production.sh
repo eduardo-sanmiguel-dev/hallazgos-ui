@@ -6,6 +6,11 @@ STATE_DIR="$HOME/.local/state/hallazgos"
 UI_URL="${UI_URL:-http://127.0.0.1:3000}"
 PUBLIC_UI_URL="${PUBLIC_UI_URL:-https://comportarte.com}"
 PM2_NAME="ui-comp"
+# nginx entrega /assets/ desde aquí (deploy/nginx-ui.conf). Se crea una vez
+# con sudo; sin ella, Node sigue sirviendo los assets.
+ASSETS_DIR="${UI_ASSETS_DIR:-/var/www/comportarte-ui}"
+# Días que se conservan assets de versiones anteriores (pestañas abiertas).
+ASSETS_KEEP_DAYS="${UI_ASSETS_KEEP_DAYS:-30}"
 RELEASE=""
 METADATA=""
 SWITCHED=0
@@ -15,6 +20,34 @@ version_matches() {
   local base="$1" expected="$2" actual
   actual=$(curl -fsS -m 10 "$base/deployment-version.json" 2>/dev/null) || return 1
   node -e 'try { process.exit(JSON.parse(process.argv[1]).version === process.argv[2] ? 0 : 1) } catch { process.exit(1) }' "$actual" "$expected"
+}
+
+# Copia dist/assets (con sus .gz) a la carpeta pública de nginx. Los nombres
+# llevan hash: no chocan y los de versiones anteriores se quedan para las
+# pestañas abiertas; se borran los que no se publican hace ASSETS_KEEP_DAYS.
+publish_assets() {
+  local src="$1/dist/assets" dest="$ASSETS_DIR/assets" file name
+  if [ ! -d "$ASSETS_DIR" ] || [ ! -w "$ASSETS_DIR" ]; then
+    echo "Aviso: $ASSETS_DIR no existe o no se puede escribir; Node sigue sirviendo /assets."
+    return 0
+  fi
+  mkdir -p "$dest"
+  # El script corre con umask 077: nginx (www-data) necesita leer y entrar.
+  chmod 755 "$dest"
+  for file in "$src"/*; do
+    [ -f "$file" ] || continue
+    name="${file##*/}"
+    case "$name" in *.map) continue ;; esac
+    # Primero a un temporal: nginx nunca ve un archivo a medias.
+    if [ ! -e "$dest/$name" ]; then
+      cp "$file" "$dest/.$name.tmp"
+      chmod 644 "$dest/.$name.tmp"
+      mv -f "$dest/.$name.tmp" "$dest/$name"
+    fi
+    touch "$dest/$name"
+  done
+  find "$dest" -type f -mtime +"$ASSETS_KEEP_DAYS" -delete
+  echo "Assets publicados en $dest"
 }
 
 restore_previous() {
@@ -101,6 +134,8 @@ main() {
   # a OpenObserve para leer los stack traces de RUM. Si la subida falla solo
   # avisa; si quedara algún .map en dist, el deploy se detiene aquí.
   node scripts/upload-sourcemaps.mjs dist "$RELEASE/sourcemaps"
+  # Antes del cambio: el HTML nuevo nunca pide assets que nginx aún no tiene.
+  publish_assets "$RELEASE"
 
   # PM2 cannot reliably change a Next executable into a different script on reload.
   # Replace only this app after its new release has passed all build checks.
@@ -121,4 +156,5 @@ main() {
   echo "Deploy OK: $commit | versión $version | $PUBLIC_UI_URL | log $log"
 }
 
-main "$@"
+# Solo al ejecutarlo; `source` (pruebas) carga las funciones sin desplegar.
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then main "$@"; fi

@@ -49,7 +49,8 @@ const server = createServer(async (req, res) => {
   if (pathname.includes("\\") || pathname.includes("\0")) return fail(400);
   // Los source maps son privados (se suben a OpenObserve en el deploy): aunque
   // alguno quedara en dist, nunca se entregan; exponían todo el código fuente.
-  if (pathname.toLowerCase().endsWith(".map")) return fail(404);
+  // Los `.gz` precomprimidos solo se entregan como Content-Encoding.
+  if (/\.(?:map|gz)$/i.test(pathname)) return fail(404);
   if (pathname === "/api/deployment-version") pathname = "/deployment-version.json";
   let file = resolve(root, `.${pathname}`);
   if (!file.startsWith(root + sep) && file !== root) return fail(403);
@@ -77,11 +78,16 @@ const server = createServer(async (req, res) => {
       /\bgzip\b/.test(req.headers["accept-encoding"] || "") &&
       info.size > 1024 &&
       /\.(html|js|css|json|svg|webmanifest)$/.test(actual);
+    // El build deja `<archivo>.gz` (scripts/precompress.mjs): se entrega tal
+    // cual en lugar de comprimir en cada petición.
+    const precompressed = compress ? await stat(`${actual}.gz`).catch(() => null) : null;
     res.setHeader("Vary", "Accept-Encoding");
     if (compress) res.setHeader("Content-Encoding", "gzip");
-    else res.setHeader("Content-Length", info.size);
+    if (precompressed) res.setHeader("Content-Length", precompressed.size);
+    else if (!compress) res.setHeader("Content-Length", info.size);
     res.writeHead(200);
     if (req.method === "HEAD") return res.end();
+    if (precompressed) return await pipeline(createReadStream(`${actual}.gz`), res);
     const stream = createReadStream(actual);
     if (compress) await pipeline(stream, createGzip(), res);
     else await pipeline(stream, res);

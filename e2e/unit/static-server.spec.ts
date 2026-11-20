@@ -4,6 +4,7 @@ import { get } from "node:http";
 import { randomBytes } from "node:crypto";
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { gzipSync } from "node:zlib";
 import { join, resolve } from "node:path";
 
 let child: ChildProcess;
@@ -17,6 +18,13 @@ beforeAll(async () => {
   await writeFile(join(directory, "assets/main-test.js"), 'console.log("UI")');
   await writeFile(join(directory, "assets/main-test.js.map"), '{"version":3,"sources":[]}');
   await writeFile(join(directory, "assets/cancel-test.js"), randomBytes(4 * 1024 * 1024));
+  // Precomprimido por el build (scripts/precompress.mjs). El .gz lleva otro
+  // texto a propósito: así se nota cuál de los dos se entregó.
+  await writeFile(join(directory, "assets/pre-test.js"), "// original\n".repeat(200));
+  await writeFile(
+    join(directory, "assets/pre-test.js.gz"),
+    gzipSync("// precomprimido\n".repeat(200)),
+  );
   await writeFile(
     join(directory, "deployment-version.json"),
     JSON.stringify({ version: "test-build" }),
@@ -118,4 +126,24 @@ test("mantiene el servidor activo cuando clientes cancelan descargas simultánea
   }
   expect(child.exitCode).toBeNull();
   expect(serverErrors.join("")).not.toContain("ERR_HTTP_HEADERS_SENT");
+});
+
+test("entrega el .gz precomprimido en lugar de comprimir en cada petición", async () => {
+  const gzip = await fetch(`${origin}/assets/pre-test.js`, {
+    headers: { "Accept-Encoding": "gzip" },
+  });
+  expect(gzip.headers.get("content-encoding")).toBe("gzip");
+  expect(gzip.headers.get("cache-control")).toContain("immutable");
+  expect(Number(gzip.headers.get("content-length"))).toBeGreaterThan(0);
+  expect(await gzip.text()).toContain("// precomprimido");
+
+  // Sin gzip, el original.
+  const plain = await fetch(`${origin}/assets/pre-test.js`, {
+    headers: { "Accept-Encoding": "identity" },
+  });
+  expect(plain.headers.get("content-encoding")).toBeNull();
+  expect(await plain.text()).toContain("// original");
+
+  // El .gz nunca se pide directo.
+  expect((await fetch(`${origin}/assets/pre-test.js.gz`)).status).toBe(404);
 });
