@@ -6,9 +6,8 @@ import { Chart } from "@highcharts/react";
 
 import "highcharts/esm/modules/accessibility.src.js";
 
-import { DashboardService } from "@services";
 import { EVIDENCE_STATUS_COLOR } from "@shared/constants/semanticTones";
-import { useDashboardQuery } from "../_components/useDashboardSummary";
+import { useDashboardChart } from "../_components/useDashboardSummary";
 import { optionsChartDefault } from "@shared/libs";
 
 interface Props {
@@ -29,11 +28,7 @@ interface Props {
 
 const AssignedResponsibleChart = ({ filters }: Props) => {
   const theme = useTheme();
-  const { data: chartData = null } = useDashboardQuery(
-    "assigned-responsibles",
-    DashboardService.findAssignedResponsiblesByFilters,
-    filters,
-  );
+  const { data: chartData = null } = useDashboardChart("assigned-responsibles", filters);
 
   const hasCompleteFilters =
     !!filters.manufacturingPlantId && !!filters.startDate && !!filters.endDate;

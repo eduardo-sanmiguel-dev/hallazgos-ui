@@ -8,8 +8,7 @@ import "highcharts/esm/modules/accessibility.src.js";
 import "highcharts/esm/highcharts-more.src.js";
 import "highcharts/esm/modules/solid-gauge.src.js";
 
-import { DashboardService } from "@services";
-import { useDashboardQuery } from "../_components/useDashboardSummary";
+import { useDashboardChart } from "../_components/useDashboardSummary";
 import { optionsChartDefault } from "@shared/libs";
 
 interface Props {
@@ -30,11 +29,7 @@ interface Props {
 
 const SolidGaugeMultiKpiChart = ({ filters }: Props) => {
   const theme = useTheme();
-  const { data: kpiData = null } = useDashboardQuery(
-    "solid-gauge-kpi",
-    DashboardService.findSolidGaugeKpiByFilters,
-    filters,
-  );
+  const { data: kpiData = null } = useDashboardChart("solid-gauge-kpi", filters);
 
   const hasCompleteFilters =
     !!filters.manufacturingPlantId && !!filters.startDate && !!filters.endDate;

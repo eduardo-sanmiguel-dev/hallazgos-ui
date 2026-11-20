@@ -5,7 +5,9 @@ if ($http_next_action != "") { return 400; }
 add_header X-Content-Type-Options nosniff always;
 
 location /assets/ {
-    # .gz precomprimidos por el build (scripts/precompress.mjs).
+    # .br/.gz precomprimidos por el build (scripts/precompress.mjs); brotli
+    # requiere libnginx-mod-http-brotli-static.
+    brotli_static on;
     gzip_static on;
     try_files $uri =404;
     expires 1y;

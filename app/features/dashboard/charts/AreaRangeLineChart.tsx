@@ -6,8 +6,7 @@ import { Chart } from "@highcharts/react";
 import "highcharts/esm/highcharts-more.src.js";
 import "highcharts/esm/modules/accessibility.src.js";
 
-import { DashboardService } from "@services";
-import { useDashboardQuery } from "../_components/useDashboardSummary";
+import { useDashboardChart } from "../_components/useDashboardSummary";
 import { optionsChartDefault } from "@shared/libs";
 
 interface Props {
@@ -28,11 +27,7 @@ interface Props {
 
 const AreaRangeLineChart = ({ filters }: Props) => {
   const theme = useTheme();
-  const { data: chartData = null } = useDashboardQuery(
-    "area-range-line",
-    DashboardService.findAreaRangeLineByFilters,
-    filters,
-  );
+  const { data: chartData = null } = useDashboardChart("area-range-line", filters);
 
   const hasCompleteFilters =
     !!filters.manufacturingPlantId && !!filters.startDate && !!filters.endDate;

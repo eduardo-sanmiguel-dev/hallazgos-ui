@@ -6,9 +6,8 @@ import { Chart } from "@highcharts/react";
 import "highcharts/esm/modules/accessibility.src.js";
 import "highcharts/esm/highcharts-more.src.js";
 
-import { DashboardService } from "@services";
 import { EVIDENCE_STATUS_COLOR } from "@shared/constants/semanticTones";
-import { useDashboardQuery } from "../_components/useDashboardSummary";
+import { useDashboardChart } from "../_components/useDashboardSummary";
 import { optionsChartDefault } from "@shared/libs";
 
 interface Props {
@@ -29,11 +28,7 @@ interface Props {
 
 const PackedBubbleChart = ({ filters }: Props) => {
   const theme = useTheme();
-  const { data: chartData = null } = useDashboardQuery(
-    "packed-bubble",
-    DashboardService.findPackedBubbleByFilters,
-    filters,
-  );
+  const { data: chartData = null } = useDashboardChart("packed-bubble", filters);
 
   const hasCompleteFilters =
     !!filters.manufacturingPlantId && !!filters.startDate && !!filters.endDate;

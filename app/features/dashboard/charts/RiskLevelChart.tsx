@@ -7,8 +7,7 @@ import { Chart } from "@highcharts/react";
 
 import "highcharts/esm/modules/accessibility.src.js";
 
-import { DashboardService } from "@services";
-import { useDashboardQuery } from "../_components/useDashboardSummary";
+import { useDashboardChart } from "../_components/useDashboardSummary";
 import { optionsChartDefault } from "@shared/libs";
 import { RISK_LEVEL_ORDER } from "@routes/hallazgos/_constants/priorityOptions";
 
@@ -32,11 +31,7 @@ const riskOrder = RISK_LEVEL_ORDER;
 
 const RiskLevelChart = ({ filters }: Props) => {
   const theme = useTheme();
-  const { data: riskData = null } = useDashboardQuery(
-    "risk-level",
-    DashboardService.findRiskLevelByFilters,
-    filters,
-  );
+  const { data: riskData = null } = useDashboardChart("risk-level", filters);
 
   const hasCompleteFilters =
     !!filters.manufacturingPlantId && !!filters.startDate && !!filters.endDate;

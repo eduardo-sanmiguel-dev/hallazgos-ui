@@ -7,8 +7,7 @@ import { Chart } from "@highcharts/react";
 
 import "highcharts/esm/modules/accessibility.src.js";
 
-import { DashboardService } from "@services";
-import { useDashboardQuery } from "../_components/useDashboardSummary";
+import { useDashboardChart } from "../_components/useDashboardSummary";
 import { optionsChartDefault } from "@shared/libs";
 import { priorityOptions } from "@routes/hallazgos/_constants/priorityOptions";
 
@@ -32,11 +31,7 @@ const priorityOrder = priorityOptions.map((option) => option.name);
 
 const PriorityInterventionChart = ({ filters }: Props) => {
   const theme = useTheme();
-  const { data: priorityData = null } = useDashboardQuery(
-    "priority-intervention",
-    DashboardService.findPriorityInterventionByFilters,
-    filters,
-  );
+  const { data: priorityData = null } = useDashboardChart("priority-intervention", filters);
 
   const hasCompleteFilters =
     !!filters.manufacturingPlantId && !!filters.startDate && !!filters.endDate;

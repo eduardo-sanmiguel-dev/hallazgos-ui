@@ -276,3 +276,34 @@ for (const route of LISTS_WITH_PLANT) {
     ).toBe(1);
   });
 }
+
+test("dashboard: las gráficas piden sus datos sin esperar al resumen, una vez cada una", async ({
+  page,
+}) => {
+  const charts =
+    /^\/dashboard\/(areas|main-types|solid-gauge-kpi|priority-intervention|risk-level|area-range-line|packed-bubble|sankey|assigned-responsibles)-by-filters\?/;
+  await page.goto("/dashboard");
+  const [plant] = await sessionPlants(page);
+
+  // El resumen se retiene: antes, las gráficas esperaban a que llegara.
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(
+    (url) => url.pathname.endsWith("/api/v1/dashboard/status-by-filters"),
+    async (route) => {
+      await held;
+      await route.fallback();
+    },
+  );
+  const api = recordApiGets(page);
+  await pickOption(page, "Planta", plant.name);
+
+  await expect.poll(() => api.count(charts)).toBe(9);
+  expect(api.count(/^\/dashboard\/status-by-filters\?/)).toBe(1);
+
+  release();
+  await page.waitForTimeout(1500);
+  // Al montarse, las gráficas reutilizan lo que ya se pidió.
+  expect(api.count(charts)).toBe(9);
+  expect(api.duplicates()).toEqual([]);
+});

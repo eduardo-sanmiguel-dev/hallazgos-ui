@@ -44,13 +44,14 @@ const setup = async () => {
   await mkdir(join(release, "dist", "assets", "sub"), { recursive: true });
   await writeFile(join(release, "dist", "assets", "index-new.js"), "nuevo");
   await writeFile(join(release, "dist", "assets", "index-new.js.gz"), "gz");
+  await writeFile(join(release, "dist", "assets", "index-new.js.br"), "br");
   await writeFile(join(release, "dist", "assets", "index-new.js.map"), "{}");
   await writeFile(join(release, "dist", "assets", "sub", "x.js"), "carpeta");
   return { root, release };
 };
 
 describe.skipIf(!bashUsable)("publish_assets", () => {
-  test("copia assets y .gz, nunca los source maps, y conserva los de versiones anteriores", async () => {
+  test("copia assets, .br y .gz, nunca los source maps, y conserva los de versiones anteriores", async () => {
     const { root, release } = await setup();
     const assetsDir = join(root, "public");
     await mkdir(join(assetsDir, "assets"), { recursive: true });
@@ -62,6 +63,7 @@ describe.skipIf(!bashUsable)("publish_assets", () => {
     expect(result.status, result.stderr).toBe(0);
     expect((await readdir(join(assetsDir, "assets"))).sort()).toEqual([
       "index-new.js",
+      "index-new.js.br",
       "index-new.js.gz",
       "index-old.js",
     ]);

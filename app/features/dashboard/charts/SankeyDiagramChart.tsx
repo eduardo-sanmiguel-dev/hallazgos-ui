@@ -7,8 +7,7 @@ import { Chart } from "@highcharts/react";
 import "highcharts/esm/modules/accessibility.src.js";
 import "highcharts/esm/modules/sankey.src.js";
 
-import { DashboardService } from "@services";
-import { useDashboardQuery } from "../_components/useDashboardSummary";
+import { useDashboardChart } from "../_components/useDashboardSummary";
 import { optionsChartDefault } from "@shared/libs";
 
 interface Props {
@@ -29,11 +28,7 @@ interface Props {
 
 const SankeyDiagramChart = ({ filters }: Props) => {
   const theme = useTheme();
-  const { data: sankeyData = null } = useDashboardQuery(
-    "sankey",
-    DashboardService.findSankeyByFilters,
-    filters,
-  );
+  const { data: sankeyData = null } = useDashboardChart("sankey", filters);
 
   const hasCompleteFilters =
     !!filters.manufacturingPlantId && !!filters.startDate && !!filters.endDate;

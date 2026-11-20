@@ -41,7 +41,11 @@ import AreaRangeLineChart from "./charts/AreaRangeLineChart";
 import PriorityInterventionChart from "./charts/PriorityInterventionChart";
 import RiskLevelChart from "./charts/RiskLevelChart";
 import { DashboardFiltersBar, type DashboardFilters } from "./_components/DashboardFiltersBar";
-import { hasCompleteFilters, useDashboardSummary } from "./_components/useDashboardSummary";
+import {
+  hasCompleteFilters,
+  useDashboardSummary,
+  usePrefetchDashboardCharts,
+} from "./_components/useDashboardSummary";
 
 const restrictedDashboardEmail = "glora@hadainternational.com";
 
@@ -127,6 +131,8 @@ const DashboardPage = () => {
   // hallazgos o error) en lugar de uno por gráfica. Las gráficas se montan
   // solo con datos que mostrar.
   const summary = useDashboardSummary(queryFilters);
+  // Los datos de las gráficas salen junto con el resumen, sin esperarlo.
+  usePrefetchDashboardCharts(queryFilters, !isHeatmapView && !isHistoricalView);
   const hasExtraFilters =
     filters.areaIds.length > 0 ||
     filters.responsibleIds.length > 0 ||

@@ -237,8 +237,16 @@ test.describe("Hallazgos: acciones", () => {
         .getByRole("region", { name: "Lo que se observó" })
         .getByText("E2E descripción del hallazgo"),
     ).toBeVisible();
+    // Las fotos del detalle suelen quedar abajo: se piden al acercarse.
+    await expect(dialog.getByRole("img", { name: "Foto del hallazgo" })).toHaveAttribute(
+      "loading",
+      "lazy",
+    );
     await dialog.getByRole("button", { name: "Ver foto del hallazgo en grande" }).click();
-    await expect(page.getByRole("dialog", { name: "Foto del hallazgo" })).toBeVisible();
+    const enlarged = page.getByRole("dialog", { name: "Foto del hallazgo" });
+    await expect(enlarged).toBeVisible();
+    // La ampliada se ve de inmediato: sin espera.
+    await expect(enlarged.getByRole("img").first()).toHaveAttribute("loading", "eager");
     await page.getByRole("button", { name: "Cerrar imagen" }).click();
 
     await expect(dialog.getByText("E2E comentario previo")).toBeVisible();

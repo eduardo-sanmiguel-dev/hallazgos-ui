@@ -106,6 +106,9 @@ test.describe("Plano", () => {
     await page.goto("/hallazgos");
     const logo = page.getByRole("img", { name: "Hada International" });
     await expect(logo).toHaveAttribute("src", /\/images\/logo-superior\.webp$/);
+    // Siempre a la vista en la barra: carga inmediata y con prioridad.
+    await expect(logo).toHaveAttribute("loading", "eager");
+    await expect(logo).toHaveAttribute("fetchpriority", "high");
     await expect
       .poll(() => logo.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
       .toBeGreaterThan(0);

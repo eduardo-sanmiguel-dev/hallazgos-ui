@@ -4,7 +4,7 @@ import { get } from "node:http";
 import { randomBytes } from "node:crypto";
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { gzipSync } from "node:zlib";
+import { brotliCompressSync, gzipSync } from "node:zlib";
 import { join, resolve } from "node:path";
 
 let child: ChildProcess;
@@ -14,16 +14,24 @@ const serverErrors: string[] = [];
 beforeAll(async () => {
   directory = await mkdtemp(join(tmpdir(), "hallazgos-ui-static-"));
   await mkdir(join(directory, "assets"));
-  await writeFile(join(directory, "index.html"), '<div id="root">ComportArte</div>');
+  // Más de 1 KB: el HTML se comprime al vuelo.
+  await writeFile(
+    join(directory, "index.html"),
+    '<div id="root">ComportArte</div>' + "<!-- relleno -->".repeat(100),
+  );
   await writeFile(join(directory, "assets/main-test.js"), 'console.log("UI")');
   await writeFile(join(directory, "assets/main-test.js.map"), '{"version":3,"sources":[]}');
   await writeFile(join(directory, "assets/cancel-test.js"), randomBytes(4 * 1024 * 1024));
-  // Precomprimido por el build (scripts/precompress.mjs). El .gz lleva otro
-  // texto a propósito: así se nota cuál de los dos se entregó.
+  // Precomprimido por el build (scripts/precompress.mjs). Cada versión lleva
+  // otro texto a propósito: así se nota cuál se entregó.
   await writeFile(join(directory, "assets/pre-test.js"), "// original\n".repeat(200));
   await writeFile(
     join(directory, "assets/pre-test.js.gz"),
     gzipSync("// precomprimido\n".repeat(200)),
+  );
+  await writeFile(
+    join(directory, "assets/pre-test.js.br"),
+    brotliCompressSync("// brotli\n".repeat(200)),
   );
   await writeFile(
     join(directory, "deployment-version.json"),
@@ -126,6 +134,21 @@ test("mantiene el servidor activo cuando clientes cancelan descargas simultánea
   }
   expect(child.exitCode).toBeNull();
   expect(serverErrors.join("")).not.toContain("ERR_HTTP_HEADERS_SENT");
+});
+
+test("con brotli aceptado entrega el .br precomprimido; el HTML, al vuelo", async () => {
+  const br = await fetch(`${origin}/assets/pre-test.js`, {
+    headers: { "Accept-Encoding": "gzip, deflate, br" },
+  });
+  expect(br.headers.get("content-encoding")).toBe("br");
+  expect(br.headers.get("vary")).toBe("Accept-Encoding");
+  expect(await br.text()).toContain("// brotli");
+
+  const html = await fetch(`${origin}/hallazgos`, { headers: { "Accept-Encoding": "br" } });
+  expect(html.headers.get("content-encoding")).toBe("br");
+  expect(await html.text()).toContain('id="root"');
+
+  expect((await fetch(`${origin}/assets/pre-test.js.br`)).status).toBe(404);
 });
 
 test("entrega el .gz precomprimido en lugar de comprimir en cada petición", async () => {

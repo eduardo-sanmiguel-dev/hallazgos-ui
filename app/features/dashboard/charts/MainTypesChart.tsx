@@ -6,8 +6,7 @@ import { Chart } from "@highcharts/react";
 
 import "highcharts/esm/modules/accessibility.src.js";
 
-import { DashboardService } from "@services";
-import { useDashboardQuery } from "../_components/useDashboardSummary";
+import { useDashboardChart } from "../_components/useDashboardSummary";
 import { optionsChartDefault } from "@shared/libs";
 import { donutResponsive } from "./donutResponsive";
 
@@ -33,11 +32,7 @@ interface Props {
 
 const MainTypesChart = ({ filters }: Props) => {
   const theme = useTheme();
-  const { data: mainTypesData = null } = useDashboardQuery(
-    "main-types",
-    DashboardService.findMainTypesByFilters,
-    filters,
-  );
+  const { data: mainTypesData = null } = useDashboardChart("main-types", filters);
 
   const hasCompleteFilters =
     !!filters.manufacturingPlantId && !!filters.startDate && !!filters.endDate;

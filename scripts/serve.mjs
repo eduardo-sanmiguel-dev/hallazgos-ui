@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { createReadStream } from "node:fs";
-import { createGzip } from "node:zlib";
+import { constants, createBrotliCompress, createGzip } from "node:zlib";
 import { pipeline } from "node:stream/promises";
 import { realpath, stat } from "node:fs/promises";
 import { resolve, extname, sep } from "node:path";
@@ -49,8 +49,8 @@ const server = createServer(async (req, res) => {
   if (pathname.includes("\\") || pathname.includes("\0")) return fail(400);
   // Los source maps son privados (se suben a OpenObserve en el deploy): aunque
   // alguno quedara en dist, nunca se entregan; exponían todo el código fuente.
-  // Los `.gz` precomprimidos solo se entregan como Content-Encoding.
-  if (/\.(?:map|gz)$/i.test(pathname)) return fail(404);
+  // Los `.br`/`.gz` precomprimidos solo se entregan como Content-Encoding.
+  if (/\.(?:map|gz|br)$/i.test(pathname)) return fail(404);
   if (pathname === "/api/deployment-version") pathname = "/deployment-version.json";
   let file = resolve(root, `.${pathname}`);
   if (!file.startsWith(root + sep) && file !== root) return fail(403);
@@ -74,22 +74,39 @@ const server = createServer(async (req, res) => {
       "Cache-Control",
       pathname.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-store",
     );
-    const compress =
-      /\bgzip\b/.test(req.headers["accept-encoding"] || "") &&
-      info.size > 1024 &&
-      /\.(html|js|css|json|svg|webmanifest)$/.test(actual);
-    // El build deja `<archivo>.gz` (scripts/precompress.mjs): se entrega tal
-    // cual en lugar de comprimir en cada petición.
-    const precompressed = compress ? await stat(`${actual}.gz`).catch(() => null) : null;
+    // Brotli a quien lo acepta (~14 % menos que gzip) y gzip a los demás.
+    const accepted = req.headers["accept-encoding"] || "";
+    const encoding =
+      info.size > 1024 && /\.(html|js|css|json|svg|webmanifest)$/.test(actual)
+        ? /\bbr\b/.test(accepted)
+          ? "br"
+          : /\bgzip\b/.test(accepted)
+            ? "gzip"
+            : null
+        : null;
+    // El build deja `<archivo>.br` y `.gz` (scripts/precompress.mjs): se
+    // entregan tal cual en lugar de comprimir en cada petición.
+    const precompressedFile = encoding && `${actual}.${encoding === "br" ? "br" : "gz"}`;
+    const precompressed = precompressedFile
+      ? await stat(precompressedFile).catch(() => null)
+      : null;
     res.setHeader("Vary", "Accept-Encoding");
-    if (compress) res.setHeader("Content-Encoding", "gzip");
+    if (encoding) res.setHeader("Content-Encoding", encoding);
     if (precompressed) res.setHeader("Content-Length", precompressed.size);
-    else if (!compress) res.setHeader("Content-Length", info.size);
+    else if (!encoding) res.setHeader("Content-Length", info.size);
     res.writeHead(200);
     if (req.method === "HEAD") return res.end();
-    if (precompressed) return await pipeline(createReadStream(`${actual}.gz`), res);
+    if (precompressed) return await pipeline(createReadStream(precompressedFile), res);
     const stream = createReadStream(actual);
-    if (compress) await pipeline(stream, createGzip(), res);
+    // Sin precomprimido (el HTML): al vuelo. Brotli con calidad media: la
+    // máxima tarda demasiado para hacerlo en cada petición.
+    if (encoding === "br")
+      await pipeline(
+        stream,
+        createBrotliCompress({ params: { [constants.BROTLI_PARAM_QUALITY]: 5 } }),
+        res,
+      );
+    else if (encoding) await pipeline(stream, createGzip(), res);
     else await pipeline(stream, res);
   } catch {
     fail(404);
