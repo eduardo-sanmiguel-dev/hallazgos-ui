@@ -144,6 +144,46 @@ test.describe("Dashboard", () => {
     expect(errors).toEqual([]);
   });
 
+  test("el mapa de calor y el histórico muestran su esqueleto mientras cargan", async ({
+    page,
+  }) => {
+    const errors = trackPageErrors(page);
+    await choosePlantAndWait(page);
+
+    // Se retienen las respuestas para ver la carga.
+    const hold = async (path: string) => {
+      let release!: () => void;
+      const held = new Promise<void>((resolve) => (release = resolve));
+      await page.route(
+        (url) => url.pathname.endsWith(`/api/v1/dashboard${path}`),
+        async (route) => {
+          await held;
+          await route.fallback();
+        },
+      );
+      return release;
+    };
+
+    const releaseHeatmap = await hold("/heatmap-by-filters");
+    await page.getByRole("button", { name: "Mapa de calor" }).click();
+    const heatmapLoading = page.getByRole("status", { name: "Cargando mapa de calor" });
+    await expect(heatmapLoading).toBeVisible();
+    releaseHeatmap();
+    await expect(heatmapLoading).toHaveCount(0);
+    await page.getByRole("button", { name: "Gráficas" }).click();
+
+    const releaseHistorical = await hold("/historical-by-month");
+    await page.getByRole("button", { name: "Histórico" }).click();
+    const historicalLoading = page.getByRole("status", { name: "Cargando histórico" });
+    await expect(historicalLoading).toBeVisible();
+    // No se adelanta a decir que no hay datos.
+    await expect(page.getByText("Sin datos históricos")).toHaveCount(0);
+    releaseHistorical();
+    await expect(page.getByText("Carrera histórica de hallazgos por planta")).toBeVisible();
+    await expect(historicalLoading).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+
   test("descarga el informe PDF de las gráficas visibles", async ({ page }) => {
     test.setTimeout(120_000);
     await choosePlantAndWait(page);

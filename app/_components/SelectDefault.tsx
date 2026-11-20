@@ -5,8 +5,10 @@ import { Autocomplete } from "@mui/material";
 import { Checkbox } from "@mui/material";
 import { CircularProgress } from "@mui/material";
 import { TextField } from "@mui/material";
+import { Typography } from "@mui/material";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
+import { isMoreOptions, limitedFilterOptions } from "@shared/utils/autocompleteLimit";
 //import { FormHelperText } from "@mui/material";
 
 /** Círculo de referencia del color de una opción (el nombre ya lo dice). */
@@ -24,6 +26,9 @@ const ColorDot = ({ color }: { color: string }) => (
     }}
   />
 );
+
+// Hasta 100 opciones dibujadas; con más, escribir afina (autocompleteLimit).
+const filterOptions = limitedFilterOptions<any>();
 
 const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
 const checkedIcon = <CheckBoxIcon fontSize="small" />;
@@ -89,6 +94,8 @@ export default function SelectDefault({
           onChange(syntheticEvent as any, newValue);
         }}
         options={data}
+        filterOptions={filterOptions}
+        getOptionDisabled={(option) => isMoreOptions(option)}
         disableCloseOnSelect={multiple}
         getOptionLabel={(option) => option.name || ""}
         isOptionEqualToValue={(option, value) => option.id === value?.id}
@@ -96,6 +103,16 @@ export default function SelectDefault({
           // Por id: puede haber nombres repetidos (p. ej. zonas de distintas
           // plantas) y MUI usa la etiqueta como key.
           const { key: _key, ...optionProps } = props;
+
+          if (isMoreOptions(option)) {
+            return (
+              <li key={option.id} {...optionProps}>
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  {option.name}
+                </Typography>
+              </li>
+            );
+          }
 
           return (
             <li key={option.id} {...optionProps}>

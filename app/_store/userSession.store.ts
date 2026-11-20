@@ -21,6 +21,8 @@ const stateInitial = {
   zones: [],
   manufacturingPlantsCurrent: [],
   evidencePermissions: NO_EVIDENCE_PERMISSIONS,
+  // Explícito: `set` mezcla, y al cerrar sesión no debe quedar el anterior.
+  isGembaWalkObserver: undefined,
 };
 
 type Actions = {

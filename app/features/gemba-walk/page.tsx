@@ -9,7 +9,13 @@ import Add from "@mui/icons-material/Add";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import dayjs, { toISOStringOrNull } from "@shared/libs/dayjs";
 
-import { EMPTY_CATALOG, useGembaWalkZones, usePaginatedList, useTableSort } from "@hooks";
+import {
+  EMPTY_CATALOG,
+  useGembaWalkZones,
+  usePaginatedList,
+  useRestoredPlantId,
+  useTableSort,
+} from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import SelectDefault from "@components/SelectDefault";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
@@ -67,7 +73,12 @@ const defaultFilters = () => ({
 });
 
 const GembaWalksList = () => {
-  const [filters, setFilters] = useState(defaultFilters);
+  // Con la planta que restaura su filtro: la primera página sale una vez.
+  const restoredPlant = useRestoredPlantId();
+  const [filters, setFilters] = useState(() => ({
+    ...defaultFilters(),
+    manufacturingPlantId: restoredPlant,
+  }));
 
   const hasFiltersToClear = useMemo(() => {
     const defaults = defaultFilters();

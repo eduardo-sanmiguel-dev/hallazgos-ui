@@ -25,4 +25,6 @@ export interface UserSession {
   zones: Zone[];
   manufacturingPlantsCurrent: number[];
   evidencePermissions: EvidencePermissions;
+  /** Si puede usar Gemba Walk; undefined con un API anterior. */
+  isGembaWalkObserver?: boolean;
 }

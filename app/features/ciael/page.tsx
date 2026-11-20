@@ -13,14 +13,19 @@ import FiltersCiaels, {
 } from "./components/FiltersCiaels";
 import { CiaelsService } from "@services";
 import SimCardDownloadIcon from "@mui/icons-material/SimCardDownload";
-import { usePaginatedList, useTableSort } from "@hooks";
+import { usePaginatedList, useRestoredPlantId, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
 
 const CiaelPage = () => {
   const [open, setOpen] = useState(false);
-  const [filters, setFilters] = useState<IFiltersCiaels>(DEFAULT_FILTERS_CIAELS);
+  // Con la planta que restaura su filtro: la primera página sale una vez.
+  const restoredPlant = useRestoredPlantId();
+  const [filters, setFilters] = useState<IFiltersCiaels>(() => ({
+    ...DEFAULT_FILTERS_CIAELS,
+    manufacturingPlantId: restoredPlant,
+  }));
   const downloadExcel = useMutation({
     mutationFn: () => CiaelsService.downloadExcel(),
   });

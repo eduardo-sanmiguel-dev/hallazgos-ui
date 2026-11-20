@@ -3,9 +3,11 @@ import type { PointerEvent, ReactNode } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
-import { Box, Button, Paper, Stack, Tooltip, Typography } from "@mui/material";
+import { Box, Button, Paper, Skeleton, Stack, Tooltip, Typography } from "@mui/material";
 
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
+
+import type { PlantPlan } from "../_lib/plantPlan";
 
 export type AreaMarkedPoint = {
   x: number;
@@ -19,7 +21,7 @@ type SelectedPoint = AreaMarkedPoint & {
 };
 
 type AreaImageCoordinateSelectorProps = {
-  imageSrc: string;
+  plan: PlantPlan;
   initialPoint?: AreaMarkedPoint | null;
   onPointChange?: (point: AreaMarkedPoint | null) => void;
   mode?: "selector" | "heatmap";
@@ -133,7 +135,7 @@ const sharedPaperSx = {
 } as const;
 
 const AreaImageCoordinateSelector = ({
-  imageSrc,
+  plan,
   initialPoint = null,
   onPointChange,
   mode = "selector",
@@ -143,45 +145,29 @@ const AreaImageCoordinateSelector = ({
 }: AreaImageCoordinateSelectorProps) => {
   const [currentScale, setCurrentScale] = useState(1);
   const [heatmapScale, setHeatmapScale] = useState(1);
-  const [imageNaturalSize, setImageNaturalSize] = useState({
-    width: 0,
-    height: 0,
-  });
-  const [selectedPoint, setSelectedPoint] = useState<SelectedPoint | null>(null);
-
-  // Si la imagen ya estaba cargada (caché o carga antes de la hidratación),
-  // onLoad no se dispara: se toma el tamaño real al montar el <img>. Sin esto
-  // las coordenadas se calculaban en píxeles de pantalla y el punto guardado
-  // no se mostraba al editar.
-  const syncNaturalSize = (img: HTMLImageElement | null) => {
-    if (!img?.complete || !img.naturalWidth || !img.naturalHeight) return;
-
-    setImageNaturalSize((prev) =>
-      prev.width === img.naturalWidth && prev.height === img.naturalHeight
-        ? prev
-        : { width: img.naturalWidth, height: img.naturalHeight },
-    );
-  };
+  // Espacio de coordenadas: el del plano original, no el del archivo que se
+  // descarga (ver PLANT_PLAN). Se conoce desde el inicio: los puntos no
+  // esperan a que cargue la imagen.
+  const imageNaturalSize = { width: plan.width, height: plan.height };
+  const toSelectedPoint = (point: AreaMarkedPoint | null): SelectedPoint | null =>
+    point
+      ? {
+          ...point,
+          percentX: (point.x / plan.width) * 100,
+          percentY: (point.y / plan.height) * 100,
+        }
+      : null;
+  // El punto guardado se muestra desde el primer render (al editar, el
+  // componente se monta con él) y se vuelve a tomar si cambia desde fuera.
+  const [selectedPoint, setSelectedPoint] = useState(() => toSelectedPoint(initialPoint));
+  const [pointSource, setPointSource] = useState(initialPoint);
+  if (pointSource !== initialPoint) {
+    setPointSource(initialPoint);
+    setSelectedPoint(toSelectedPoint(initialPoint));
+  }
 
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const isDraggingRef = useRef(false);
-
-  const [pointSource, setPointSource] = useState({ initialPoint, ...imageNaturalSize });
-  if (
-    pointSource.initialPoint !== initialPoint ||
-    pointSource.width !== imageNaturalSize.width ||
-    pointSource.height !== imageNaturalSize.height
-  ) {
-    setPointSource({ initialPoint, ...imageNaturalSize });
-    if (!initialPoint) setSelectedPoint(null);
-    else if (imageNaturalSize.width && imageNaturalSize.height) {
-      setSelectedPoint({
-        ...initialPoint,
-        percentX: (initialPoint.x / imageNaturalSize.width) * 100,
-        percentY: (initialPoint.y / imageNaturalSize.height) * 100,
-      });
-    }
-  }
 
   const selectPointFromPointer = (target: HTMLDivElement, clientX: number, clientY: number) => {
     const rect = target.getBoundingClientRect();
@@ -299,7 +285,6 @@ const AreaImageCoordinateSelector = ({
       0,
     );
     const maxValue = Math.max(...openPoints.map((point) => point.statusCounts.Abierto), 1);
-    const canProjectPoints = imageNaturalSize.width > 0 && imageNaturalSize.height > 0;
     const heatmapInitialZoom = 1;
 
     const normalizedPoints = openPoints.map((point) => {
@@ -310,10 +295,7 @@ const AreaImageCoordinateSelector = ({
       let projectedX = point.x;
       let projectedY = point.y;
 
-      if (
-        canProjectPoints &&
-        (projectedX > imageNaturalSize.width || projectedY > imageNaturalSize.height)
-      ) {
+      if (projectedX > imageNaturalSize.width || projectedY > imageNaturalSize.height) {
         const legacyScale = zoomLevel / heatmapInitialZoom;
         if (legacyScale > 0) {
           projectedX = projectedX / legacyScale;
@@ -365,12 +347,8 @@ const AreaImageCoordinateSelector = ({
         ...point,
         xAdjusted: projectedX,
         yAdjusted: projectedY,
-        xNorm: canProjectPoints
-          ? Math.min(100, Math.max(0, (projectedX / imageNaturalSize.width) * 100))
-          : 0,
-        yNorm: canProjectPoints
-          ? Math.min(100, Math.max(0, (projectedY / imageNaturalSize.height) * 100))
-          : 0,
+        xNorm: Math.min(100, Math.max(0, (projectedX / imageNaturalSize.width) * 100)),
+        yNorm: Math.min(100, Math.max(0, (projectedY / imageNaturalSize.height) * 100)),
         openCount: point.statusCounts.Abierto,
         diameter: zoomAwareDiameter,
         heatTone,
@@ -568,9 +546,13 @@ const AreaImageCoordinateSelector = ({
         </Box>
 
         {loading ? (
-          <Typography variant="body2" color="text.secondary">
-            Cargando mapa de calor...
-          </Typography>
+          // El lugar del plano mientras llegan los puntos.
+          <Box component="output" aria-live="polite" aria-label="Cargando mapa de calor">
+            <Skeleton
+              variant="rounded"
+              sx={{ width: "100%", height: "auto", aspectRatio: "16 / 9" }}
+            />
+          </Box>
         ) : openPoints.length === 0 ? (
           <Typography variant="body2" color="text.secondary">
             No hay hallazgos abiertos con coordenadas para los filtros seleccionados.
@@ -611,30 +593,19 @@ const AreaImageCoordinateSelector = ({
                       maxWidth: "100%",
                       maxHeight: "100%",
                       height: "100%",
-                      aspectRatio:
-                        imageNaturalSize.width && imageNaturalSize.height
-                          ? `${imageNaturalSize.width} / ${imageNaturalSize.height}`
-                          : "16 / 9",
+                      aspectRatio: `${imageNaturalSize.width} / ${imageNaturalSize.height}`,
                       overflow: "hidden",
                       bgcolor: "#0d1117",
                     }}
                   >
                     <Box
                       component="img"
-                      ref={syncNaturalSize}
-                      src={imageSrc}
+                      src={plan.src}
                       alt="Plano para mapa de calor"
                       loading="lazy"
                       decoding="async"
                       fetchPriority="low"
                       draggable={false}
-                      onLoad={(event: React.SyntheticEvent<HTMLImageElement>) => {
-                        const target = event.currentTarget;
-                        setImageNaturalSize({
-                          width: target.naturalWidth,
-                          height: target.naturalHeight,
-                        });
-                      }}
                       sx={{
                         position: "absolute",
                         inset: 0,
@@ -649,138 +620,118 @@ const AreaImageCoordinateSelector = ({
                       }}
                     />
 
-                    {!canProjectPoints && (
-                      <Box
-                        sx={{
-                          position: "absolute",
-                          inset: 0,
-                          zIndex: 3,
-                          display: "flex",
-                          alignItems: "flex-start",
-                          justifyContent: "flex-start",
-                          p: 1,
-                          pointerEvents: "none",
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          Cargando plano para proyectar coordenadas...
-                        </Typography>
-                      </Box>
-                    )}
-
-                    {canProjectPoints &&
-                      normalizedPoints.map((point) => (
-                        <Tooltip
-                          key={`${point.areaId}-${point.x}-${point.y}`}
-                          arrow
-                          placement="top"
-                          enterDelay={80}
-                          leaveDelay={120}
-                          slotProps={{
-                            tooltip: {
-                              sx: {
-                                "@keyframes heatmapTooltipIn": {
-                                  from: {
-                                    opacity: 0,
-                                    transform: "translateY(10px) scale(0.98)",
-                                  },
-                                  to: {
-                                    opacity: 1,
-                                    transform: "translateY(0) scale(1)",
-                                  },
+                    {normalizedPoints.map((point) => (
+                      <Tooltip
+                        key={`${point.areaId}-${point.x}-${point.y}`}
+                        arrow
+                        placement="top"
+                        enterDelay={80}
+                        leaveDelay={120}
+                        slotProps={{
+                          tooltip: {
+                            sx: {
+                              "@keyframes heatmapTooltipIn": {
+                                from: {
+                                  opacity: 0,
+                                  transform: "translateY(10px) scale(0.98)",
                                 },
-                                px: 1.5,
-                                py: 1.25,
-                                minWidth: 260,
-                                maxWidth: 340,
-                                borderRadius: 1.5,
-                                border: "1px solid rgba(255,255,255,0.28)",
-                                background:
-                                  "linear-gradient(135deg, rgba(7, 12, 23, 0.96) 0%, rgba(18, 27, 45, 0.96) 100%)",
-                                backdropFilter: "blur(6px)",
-                                boxShadow:
-                                  "0 14px 30px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.05) inset",
-                                animation: "heatmapTooltipIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+                                to: {
+                                  opacity: 1,
+                                  transform: "translateY(0) scale(1)",
+                                },
                               },
+                              px: 1.5,
+                              py: 1.25,
+                              minWidth: 260,
+                              maxWidth: 340,
+                              borderRadius: 1.5,
+                              border: "1px solid rgba(255,255,255,0.28)",
+                              background:
+                                "linear-gradient(135deg, rgba(7, 12, 23, 0.96) 0%, rgba(18, 27, 45, 0.96) 100%)",
+                              backdropFilter: "blur(6px)",
+                              boxShadow:
+                                "0 14px 30px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.05) inset",
+                              animation: "heatmapTooltipIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1)",
                             },
-                            arrow: {
-                              sx: {
-                                color: "rgba(18, 27, 45, 0.96)",
-                              },
+                          },
+                          arrow: {
+                            sx: {
+                              color: "rgba(18, 27, 45, 0.96)",
                             },
-                          }}
-                          title={
-                            <Stack spacing={0.75}>
-                              <Typography
-                                variant="subtitle2"
-                                sx={{
-                                  fontWeight: 700,
-                                  letterSpacing: 0.3,
-                                  color: "#f8fafc",
-                                  lineHeight: 1.2,
-                                }}
-                              >
-                                {point.areaName}
-                              </Typography>
+                          },
+                        }}
+                        title={
+                          <Stack spacing={0.75}>
+                            <Typography
+                              variant="subtitle2"
+                              sx={{
+                                fontWeight: 700,
+                                letterSpacing: 0.3,
+                                color: "#f8fafc",
+                                lineHeight: 1.2,
+                              }}
+                            >
+                              {point.areaName}
+                            </Typography>
+                            <Box
+                              sx={{
+                                height: 1,
+                                width: "100%",
+                                bgcolor: "rgba(148, 163, 184, 0.32)",
+                              }}
+                            />
+                            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                               <Box
                                 sx={{
-                                  height: 1,
-                                  width: "100%",
-                                  bgcolor: "rgba(148, 163, 184, 0.32)",
+                                  px: 1,
+                                  py: 0.35,
+                                  borderRadius: 99,
+                                  bgcolor: point.heatTone.badgeBg,
+                                  border: `1px solid ${point.heatTone.badgeBorder}`,
                                 }}
-                              />
-                              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                                <Box
-                                  sx={{
-                                    px: 1,
-                                    py: 0.35,
-                                    borderRadius: 99,
-                                    bgcolor: point.heatTone.badgeBg,
-                                    border: `1px solid ${point.heatTone.badgeBorder}`,
-                                  }}
-                                >
-                                  <Typography
-                                    variant="caption"
-                                    sx={{
-                                      color: point.heatTone.badgeText,
-                                      fontWeight: 700,
-                                      letterSpacing: 0.2,
-                                    }}
-                                  >
-                                    ABIERTOS
-                                  </Typography>
-                                </Box>
+                              >
                                 <Typography
-                                  variant="h6"
+                                  variant="caption"
                                   sx={{
-                                    color: "#ffffff",
-                                    fontWeight: 800,
-                                    lineHeight: 1,
+                                    color: point.heatTone.badgeText,
+                                    fontWeight: 700,
+                                    letterSpacing: 0.2,
                                   }}
                                 >
-                                  {point.openCount}
+                                  ABIERTOS
                                 </Typography>
-                              </Stack>
+                              </Box>
+                              <Typography
+                                variant="h6"
+                                sx={{
+                                  color: "#ffffff",
+                                  fontWeight: 800,
+                                  lineHeight: 1,
+                                }}
+                              >
+                                {point.openCount}
+                              </Typography>
                             </Stack>
-                          }
-                        >
-                          <Box
-                            sx={{
-                              position: "absolute",
-                              left: `${point.xNorm}%`,
-                              top: `${point.yNorm}%`,
-                              width: point.diameter,
-                              height: point.diameter,
-                              transform: "translate(-50%, -50%)",
-                              borderRadius: "50%",
-                              pointerEvents: "auto",
-                              zIndex: 2,
-                              background: `radial-gradient(circle, ${point.heatTone.core} 0%, ${point.heatTone.mid} 38%, ${point.heatTone.edge} 62%, rgba(255, 255, 255, 0) 100%)`,
-                              boxShadow: `0 0 24px ${point.heatTone.glow}`,
-                            }}
-                          />
-                        </Tooltip>
-                      ))}
+                          </Stack>
+                        }
+                      >
+                        <Box
+                          sx={{
+                            position: "absolute",
+                            left: `${point.xNorm}%`,
+                            top: `${point.yNorm}%`,
+                            width: point.diameter,
+                            height: point.diameter,
+                            transform: "translate(-50%, -50%)",
+                            borderRadius: "50%",
+                            pointerEvents: "auto",
+                            zIndex: 2,
+                            background: `radial-gradient(circle, ${point.heatTone.core} 0%, ${point.heatTone.mid} 38%, ${point.heatTone.edge} 62%, rgba(255, 255, 255, 0) 100%)`,
+                            boxShadow: `0 0 24px ${point.heatTone.glow}`,
+                          }}
+                        />
+                      </Tooltip>
+                    ))}
                   </Box>
                 </TransformComponent>
               </ZoomViewport>
@@ -870,10 +821,7 @@ const AreaImageCoordinateSelector = ({
                       width: "100%",
                       maxWidth: "100%",
                       maxHeight: "100%",
-                      aspectRatio:
-                        imageNaturalSize.width && imageNaturalSize.height
-                          ? `${imageNaturalSize.width} / ${imageNaturalSize.height}`
-                          : "16 / 9",
+                      aspectRatio: `${imageNaturalSize.width} / ${imageNaturalSize.height}`,
                       userSelect: "none",
                       cursor: "crosshair",
                       overflow: "hidden",
@@ -881,20 +829,12 @@ const AreaImageCoordinateSelector = ({
                   >
                     <Box
                       component="img"
-                      ref={syncNaturalSize}
-                      src={imageSrc}
+                      src={plan.src}
                       alt="Planos"
                       loading="lazy"
                       decoding="async"
                       fetchPriority="low"
                       draggable={false}
-                      onLoad={(event: React.SyntheticEvent<HTMLImageElement>) => {
-                        const target = event.currentTarget;
-                        setImageNaturalSize({
-                          width: target.naturalWidth,
-                          height: target.naturalHeight,
-                        });
-                      }}
                       sx={{
                         display: "block",
                         width: "100%",

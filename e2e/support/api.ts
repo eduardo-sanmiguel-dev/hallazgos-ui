@@ -75,3 +75,16 @@ export const mockGet = (
     (route) =>
       route.request().method() === "GET" ? route.fulfill({ status, json }) : route.fallback(),
   );
+
+/**
+ * El usuario en sesión real (GET /users/get-information-current-user) con
+ * algunos campos cambiados, p. ej. `{ isGembaWalkObserver: false }`.
+ */
+export const patchSessionUser = (page: Page, patch: Record<string, unknown>) =>
+  page.route(
+    (url) => url.pathname.endsWith("/api/v1/users/get-information-current-user"),
+    async (route) => {
+      const response = await route.fetch();
+      await route.fulfill({ response, json: { ...(await response.json()), ...patch } });
+    },
+  );

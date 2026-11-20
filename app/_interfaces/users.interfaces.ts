@@ -16,6 +16,11 @@ export interface User {
   processes: Processes[];
   /** Solo en el usuario en sesión (get-information-current-user). */
   evidencePermissions?: EvidencePermissions;
+  /**
+   * Solo en el usuario en sesión: si puede usar Gemba Walk. Ausente con un
+   * API anterior (se pregunta a GET /gemba-walk/walks/access).
+   */
+  isGembaWalkObserver?: boolean;
 }
 
 /** Usuario en selectores (GET /users?view=options): sin relaciones. */

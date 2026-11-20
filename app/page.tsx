@@ -37,7 +37,7 @@ export default function SignIn() {
           veía estirado. En pantallas angostas se reduce sin deformarse y
           se carga de inmediato porque es lo primero que se ve. */}
         <Image
-          src="/images/logo-new.png"
+          src="/images/logo-new.webp"
           alt=""
           width={450}
           height={300}

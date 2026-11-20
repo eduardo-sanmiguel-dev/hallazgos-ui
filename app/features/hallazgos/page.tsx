@@ -20,7 +20,7 @@ import { TableSkeleton } from "@shared/components/Skeletons";
 import ErrorState from "@shared/components/ErrorState";
 import FiltersEvidence, { FiltersEvidences } from "./_components/FiltersEvidence";
 import DownloadExcelDialog from "./_components/DownloadExcelDialog";
-import { useEvidences, useTableSort } from "@hooks";
+import { useEvidences, useRestoredPlantId, useTableSort } from "@hooks";
 import { sortSummary } from "@shared/utils/tableSort";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
@@ -100,9 +100,15 @@ const filtersFromSearch = (
 export default function HallazgosPage() {
   const searchParams = useSearchParams();
 
-  const [filters, setFilters] = useState<FiltersEvidences>({
+  // Filtros de la URL (enlace del dashboard o de un correo) o, sin ellos, la
+  // planta que el filtro restaura, desde el primer render: si llegaban
+  // después, la lista pedía primero la página sin filtros y luego la
+  // filtrada (dos peticiones al abrir).
+  const restoredPlant = useRestoredPlantId();
+  const [initial] = useState(() => filtersFromSearch(searchParams));
+  const [filters, setFilters] = useState<FiltersEvidences>(() => ({
     evidenceId: "",
-    manufacturingPlantId: "",
+    manufacturingPlantId: restoredPlant,
     mainTypeIds: [],
     secondaryTypeIds: [],
     areaIds: [],
@@ -111,12 +117,13 @@ export default function HallazgosPage() {
     states: [],
     startDate: "",
     endDate: "",
-  });
+    ...initial?.filters,
+  }));
 
   // Hallazgo a abrir al cargar (?evidenceId=, el botón "Ver hallazgo" de
   // los correos). En la página: sobrevive a que la tabla se vuelva a montar
   // mientras carga; se olvida al cerrar su detalle.
-  const [linkedEvidenceId, setLinkedEvidenceId] = useState(0);
+  const [linkedEvidenceId, setLinkedEvidenceId] = useState(initial?.linkedId ?? 0);
 
   // El orden lo resuelve la API; también se aplica a las descargas.
   const sort = useTableSort("evidences", EVIDENCE_SORT_OPTIONS, EVIDENCE_DEFAULT_SORT);
@@ -157,8 +164,10 @@ export default function HallazgosPage() {
     downloadPdf.mutate(filters);
   };
 
+  // Una URL nueva mientras la página sigue abierta (otro enlace) aplica sus
+  // filtros; la de entrada ya se aplicó arriba.
   const query = searchParams.toString();
-  const [previousQuery, setPreviousQuery] = useState<string | null>(null);
+  const [previousQuery, setPreviousQuery] = useState(query);
   if (previousQuery !== query) {
     setPreviousQuery(query);
     const restored = filtersFromSearch(searchParams);

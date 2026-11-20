@@ -5,7 +5,7 @@ import { useRouter } from "@shared/navigation";
 import Add from "@mui/icons-material/Add";
 import { Button } from "@mui/material";
 
-import { usePaginatedList, useTableSort } from "@hooks";
+import { usePaginatedList, useRestoredPlantId, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
@@ -14,7 +14,12 @@ import TableIcs, { ICS_DEFAULT_SORT, ICS_SORT_OPTIONS } from "./_components/Tabl
 import { IcsService } from "@services";
 
 const IcsPage = () => {
-  const [filters, setFilters] = useState<IFiltersIcs>(DEFAULT_FILTERS_ICS);
+  // Con la planta que restaura su filtro: la primera página sale una vez.
+  const restoredPlant = useRestoredPlantId();
+  const [filters, setFilters] = useState<IFiltersIcs>(() => ({
+    ...DEFAULT_FILTERS_ICS,
+    manufacturingPlantId: restoredPlant,
+  }));
 
   const router = useRouter();
 

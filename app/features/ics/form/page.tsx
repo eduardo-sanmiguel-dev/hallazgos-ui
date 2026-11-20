@@ -9,6 +9,7 @@ import { useSearchParams } from "@shared/navigation";
 import { Grid, Button } from "@mui/material";
 import { FormHelperText } from "@mui/material";
 import { Checkbox } from "@mui/material";
+import { Typography } from "@mui/material";
 import { Autocomplete } from "@mui/material";
 import { TextField } from "@mui/material";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
@@ -19,6 +20,8 @@ import { EMPTY_CATALOG, useCatalog, useIcsCatalogs, useUploadProgress } from "@h
 import { EmployeesService, IcsService } from "@services";
 import SelectDefault from "@components/SelectDefault";
 import { NUMERIC_INPUT } from "@shared/utils/inputModes";
+import { isMoreOptions, limitedFilterOptions } from "@shared/utils/autocompleteLimit";
+import type { EmployeeOption } from "@interfaces";
 import ImageORCamera from "@shared/components/ImageORCamera";
 import { dataURLtoFile, notify } from "@shared/utils";
 import { useFormFieldErrors } from "@hooks/useFieldErrors";
@@ -30,6 +33,9 @@ import FormActions from "@shared/components/FormActions";
 import DraftNotice from "@shared/components/DraftNotice";
 import ErrorState from "@shared/components/ErrorState";
 import { useConfirmDialog } from "@shared/components/ConfirmDialog";
+
+// Hasta 100 colaboradores dibujados (una planta llega a ~950); escribir afina.
+const filterEmployees = limitedFilterOptions<EmployeeOption>();
 
 // Lo que se captura (y se guarda en el borrador local; la foto va aparte).
 interface IcsForm {
@@ -465,6 +471,8 @@ const IcsFormPage = () => {
               id="campo-employees"
               multiple
               options={employees}
+              filterOptions={filterEmployees}
+              getOptionDisabled={isMoreOptions}
               disableCloseOnSelect
               disabled={!form.manufacturingPlant || isLocked}
               loading={employeesQuery.isLoading}
@@ -474,6 +482,15 @@ const IcsFormPage = () => {
               isOptionEqualToValue={(option, value) => option.id === value.id}
               renderOption={(props, option, { selected }) => {
                 const { key, ...optionProps } = props;
+                if (isMoreOptions(option)) {
+                  return (
+                    <li key={key} {...optionProps}>
+                      <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                        {option.name}
+                      </Typography>
+                    </li>
+                  );
+                }
                 return (
                   <li key={key} {...optionProps}>
                     <Checkbox

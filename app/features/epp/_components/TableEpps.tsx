@@ -409,11 +409,22 @@ function EppCard({ epp, manufacturingPlantId, currentUserId, onHistoryEmptied }:
       <Collapse in={open} timeout="auto" unmountOnExit>
         <Box sx={{ mt: 1.5 }} aria-busy={status === "loading"}>
           {isFirstLoad && (
-            <Stack component="output" direction="row" spacing={1} sx={{ alignItems: "center" }}>
-              <CircularProgress size={16} aria-hidden />
-              <Typography variant="body2" color="text.secondary">
-                Cargando historial…
-              </Typography>
+            // Renglones con la forma de una entrega (firma y datos).
+            <Stack component="output" aria-label="Cargando historial…" spacing={1}>
+              {Array.from({ length: 3 }, (_, row) => (
+                <Stack
+                  key={row}
+                  direction="row"
+                  spacing={1.5}
+                  sx={{ alignItems: "center", borderTop: 1, borderColor: "divider", pt: 1 }}
+                >
+                  <Skeleton variant="rounded" width={96} height={64} sx={{ flexShrink: 0 }} />
+                  <Box sx={{ flex: 1 }}>
+                    <Skeleton variant="text" width="60%" />
+                    <Skeleton variant="text" width="80%" />
+                  </Box>
+                </Stack>
+              ))}
             </Stack>
           )}
           {status === "error" && (

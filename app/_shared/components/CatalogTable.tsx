@@ -10,6 +10,29 @@ import { notify } from "@shared/utils";
 const api = axiosWrapper({ baseURL: "/catalogs" });
 type CatalogRow = { id: number; isActive?: boolean; scheduledAt?: string };
 
+// Catálogos en caché (["catalogs", nombre]) que cambian al reactivar un
+// registro: los mismos que invalida su servicio al crear, editar o eliminar.
+// Antes se invalidaban todos y se volvían a pedir los que estaban en
+// pantalla (p. ej. plantas y áreas al reactivar una zona). Uno que no esté
+// aquí invalida todos, por si acaso.
+const REACTIVATION_INVALIDATES: Record<string, string[]> = {
+  areas: ["areas", "zones"],
+  zones: ["zones"],
+  "main-types": ["mainTypes"],
+  "secondary-types": ["mainTypes"],
+  processes: ["processes"],
+  "manufacturing-plants": ["manufacturingPlants", "zones", "processes", "areas", "gembaWalkZones"],
+  users: ["users"],
+  employees: ["employees"],
+  "gemba-walk-zones": ["gembaWalkZones"],
+  equipments: ["equipments"],
+  // Sin catálogo en caché: solo se recarga su lista (onActivated).
+  "emergency-teams": [],
+  "gemba-walk-calendar": [],
+  "gemba-walk-evaluations": [],
+  "gemba-walk-observers": [],
+};
+
 export function CatalogStatus({ active }: { active?: boolean }) {
   return (
     <Chip
@@ -38,7 +61,12 @@ export function CatalogActions({
     mutationFn: () => api.patch(`/${catalog}/${row.id}/activate`),
     onSuccess: async () => {
       notify("Registro reactivado correctamente", true);
-      await queryClient.invalidateQueries({ queryKey: ["catalogs"] });
+      const names = REACTIVATION_INVALIDATES[catalog];
+      await (names
+        ? Promise.all(
+            names.map((name) => queryClient.invalidateQueries({ queryKey: ["catalogs", name] })),
+          )
+        : queryClient.invalidateQueries({ queryKey: ["catalogs"] }));
       onActivated();
     },
   });

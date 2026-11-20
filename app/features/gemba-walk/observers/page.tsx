@@ -5,7 +5,7 @@ import { useRouter } from "@shared/navigation";
 import { Button } from "@mui/material";
 import Add from "@mui/icons-material/Add";
 
-import { usePaginatedList, useTableSort } from "@hooks";
+import { usePaginatedList, useRestoredPlantId, useTableSort } from "@hooks";
 import { TableSkeleton } from "@shared/components/Skeletons";
 import PageHeader from "@shared/components/PageHeader";
 import RefreshButton from "@shared/components/RefreshButton";
@@ -26,7 +26,12 @@ const defaultFilters = (): IFiltersGembaWalkObservers => ({
 });
 
 const GembaWalkObserversPage = () => {
-  const [filters, setFilters] = useState<IFiltersGembaWalkObservers>(defaultFilters);
+  // Con la planta que restaura su filtro: la primera página sale una vez.
+  const restoredPlant = useRestoredPlantId();
+  const [filters, setFilters] = useState<IFiltersGembaWalkObservers>(() => ({
+    ...defaultFilters(),
+    manufacturingPlantId: restoredPlant,
+  }));
 
   const router = useRouter();
 

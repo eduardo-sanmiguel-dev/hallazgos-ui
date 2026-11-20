@@ -40,9 +40,11 @@ const forgotPassword = async (email: string) => {
   return data;
 };
 
+// Quien cierra sesión recarga la app (HeaderUserMenu, SessionEndedDialog):
+// vaciar aquí la caché con la pantalla montada la hacía pedir otra vez sus
+// datos, ya sin sesión.
 const logout = async () => {
   const { data } = await api.post<{ message: string }>("/logout");
-  clearSession();
   return data;
 };
 
@@ -50,7 +52,6 @@ const logout = async () => {
 // API invalida todos sus tokens.
 const logoutAll = async () => {
   const { data } = await api.post<{ message: string }>("/logout-all");
-  clearSession();
   return data;
 };
 

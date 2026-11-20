@@ -380,6 +380,41 @@ test.describe("Inspección de extintores", () => {
     expect(writes).toEqual([]);
   });
 
+  test("al editar, muestra el esqueleto mientras llega la inspección, no el formulario vacío", async ({
+    page,
+  }) => {
+    await page.goto("/extinguisher-inspection");
+    const [plant] = await sessionPlants(page);
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    await page.route(
+      (url) => url.pathname.endsWith("/api/v1/extinguisher-inspections/9604"),
+      async (route) => {
+        await held;
+        await route.fulfill({ json: { id: 9604, manufacturingPlant: plant, evaluations: [] } });
+      },
+    );
+
+    await page.goto("/extinguisher-inspection/form?id=9604");
+    await expect(page.getByRole("status", { name: "Cargando…" })).toBeVisible();
+    await expect(page.getByText("Aún no hay evaluaciones")).toHaveCount(0);
+
+    release();
+    await expect(
+      page.getByRole("heading", { name: "Agregar evaluaciones a la inspección" }),
+    ).toBeVisible();
+    await expect(page.getByText("Aún no hay evaluaciones")).toBeVisible();
+    await expect(page.getByRole("status", { name: "Cargando…" })).toHaveCount(0);
+  });
+
+  test("una inspección inexistente lo dice y deja volver a la lista", async ({ page }) => {
+    await mockGet(page, "/extinguisher-inspections/9605", { message: "x" }, { status: 404 });
+    await page.goto("/extinguisher-inspection/form?id=9605");
+    await expect(page.getByText("Inspección no encontrada")).toBeVisible();
+    await page.getByRole("button", { name: "Volver a la lista" }).click();
+    await expect(page).toHaveURL(/\/extinguisher-inspection$/);
+  });
+
   test("los errores del API de cada evaluación se muestran en su tarjeta y la fecha en su campo", async ({
     page,
   }) => {

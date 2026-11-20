@@ -5,7 +5,7 @@ import type { GridProps, SelectChangeEvent } from "@mui/material";
 import { EMPTY_CATALOG, useManufacturingPlants } from "@hooks";
 import { useUserSessionStore } from "@store";
 import { usePlantSelectionStore } from "@store/plantSelection.store";
-import { readLastPlant, proposedPlantId } from "@shared/utils/lastPlant";
+import { readLastPlant, restoredPlantId } from "@shared/utils/lastPlant";
 import SelectDefault from "./SelectDefault";
 
 interface CommonProps {
@@ -61,12 +61,7 @@ export default function SelectManufacturingPlantsOwn(props: Props) {
     restored.current = { userId, remembered };
     // Un registro, borrador o enlace explicito tiene prioridad al montar.
     if ((first && props.value) || (!first && (!isFilter || !preferenceChanged))) return;
-    const next =
-      remembered === ""
-        ? ""
-        : remembered && plants.some(({ id }) => String(id) === remembered)
-          ? remembered
-          : proposedPlantId(plants, userId) || (defaultToFirst ? String(plants[0].id) : "");
+    const next = restoredPlantId(plants, userId, remembered, defaultToFirst);
     if (next !== props.value)
       props.onChange({ target: { value: next, name: name ?? "" } } as SelectChangeEvent<string>);
   }, [

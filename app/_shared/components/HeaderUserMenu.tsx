@@ -2,10 +2,6 @@ import { MouseEvent, useId, useState } from "react";
 
 import { useMutation } from "@tanstack/react-query";
 
-import { getQueryClient } from "@shared/libs/queryClient";
-
-import { useRouter } from "@shared/navigation";
-
 import { Avatar } from "@mui/material";
 import { Box } from "@mui/material";
 import { Button } from "@mui/material";
@@ -33,6 +29,7 @@ import { useUserSessionStore } from "@store";
 import { useShallow } from "zustand/shallow";
 import { ROLE_ADMINISTRADOR } from "@shared/constants";
 import { notify } from "@shared/utils";
+import { saveLogoutNotice } from "@shared/utils/logoutNotice";
 import { AuthService } from "@services";
 import { useInstallApp } from "@hooks";
 import { deleteUserDrafts, listUserDrafts } from "@shared/drafts/draftStore";
@@ -57,21 +54,19 @@ const initialsOf = (name: string, email: string) => {
 
 // Usuario en sesión (avatar en el header) con su información y "Salir".
 export default function HeaderUserMenu() {
-  const router = useRouter();
   const menuId = useId();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [isIosHelpOpen, setIsIosHelpOpen] = useState(false);
   const { mode: installMode, promptInstall } = useInstallApp();
 
   const { confirm, confirmDialog } = useConfirmDialog();
-  const { userId, name, email, role, manufacturingPlants, resetSession } = useUserSessionStore(
+  const { userId, name, email, role, manufacturingPlants } = useUserSessionStore(
     useShallow((state) => ({
       userId: state.id,
       name: state.name,
       email: state.email,
       role: state.role,
       manufacturingPlants: state.manufacturingPlants,
-      resetSession: state.resetSession,
     })),
   );
 
@@ -88,12 +83,14 @@ export default function HeaderUserMenu() {
   const logoutMutation = useMutation({
     mutationFn: (everywhere: boolean) =>
       everywhere ? AuthService.logoutAll() : AuthService.logout(),
+    // Se sale con una recarga completa (como al vencer la sesión): nada de
+    // la cuenta que sale queda en memoria y "/" reinicia la sesión guardada.
+    // Antes se vaciaba la caché y la sesión con la pantalla aún montada, y
+    // esta volvía a pedir sus datos (usuario, acceso, catálogos) ya sin
+    // sesión. El aviso lo muestra la pantalla de inicio.
     onSuccess: ({ message }) => {
-      notify(message, true);
-      // Nada de la cuenta que sale queda en memoria para la siguiente.
-      getQueryClient().clear();
-      router.push("/");
-      resetSession();
+      saveLogoutNotice(message);
+      window.location.replace("/");
     },
   });
 

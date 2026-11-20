@@ -106,6 +106,100 @@ export function FormSkeleton({ sections = 2 }: { sections?: number }) {
   );
 }
 
+// Lista de conceptos evaluados (resultados de un recorrido o de una
+// inspección): título de la categoría y renglones.
+export function ChecklistSkeleton({ rows = 3 }: { rows?: number }) {
+  return (
+    <Stack spacing={1.5}>
+      <Stack direction="row" sx={{ justifyContent: "space-between" }}>
+        <Skeleton variant="text" width={140} height={28} />
+        <Skeleton variant="text" width={80} />
+      </Stack>
+      {Array.from({ length: rows }, (_, index) => (
+        <Skeleton key={index} variant="rounded" height={72} />
+      ))}
+    </Stack>
+  );
+}
+
+// Sección con título y contenido (como DetailSection).
+function SectionSkeleton({ children }: { children: ReactNode }) {
+  return (
+    <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 } }}>
+      <Skeleton variant="text" width={120} height={32} sx={{ mb: 2 }} />
+      {children}
+    </Paper>
+  );
+}
+
+// Detalle de un registro (p. ej. un recorrido): resumen, indicadores,
+// resultados y, al lado, los datos. La cabecera ya está en pantalla. En
+// celular, una columna.
+export function DetailSkeleton() {
+  return (
+    <SkeletonRoot>
+      <Box
+        sx={{
+          display: "grid",
+          gap: { xs: 2, md: 3 },
+          alignItems: "start",
+          gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 2fr) minmax(0, 1fr)" },
+          gridTemplateAreas: {
+            xs: `"summary" "kpis" "results" "data"`,
+            md: `"summary summary" "kpis kpis" "results data"`,
+          },
+        }}
+      >
+        <Box sx={{ gridArea: "summary" }}>
+          <Skeleton variant="text" width={140} />
+          <Skeleton variant="text" sx={{ width: { xs: "100%", sm: 420 } }} height={40} />
+          <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
+            <Skeleton variant="rounded" width={150} height={24} sx={{ borderRadius: 4 }} />
+            <Skeleton variant="rounded" width={120} height={24} sx={{ borderRadius: 4 }} />
+          </Stack>
+        </Box>
+        <Box
+          sx={{
+            gridArea: "kpis",
+            display: "grid",
+            gap: 2,
+            gridTemplateColumns: { xs: "minmax(0, 1fr)", sm: "minmax(0, 2fr) minmax(0, 1fr)" },
+          }}
+        >
+          <Skeleton variant="rounded" height={112} />
+          <Skeleton variant="rounded" height={112} />
+        </Box>
+        <Box sx={{ gridArea: "results", minWidth: 0 }}>
+          <SectionSkeleton>
+            <ChecklistSkeleton />
+          </SectionSkeleton>
+        </Box>
+        <Box sx={{ gridArea: "data", minWidth: 0 }}>
+          <SectionSkeleton>
+            <Stack spacing={1.5}>
+              {Array.from({ length: 6 }, (_, index) => (
+                <Box key={index}>
+                  <Skeleton variant="text" width={80} height={18} />
+                  <Skeleton variant="text" width="70%" />
+                </Box>
+              ))}
+            </Stack>
+          </SectionSkeleton>
+        </Box>
+      </Box>
+    </SkeletonRoot>
+  );
+}
+
+// Gráfica sola (p. ej. una que carga sus propios datos).
+export function ChartSkeleton({ height = 320, label }: { height?: number; label?: string }) {
+  return (
+    <SkeletonRoot label={label}>
+      <Skeleton variant="rounded" height={height} />
+    </SkeletonRoot>
+  );
+}
+
 // Dashboard: indicadores y gráficas.
 export function DashboardSkeleton() {
   return (

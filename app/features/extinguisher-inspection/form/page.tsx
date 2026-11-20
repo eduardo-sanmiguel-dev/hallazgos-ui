@@ -30,7 +30,8 @@ import DetailSection from "@shared/components/DetailSection";
 import StatusChip from "@shared/components/StatusChip";
 import FormActions from "@shared/components/FormActions";
 import { useFieldErrors } from "@hooks/useFieldErrors";
-import { useEditRecord } from "@hooks/useEditRecord";
+import { isEditRecordPending, useEditRecord } from "@hooks/useEditRecord";
+import EditRecordState from "@shared/components/EditRecordState";
 import { EmergencyTeamsService, ExtinguisherInspectionsService, parseApiError } from "@services";
 import { EvaluationValues } from "@interfaces";
 
@@ -166,8 +167,8 @@ const ExtinguisherInspectionFormPage = () => {
       }
     },
   });
-  // Mientras carga la inspección o se guarda.
-  const isLoading = record.status === "loading" || saveMutation.isPending;
+  // La carga de la inspección la cubre EditRecordState; aquí, al guardar.
+  const isLoading = saveMutation.isPending;
 
   const stopScanner = () => {
     scanningRef.current = false;
@@ -595,6 +596,20 @@ const ExtinguisherInspectionFormPage = () => {
       evaluation.noveltyRecords.filter(({ status }) => status === EvaluationValues.NC).length,
     0,
   );
+
+  // Inspección que se edita: esqueleto mientras llega (antes se veía el
+  // formulario vacío) y aviso si no existe o no se pudo cargar.
+  if (isEditRecordPending(record.status)) {
+    return (
+      <EditRecordState
+        status={record.status}
+        onRetry={record.retry}
+        title="Agregar evaluaciones a la inspección"
+        notFoundTitle="Inspección no encontrada"
+        listHref="/extinguisher-inspection"
+      />
+    );
+  }
 
   // Como el registro de Gemba Walk: datos de la inspección, extintores
   // escaneados (cada uno con su lista de verificación) y una barra fija con

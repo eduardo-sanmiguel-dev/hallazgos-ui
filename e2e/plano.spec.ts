@@ -74,6 +74,43 @@ test.describe("Plano", () => {
     expect(errors).toEqual([]);
   });
 
+  test("el plano se sirve en WebP y las coordenadas siguen en el espacio del original", async ({
+    page,
+  }) => {
+    const planRequest = page.waitForResponse((response) =>
+      response.url().endsWith("/images/planos.webp"),
+    );
+    await page.goto("/areas/form");
+    // Carga diferida: se pide al acercarse a la vista.
+    const image = plano(page);
+    await image.scrollIntoViewIfNeeded();
+    const response = await planRequest;
+    expect(response.headers()["content-type"]).toContain("image/webp");
+
+    await expect
+      .poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
+      .toBe(11577);
+
+    // El centro del plano es el centro del original (12396×17542), no del
+    // WebP (11577×16383): los puntos ya guardados no se desplazan.
+    const box = (await image.boundingBox())!;
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    const text = await page.getByText(/^Punto seleccionado: X \d+, Y \d+/).textContent();
+    const [, x, y] = text!.match(/X (\d+), Y (\d+)/)!.map(Number);
+    const unit = 12396 / box.width;
+    expect(Math.abs(x - 6198)).toBeLessThanOrEqual(2 * unit);
+    expect(Math.abs(y - 8771)).toBeLessThanOrEqual(2 * unit);
+  });
+
+  test("los logos se sirven en WebP", async ({ page }) => {
+    await page.goto("/hallazgos");
+    const logo = page.getByRole("img", { name: "Hada International" });
+    await expect(logo).toHaveAttribute("src", /\/images\/logo-superior\.webp$/);
+    await expect
+      .poll(() => logo.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
+      .toBeGreaterThan(0);
+  });
+
   test("muestra el punto guardado al editar una zona", async ({ page }) => {
     const writes = await captureWrites(page);
     await mockGet(page, "/areas/9901", {

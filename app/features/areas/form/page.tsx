@@ -22,6 +22,7 @@ import EditRecordState from "@shared/components/EditRecordState";
 import AreaImageCoordinateSelector, {
   type AreaMarkedPoint,
 } from "../_components/AreaImageCoordinateSelector";
+import { PLANT_PLAN } from "../_lib/plantPlan";
 
 const LIST_HREF = "/areas";
 
@@ -157,7 +158,7 @@ const AreasFormPage = () => {
       >
         <Grid size={{ xs: 12 }} sx={{ display: "flex" }}>
           <AreaImageCoordinateSelector
-            imageSrc="/images/planos.png"
+            plan={PLANT_PLAN}
             initialPoint={pointToPersist}
             onPointChange={setPointToPersist}
           />

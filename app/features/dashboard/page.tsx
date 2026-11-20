@@ -17,7 +17,8 @@ import { toast } from "sonner";
 import { UserOption } from "@interfaces";
 import { DashboardService, UsersService } from "@services";
 import { useUserSessionStore } from "@store";
-import { EMPTY_CATALOG, useAreas, useMainTypes } from "@hooks";
+import { EMPTY_CATALOG, useAreas, useDebouncedFilters, useMainTypes } from "@hooks";
+import { catalogKeys } from "@shared/libs/catalogKeys";
 import { useHighchartsTheme } from "@hooks/useHighchartsTheme";
 import EmptyState from "@shared/components/EmptyState";
 import ErrorState from "@shared/components/ErrorState";
@@ -27,6 +28,7 @@ import { accentCard } from "@shared/utils/accentCard";
 import { DEFAULT_PERIOD, PERIOD_PRESETS, periodLabel, presetRange } from "@shared/utils/period";
 import { proposedPlantId } from "@shared/utils/lastPlant";
 import AreaImageCoordinateSelector from "../areas/_components/AreaImageCoordinateSelector";
+import { PLANT_PLAN } from "../areas/_lib/plantPlan";
 import AreasChart from "./charts/AreasChart";
 import MainTypesChart from "./charts/MainTypesChart";
 import StatusChart from "./charts/StatusChart";
@@ -116,10 +118,15 @@ const DashboardPage = () => {
     }));
   };
 
+  // Las consultas (resumen, gráficas, mapa de calor, responsables) usan los
+  // filtros tras una pausa: elegir varias zonas o clasificaciones seguidas
+  // pedía las ~12 consultas de la pantalla una vez por cada opción.
+  const { debounced: queryFilters } = useDebouncedFilters(filters);
+
   // Estado de la pantalla: un solo aviso (sin planta, sin periodo, sin
   // hallazgos o error) en lugar de uno por gráfica. Las gráficas se montan
   // solo con datos que mostrar.
-  const summary = useDashboardSummary(filters);
+  const summary = useDashboardSummary(queryFilters);
   const hasExtraFilters =
     filters.areaIds.length > 0 ||
     filters.responsibleIds.length > 0 ||
@@ -165,8 +172,8 @@ const DashboardPage = () => {
   // solo se usa si corresponde al periodo en pantalla (al cambiarlo se ve la
   // respuesta anterior mientras llega la nueva).
   const currentRange =
-    filters.startDate && filters.endDate
-      ? { desde: toIso(filters.startDate), hasta: toIso(filters.endDate) }
+    queryFilters.startDate && queryFilters.endDate
+      ? { desde: toIso(queryFilters.startDate), hasta: toIso(queryFilters.endDate) }
       : null;
   const comparison =
     summary.data?.periodo &&
@@ -249,37 +256,41 @@ const DashboardPage = () => {
   // Responsables del filtro: con zonas y periodo, los que tienen hallazgos
   // ahí; si no, todos los usuarios de la planta.
   const shouldLoadResponsiblesByArea =
-    filters.areaIds.length > 0 && !!filters.startDate && !!filters.endDate;
+    queryFilters.areaIds.length > 0 && !!queryFilters.startDate && !!queryFilters.endDate;
   const responsiblesParams = shouldLoadResponsiblesByArea
     ? {
-        manufacturingPlantId: filters.manufacturingPlantId,
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-        areaIds: filters.areaIds,
-        states: filters.states,
-        ...(filters.mainTypeIds.length > 0 && {
-          mainTypeIds: filters.mainTypeIds,
+        manufacturingPlantId: queryFilters.manufacturingPlantId,
+        startDate: queryFilters.startDate,
+        endDate: queryFilters.endDate,
+        areaIds: queryFilters.areaIds,
+        states: queryFilters.states,
+        ...(queryFilters.mainTypeIds.length > 0 && {
+          mainTypeIds: queryFilters.mainTypeIds,
         }),
       }
-    : { manufacturingPlantId: filters.manufacturingPlantId };
+    : { manufacturingPlantId: queryFilters.manufacturingPlantId };
   const { data: responsibles = EMPTY_CATALOG } = useQuery<UserOption[]>({
-    queryKey: ["dashboard", "responsibles", responsiblesParams],
+    // Sin zonas: la misma lista (y llave) que los filtros de hallazgos, para
+    // no pedirla otra vez al pasar del dashboard a la lista.
+    queryKey: shouldLoadResponsiblesByArea
+      ? ["dashboard", "responsibles", responsiblesParams]
+      : catalogKeys.users(responsiblesParams),
     queryFn: () =>
       shouldLoadResponsiblesByArea
         ? DashboardService.findResponsiblesByFilters({
-            manufacturingPlantId: filters.manufacturingPlantId,
-            startDate: filters.startDate,
-            endDate: filters.endDate,
-            areaIds: filters.areaIds,
-            states: filters.states,
-            ...(filters.mainTypeIds.length > 0 && {
-              mainTypeIds: filters.mainTypeIds,
+            manufacturingPlantId: queryFilters.manufacturingPlantId,
+            startDate: queryFilters.startDate,
+            endDate: queryFilters.endDate,
+            areaIds: queryFilters.areaIds,
+            states: queryFilters.states,
+            ...(queryFilters.mainTypeIds.length > 0 && {
+              mainTypeIds: queryFilters.mainTypeIds,
             }),
           })
         : UsersService.findAll({
-            manufacturingPlantId: filters.manufacturingPlantId,
+            manufacturingPlantId: queryFilters.manufacturingPlantId,
           }),
-    enabled: !!filters.manufacturingPlantId,
+    enabled: !!queryFilters.manufacturingPlantId,
     placeholderData: keepPreviousData,
   });
 
@@ -291,31 +302,34 @@ const DashboardPage = () => {
 
   // Mapa de calor: solo mientras se ve esa vista y con planta y periodo.
   const isHeatmapEnabled =
-    isHeatmapView && !!filters.manufacturingPlantId && !!filters.startDate && !!filters.endDate;
+    isHeatmapView &&
+    !!queryFilters.manufacturingPlantId &&
+    !!queryFilters.startDate &&
+    !!queryFilters.endDate;
   const heatmapQuery = useQuery({
     queryKey: [
       "dashboard",
       "heatmap",
       {
-        manufacturingPlantId: filters.manufacturingPlantId,
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-        areaIds: filters.areaIds,
-        responsibleIds: filters.responsibleIds,
-        mainTypeIds: filters.mainTypeIds,
-        states: filters.states,
+        manufacturingPlantId: queryFilters.manufacturingPlantId,
+        startDate: queryFilters.startDate,
+        endDate: queryFilters.endDate,
+        areaIds: queryFilters.areaIds,
+        responsibleIds: queryFilters.responsibleIds,
+        mainTypeIds: queryFilters.mainTypeIds,
+        states: queryFilters.states,
       },
     ],
     queryFn: () =>
       DashboardService.findHeatmapByFilters({
-        manufacturingPlantId: filters.manufacturingPlantId,
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-        areaIds: filters.areaIds,
-        responsibleIds: filters.responsibleIds,
-        states: filters.states,
-        ...(filters.mainTypeIds.length > 0 && {
-          mainTypeIds: filters.mainTypeIds,
+        manufacturingPlantId: queryFilters.manufacturingPlantId,
+        startDate: queryFilters.startDate,
+        endDate: queryFilters.endDate,
+        areaIds: queryFilters.areaIds,
+        responsibleIds: queryFilters.responsibleIds,
+        states: queryFilters.states,
+        ...(queryFilters.mainTypeIds.length > 0 && {
+          mainTypeIds: queryFilters.mainTypeIds,
         }),
       }),
     enabled: isHeatmapEnabled,
@@ -627,7 +641,7 @@ const DashboardPage = () => {
               data-dashboard-export="chart"
             >
               <AreaImageCoordinateSelector
-                imageSrc="/images/planos.png"
+                plan={PLANT_PLAN}
                 mode="heatmap"
                 heatmapHeaderTitle={heatmapFiltersTitle}
                 heatmapData={heatmapData}
@@ -646,7 +660,7 @@ const DashboardPage = () => {
               data-dashboard-export="chart"
             >
               <Paper sx={{ p: 2 }}>
-                <StatusChart filters={filters} />
+                <StatusChart filters={queryFilters} />
               </Paper>
             </Grid>
           )}
@@ -661,7 +675,7 @@ const DashboardPage = () => {
               data-dashboard-export="chart"
             >
               <Paper sx={{ p: 2 }}>
-                <AreasChart filters={filters} />
+                <AreasChart filters={queryFilters} />
               </Paper>
             </Grid>
           )}
@@ -676,7 +690,7 @@ const DashboardPage = () => {
               data-dashboard-export="chart"
             >
               <Paper sx={{ minHeight: 470, p: 2 }}>
-                <MainTypesChart filters={filters} />
+                <MainTypesChart filters={queryFilters} />
               </Paper>
             </Grid>
           )}
@@ -691,7 +705,7 @@ const DashboardPage = () => {
               data-dashboard-export="chart"
             >
               <Paper sx={{ minHeight: 470, p: 2 }}>
-                <SolidGaugeMultiKpiChart filters={filters} />
+                <SolidGaugeMultiKpiChart filters={queryFilters} />
               </Paper>
             </Grid>
           )}
@@ -705,7 +719,7 @@ const DashboardPage = () => {
               }}
               data-dashboard-export="chart"
             >
-              <PriorityInterventionChart filters={filters} />
+              <PriorityInterventionChart filters={queryFilters} />
             </Grid>
           )}
 
@@ -718,7 +732,7 @@ const DashboardPage = () => {
               }}
               data-dashboard-export="chart"
             >
-              <RiskLevelChart filters={filters} />
+              <RiskLevelChart filters={queryFilters} />
             </Grid>
           )}
 
@@ -732,7 +746,7 @@ const DashboardPage = () => {
               data-dashboard-export="chart"
             >
               <Paper sx={{ minHeight: 470, p: 2 }}>
-                <AreaRangeLineChart filters={filters} />
+                <AreaRangeLineChart filters={queryFilters} />
               </Paper>
             </Grid>
           )}
@@ -747,7 +761,7 @@ const DashboardPage = () => {
               data-dashboard-export="chart"
             >
               <Paper sx={{ minHeight: 560, p: 2 }}>
-                <PackedBubbleChart filters={filters} />
+                <PackedBubbleChart filters={queryFilters} />
               </Paper>
             </Grid>
           )}
@@ -762,7 +776,7 @@ const DashboardPage = () => {
               data-dashboard-export="chart"
             >
               <Paper sx={{ minHeight: 560, p: 2 }}>
-                <SankeyDiagramChart filters={filters} />
+                <SankeyDiagramChart filters={queryFilters} />
               </Paper>
             </Grid>
           )}
@@ -777,7 +791,7 @@ const DashboardPage = () => {
               data-dashboard-export="chart"
             >
               <Paper sx={{ minHeight: 400, p: 2 }}>
-                <AssignedResponsibleChart filters={filters} />
+                <AssignedResponsibleChart filters={queryFilters} />
               </Paper>
             </Grid>
           )}

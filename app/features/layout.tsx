@@ -109,7 +109,7 @@ function Brand() {
       }}
     >
       <Image
-        src="/images/logo-superior.png"
+        src="/images/logo-superior.webp"
         alt="Hada International"
         width={61}
         height={36}

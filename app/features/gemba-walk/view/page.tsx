@@ -23,7 +23,7 @@ import { alpha } from "@mui/material/styles";
 import { GembaWalksService, parseApiError } from "@services";
 import { GembaWalk } from "@interfaces";
 import { stringToDateWithTime } from "@shared/utils";
-import LoadingLinear from "@shared/components/LoadingLinear";
+import { DetailSkeleton } from "@shared/components/Skeletons";
 import EmptyState from "@shared/components/EmptyState";
 import ErrorState from "@shared/components/ErrorState";
 import StatusChip from "@shared/components/StatusChip";
@@ -142,7 +142,7 @@ const GembaWalkDetail = () => {
     );
   }
 
-  if (status === "loading" || !gembaWalk) return <LoadingLinear />;
+  if (status === "loading" || !gembaWalk) return <DetailSkeleton />;
 
   const calendar = gembaWalk.gembaWalkCalendar;
   const zone = calendar.gembaWalkZone;

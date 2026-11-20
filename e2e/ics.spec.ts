@@ -184,6 +184,32 @@ test.describe("ICS", () => {
     await expect(page.getByRole("combobox", { name: "Área", exact: true })).toHaveCount(0);
   });
 
+  test("con muchos colaboradores muestra 100 y al escribir se encuentra cualquiera", async ({
+    page,
+  }) => {
+    const many = Array.from({ length: 250 }, (_, i) => ({
+      id: 9000 + i + 1,
+      name: `E2E Colaborador ${String(i + 1).padStart(3, "0")}`,
+    }));
+    await openForm(page, many);
+
+    const field = page.getByRole("combobox", { name: "Personas que no cumplen *" });
+    await field.click();
+    const options = page.getByRole("listbox").getByRole("option");
+    // 100 colaboradores y la fila que avisa cuántos faltan (no se puede elegir).
+    await expect(options).toHaveCount(101);
+    const more = options.last();
+    await expect(more).toHaveText("…y 150 más. Escribe para afinar la búsqueda.");
+    await expect(more).toHaveAttribute("aria-disabled", "true");
+
+    // El que quedó fuera de la lista se encuentra escribiendo.
+    await field.fill("249");
+    await expect(options).toHaveCount(1);
+    await options.first().click();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("button", { name: "E2E Colaborador 249" })).toBeVisible();
+  });
+
   test("avisa cuando la planta no tiene colaboradores", async ({ page }) => {
     await mockGet(page, "/ics/catalogs", CATALOGS);
     await page.goto("/ics/form");

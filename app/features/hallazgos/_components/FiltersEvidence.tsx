@@ -21,10 +21,11 @@ import "dayjs/locale/es";
 import { usePathname, useRouter, useSearchParams } from "@shared/navigation";
 
 import { useUserSessionStore } from "@store";
-import { EMPTY_CATALOG, useMainTypes, useZones } from "@hooks";
+import { EMPTY_CATALOG, useDebouncedFilters, useMainTypes, useZones } from "@hooks";
 import SelectDefault from "@components/SelectDefault";
 import { SecondaryType, UserOption } from "@interfaces";
 import { UsersService } from "@services";
+import { catalogKeys } from "@shared/libs/catalogKeys";
 import { STATUS_CLOSED, STATUS_IN_PROGRESS, STATUS_OPEN } from "@shared/constants";
 import { evidenceStatusColor, STATUS_CANCELLED } from "@shared/constants/semanticTones";
 import FilterBar, { ActiveFilter, joinNames } from "@shared/components/FilterBar";
@@ -156,29 +157,29 @@ const FiltersEvidence = ({ filters, setFilters, count, sort }: Props) => {
   // Responsables de la planta y, si hay zonas elegidas, de esas zonas (lo
   // filtra la API). Mientras llega la lista de otros filtros se sigue
   // mostrando la anterior, pero no se usa para depurar los elegidos.
+  // Tras una pausa, como la lista: varias zonas elegidas seguidas son una
+  // sola consulta.
+  const { debounced: responsiblesScope, isPending: responsiblesScopePending } = useDebouncedFilters(
+    {
+      manufacturingPlantId: filters.manufacturingPlantId,
+      zoneIds: filters.zoneIds,
+    },
+  );
   const responsiblesQuery = useQuery<UserOption[]>({
-    queryKey: [
-      "catalogs",
-      "users",
-      {
-        manufacturingPlantId: filters.manufacturingPlantId,
-        zoneIds: filters.zoneIds,
-      },
-    ],
-    queryFn: () =>
-      UsersService.findAll({
-        manufacturingPlantId: filters.manufacturingPlantId,
-        zoneIds: filters.zoneIds,
-      }),
-    enabled: !!filters.manufacturingPlantId,
+    queryKey: catalogKeys.users(responsiblesScope),
+    queryFn: () => UsersService.findAll(responsiblesScope),
+    enabled: !!responsiblesScope.manufacturingPlantId,
     placeholderData: keepPreviousData,
   });
   const responsibles: UserOption[] = filters.manufacturingPlantId
     ? (responsiblesQuery.data ?? EMPTY_CATALOG)
     : EMPTY_CATALOG;
+  // La lista es de los filtros vigentes (no de antes de la pausa).
   const responsiblesReady =
     !filters.manufacturingPlantId ||
-    (responsiblesQuery.isSuccess && !responsiblesQuery.isPlaceholderData);
+    (responsiblesQuery.isSuccess &&
+      !responsiblesQuery.isPlaceholderData &&
+      !responsiblesScopePending);
 
   const filteredResponsibles = useMemo(
     () =>
@@ -272,7 +273,8 @@ const FiltersEvidence = ({ filters, setFilters, count, sort }: Props) => {
           evidenceId: normalizedEvidenceId,
         };
       });
-    }, 1000);
+      // Más la pausa de la lista (FILTER_DEBOUNCE_MS): ~1 s en total, como antes.
+    }, 600);
 
     return () => clearTimeout(timeoutId);
   }, [localEvidenceId, setFilters]);

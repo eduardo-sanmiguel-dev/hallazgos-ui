@@ -589,6 +589,32 @@ test.describe("EPP: lista de entregas", () => {
       expect(errors).toEqual([]);
     });
 
+    test("mientras llega el historial muestra renglones esqueleto", async ({ page }) => {
+      let userId = 0;
+      let release!: () => void;
+      const held = new Promise<void>((resolve) => (release = resolve));
+      await page.route(HISTORY, async (route) => {
+        await held;
+        await route.fulfill({ json: [historyItem(9901, userId)] });
+      });
+      ({ userId } = await openList(page));
+
+      const card = page
+        .getByRole("list", { name: "Entregas de EPP por colaborador" })
+        .getByRole("listitem")
+        .filter({ hasText: "E2E Ana" });
+      await card.getByRole("button", { name: "Ver historial" }).click();
+      const loading = card.getByRole("status", { name: "Cargando historial…" });
+      await expect(loading).toBeVisible();
+      await expect(loading.locator(".MuiSkeleton-root")).toHaveCount(9);
+
+      release();
+      await expect(
+        card.getByRole("list", { name: "Historial de entrega de E2E Ana" }),
+      ).toContainText("E2E Casco");
+      await expect(loading).toHaveCount(0);
+    });
+
     test("sin entregas o con error usa los estados compartidos", async ({ page }) => {
       let fail = false;
       await page.route(

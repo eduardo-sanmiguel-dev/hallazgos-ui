@@ -11,7 +11,7 @@ import {
   TypesOfEventsService,
   ZonesService,
 } from "@services";
-import { catalogKeys } from "@shared/libs/catalogKeys";
+import { catalogKeys, catalogParams } from "@shared/libs/catalogKeys";
 
 // Los catálogos cambian poco: se consideran frescos 5 min y se comparten
 // entre todas las pantallas (una sola petición por catálogo/filtro).
@@ -43,7 +43,7 @@ export const useCatalog = <T>(
   { enabled = true, params = {} }: CatalogOptions & { params?: object } = {},
 ) =>
   useQuery({
-    queryKey: ["catalogs", name, params],
+    queryKey: ["catalogs", name, catalogParams(params)],
     // Sin argumentos: React Query pasa su contexto y algunos findAll aceptan
     // filtros como primer parámetro.
     queryFn: () => queryFn(),

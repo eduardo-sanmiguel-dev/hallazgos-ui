@@ -30,6 +30,7 @@ import { GembaWalkCalendar, GembaWalkEvaluation } from "@interfaces";
 import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsOwn";
 import SelectDefault from "@components/SelectDefault";
 import LoadingLinear from "@shared/components/LoadingLinear";
+import { ChecklistSkeleton } from "@shared/components/Skeletons";
 import ErrorState from "@shared/components/ErrorState";
 import DraftNotice from "@shared/components/DraftNotice";
 import FormActions from "@shared/components/FormActions";
@@ -79,18 +80,23 @@ const ElapsedTimer = ({ startedAt }: { startedAt: string }) => {
   return <strong>{formatDuration(seconds)}</strong>;
 };
 
+// Ventana en la que una recarga de la misma planta reusa lo ya traído.
+const PLANT_RELOAD_STALE_MS = 5000;
+
 const GembaWalkForm = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { confirm, confirmDialog } = useConfirmDialog();
 
-  // Lecturas al elegir planta o al revalidar: siempre lo último (sin caché).
+  // Lecturas al elegir planta o al revalidar: lo último. Al cargar la planta
+  // se reusa lo traído hace unos segundos (recuperar o descartar un borrador
+  // justo al abrir volvía a pedir lo mismo); revalidar siempre pregunta.
   const fetchAvailableEvents = useCallback(
-    (plantId: string) =>
+    (plantId: string, staleTime = 0) =>
       queryClient.fetchQuery({
         queryKey: ["gemba-walk", "available-events", plantId],
         queryFn: () => GembaWalksService.findAvailableEvents(plantId),
-        staleTime: 0,
+        staleTime,
       }),
     [queryClient],
   );
@@ -140,11 +146,11 @@ const GembaWalkForm = () => {
     setIsLoadingPlant(true);
 
     Promise.all([
-      fetchAvailableEvents(manufacturingPlantId),
+      fetchAvailableEvents(manufacturingPlantId, PLANT_RELOAD_STALE_MS),
       queryClient.fetchQuery({
         queryKey: ["gemba-walk-evaluations", "plant", manufacturingPlantId],
         queryFn: () => GembaWalkEvaluationsService.findAll({ manufacturingPlantId }),
-        staleTime: 0,
+        staleTime: PLANT_RELOAD_STALE_MS,
       }),
     ])
       .then(([eventsData, evaluationsData]) => {
@@ -512,6 +518,15 @@ const GembaWalkForm = () => {
             </Box>
           )}
         </DetailSection>
+
+        {/* Recorrido recuperado mientras llegan sus conceptos. */}
+        {started && isLoadingPlant && (
+          <DetailSection title="Evaluación">
+            <Box component="output" aria-label="Cargando conceptos" sx={{ display: "block" }}>
+              <ChecklistSkeleton rows={4} />
+            </Box>
+          </DetailSection>
+        )}
 
         {started && evaluations.length > 0 && (
           <DetailSection

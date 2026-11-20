@@ -1,6 +1,23 @@
 import { getQueryClient } from "./queryClient";
 
 /**
+ * Filtros como llegan a la URL: los servicios omiten los vacíos (`""`,
+ * `null`, `undefined`, `[]`), así que la llave también. Sin esto, `{}` y
+ * `{ manufacturingPlantId: "" }` eran dos entradas de caché para la misma
+ * petición y se pedía dos veces (p. ej. /areas en Zonas y en su formulario).
+ */
+export const catalogParams = (filters: object = {}) =>
+  Object.fromEntries(
+    Object.entries(filters).filter(
+      ([, value]) =>
+        value !== undefined &&
+        value !== null &&
+        value !== "" &&
+        !(Array.isArray(value) && value.length === 0),
+    ),
+  );
+
+/**
  * Query keys de los catálogos (datos que se reutilizan en selects y filtros).
  * Todas cuelgan de ["catalogs", nombre, ...filtros] para poder invalidar un
  * catálogo completo, con cualquier filtro, por su prefijo.
@@ -8,16 +25,17 @@ import { getQueryClient } from "./queryClient";
 export const catalogKeys = {
   all: ["catalogs"] as const,
   mainTypes: () => ["catalogs", "mainTypes"] as const,
-  zones: (filters: object = {}) => ["catalogs", "zones", filters] as const,
-  processes: (filters: object = {}) => ["catalogs", "processes", filters] as const,
+  zones: (filters: object = {}) => ["catalogs", "zones", catalogParams(filters)] as const,
+  processes: (filters: object = {}) => ["catalogs", "processes", catalogParams(filters)] as const,
   manufacturingPlants: () => ["catalogs", "manufacturingPlants"] as const,
-  areas: (filters: object = {}) => ["catalogs", "areas", filters] as const,
+  areas: (filters: object = {}) => ["catalogs", "areas", catalogParams(filters)] as const,
   employeeCatalogs: () => ["catalogs", "employeeCatalogs"] as const,
-  gembaWalkZones: (filters: object = {}) => ["catalogs", "gembaWalkZones", filters] as const,
+  gembaWalkZones: (filters: object = {}) =>
+    ["catalogs", "gembaWalkZones", catalogParams(filters)] as const,
   icsCatalogs: () => ["catalogs", "icsCatalogs"] as const,
   typesOfEvents: () => ["catalogs", "typesOfEvents"] as const,
-  users: (filters: object = {}) => ["catalogs", "users", filters] as const,
-  employees: (filters: object = {}) => ["catalogs", "employees", filters] as const,
+  users: (filters: object = {}) => ["catalogs", "users", catalogParams(filters)] as const,
+  employees: (filters: object = {}) => ["catalogs", "employees", catalogParams(filters)] as const,
 };
 
 export type CatalogName = Exclude<keyof typeof catalogKeys, "all">;

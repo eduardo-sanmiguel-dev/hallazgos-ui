@@ -7,6 +7,7 @@ import { EvidencesService } from "@services";
 import type { EvidenceRow } from "@interfaces";
 import type { SortState } from "@shared/utils/tableSort";
 import { useRowsPerPage } from "./useRowsPerPage";
+import { useDebouncedFilters } from "./useDebouncedFilters";
 
 const EMPTY_ROWS: EvidenceRow[] = [];
 
@@ -28,11 +29,14 @@ export const useEvidences = (filters: FiltersEvidences, sort?: SortState) => {
     });
   // Sin "Todos": son miles de hallazgos.
   const { rowsPerPage, setRowsPerPage, ready: rowsPerPageReady } = useRowsPerPage("evidences");
+  // Se consulta tras una pausa: varias opciones elegidas seguidas (zonas,
+  // clasificaciones, estatus) o una fecha tecleada son una sola petición.
+  const { debounced: queryFilters } = useDebouncedFilters(filters);
 
   const query = useQuery({
-    queryKey: ["list", "evidences", filters, sortKey, page, rowsPerPage],
+    queryKey: ["list", "evidences", queryFilters, sortKey, page, rowsPerPage],
     queryFn: () =>
-      EvidencesService.findPaginated(filters, {
+      EvidencesService.findPaginated(queryFilters, {
         page: page + 1,
         limit: rowsPerPage,
         ...(sort && { orderBy: sort.orderBy, order: sort.order }),

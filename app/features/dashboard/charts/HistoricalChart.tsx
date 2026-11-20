@@ -13,6 +13,7 @@ import "highcharts/esm/modules/accessibility.src.js";
 
 import { DashboardService } from "@services";
 import { optionsChartDefault } from "@shared/libs";
+import { ChartSkeleton } from "@shared/components/Skeletons";
 
 const monthFormatter = new Intl.DateTimeFormat("es-MX", {
   month: "short",
@@ -23,7 +24,7 @@ const ANIMATION_DURATION = 1000;
 
 const HistoricalChart = () => {
   const theme = useTheme();
-  const { data: historicalData = null } = useQuery({
+  const { data: historicalData = null, isPending } = useQuery({
     queryKey: ["dashboard", "historical-by-month"],
     queryFn: () => DashboardService.findHistoricalByMonth(),
   });
@@ -92,6 +93,9 @@ const HistoricalChart = () => {
 
     setIsPlaying((prev) => !prev);
   };
+
+  // Mientras llega, el lugar de la gráfica (antes decía "Sin datos históricos").
+  if (isPending) return <ChartSkeleton height={600} label="Cargando histórico" />;
 
   return (
     <Box>
