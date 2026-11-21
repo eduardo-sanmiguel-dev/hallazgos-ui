@@ -31,6 +31,19 @@ export default defineConfig(({ mode }) => {
       ...(process.env.E2E_COVERAGE === "1" ? [] : [babel({ presets: [reactCompilerPreset()] })]),
       {
         name: "app-metadata",
+        // La API vive en otro dominio: abrir la conexión (DNS, TCP y TLS)
+        // mientras se descarga el JavaScript, y no hasta la primera llamada.
+        // Sin `crossorigin`: las llamadas llevan cookies (conexión con
+        // credenciales).
+        transformIndexHtml() {
+          return [
+            {
+              tag: "link",
+              attrs: { rel: "preconnect", href: publicEnv.VITE_API_ORIGIN },
+              injectTo: "head-prepend",
+            },
+          ];
+        },
         configureServer(server) {
           server.middlewares.use((req, res, next) => {
             if (req.headers["next-action"] !== undefined) {
