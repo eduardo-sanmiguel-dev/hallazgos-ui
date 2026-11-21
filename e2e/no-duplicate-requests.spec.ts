@@ -30,6 +30,11 @@ const recordApiGets = (page: Page) => {
   return {
     /** Cuántas lecturas cumplen `match` (sobre la ruta con su query). */
     count: (match: RegExp) => gets.filter(({ path }) => match.test(path)).length,
+    /** Hubo lecturas que cumplen `match` y ya terminaron todas. */
+    settled: (match: RegExp) => {
+      const matching = gets.filter(({ path }) => match.test(path));
+      return matching.length > 0 && matching.every(({ end }) => end !== undefined);
+    },
     /** Lecturas repetidas casi a la vez. */
     duplicates: () =>
       gets
@@ -213,10 +218,16 @@ test("hallazgos: varias opciones elegidas seguidas son una sola consulta", async
 test("dashboard: varias opciones elegidas seguidas recargan las gráficas una sola vez", async ({
   page,
 }) => {
+  const plantLoad = recordApiGets(page);
   await page.goto("/dashboard");
   const [plant] = await sessionPlants(page);
   await pickOption(page, "Planta", plant.name);
-  await page.waitForLoadState("networkidle");
+  // Las gráficas de la planta salen tras el debounce de filtros (400 ms):
+  // se espera a que terminen antes de contar. networkidle no basta: si la
+  // página ya estaba inactiva (íconos y logos en caché), responde de
+  // inmediato y su lectura se sumaba a la de los estatus.
+  await page.waitForTimeout(500);
+  await expect.poll(() => plantLoad.settled(/^\/dashboard\/status-by-filters\?/)).toBe(true);
 
   const api = recordApiGets(page);
   await pickMany(page, "Estatus", 3);

@@ -361,7 +361,7 @@ function EppCard({ epp, manufacturingPlantId, currentUserId, onHistoryEmptied }:
         sx={{ alignItems: "flex-start", justifyContent: "space-between" }}
       >
         <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontWeight: 600, overflowWrap: "anywhere" }}>{epp.name}</Typography>
+          <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>{epp.name}</Typography>
           <Typography variant="body2" color="text.secondary">
             Cédula {epp.code}
           </Typography>
@@ -473,7 +473,7 @@ function EppCard({ epp, manufacturingPlantId, currentUserId, onHistoryEmptied }:
                   }}
                 />
                 <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
                     {item.equipment.name}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">

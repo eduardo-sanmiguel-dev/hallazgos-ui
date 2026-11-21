@@ -25,6 +25,30 @@ interface Props {
   };
 }
 
+const formatMonthYearEs = (value: string) => {
+  const [yearText, monthText] = value.split("-");
+  const year = Number(yearText);
+  const month = Number(monthText);
+
+  if (!year || !month) {
+    return value;
+  }
+
+  const date = new Date(year, month - 1, 1);
+  const formatted = date.toLocaleDateString("es-ES", {
+    month: "long",
+    year: "numeric",
+  });
+
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+};
+
+// Fuera del componente: usa `this`, que React Compiler no soporta (dejaba
+// sin optimizar toda la gráfica).
+function monthLabel(this: Highcharts.AxisLabelsFormatterContextObject) {
+  return formatMonthYearEs(String(this.value));
+}
+
 const AreaRangeLineChart = ({ filters }: Props) => {
   const theme = useTheme();
   const { data: chartData = null } = useDashboardChart("area-range-line", filters);
@@ -36,24 +60,6 @@ const AreaRangeLineChart = ({ filters }: Props) => {
   const chartTextColor = isDarkMode ? "#f1f5f9" : "#111827";
   const chartSubtleTextColor = isDarkMode ? "#cbd5e1" : "#374151";
   const chartBorderColor = isDarkMode ? "#334155" : "#d1d5db";
-
-  const formatMonthYearEs = (value: string) => {
-    const [yearText, monthText] = value.split("-");
-    const year = Number(yearText);
-    const month = Number(monthText);
-
-    if (!year || !month) {
-      return value;
-    }
-
-    const date = new Date(year, month - 1, 1);
-    const formatted = date.toLocaleDateString("es-ES", {
-      month: "long",
-      year: "numeric",
-    });
-
-    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-  };
 
   return (
     <Chart
@@ -102,9 +108,7 @@ const AreaRangeLineChart = ({ filters }: Props) => {
             categories: chartData?.categories || [],
             crosshair: true,
             labels: {
-              formatter: function () {
-                return formatMonthYearEs(String(this.value));
-              },
+              formatter: monthLabel,
               style: {
                 color: chartTextColor,
               },

@@ -144,24 +144,26 @@ export default function DialogCreateEpp({ open, create }: Props) {
 
     savingRef.current = true;
     setIsSaving(true);
+    // Armado fuera del try y sin finally: React Compiler no soporta ninguno
+    // de los dos y dejaba sin optimizar todo el diálogo.
+    const payload = {
+      employeeId: Number(form.employee || 0),
+      equipments: equipmentsNew.map(({ id, observations, quantity }) => ({
+        id,
+        observations,
+        quantity,
+      })),
+      signature,
+    };
     try {
-      await create({
-        employeeId: Number(form.employee || 0),
-        equipments: equipmentsNew.map(({ id, observations, quantity }) => ({
-          id,
-          observations,
-          quantity,
-        })),
-        signature,
-      });
+      await create(payload);
       // La página cierra el diálogo tras el 201. Se limpia en onExited,
       // cuando Slide terminó y el modal ya puede desmontar su contenido.
     } catch {
       // El servicio notifica el error; se conservan los datos para reintentar.
-    } finally {
-      savingRef.current = false;
-      setIsSaving(false);
     }
+    savingRef.current = false;
+    setIsSaving(false);
   };
 
   const handleAddEquipment = async () => {
@@ -418,7 +420,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
                             <HealthAndSafetyIcon fontSize="small" />
                           </Box>
                           <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography sx={{ fontWeight: 600, overflowWrap: "anywhere" }}>
+                            <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>
                               {equipment.name}
                             </Typography>
                             {equipment.observations && (
@@ -516,7 +518,7 @@ export default function DialogCreateEpp({ open, create }: Props) {
                     />
                     <Typography
                       variant="body2"
-                      sx={{ mt: 0.75, fontWeight: 600, color: "#212121" }}
+                      sx={{ mt: 0.75, fontWeight: 700, color: "#212121" }}
                     >
                       {employeeName}
                     </Typography>

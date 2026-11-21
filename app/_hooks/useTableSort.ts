@@ -11,6 +11,27 @@ import {
 } from "@shared/utils/tableSort";
 import { trackSortChange } from "@shared/utils/rumActions";
 
+// Acceso a sessionStorage fuera del hook: React Compiler no optimiza un hook
+// con valores condicionales dentro de try/catch (y entonces lo que devuelve es
+// nuevo en cada render, y la tabla y la barra de filtros se vuelven a dibujar).
+const readSaved = <K extends string>(table: string, options: readonly SortOption<K>[]) => {
+  try {
+    return parseSavedSort(sessionStorage.getItem(sortStorageKey(table)), options);
+  } catch {
+    // Sin acceso a sessionStorage: orden predeterminado.
+    return null;
+  }
+};
+
+const save = <K extends string>(table: string, next: SortState<K>, defaultSort: SortState<K>) => {
+  try {
+    if (isSameSort(next, defaultSort)) sessionStorage.removeItem(sortStorageKey(table));
+    else sessionStorage.setItem(sortStorageKey(table), JSON.stringify(next));
+  } catch {
+    // Sin acceso a sessionStorage: la elección dura mientras siga la pantalla.
+  }
+};
+
 /** Lo que reciben FilterBar (referencia y controles) y la tabla (encabezados). */
 export interface TableSortControl<K extends string = string> {
   sort: SortState<K>;
@@ -35,25 +56,15 @@ export function useTableSort<K extends string>(
   options: readonly SortOption<K>[],
   defaultSort: SortState<K>,
 ): TableSortControl<K> {
-  const [sort, setSortState] = useState<SortState<K>>(() => {
-    try {
-      return parseSavedSort(sessionStorage.getItem(sortStorageKey(table)), options) ?? defaultSort;
-    } catch {
-      // Sin acceso a sessionStorage: orden predeterminado.
-      return defaultSort;
-    }
-  });
+  const [sort, setSortState] = useState<SortState<K>>(
+    () => readSaved(table, options) ?? defaultSort,
+  );
 
   const setSort = (next: SortState<K>) => {
     if (!findSortOption(options, next.orderBy) || isSameSort(next, sort)) return;
     trackSortChange(table, sort, next);
     setSortState(next);
-    try {
-      if (isSameSort(next, defaultSort)) sessionStorage.removeItem(sortStorageKey(table));
-      else sessionStorage.setItem(sortStorageKey(table), JSON.stringify(next));
-    } catch {
-      // Sin acceso a sessionStorage: la elección dura mientras siga la pantalla.
-    }
+    save(table, next, defaultSort);
   };
 
   return {

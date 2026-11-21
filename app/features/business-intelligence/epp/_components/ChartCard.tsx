@@ -128,7 +128,7 @@ export default function ChartCard({
             id={titleId}
             variant="subtitle1"
             component="h3"
-            sx={{ fontWeight: 600, lineHeight: 1.3 }}
+            sx={{ fontWeight: 700, lineHeight: 1.3 }}
           >
             {title}
           </Typography>
@@ -172,7 +172,7 @@ export default function ChartCard({
                   <TableCell
                     key={label}
                     align={numeric ? "right" : "left"}
-                    sx={{ fontWeight: 600, whiteSpace: "nowrap" }}
+                    sx={{ fontWeight: 700, whiteSpace: "nowrap" }}
                   >
                     {label}
                   </TableCell>

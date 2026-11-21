@@ -41,6 +41,7 @@ import AreaRangeLineChart from "./charts/AreaRangeLineChart";
 import PriorityInterventionChart from "./charts/PriorityInterventionChart";
 import RiskLevelChart from "./charts/RiskLevelChart";
 import { DashboardFiltersBar, type DashboardFilters } from "./_components/DashboardFiltersBar";
+import type { DashboardPdfHeader } from "./_lib/dashboardPdf";
 import {
   hasCompleteFilters,
   useDashboardSummary,
@@ -62,6 +63,27 @@ const formatCount = (value: number, decimals = 0) =>
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
+
+/** Gráficas visibles en pantalla (las ocultas por filtros no se exportan). */
+const visibleDashboardCharts = () =>
+  Array.from(document.querySelectorAll<HTMLElement>("[data-dashboard-export='chart']")).filter(
+    (element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0 && element.offsetParent !== null;
+    },
+  );
+
+// Fuera del componente: React Compiler no soporta import() ni try/finally y
+// dejaba sin optimizar toda la página (y con ella cada gráfica). Gráficas como
+// vector (ver _lib/dashboardPdf); jsPDF se carga solo al exportar.
+const exportDashboardPdf = async (charts: HTMLElement[], header: DashboardPdfHeader) => {
+  try {
+    const { downloadDashboardPdf } = await import("./_lib/dashboardPdf");
+    await downloadDashboardPdf(charts, header);
+  } catch {
+    toast.error("No se pudo generar el informe PDF");
+  }
+};
 
 const DashboardPage = () => {
   const router = useRouter();
@@ -418,39 +440,25 @@ const DashboardPage = () => {
       return;
     }
 
-    setIsDownloadingPdfReport(true);
-
-    try {
-      const visibleCharts = Array.from(
-        document.querySelectorAll<HTMLElement>("[data-dashboard-export='chart']"),
-      ).filter((element) => {
-        const rect = element.getBoundingClientRect();
-        return rect.width > 0 && rect.height > 0 && element.offsetParent !== null;
-      });
-
-      if (!visibleCharts.length) {
-        toast.error("No hay gráficas visibles para exportar");
-        return;
-      }
-
-      // Gráficas como vector (ver _lib/dashboardPdf); se carga al exportar.
-      const { downloadDashboardPdf } = await import("./_lib/dashboardPdf");
-      await downloadDashboardPdf(visibleCharts, {
-        title: "Informe de Dashboard de Hallazgos",
-        lines: [
-          `Generado: ${dayjs().format("DD/MM/YYYY HH:mm")}`,
-          filters.manufacturingPlantName
-            ? `Planta: ${filters.manufacturingPlantName}`
-            : "Planta: Sin especificar",
-          `Filtros: ${heatmapFiltersTitle || "Sin filtros adicionales"}`,
-        ],
-        fileName: `Informe_Dashboard_${dayjs().format("YYYYMMDD_HHmm")}.pdf`,
-      });
-    } catch {
-      toast.error("No se pudo generar el informe PDF");
-    } finally {
-      setIsDownloadingPdfReport(false);
+    const visibleCharts = visibleDashboardCharts();
+    if (!visibleCharts.length) {
+      toast.error("No hay gráficas visibles para exportar");
+      return;
     }
+
+    setIsDownloadingPdfReport(true);
+    await exportDashboardPdf(visibleCharts, {
+      title: "Informe de Dashboard de Hallazgos",
+      lines: [
+        `Generado: ${dayjs().format("DD/MM/YYYY HH:mm")}`,
+        filters.manufacturingPlantName
+          ? `Planta: ${filters.manufacturingPlantName}`
+          : "Planta: Sin especificar",
+        `Filtros: ${heatmapFiltersTitle || "Sin filtros adicionales"}`,
+      ],
+      fileName: `Informe_Dashboard_${dayjs().format("YYYYMMDD_HHmm")}.pdf`,
+    });
+    setIsDownloadingPdfReport(false);
   };
 
   if (email === "cosmeticostrujillo0023@gmail.com") {

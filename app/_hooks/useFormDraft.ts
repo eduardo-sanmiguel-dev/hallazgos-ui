@@ -135,7 +135,8 @@ export function useFormDraft<T>({ form, content, hasContent, onRestore }: Option
       if (!form || !userId) return;
       const { fields, photo } = contentRef.current;
       const now = new Date().toISOString();
-      createdAtRef.current ??= now;
+      // Sin ??=: React Compiler no lo soporta y dejaba sin optimizar el hook.
+      if (createdAtRef.current == null) createdAtRef.current = now;
       await putDraft<T>({
         id: draftId(userId, form),
         userId,
@@ -216,7 +217,7 @@ export function useFormDraft<T>({ form, content, hasContent, onRestore }: Option
 
   /** Clave de idempotencia del envío: la del borrador, o una nueva. */
   const key = () => {
-    keyRef.current ??= uuidv4();
+    if (keyRef.current == null) keyRef.current = uuidv4();
     return keyRef.current;
   };
 

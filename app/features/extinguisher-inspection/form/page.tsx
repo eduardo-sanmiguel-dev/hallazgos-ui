@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -49,10 +49,24 @@ import {
 } from "./_lib/evaluation";
 import { EvaluationCard } from "./_components/EvaluationCard";
 
+/** Aviso para el error de getUserMedia (permiso, sin cámara, en uso). */
+const cameraErrorMessage = (error: unknown) => {
+  const name = error instanceof DOMException ? error.name : "";
+  if (name === "NotAllowedError") {
+    return "Permiso de cámara denegado. Habilítelo en la configuración del navegador.";
+  }
+  if (name === "NotFoundError" || name === "OverconstrainedError") {
+    return "No se encontró ninguna cámara conectada.";
+  }
+  if (name === "NotReadableError") {
+    return "La cámara está en uso por otra aplicación. Ciérrela e intente de nuevo.";
+  }
+  return "No se pudo acceder a la cámara. Verifique permisos del navegador.";
+};
+
 const ExtinguisherInspectionFormPage = () => {
   const today = dayjs().startOf("day");
 
-  const [idCurrent, setIdCurrent] = useState<number>(0);
   const [isScannerOpen, setIsScannerOpen] = useState<boolean>(false);
   const [scannerError, setScannerError] = useState<string>("");
 
@@ -130,10 +144,13 @@ const ExtinguisherInspectionFormPage = () => {
     router.push("/extinguisher-inspection");
   };
 
-  // Inspección que se edita (?id=): se agregan evaluaciones a las suyas.
+  // Inspección que se edita (?id=): se agregan evaluaciones a las suyas. Se
+  // calcula en el render (antes se copiaba a un estado con un efecto, que
+  // agregaba un render al abrir).
+  const idCurrent = Number(searchParams.get("id") || 0);
   const record = useEditRecord(
     "extinguisher-inspection",
-    Number(searchParams.get("id") || 0),
+    idCurrent,
     ExtinguisherInspectionsService.findOne,
     (inspection: ExtinguisherInspection) => {
       setForm({
@@ -250,6 +267,53 @@ const ExtinguisherInspectionFormPage = () => {
     return null;
   };
 
+  // Fuera del try/catch de handleDetectedQr: React Compiler no optimiza
+  // condicionales dentro de un try y dejaba sin optimizar todo el formulario.
+  const addScannedTeam = async (emergencyTeamId: number) => {
+    // Lectura al escanear: se pide en ese momento (sin caché vieja).
+    const emergencyTeam = await queryClient.fetchQuery({
+      queryKey: ["emergency-teams", emergencyTeamId],
+      queryFn: () => EmergencyTeamsService.findOne(emergencyTeamId),
+      staleTime: 0,
+    });
+
+    if (!form.manufacturingPlantId) {
+      toast.error("Seleccione una planta antes de crear una evaluación");
+      return;
+    }
+
+    if (Number(form.manufacturingPlantId) !== emergencyTeam.manufacturingPlant?.id) {
+      toast.error("El equipo escaneado pertenece a una planta diferente a la seleccionada");
+      return;
+    }
+
+    const emergencyTeamExtinguisherNumber = String(emergencyTeam.extinguisherNumber);
+
+    const alreadyExists = evaluationsRef.current.some(
+      (evaluation) =>
+        evaluation.emergencyTeamId === emergencyTeam.id ||
+        evaluation.extinguisherNumber === emergencyTeamExtinguisherNumber,
+    );
+
+    if (alreadyExists) {
+      setIsScannerOpen(false);
+      stopScanner();
+      toast.error("Ese equipo ya fue agregado en las evaluaciones", {
+        id: DUPLICATE_EVALUATION_TOAST_ID,
+      });
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      evaluations: [getDefaultEvaluationFromEmergencyTeam(emergencyTeam), ...prev.evaluations],
+    }));
+
+    setIsScannerOpen(false);
+    stopScanner();
+    toast.success(`Equipo #${emergencyTeam.id} agregado a la inspección`);
+  };
+
   const handleDetectedQr = async (rawValue: string) => {
     const emergencyTeamId = parseQrToEmergencyTeamId(rawValue);
 
@@ -259,138 +323,88 @@ const ExtinguisherInspectionFormPage = () => {
     }
 
     try {
-      // Lectura al escanear: se pide en ese momento (sin caché vieja).
-      const emergencyTeam = await queryClient.fetchQuery({
-        queryKey: ["emergency-teams", emergencyTeamId],
-        queryFn: () => EmergencyTeamsService.findOne(emergencyTeamId),
-        staleTime: 0,
-      });
-
-      if (!form.manufacturingPlantId) {
-        toast.error("Seleccione una planta antes de crear una evaluación");
-        return;
-      }
-
-      if (Number(form.manufacturingPlantId) !== emergencyTeam.manufacturingPlant?.id) {
-        toast.error("El equipo escaneado pertenece a una planta diferente a la seleccionada");
-        return;
-      }
-
-      const emergencyTeamExtinguisherNumber = String(emergencyTeam.extinguisherNumber);
-
-      const alreadyExists = evaluationsRef.current.some(
-        (evaluation) =>
-          evaluation.emergencyTeamId === emergencyTeam.id ||
-          evaluation.extinguisherNumber === emergencyTeamExtinguisherNumber,
-      );
-
-      if (alreadyExists) {
-        setIsScannerOpen(false);
-        stopScanner();
-        toast.error("Ese equipo ya fue agregado en las evaluaciones", {
-          id: DUPLICATE_EVALUATION_TOAST_ID,
-        });
-        return;
-      }
-
-      setForm((prev) => ({
-        ...prev,
-        evaluations: [getDefaultEvaluationFromEmergencyTeam(emergencyTeam), ...prev.evaluations],
-      }));
-
-      setIsScannerOpen(false);
-      stopScanner();
-      toast.success(`Equipo #${emergencyTeam.id} agregado a la inspección`);
+      await addScannedTeam(emergencyTeamId);
     } catch {
       toast.error("No se pudo obtener el equipo de emergencia desde el QR");
     }
   };
 
+  // Un cuadro del video: un error del detector se ignora y se sigue
+  // escaneando. Los try/catch van en funciones aparte, sin condicionales
+  // adentro: React Compiler no los soporta y dejaba sin optimizar el formulario.
+  const readQrFrame = () => {
+    try {
+      return detectWithJsQr();
+    } catch {
+      return null;
+    }
+  };
+
+  const openCamera = async (session: number) => {
+    // El aviso lo pone openScanner (sin setState síncrono en el efecto).
+    if (!navigator.mediaDevices?.getUserMedia) return;
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+    });
+
+    // The scanner was closed (or restarted) while waiting for the camera.
+    if (session !== scanSessionRef.current) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
+
+    streamRef.current = stream;
+    scanningRef.current = true;
+    attachStreamToVideo();
+
+    const scanFrame = async () => {
+      if (!scanningRef.current) {
+        return;
+      }
+
+      if (!videoRef.current) {
+        requestAnimationFrame(scanFrame);
+        return;
+      }
+
+      const rawValue = readQrFrame();
+
+      if (rawValue) {
+        const normalizedValue = rawValue.trim();
+        const now = Date.now();
+        const isRepeatedScan =
+          normalizedValue === lastScannedValueRef.current && now - lastScannedAtRef.current < 2000;
+
+        if (!isRepeatedScan) {
+          lastScannedValueRef.current = normalizedValue;
+          lastScannedAtRef.current = now;
+          try {
+            await handleDetectedQr(rawValue);
+            return;
+          } catch {
+            // Como un error del detector: se sigue escaneando.
+          }
+        }
+      }
+
+      requestAnimationFrame(scanFrame);
+    };
+
+    requestAnimationFrame(scanFrame);
+  };
+
   const startScanner = async () => {
-    setScannerError("");
     lastScannedValueRef.current = "";
     lastScannedAtRef.current = 0;
 
     const session = scanSessionRef.current;
 
     try {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        setScannerError(
-          "El navegador no permite usar la cámara en este sitio. Use HTTPS o localhost.",
-        );
-        return;
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
-      });
-
-      // The scanner was closed (or restarted) while waiting for the camera.
-      if (session !== scanSessionRef.current) {
-        stream.getTracks().forEach((track) => track.stop());
-        return;
-      }
-
-      streamRef.current = stream;
-      scanningRef.current = true;
-      attachStreamToVideo();
-
-      const scanFrame = async () => {
-        if (!scanningRef.current) {
-          return;
-        }
-
-        if (!videoRef.current) {
-          requestAnimationFrame(scanFrame);
-          return;
-        }
-
-        try {
-          const rawValue = detectWithJsQr();
-
-          if (rawValue) {
-            const normalizedValue = rawValue.trim();
-            const now = Date.now();
-            const isRepeatedScan =
-              normalizedValue === lastScannedValueRef.current &&
-              now - lastScannedAtRef.current < 2000;
-
-            if (isRepeatedScan) {
-              requestAnimationFrame(scanFrame);
-              return;
-            }
-
-            lastScannedValueRef.current = normalizedValue;
-            lastScannedAtRef.current = now;
-            await handleDetectedQr(rawValue);
-            return;
-          }
-        } catch {
-          // Ignore one-frame detector errors and continue scanning.
-        }
-
-        requestAnimationFrame(scanFrame);
-      };
-
-      requestAnimationFrame(scanFrame);
+      await openCamera(session);
     } catch (error) {
-      if (session !== scanSessionRef.current) {
-        return;
-      }
-
-      const name = error instanceof DOMException ? error.name : "";
-
-      if (name === "NotAllowedError") {
-        setScannerError(
-          "Permiso de cámara denegado. Habilítelo en la configuración del navegador.",
-        );
-      } else if (name === "NotFoundError" || name === "OverconstrainedError") {
-        setScannerError("No se encontró ninguna cámara conectada.");
-      } else if (name === "NotReadableError") {
-        setScannerError("La cámara está en uso por otra aplicación. Ciérrela e intente de nuevo.");
-      } else {
-        setScannerError("No se pudo acceder a la cámara. Verifique permisos del navegador.");
-      }
+      // Cerrado (o reiniciado) mientras esperaba la cámara: sin aviso.
+      if (session === scanSessionRef.current) setScannerError(cameraErrorMessage(error));
     }
   };
 
@@ -400,6 +414,12 @@ const ExtinguisherInspectionFormPage = () => {
       return;
     }
 
+    // Al abrir (evento) y no en el efecto que arranca la cámara.
+    setScannerError(
+      typeof navigator.mediaDevices?.getUserMedia === "function"
+        ? ""
+        : "El navegador no permite usar la cámara en este sitio. Use HTTPS o localhost.",
+    );
     setIsScannerOpen(true);
   };
 
@@ -412,26 +432,29 @@ const ExtinguisherInspectionFormPage = () => {
     evaluationsRef.current = form.evaluations;
   }, [form.evaluations]);
 
+  // Effect events: el escáner solo reacciona a abrir y cerrar, con las
+  // funciones del render actual. Antes se desactivaba exhaustive-deps, y con
+  // una regla desactivada React Compiler no optimizaba ninguna parte del
+  // formulario (una tarjeta por extintor).
+  const startScanning = useEffectEvent(() => {
+    void startScanner();
+  });
+  const stopScanning = useEffectEvent(() => stopScanner());
+
+  // startScanner solo cambia estado después de esperar la cámara (sistema
+  // externo): el aviso de la regla no aplica.
+  /* oxlint-disable react/set-state-in-effect */
   useEffect(() => {
     if (!isScannerOpen) {
-      stopScanner();
+      stopScanning();
       return;
     }
 
-    void startScanner();
+    startScanning();
 
-    return () => stopScanner();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => stopScanning();
   }, [isScannerOpen]);
-
-  useEffect(() => {
-    const id = Number(searchParams.get("id") || 0);
-    if (!id) {
-      return;
-    }
-
-    setIdCurrent(id);
-  }, [searchParams]);
+  /* oxlint-enable react/set-state-in-effect */
 
   const removeEvaluation = (index: number) => {
     setForm((prev) => ({
@@ -538,7 +561,8 @@ const ExtinguisherInspectionFormPage = () => {
             : date.isBefore(today, "day")
               ? `${label}: la fecha no puede ser anterior a hoy.`
               : null;
-        if (message) (dateErrors[index] ??= []).push(message);
+        // Sin ??=: React Compiler no lo soporta.
+        if (message) dateErrors[index] = [...(dateErrors[index] ?? []), message];
       }
     });
     if (Object.keys(dateErrors).length) {

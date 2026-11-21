@@ -163,7 +163,7 @@ function CardList<T>({
                 <Typography
                   key={column.id}
                   component="p"
-                  sx={{ fontWeight: 600, overflowWrap: "anywhere" }}
+                  sx={{ fontWeight: 700, overflowWrap: "anywhere" }}
                 >
                   {column.cell(row)}
                 </Typography>

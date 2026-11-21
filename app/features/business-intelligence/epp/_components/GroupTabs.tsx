@@ -30,7 +30,7 @@ export default function GroupTabs({ groups, value, onChange }: Props) {
       <Typography
         variant="subtitle2"
         component="p"
-        sx={{ color: "text.secondary", fontWeight: 600, mb: 1 }}
+        sx={{ color: "text.secondary", fontWeight: 700, mb: 1 }}
       >
         Elige qué analizar
       </Typography>

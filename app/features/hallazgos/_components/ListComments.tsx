@@ -54,7 +54,7 @@ export default function ListComments({ comments }: Props) {
               width: 36,
               height: 36,
               fontSize: "0.8125rem",
-              fontWeight: 600,
+              fontWeight: 700,
               bgcolor: "action.selected",
               color: "text.primary",
             }}

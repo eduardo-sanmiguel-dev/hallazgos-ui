@@ -149,7 +149,7 @@ export default function EvidenceCards({
                 <Typography
                   variant="body2"
                   component="p"
-                  sx={{ mt: 0.5, fontWeight: 600, overflowWrap: "anywhere" }}
+                  sx={{ mt: 0.5, fontWeight: 700, overflowWrap: "anywhere" }}
                 >
                   {row.secondaryType.name}
                 </Typography>

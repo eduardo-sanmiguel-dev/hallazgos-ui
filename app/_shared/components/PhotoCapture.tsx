@@ -61,6 +61,11 @@ export interface PhotoCaptureProps {
 // - Con mouse (escritorio): el navegador no abre la cámara con `capture` y los
 //   dos botones abrían el mismo selector de archivos; ahí hay un solo "Subir
 //   foto", la cámara web ("Usar cámara del navegador") y arrastrar la foto.
+const processErrorMessage = (cause: unknown) =>
+  cause instanceof EvidenceImageError
+    ? cause.message
+    : "No se pudo procesar la imagen. Intenta con otra foto.";
+
 export default function PhotoCapture({
   file,
   onChange,
@@ -88,6 +93,8 @@ export default function PhotoCapture({
   }, [file]);
   /* oxlint-enable react/set-state-in-effect */
 
+  // Sin try/finally ni condicionales dentro del try/catch: React Compiler no
+  // los soporta y dejaba sin optimizar todo el componente.
   const process = async (source: Blob) => {
     setError("");
     setIsProcessing(true);
@@ -95,14 +102,9 @@ export default function PhotoCapture({
       onChange(await compressEvidenceImage(source));
       setMode("pick");
     } catch (cause) {
-      setError(
-        cause instanceof EvidenceImageError
-          ? cause.message
-          : "No se pudo procesar la imagen. Intenta con otra foto.",
-      );
-    } finally {
-      setIsProcessing(false);
+      setError(processErrorMessage(cause));
     }
+    setIsProcessing(false);
   };
 
   const handleInput = (event: ChangeEvent<HTMLInputElement>) => {

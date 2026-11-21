@@ -438,7 +438,7 @@ const navItemSx =
       backgroundColor: alpha(theme.palette.primary.main, 0.12),
       color: activeColor(theme),
       "& .MuiListItemIcon-root": { color: activeColor(theme) },
-      "& .MuiListItemText-primary": { fontWeight: 600 },
+      "& .MuiListItemText-primary": { fontWeight: 700 },
       "&::before": {
         content: '""',
         position: "absolute",

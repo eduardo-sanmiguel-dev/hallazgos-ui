@@ -33,6 +33,10 @@ beforeAll(async () => {
     join(directory, "assets/pre-test.js.br"),
     brotliCompressSync("// brotli\n".repeat(200)),
   );
+  // Archivos de public/ sin hash (logos, íconos, manifest).
+  await mkdir(join(directory, "images"));
+  await writeFile(join(directory, "images/plano-test.webp"), randomBytes(2048));
+  await writeFile(join(directory, "manifest.webmanifest"), '{"name":"HADA"}');
   await writeFile(
     join(directory, "deployment-version.json"),
     JSON.stringify({ version: "test-build" }),
@@ -84,6 +88,54 @@ test("cachea assets con hash y no responde HTML para assets inexistentes", async
   for (const path of ["/assets/missing.js", "/api/missing", "/missing.png"]) {
     expect((await fetch(origin + path)).status).toBe(404);
   }
+});
+test("el HTML y la versión del deploy no llevan validadores (siempre se descargan)", async () => {
+  for (const path of ["/", "/deployment-version.json"]) {
+    const response = await fetch(origin + path, { headers: { "If-None-Match": "*" } });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("etag")).toBeNull();
+  }
+});
+test("cachea 1 día los archivos de public/ sin hash y revalida con 304", async () => {
+  for (const path of ["/images/plano-test.webp", "/manifest.webmanifest"]) {
+    const first = await fetch(origin + path);
+    expect(first.status).toBe(200);
+    expect(first.headers.get("cache-control")).toBe(
+      "public, max-age=86400, stale-while-revalidate=604800",
+    );
+    const etag = first.headers.get("etag")!;
+    const lastModified = first.headers.get("last-modified")!;
+    expect(etag).toMatch(/^W\/"[0-9a-f]+-[0-9a-f]+"$/);
+    await first.arrayBuffer();
+
+    // Sin cambios: 304 sin cuerpo, por ETag o por fecha.
+    for (const headers of <Record<string, string>[]>[
+      { "If-None-Match": `"otro", ${etag}` },
+      { "If-Modified-Since": lastModified },
+    ]) {
+      const revalidated = await fetch(origin + path, { headers });
+      expect(revalidated.status).toBe(304);
+      expect(await revalidated.text()).toBe("");
+    }
+
+    // Otra versión del archivo (ETag viejo) o fecha anterior: se descarga.
+    for (const headers of <Record<string, string>[]>[
+      { "If-None-Match": 'W/"0-0"' },
+      { "If-Modified-Since": new Date(Date.parse(lastModified) - 60_000).toUTCString() },
+    ]) {
+      const changed = await fetch(origin + path, { headers });
+      expect(changed.status).toBe(200);
+      await changed.arrayBuffer();
+    }
+  }
+});
+test("los assets con hash también responden 304 si el navegador revalida", async () => {
+  const asset = await fetch(`${origin}/assets/main-test.js`);
+  await asset.text();
+  const revalidated = await fetch(`${origin}/assets/main-test.js`, {
+    headers: { "If-None-Match": asset.headers.get("etag")! },
+  });
+  expect(revalidated.status).toBe(304);
 });
 test("nunca entrega source maps aunque existan en dist", async () => {
   for (const path of ["/assets/main-test.js.map", "/assets/MAIN-TEST.JS.MAP"]) {

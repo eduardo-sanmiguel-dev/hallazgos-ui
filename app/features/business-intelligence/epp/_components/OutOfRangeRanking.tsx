@@ -83,7 +83,7 @@ export default function OutOfRangeRanking({
           id={titleId}
           variant="subtitle1"
           component="h3"
-          sx={{ fontWeight: 600, lineHeight: 1.3 }}
+          sx={{ fontWeight: 700, lineHeight: 1.3 }}
         >
           Colaboradores con más entregas fuera de rango
         </Typography>
@@ -175,7 +175,7 @@ export default function OutOfRangeRanking({
                     }}
                   >
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography sx={{ fontWeight: 600 }}>{employee.name}</Typography>
+                      <Typography sx={{ fontWeight: 700 }}>{employee.name}</Typography>
                       <Typography variant="caption" color="text.secondary">
                         {employeeSubtitle(employee)}
                       </Typography>
@@ -240,7 +240,7 @@ export default function OutOfRangeRanking({
                       sx={{ cursor: "pointer" }}
                     >
                       <StyledTableCell component="th" scope="row">
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
                           {employee.name}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
@@ -251,7 +251,7 @@ export default function OutOfRangeRanking({
                         align="right"
                         sx={{
                           fontVariantNumeric: "tabular-nums",
-                          fontWeight: 600,
+                          fontWeight: 700,
                         }}
                       >
                         {formatNumber(employee.outOfRange)}

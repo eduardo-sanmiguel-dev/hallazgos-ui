@@ -23,6 +23,29 @@ const mime = {
   ".pdf": "application/pdf",
   ".webp": "image/webp",
 };
+// Caché en el navegador según el archivo:
+// - /assets/: nombre con hash (cambia con su contenido), 1 año sin revalidar.
+// - HTML (rutas de la SPA) y la versión del deploy: nunca, para que una pestaña
+//   vea el deploy nuevo en cuanto existe.
+// - El resto de public/ (íconos, logos, planos, manifest) no lleva hash: 1 día,
+//   y 7 más entregando la copia guardada mientras se revalida en segundo plano
+//   (ETag/Last-Modified: si no cambió, 304 sin volver a descargarlo). Antes
+//   iban con no-store y, p. ej., planos.webp (4 MB) se bajaba en cada vista.
+const NO_STORE = "no-store";
+const cacheControl = (pathname, file) => {
+  if (pathname.startsWith("/assets/")) return "public, max-age=31536000, immutable";
+  if (extname(file) === ".html" || pathname === "/deployment-version.json") return NO_STORE;
+  return "public, max-age=86400, stale-while-revalidate=604800";
+};
+// Validadores del archivo original (no del .br/.gz): cambian con cada deploy.
+const etagOf = (info) => `W/"${info.size.toString(16)}-${Math.trunc(info.mtimeMs).toString(16)}"`;
+const isFresh = (req, etag, lastModified) => {
+  const ifNoneMatch = req.headers["if-none-match"];
+  if (ifNoneMatch)
+    return ifNoneMatch.split(",").some((tag) => tag.trim() === etag || tag.trim() === "*");
+  const ifModifiedSince = Date.parse(req.headers["if-modified-since"] ?? "");
+  return !Number.isNaN(ifModifiedSince) && Date.parse(lastModified) <= ifModifiedSince;
+};
 const server = createServer(async (req, res) => {
   const fail = (status) => {
     // Navegar/cerrar una pestaña puede cancelar el stream mientras leemos el disco.
@@ -70,10 +93,19 @@ const server = createServer(async (req, res) => {
     if (res.destroyed || res.writableEnded) return;
     res.setHeader("Content-Type", mime[extname(actual)] || "application/octet-stream");
     res.setHeader("X-Content-Type-Options", "nosniff");
-    res.setHeader(
-      "Cache-Control",
-      pathname.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-store",
-    );
+    const cache = cacheControl(pathname, actual);
+    res.setHeader("Cache-Control", cache);
+    if (cache !== NO_STORE) {
+      const etag = etagOf(info);
+      const lastModified = new Date(info.mtimeMs).toUTCString();
+      res.setHeader("ETag", etag);
+      res.setHeader("Last-Modified", lastModified);
+      if (isFresh(req, etag, lastModified)) {
+        res.setHeader("Vary", "Accept-Encoding");
+        res.writeHead(304);
+        return res.end();
+      }
+    }
     // Brotli a quien lo acepta (~14 % menos que gzip) y gzip a los demás.
     const accepted = req.headers["accept-encoding"] || "";
     const encoding =

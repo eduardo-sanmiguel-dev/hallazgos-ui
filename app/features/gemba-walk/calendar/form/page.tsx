@@ -385,18 +385,20 @@ const GembaWalkCalendarFormPage = () => {
     let skipped = 0;
     let skippedPast = 0;
 
-    dates.forEach((date) => {
-      zoneIds.forEach((gembaWalkZoneId) => {
+    // for...of y no forEach: React Compiler no soporta modificar contadores
+    // desde una lambda y dejaba sin optimizar toda la página.
+    for (const date of dates) {
+      for (const gembaWalkZoneId of zoneIds) {
         const scheduledAt = toScheduledAt(date, time);
 
         if (isPast(scheduledAt)) {
-          skippedPast++;
-          return;
+          skippedPast += 1;
+          continue;
         }
 
         if (takenSlots.has(slotKey(gembaWalkZoneId, scheduledAt))) {
-          skipped++;
-          return;
+          skipped += 1;
+          continue;
         }
 
         newKeyCounter.current += 1;
@@ -405,8 +407,8 @@ const GembaWalkCalendarFormPage = () => {
           scheduledAt,
           isAdditional,
         };
-      });
-    });
+      }
+    }
 
     setNewEvents((prev) => ({ ...prev, ...additions }));
     setDialogState(null);

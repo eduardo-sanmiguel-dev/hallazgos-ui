@@ -8,11 +8,8 @@ import "highcharts/esm/modules/accessibility.src.js";
 
 import { useDashboardChart } from "../_components/useDashboardSummary";
 import { optionsChartDefault } from "@shared/libs";
+import { centerTotalLabel } from "./centerTotalLabel";
 import { donutResponsive } from "./donutResponsive";
-
-type ChartWithCustomLabel = Highcharts.Chart & {
-  customLabel?: Highcharts.SVGElement;
-};
 
 interface Props {
   filters: {
@@ -60,47 +57,7 @@ const MainTypesChart = ({ filters }: Props) => {
             type: "pie",
             backgroundColor: "transparent",
             plotBackgroundColor: "transparent",
-            events: {
-              render() {
-                const chart = this as ChartWithCustomLabel;
-                const series = chart.series[0];
-
-                if (!series) return;
-
-                let customLabel = chart.customLabel;
-                const centerLabelHtml = `<div style="text-align:center; color:${chartTextColor};"><span style="display:block;">Total</span><strong style="display:block;">${total.toLocaleString("es-MX")}</strong></div>`;
-
-                if (!customLabel) {
-                  customLabel = chart.customLabel = chart.renderer
-                    .label(centerLabelHtml, 0, 0, undefined, undefined, undefined, true)
-                    .css({
-                      color: chartTextColor,
-                      textAnchor: "middle",
-                    })
-                    .attr({
-                      zIndex: 7,
-                    })
-                    .add();
-                }
-
-                customLabel.attr({
-                  text: centerLabelHtml,
-                });
-
-                customLabel.css({
-                  fontSize: `${series.center[2] / 12}px`,
-                });
-
-                const labelBBox = customLabel.getBBox();
-                const x = series.center[0] + chart.plotLeft - labelBBox.width / 2;
-                const y = series.center[1] + chart.plotTop - labelBBox.height / 2;
-
-                customLabel.attr({
-                  x,
-                  y,
-                });
-              },
-            },
+            events: { render: centerTotalLabel(total, chartTextColor) },
           },
           accessibility: {
             point: {

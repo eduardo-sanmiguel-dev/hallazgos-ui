@@ -26,6 +26,12 @@ interface Props {
   };
 }
 
+// Fuera del componente: usa `this`, que React Compiler no soporta (dejaba
+// sin optimizar toda la gráfica).
+function countLabel(this: Highcharts.Point) {
+  return Number(this.y || 0).toLocaleString("es-MX");
+}
+
 const AssignedResponsibleChart = ({ filters }: Props) => {
   const theme = useTheme();
   const { data: chartData = null } = useDashboardChart("assigned-responsibles", filters);
@@ -157,9 +163,7 @@ const AssignedResponsibleChart = ({ filters }: Props) => {
               borderRadius: "50%",
               dataLabels: {
                 enabled: true,
-                formatter: function () {
-                  return Number(this.y || 0).toLocaleString("es-MX");
-                },
+                formatter: countLabel,
                 style: {
                   color: chartTextColor,
                   textOutline: "none",

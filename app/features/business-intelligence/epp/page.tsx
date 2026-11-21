@@ -239,7 +239,7 @@ const EPPCharts = () => {
                   component={NextLink}
                   href="/equipments"
                   color="inherit"
-                  sx={{ fontWeight: 600 }}
+                  sx={{ fontWeight: 700 }}
                 >
                   Equipos
                 </Link>

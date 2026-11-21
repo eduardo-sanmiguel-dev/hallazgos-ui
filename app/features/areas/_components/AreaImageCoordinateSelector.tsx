@@ -440,7 +440,7 @@ const AreaImageCoordinateSelector = ({
               variant="body2"
               sx={{
                 color: "text.primary",
-                fontWeight: 600,
+                fontWeight: 700,
                 lineHeight: 1.25,
               }}
             >
@@ -492,7 +492,7 @@ const AreaImageCoordinateSelector = ({
             variant="caption"
             sx={{
               display: "block",
-              fontWeight: 600,
+              fontWeight: 700,
               color: "text.secondary",
               mb: 0.35,
               textAlign: "center",
@@ -705,7 +705,7 @@ const AreaImageCoordinateSelector = ({
                                 variant="h6"
                                 sx={{
                                   color: "#ffffff",
-                                  fontWeight: 800,
+                                  fontWeight: 700,
                                   lineHeight: 1,
                                 }}
                               >

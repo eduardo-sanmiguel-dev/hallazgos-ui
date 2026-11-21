@@ -37,13 +37,16 @@ export default function SelectManufacturingPlantsOwn(props: Props) {
     disabled,
     size = { xs: 12, sm: 6, md: 3 },
     embedded = false,
-    label = props.multiple ? "Plantas" : "Planta",
+    label: labelProp,
     name,
     validationEmpty = false,
     restoreSelection = true,
     defaultToFirst = false,
     source = "session",
   } = props;
+  // Fuera del destructuring: React Compiler no optimiza un valor por defecto
+  // condicional (y el selector de planta está en casi todas las pantallas).
+  const label = labelProp ?? (props.multiple ? "Plantas" : "Planta");
   const sessionPlants = useUserSessionStore((state) => state.manufacturingPlants);
   const userId = useUserSessionStore((state) => state.id);
   const catalog = useManufacturingPlants({ enabled: source === "catalog" });

@@ -157,7 +157,7 @@ export default function EmployeeOutOfRangeDialog({
                   id={`${titleId}-entregas`}
                   variant="subtitle1"
                   component="h3"
-                  sx={{ fontWeight: 600 }}
+                  sx={{ fontWeight: 700 }}
                 >
                   Entregas del periodo
                 </Typography>
@@ -190,7 +190,7 @@ export default function EmployeeOutOfRangeDialog({
                         }`,
                       })}
                     >
-                      <Typography sx={{ fontWeight: 600 }}>{delivery.equipmentName}</Typography>
+                      <Typography sx={{ fontWeight: 700 }}>{delivery.equipmentName}</Typography>
                       <Typography variant="body2" color="text.secondary">
                         {formatIsoDate(delivery.date)} · Cant. {formatNumber(delivery.quantity)}
                       </Typography>
@@ -247,7 +247,7 @@ export default function EmployeeOutOfRangeDialog({
                           <StyledTableCell
                             component="th"
                             scope="row"
-                            sx={{ minWidth: 200, fontWeight: 600 }}
+                            sx={{ minWidth: 200, fontWeight: 700 }}
                           >
                             {delivery.equipmentName}
                           </StyledTableCell>

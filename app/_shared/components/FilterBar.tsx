@@ -186,7 +186,7 @@ export default function FilterBar({
                   bgcolor: "primary.main",
                   color: "primary.contrastText",
                   fontSize: "0.75rem",
-                  fontWeight: 600,
+                  fontWeight: 700,
                   lineHeight: 1,
                 }}
               >
@@ -277,7 +277,7 @@ export default function FilterBar({
                     <Box component="span" sx={{ fontWeight: 400 }}>
                       {filter.label}:
                     </Box>{" "}
-                    <Box component="span" sx={{ fontWeight: 600 }}>
+                    <Box component="span" sx={{ fontWeight: 700 }}>
                       {filter.value}
                     </Box>
                   </>
@@ -350,7 +350,7 @@ function SortReference({ sort, onEdit }: { sort: TableSortControl; onEdit: () =>
           onDelete: sort.reset,
           deleteIcon: <RestartAltIcon titleAccess="Restablecer orden predeterminado" />,
         })}
-        sx={{ maxWidth: "100%", fontWeight: 600 }}
+        sx={{ maxWidth: "100%", fontWeight: 700 }}
       />
       {sort.isDefault && (
         <Typography component="span" variant="caption" sx={{ color: "text.secondary" }}>

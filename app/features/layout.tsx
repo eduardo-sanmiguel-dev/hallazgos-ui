@@ -133,7 +133,7 @@ function Brand() {
         noWrap
         sx={{
           display: { xs: "none", sm: "block" },
-          fontWeight: 600,
+          fontWeight: 700,
           fontSize: "1.0625rem",
           letterSpacing: "0.01em",
         }}
@@ -268,7 +268,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
           color: "text.primary",
           boxShadow: 3,
           textDecoration: "none",
-          fontWeight: 600,
+          fontWeight: 700,
           "&:focus": { top: 8 },
         })}
       >

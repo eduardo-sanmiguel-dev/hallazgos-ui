@@ -154,7 +154,7 @@ export default function HeaderUserMenu() {
         width: size,
         height: size,
         fontSize: size > 36 ? "1rem" : "0.8125rem",
-        fontWeight: 600,
+        fontWeight: 700,
         backgroundColor: theme.palette.primary.main,
         color: theme.palette.primary.contrastText,
       })}
@@ -200,7 +200,7 @@ export default function HeaderUserMenu() {
             variant="body2"
             noWrap
             sx={{
-              fontWeight: 600,
+              fontWeight: 700,
               lineHeight: 1.25,
               maxWidth: 200,
               color: "text.primary",
@@ -246,7 +246,7 @@ export default function HeaderUserMenu() {
         <Box sx={{ display: "flex", gap: 1.5, px: 2, pt: 1, pb: 1.5 }}>
           {avatar(44)}
           <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography variant="subtitle2" noWrap sx={{ fontWeight: 600 }}>
+            <Typography variant="subtitle2" noWrap sx={{ fontWeight: 700 }}>
               {displayName}
             </Typography>
             {name && email && (

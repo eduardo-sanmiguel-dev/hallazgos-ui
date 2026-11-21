@@ -121,23 +121,21 @@ const EmployeesFormPage = () => {
     const manufacturingPlantNamesClean = form.manufacturingPlantNames;
 
     // Todo lo que falta, en el orden de la pantalla. Mismas reglas que antes
-    // deshabilitaban "Guardar" (el género no se marcaba en ningún lado).
-    if (
-      failAll({
-        code: !codeClean ? "Escribe el código." : undefined,
-        name: !nameClean ? "Escribe el nombre completo." : undefined,
-        birthdate: dateError(birthdateClean, "nacimiento"),
-        gender: !form.gender ? "Selecciona el género." : undefined,
-        dateOfAdmission: dateError(dateOfAdmissionClean, "admisión"),
-        manufacturingPlantNames: !manufacturingPlantNamesClean.length
-          ? "Selecciona al menos una planta."
-          : undefined,
-        area: !areaClean ? "Selecciona el área." : undefined,
-        position: !positionClean ? "Selecciona el puesto." : undefined,
-      }) ||
-      !birthdateClean ||
-      !dateOfAdmissionClean
-    ) {
+    // deshabilitaban "Guardar" (el género no se marcaba en ningún lado). En
+    // una variable: dentro del if, React Compiler no optimizaba la página.
+    const failed = failAll({
+      code: !codeClean ? "Escribe el código." : undefined,
+      name: !nameClean ? "Escribe el nombre completo." : undefined,
+      birthdate: dateError(birthdateClean, "nacimiento"),
+      gender: !form.gender ? "Selecciona el género." : undefined,
+      dateOfAdmission: dateError(dateOfAdmissionClean, "admisión"),
+      manufacturingPlantNames: !manufacturingPlantNamesClean.length
+        ? "Selecciona al menos una planta."
+        : undefined,
+      area: !areaClean ? "Selecciona el área." : undefined,
+      position: !positionClean ? "Selecciona el puesto." : undefined,
+    });
+    if (failed || !birthdateClean || !dateOfAdmissionClean) {
       return;
     }
 

@@ -1,3 +1,4 @@
+import type Highcharts from "highcharts/esm/highcharts.src.js";
 import type { BiEppOutOfRangeEquipment } from "@interfaces";
 
 import ChartCard from "../_components/ChartCard";
@@ -6,6 +7,29 @@ import { formatNumber, formatPercent, useBiColors } from "../_lib/biEpp";
 const TOP = 10;
 
 const daysEarly = (days: number | null) => (days === null ? "—" : `${formatNumber(days)} días`);
+
+// Fábricas fuera del componente: los callbacks de Highcharts usan `this`, que
+// React Compiler no soporta (dejaba sin optimizar toda la gráfica).
+const equipmentTooltip = (top: BiEppOutOfRangeEquipment[]) =>
+  function (this: Highcharts.Point) {
+    const row = top[this.index];
+    return [
+      `<b>${row.equipmentName}</b>`,
+      `Fuera de rango: <b>${formatNumber(row.outOfRange)}</b> de ${formatNumber(row.deliveries)} (${formatPercent((row.outOfRange * 100) / row.deliveries)})`,
+      `Colaboradores: ${formatNumber(row.employees)}`,
+      `Anticipación promedio: ${daysEarly(row.averageDaysEarly)}`,
+    ].join("<br/>");
+  };
+
+const toggleEquipment = (
+  top: BiEppOutOfRangeEquipment[],
+  selectedEquipmentId: number | null,
+  onSelect: (equipmentId: number | null) => void,
+) =>
+  function (this: Highcharts.Point) {
+    const { equipmentId } = top[this.index];
+    onSelect(equipmentId === selectedEquipmentId ? null : equipmentId);
+  };
 
 interface Props {
   rows: BiEppOutOfRangeEquipment[];
@@ -37,15 +61,7 @@ export default function OutOfRangeByEquipmentChart({ rows, selectedEquipmentId, 
         yAxis: { min: 0, allowDecimals: false },
         tooltip: {
           useHTML: true,
-          formatter() {
-            const row = top[this.index];
-            return [
-              `<b>${row.equipmentName}</b>`,
-              `Fuera de rango: <b>${formatNumber(row.outOfRange)}</b> de ${formatNumber(row.deliveries)} (${formatPercent((row.outOfRange * 100) / row.deliveries)})`,
-              `Colaboradores: ${formatNumber(row.employees)}`,
-              `Anticipación promedio: ${daysEarly(row.averageDaysEarly)}`,
-            ].join("<br/>");
-          },
+          formatter: equipmentTooltip(top),
         },
         plotOptions: {
           series: {
@@ -53,10 +69,7 @@ export default function OutOfRangeByEquipmentChart({ rows, selectedEquipmentId, 
             dataLabels: { enabled: true },
             point: {
               events: {
-                click() {
-                  const { equipmentId } = top[this.index];
-                  onSelect(equipmentId === selectedEquipmentId ? null : equipmentId);
-                },
+                click: toggleEquipment(top, selectedEquipmentId, onSelect),
               },
             },
           },

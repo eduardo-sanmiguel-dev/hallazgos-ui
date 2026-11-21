@@ -94,6 +94,16 @@ export default function ConfirmDialog({
 //   // o, para mostrar el spinner mientras responde el API:
 //   await confirm({ title: "¿Eliminar?", action: () => remove(id) });
 //   return <>{...}{confirmDialog}</>;
+
+// Fuera del hook: React Compiler no optimiza una función con try/finally (y
+// el diálogo y sus manejadores se recreaban en cada render de la pantalla).
+const runIgnoringErrors = async (action: () => unknown) => {
+  try {
+    await action();
+  } catch {
+    // El error ya lo notifica el servicio; solo se cierra el diálogo.
+  }
+};
 export function useConfirmDialog() {
   const [open, setOpen] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
@@ -131,14 +141,9 @@ export function useConfirmDialog() {
 
     acceptsConfirm.current = false;
     setIsBusy(true);
-    try {
-      await options.action();
-    } catch {
-      // El error ya lo notifica el servicio; solo se cierra el diálogo.
-    } finally {
-      setIsBusy(false);
-      settle(true);
-    }
+    await runIgnoringErrors(options.action);
+    setIsBusy(false);
+    settle(true);
   };
 
   const { action: _action, ...dialogOptions } = options;

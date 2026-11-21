@@ -89,7 +89,7 @@ function DeltaRow({ delta }: { delta: KpiDelta }) {
             borderRadius: 999,
             color: tone === "neutral" ? "text.secondary" : `${tone}.main`,
             backgroundColor: alpha(color, 0.12),
-            fontWeight: 600,
+            fontWeight: 700,
             fontSize: "0.8125rem",
             lineHeight: 1.6,
           };
@@ -133,7 +133,7 @@ export default function KpiTile({ label, value, caption, delta, isLoading, icon 
           gap: 1,
         }}
       >
-        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>
           {label}
         </Typography>
         {icon && (
@@ -166,7 +166,7 @@ export default function KpiTile({ label, value, caption, delta, isLoading, icon 
             component="p"
             sx={{
               fontSize: { xs: "1.75rem", md: "2rem" },
-              fontWeight: 600,
+              fontWeight: 700,
               lineHeight: 1.15,
               color: "text.primary",
             }}

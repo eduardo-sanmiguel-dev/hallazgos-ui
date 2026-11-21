@@ -8,6 +8,26 @@ import {
 } from "@shared/utils/pagination";
 import { trackRowsPerPageChange } from "@shared/utils/rumActions";
 
+// Acceso a localStorage fuera del hook: React Compiler no optimiza un hook
+// con valores condicionales dentro de try/catch (y entonces lo que devuelve es
+// nuevo en cada render).
+const readSaved = (table: string, allowAll: boolean) => {
+  try {
+    return parseSavedRowsPerPage(localStorage.getItem(rowsPerPageStorageKey(table)), allowAll);
+  } catch {
+    // Sin acceso a localStorage: se queda el valor inicial.
+    return null;
+  }
+};
+
+const save = (table: string, rowsPerPage: number) => {
+  try {
+    localStorage.setItem(rowsPerPageStorageKey(table), String(rowsPerPage));
+  } catch {
+    // Sin acceso a localStorage: la elección dura solo esta visita.
+  }
+};
+
 interface Options {
   /** Agrega "Todos" (solo catálogos chicos). */
   allowAll?: boolean;
@@ -24,28 +44,13 @@ export function useRowsPerPage(
   table: string,
   { allowAll = false, initial = constants.pagination.defaultRowsPerPage }: Options = {},
 ) {
-  const [rowsPerPage, setRowsPerPageState] = useState(() => {
-    try {
-      const saved = parseSavedRowsPerPage(
-        localStorage.getItem(rowsPerPageStorageKey(table)),
-        allowAll,
-      );
-      return saved ?? initial;
-    } catch {
-      // Sin acceso a localStorage: se queda el valor inicial.
-    }
-    return initial;
-  });
+  const [rowsPerPage, setRowsPerPageState] = useState(() => readSaved(table, allowAll) ?? initial);
 
   const setRowsPerPage = (next: number) => {
     if (next === rowsPerPage) return;
     trackRowsPerPageChange(table, rowsPerPage, next);
     setRowsPerPageState(next);
-    try {
-      localStorage.setItem(rowsPerPageStorageKey(table), String(next));
-    } catch {
-      // Sin acceso a localStorage: la elección dura solo esta visita.
-    }
+    save(table, next);
   };
 
   return {

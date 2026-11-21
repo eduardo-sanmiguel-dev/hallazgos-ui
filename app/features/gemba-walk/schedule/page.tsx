@@ -51,6 +51,52 @@ const STATUS_MARK: Record<GembaWalkScheduleEvent["status"], string> = {
 };
 
 // Calendario informativo: no permite crear, editar ni eliminar eventos.
+// Estilos de FullCalendar con la paleta del tema. Fuera del componente:
+// React Compiler no soporta la clave calculada del breakpoint y dejaba sin
+// optimizar toda la página.
+const calendarSx = (theme: Theme) => ({
+  p: 2,
+  "--fc-border-color": theme.palette.divider,
+  "--fc-page-bg-color": theme.palette.background.paper,
+  "--fc-neutral-bg-color": theme.palette.action.hover,
+  "--fc-today-bg-color": alpha(theme.palette.primary.main, 0.12),
+  "--fc-event-bg-color": theme.palette.primary.main,
+  "--fc-event-border-color": theme.palette.primary.main,
+  "--fc-button-bg-color": theme.palette.primary.main,
+  "--fc-button-border-color": theme.palette.primary.main,
+  "--fc-button-hover-bg-color": theme.palette.primary.dark,
+  "--fc-button-hover-border-color": theme.palette.primary.dark,
+  "--fc-button-active-bg-color": theme.palette.primary.dark,
+  "--fc-button-active-border-color": theme.palette.primary.dark,
+  "& .fc": { color: theme.palette.text.primary },
+  "& .fc .fc-toolbar-title": { fontSize: "1.25rem" },
+  "& .fc .fc-day-past": {
+    backgroundColor: theme.palette.action.disabledBackground,
+  },
+  "& .fc-event.gw-additional": {
+    backgroundColor: theme.palette.info.main,
+    borderColor: theme.palette.info.main,
+  },
+  "& .fc-event.gw-additional .fc-event-main, & .fc-event.gw-additional .fc-event-title, & .fc-event.gw-additional .fc-event-time":
+    { color: theme.palette.info.contrastText },
+  // Vista de lista (celular): el punto lleva el color del tipo y
+  // el texto se lee sobre el fondo de la página.
+  "& .fc-list-event.gw-additional .fc-list-event-dot": {
+    borderColor: theme.palette.info.main,
+  },
+  "& .fc-list-event:hover td": {
+    backgroundColor: theme.palette.action.hover,
+  },
+  "& .fc .fc-list-sticky .fc-list-day > *": {
+    backgroundColor: theme.palette.background.paper,
+  },
+  [theme.breakpoints.down("sm")]: {
+    p: 1,
+    "& .fc .fc-toolbar": { flexWrap: "wrap", gap: 1 },
+    "& .fc .fc-toolbar-title": { fontSize: "1rem" },
+  },
+});
+
 const GembaWalkSchedule = () => {
   const router = useRouter();
   // En celular, lista por semana: en la cuadrícula del mes los eventos no se
@@ -163,50 +209,7 @@ const GembaWalkSchedule = () => {
         </Box>
       </Grid>
       <Grid size={{ xs: 12 }}>
-        <Paper
-          sx={(theme) => ({
-            p: 2,
-            "--fc-border-color": theme.palette.divider,
-            "--fc-page-bg-color": theme.palette.background.paper,
-            "--fc-neutral-bg-color": theme.palette.action.hover,
-            "--fc-today-bg-color": alpha(theme.palette.primary.main, 0.12),
-            "--fc-event-bg-color": theme.palette.primary.main,
-            "--fc-event-border-color": theme.palette.primary.main,
-            "--fc-button-bg-color": theme.palette.primary.main,
-            "--fc-button-border-color": theme.palette.primary.main,
-            "--fc-button-hover-bg-color": theme.palette.primary.dark,
-            "--fc-button-hover-border-color": theme.palette.primary.dark,
-            "--fc-button-active-bg-color": theme.palette.primary.dark,
-            "--fc-button-active-border-color": theme.palette.primary.dark,
-            "& .fc": { color: theme.palette.text.primary },
-            "& .fc .fc-toolbar-title": { fontSize: "1.25rem" },
-            "& .fc .fc-day-past": {
-              backgroundColor: theme.palette.action.disabledBackground,
-            },
-            "& .fc-event.gw-additional": {
-              backgroundColor: theme.palette.info.main,
-              borderColor: theme.palette.info.main,
-            },
-            "& .fc-event.gw-additional .fc-event-main, & .fc-event.gw-additional .fc-event-title, & .fc-event.gw-additional .fc-event-time":
-              { color: theme.palette.info.contrastText },
-            // Vista de lista (celular): el punto lleva el color del tipo y
-            // el texto se lee sobre el fondo de la página.
-            "& .fc-list-event.gw-additional .fc-list-event-dot": {
-              borderColor: theme.palette.info.main,
-            },
-            "& .fc-list-event:hover td": {
-              backgroundColor: theme.palette.action.hover,
-            },
-            "& .fc .fc-list-sticky .fc-list-day > *": {
-              backgroundColor: theme.palette.background.paper,
-            },
-            [theme.breakpoints.down("sm")]: {
-              p: 1,
-              "& .fc .fc-toolbar": { flexWrap: "wrap", gap: 1 },
-              "& .fc .fc-toolbar-title": { fontSize: "1rem" },
-            },
-          })}
-        >
+        <Paper sx={calendarSx}>
           <FullCalendar
             // Cambiar de vista inicial requiere volver a montarlo.
             key={isPhone ? "phone" : "desktop"}

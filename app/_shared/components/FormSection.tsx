@@ -29,7 +29,7 @@ export default function FormSection({ title, description, children }: FormSectio
           id={titleId}
           variant="subtitle1"
           component="h2"
-          sx={{ fontWeight: 600, color: "text.primary", mb: description ? 0.5 : 2 }}
+          sx={{ fontWeight: 700, color: "text.primary", mb: description ? 0.5 : 2 }}
         >
           {title}
         </Typography>

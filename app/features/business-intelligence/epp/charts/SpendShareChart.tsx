@@ -15,6 +15,15 @@ const TOP = 8;
 
 // Participación de cada equipo en el gasto del periodo. Barras ordenadas en
 // lugar de dona: con muchos equipos los sectores no se pueden comparar.
+// Fuera del componente: usa `this`, que React Compiler no soporta (dejaba
+// sin optimizar toda la gráfica).
+function shareTooltip(this: Highcharts.Point) {
+  const point = this as Highcharts.Point & {
+    custom: { amount: number };
+  };
+  return `Participación: <b>${formatPercent(point.y ?? 0)}</b><br/>Gasto: <b>${formatMoney(point.custom.amount, 2)}</b>`;
+}
+
 export default function SpendShareChart({ data }: { data: BiData }) {
   const colors = useBiColors();
   const rows = data.chart9 ?? [];
@@ -56,12 +65,7 @@ export default function SpendShareChart({ data }: { data: BiData }) {
         xAxis: { categories: points.map((point) => point.name) },
         yAxis: { min: 0, labels: { format: "{value}%" } },
         tooltip: {
-          pointFormatter: function () {
-            const point = this as Highcharts.Point & {
-              custom: { amount: number };
-            };
-            return `Participación: <b>${formatPercent(point.y ?? 0)}</b><br/>Gasto: <b>${formatMoney(point.custom.amount, 2)}</b>`;
-          },
+          pointFormatter: shareTooltip,
         },
         plotOptions: {
           bar: {

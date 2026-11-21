@@ -121,8 +121,8 @@ const appThemeOptions = (appTheme: AppThemeName): ThemeOptions => ({
   appTheme,
   palette: paletteFor(appTheme),
   typography: {
-    h4: { fontWeight: 600 },
-    button: { textTransform: "none", fontWeight: 600 },
+    h4: { fontWeight: 700 },
+    button: { textTransform: "none", fontWeight: 700 },
   },
   components: {
     MuiCssBaseline: {
@@ -429,14 +429,14 @@ const appThemeOptions = (appTheme: AppThemeName): ThemeOptions => ({
     MuiDialogTitle: {
       styleOverrides: {
         root: {
-          fontWeight: 600,
+          fontWeight: 700,
         },
       },
     },
     MuiTableCell: {
       styleOverrides: {
         head: {
-          fontWeight: 600,
+          fontWeight: 700,
         },
         // En celular y tablet, menos relleno: las filas medían 70-110 px.
         sizeMedium: ({ theme }) => ({

@@ -19,12 +19,16 @@ export interface EmptyStateProps {
   role?: "status" | "alert";
 }
 
+// Fuera del componente: React Compiler no optimiza un valor por defecto JSX
+// en los parámetros.
+const DEFAULT_ICON = <InboxOutlinedIcon />;
+
 // Mensaje para listas o tablas sin registros. Base visual de ErrorState y
 // NoAccessState, para que los tres estados se vean igual.
 export default function EmptyState({
   title = "Sin registros",
   description,
-  icon = <InboxOutlinedIcon />,
+  icon = DEFAULT_ICON,
   children,
   size = "medium",
   tone = "neutral",
@@ -73,7 +77,7 @@ export default function EmptyState({
       <Typography
         variant={isSmall ? "subtitle2" : "subtitle1"}
         component="p"
-        sx={{ fontWeight: 600, color: "text.primary" }}
+        sx={{ fontWeight: 700, color: "text.primary" }}
       >
         {title}
       </Typography>
