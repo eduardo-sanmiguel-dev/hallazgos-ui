@@ -263,9 +263,6 @@ importers:
       react-html5-camera-photo:
         specifier: ^1.5.11
         version: 1.5.11(patch_hash=837e170a2f88d7b25b84fa686622d7f831b2dd619e2714ac3287366b4d91b66e)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      react-is:
-        specifier: ^19.2.6
-        version: 19.3.1
       react-router-dom:
         specifier: 7.18.5
         version: 7.18.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1)

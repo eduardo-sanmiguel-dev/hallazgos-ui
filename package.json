@@ -53,7 +53,6 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-html5-camera-photo": "^1.5.11",
-    "react-is": "^19.2.6",
     "react-router-dom": "7.18.5",
     "react-signature-canvas": "1.1.0-alpha.2",
     "react-zoom-pan-pinch": "^4.0.3",
