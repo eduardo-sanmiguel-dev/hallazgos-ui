@@ -14,6 +14,13 @@ test.describe("Sesión", () => {
     await expect(page.getByRole("button", { name: "Iniciar" })).toBeVisible();
   });
 
+  test("el logo es el título del inicio de sesión (lector de pantalla)", async ({ page }) => {
+    await page.goto("/");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "ComportArte · Hada International" }),
+    ).toBeVisible();
+  });
+
   test("valida campos vacíos sin llamar al API", async ({ page }) => {
     let loginCalls = 0;
     page.on("request", (request) => {

@@ -37,14 +37,59 @@ test("SPA: privacidad es pública y conserva sus metadatos", async ({ browser })
   try {
     const page = await context.newPage();
     await page.goto("/privacy");
+    // Este contexto no pasa por el fixture: el aviso de cookies tapa el pie.
+    await page.getByRole("button", { name: "Entendido" }).click();
     await expect(
-      page.getByRole("heading", { name: "Politica de privacidad", exact: true }),
+      page.getByRole("heading", { name: "Política de privacidad", exact: true }),
     ).toBeVisible();
-    await expect(page).toHaveTitle("Politica de privacidad | HADA");
+    await expect(page).toHaveTitle("Política de privacidad | HADA");
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
       "content",
       "noindex, nofollow",
     );
+    // Debe declarar lo que la app hace con los datos (grabación de sesiones,
+    // datos de salud de accidentes) y los derechos en México y Colombia.
+    for (const title of ["Datos sensibles", "Monitoreo y grabación de sesiones", "Tus derechos"]) {
+      await expect(page.getByRole("heading", { level: 2, name: new RegExp(title) })).toBeVisible();
+    }
+
+    // Ida y vuelta desde el login, sin sesión y sin recargar la página.
+    await page.getByRole("link", { name: "Ir al inicio" }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveTitle("HADA");
+    await page.getByRole("link", { name: "Política de privacidad" }).click();
+    await expect(page).toHaveURL(/\/privacy$/);
+    await expect(
+      page.getByRole("heading", { name: "Política de privacidad", exact: true }),
+    ).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});
+
+test("SPA: términos y condiciones son públicos y enlazan con privacidad", async ({ browser }) => {
+  const context = await browser.newContext({
+    baseURL: test.info().project.use.baseURL,
+    storageState: { cookies: [], origins: [] },
+  });
+  try {
+    const page = await context.newPage();
+    await page.goto("/");
+    await page.getByRole("button", { name: "Entendido" }).click();
+    await page.getByRole("link", { name: "Términos y condiciones" }).click();
+    await expect(page).toHaveURL(/\/terms$/);
+    await expect(
+      page.getByRole("heading", { name: "Términos y condiciones", exact: true }),
+    ).toBeVisible();
+    await expect(page).toHaveTitle("Términos y condiciones | HADA");
+    for (const title of ["Uso aceptable", "Alcance de la plataforma", "Suspensión del acceso"]) {
+      await expect(page.getByRole("heading", { level: 2, name: new RegExp(title) })).toBeVisible();
+    }
+
+    // El enlace dentro del texto lleva a la política sin recargar.
+    await page.getByRole("main").getByRole("link", { name: "política de privacidad" }).click();
+    await expect(page).toHaveURL(/\/privacy$/);
+    await expect(page).toHaveTitle("Política de privacidad | HADA");
   } finally {
     await context.close();
   }

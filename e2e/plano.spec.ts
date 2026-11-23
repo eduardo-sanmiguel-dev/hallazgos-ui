@@ -47,8 +47,14 @@ test.describe("Plano", () => {
     await page.getByRole("button", { name: "Alejar" }).click();
     await page.getByRole("button", { name: "Restablecer vista" }).click();
 
-    // La rueda del mouse acerca y aleja.
+    // El texto alternativo dice si la zona ya tiene ubicación.
     const image = plano(page);
+    await expect(image).toHaveAttribute(
+      "alt",
+      "Plano de la planta, sin ubicación marcada para la zona",
+    );
+
+    // La rueda del mouse acerca y aleja.
     const box = (await image.boundingBox())!;
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.wheel(0, -150);
@@ -62,6 +68,10 @@ test.describe("Plano", () => {
     // La imagen está bajo la capa que recibe el puntero: clic por coordenadas.
     await page.mouse.click(box.x + box.width / 3, box.y + box.height / 3);
     await expect(page.getByText(/^Punto seleccionado: X \d+, Y \d+, Zoom /)).toBeVisible();
+    await expect(image).toHaveAttribute(
+      "alt",
+      "Plano de la planta con la ubicación de la zona marcada",
+    );
 
     await page.getByRole("button", { name: "Guardar" }).click();
     await expect(toast(page, "Zona creada correctamente")).toBeVisible();
@@ -157,6 +167,12 @@ test.describe("Plano", () => {
       } else {
         const image = plano(page);
         await expect(image).toBeVisible();
+        // Los datos de cada zona solo están en tooltips: el texto
+        // alternativo los resume (la de más hallazgos abiertos primero).
+        await expect(image).toHaveAttribute(
+          "alt",
+          /^Mapa de calor de hallazgos abiertos .*: E2E Zona 1 \(\d+ hallazgos?\)/,
+        );
         const box = (await image.boundingBox())!;
         await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
         await page.mouse.wheel(0, -150);

@@ -242,6 +242,40 @@ test.describe("Equipos de emergencia", () => {
     });
   });
 
+  // XSS almacenado: la hoja se escribe con document.write en una ventana del
+  // mismo origen; antes una ubicación con HTML se ejecutaba con la sesión de
+  // quien imprimía.
+  test("imprimir QR: el texto capturado no se ejecuta como HTML", async ({ page }) => {
+    const attack = `<img src=x onerror="window.__xss=1">E2E Ataque`;
+    await page.addInitScript(() => {
+      const open = window.open.bind(window);
+      window.open = (...args) => {
+        const opened = open(...args);
+        if (opened) {
+          opened.print = () => undefined;
+          opened.close = () => undefined;
+        }
+        return opened;
+      };
+    });
+    await servePage(page, "/emergency-teams", [
+      { ...EMERGENCY_TEAM, location: attack, extinguisherNumber: `"><b>E2E</b>` },
+    ]);
+    await page.goto("/emergency-teams");
+    await page.getByRole("checkbox", { name: "Seleccionar el equipo 9801" }).check();
+
+    const popupPromise = page.waitForEvent("popup");
+    await page.getByRole("button", { name: /^Imprimir/ }).click();
+    const popup = await popupPromise;
+
+    await expect(popup.getByText(attack)).toBeVisible();
+    await expect(popup.getByText(`"><b>E2E</b>`)).toBeVisible();
+    expect(await popup.locator("img").count()).toBe(1);
+    expect(await popup.evaluate(() => (window as { __xss?: number }).__xss)).toBeUndefined();
+    expect(await page.evaluate(() => (window as { __xss?: number }).__xss)).toBeUndefined();
+    await popup.close();
+  });
+
   test("en escritorio: selecciona e imprime los QR en una ventana nueva", async ({ page }) => {
     // La ventana imprime y se cierra sola: aquí se queda abierta para revisarla.
     await page.addInitScript(() => {
@@ -277,7 +311,11 @@ test.describe("Equipos de emergencia", () => {
     const popupPromise = page.waitForEvent("popup");
     await print.click();
     const popup = await popupPromise;
-    await expect(popup.getByRole("img", { name: "QR equipo 9801" })).toBeVisible();
+    await expect(
+      popup.getByRole("img", {
+        name: "Código QR del extintor E2E-01, en E2E Pasillo",
+      }),
+    ).toBeVisible();
     await expect(popup.getByText("E2E Almacén")).toBeVisible();
     await popup.close();
 

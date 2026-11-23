@@ -10,7 +10,7 @@ import { Box } from "@mui/material";
 import { Paper } from "@mui/material";
 import { Typography } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
-import { alpha } from "@mui/material/styles";
+import { CALENDAR_BUTTON_HINTS, fullCalendarPalette } from "../../_components/fullCalendarPalette";
 import type { Theme } from "@mui/material/styles";
 import { toast } from "sonner";
 import dayjs, { toISOStringOrNull } from "@shared/libs/dayjs";
@@ -561,20 +561,7 @@ const GembaWalkCalendarFormPage = () => {
         <Paper
           sx={(theme) => ({
             p: 2,
-            "--fc-border-color": theme.palette.divider,
-            "--fc-page-bg-color": theme.palette.background.paper,
-            "--fc-neutral-bg-color": theme.palette.action.hover,
-            "--fc-list-event-hover-bg-color": theme.palette.action.hover,
-            "--fc-today-bg-color": alpha(theme.palette.primary.main, 0.12),
-            "--fc-event-bg-color": theme.palette.primary.main,
-            "--fc-event-border-color": theme.palette.primary.main,
-            "--fc-button-bg-color": theme.palette.primary.main,
-            "--fc-button-border-color": theme.palette.primary.main,
-            "--fc-button-hover-bg-color": theme.palette.primary.dark,
-            "--fc-button-hover-border-color": theme.palette.primary.dark,
-            "--fc-button-active-bg-color": theme.palette.primary.dark,
-            "--fc-button-active-border-color": theme.palette.primary.dark,
-            "& .fc": { color: theme.palette.text.primary },
+            ...fullCalendarPalette(theme),
             "& .fc .fc-toolbar-title": { fontSize: "1.25rem" },
             // Barra de FullCalendar (anterior, siguiente, hoy, mes, semana):
             // 44 px en pantalla táctil (A2); medían 39–40.
@@ -582,16 +569,7 @@ const GembaWalkCalendarFormPage = () => {
               "& .fc .fc-button": { minHeight: 44, minWidth: 44 },
             },
             "& .fc-event": { cursor: "pointer" },
-            "& .fc .fc-day-past": {
-              backgroundColor: theme.palette.action.disabledBackground,
-            },
             "& .fc-event.gw-past": { opacity: 0.6, cursor: "default" },
-            "& .fc-event.gw-additional": {
-              backgroundColor: theme.palette.info.main,
-              borderColor: theme.palette.info.main,
-            },
-            "& .fc-event.gw-additional .fc-event-main, & .fc-event.gw-additional .fc-event-title, & .fc-event.gw-additional .fc-event-time":
-              { color: theme.palette.info.contrastText },
           })}
         >
           <Box>
@@ -601,6 +579,9 @@ const GembaWalkCalendarFormPage = () => {
               initialView="dayGridMonth"
               initialDate={initialDate}
               locale={esLocale}
+              // Nombre de las flechas para lectores de pantalla (la traducción
+              // decía "Mes antes").
+              buttonHints={CALENDAR_BUTTON_HINTS}
               // Los recorridos solo tienen hora de inicio: FullCalendar les da 1 h, y
               // uno después de las 23:00 se pintaba también al día siguiente.
               nextDayThreshold="01:00"

@@ -8,6 +8,7 @@ import { Box, Button, Paper, Skeleton, Stack, Tooltip, Typography } from "@mui/m
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 
 import type { PlantPlan } from "../_lib/plantPlan";
+import { heatmapPlanAlt, selectorPlanAlt } from "../_lib/planAlt";
 
 export type AreaMarkedPoint = {
   x: number;
@@ -601,7 +602,7 @@ const AreaImageCoordinateSelector = ({
                     <Box
                       component="img"
                       src={plan.src}
-                      alt="Plano para mapa de calor"
+                      alt={heatmapPlanAlt(openPoints)}
                       loading="lazy"
                       decoding="async"
                       fetchPriority="low"
@@ -830,7 +831,7 @@ const AreaImageCoordinateSelector = ({
                     <Box
                       component="img"
                       src={plan.src}
-                      alt="Planos"
+                      alt={selectorPlanAlt(!!selectedPoint)}
                       loading="lazy"
                       decoding="async"
                       fetchPriority="low"

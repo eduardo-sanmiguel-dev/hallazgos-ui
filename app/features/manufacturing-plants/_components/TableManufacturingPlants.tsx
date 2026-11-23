@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { safeExternalUrl } from "@shared/utils/escapeHtml";
 
 import { useRouter } from "@shared/navigation";
 
@@ -40,21 +41,32 @@ const columns: ResponsiveColumn<ManufacturingPlant>[] = [
   {
     id: "link",
     header: "Link",
-    cell: (row) => (
-      <Link href={row.link} target="_blank" rel="noreferrer">
-        {row.link}
-      </Link>
-    ),
+    // Solo http(s): un enlace con otro esquema se muestra como texto.
+    cell: (row) => {
+      const href = safeExternalUrl(row.link);
+      return href ? (
+        <Link href={href} target="_blank" rel="noopener noreferrer">
+          {row.link}
+        </Link>
+      ) : (
+        row.link
+      );
+    },
     card: "hidden",
   },
   {
     id: "map",
     header: "Mapa",
-    cell: (row) => (
-      <Link href={row.link} target="_blank" rel="noreferrer">
-        Abrir mapa
-      </Link>
-    ),
+    cell: (row) => {
+      const href = safeExternalUrl(row.link);
+      return href ? (
+        <Link href={href} target="_blank" rel="noopener noreferrer">
+          Abrir mapa
+        </Link>
+      ) : (
+        "—"
+      );
+    },
     hideInTable: true,
   },
   {

@@ -30,6 +30,9 @@ describe("Nombres de acciones de RUM", () => {
     );
     expect(rumModule("/gemba-walk/calendar/form?id=22")).toBe("Gemba Walk / Calendario");
     expect(rumModule("/business-intelligence/epp")).toBe("Inteligencia de negocio / EPP");
+    expect(rumModule("/privacy")).toBe("Privacidad");
+    expect(rumModule("/terms")).toBe("Términos");
+    expect(rumModule("/unsubscribe?token=7.abc")).toBe("Baja de correos");
   });
   test("no renombra eventos del sistema ni altera otros eventos", () => {
     const event = {

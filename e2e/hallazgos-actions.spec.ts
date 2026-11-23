@@ -242,7 +242,14 @@ test.describe("Hallazgos: acciones", () => {
       "loading",
       "lazy",
     );
-    await dialog.getByRole("button", { name: "Ver foto del hallazgo en grande" }).click();
+    // El texto alternativo describe la foto: qué hallazgo, dónde y lo observado.
+    await expect(dialog.getByRole("img", { name: "Foto del hallazgo" })).toHaveAttribute(
+      "alt",
+      /^Foto del hallazgo #9001 .*: E2E descripción del hallazgo$/,
+    );
+    await dialog
+      .getByRole("button", { name: /^Foto del hallazgo #9001 .*\. Ver en grande$/ })
+      .click();
     const enlarged = page.getByRole("dialog", { name: "Foto del hallazgo" });
     await expect(enlarged).toBeVisible();
     // La ampliada se ve de inmediato: sin espera.
@@ -279,7 +286,7 @@ test.describe("Hallazgos: acciones", () => {
     await expect(followUp).toContainText("E2E Quien cerró");
     await page
       .getByRole("dialog", { name: "Hallazgo #9003" })
-      .getByRole("button", { name: "Ver foto de la solución en grande" })
+      .getByRole("button", { name: /^Foto de la solución #9003 .*\. Ver en grande$/ })
       .click();
     const viewer = page.getByRole("dialog", { name: "Foto de la solución" });
     await expect(viewer).toContainText("3 de 3");

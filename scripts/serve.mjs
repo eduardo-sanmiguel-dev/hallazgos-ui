@@ -4,9 +4,16 @@ import { constants, createBrotliCompress, createGzip } from "node:zlib";
 import { pipeline } from "node:stream/promises";
 import { realpath, stat } from "node:fs/promises";
 import { resolve, extname, sep } from "node:path";
+import { readFile } from "node:fs/promises";
+import { SECURITY_HEADERS_FILE } from "./csp.mjs";
 
 // Optional PM2 server; dist can also be served directly by Nginx.
 const root = await realpath(resolve(process.env.UI_DIST_DIR || "dist"));
+// CSP y demás cabeceras de seguridad que dejó el build (scripts/csp.mjs). Un
+// build anterior no las trae: se sirve igual que antes.
+const securityHeaders = await readFile(resolve(root, SECURITY_HEADERS_FILE), "utf8")
+  .then((text) => JSON.parse(text))
+  .catch(() => ({}));
 const mime = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -93,6 +100,7 @@ const server = createServer(async (req, res) => {
     if (res.destroyed || res.writableEnded) return;
     res.setHeader("Content-Type", mime[extname(actual)] || "application/octet-stream");
     res.setHeader("X-Content-Type-Options", "nosniff");
+    for (const [name, value] of Object.entries(securityHeaders)) res.setHeader(name, value);
     const cache = cacheControl(pathname, actual);
     res.setHeader("Cache-Control", cache);
     if (cache !== NO_STORE) {

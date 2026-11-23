@@ -5,13 +5,16 @@ import { getQueryClient } from "@shared/libs/queryClient";
 import { loginPathFor, safeNextPath } from "@shared/utils/nextPath";
 import { networkRetryDelay, retryNetworkErrors } from "@shared/utils/networkRetry";
 
+// Se abren sin sesión: páginas legales y el enlace de baja de los correos.
+const PUBLIC_PATHS = new Set(["/privacy", "/terms", "/unsubscribe"]);
+
 // HttpOnly cookies stay with the browser. Nest validates identity and permissions.
 export async function sessionLoader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   if (url.pathname.length > 1 && url.pathname.endsWith("/")) {
     return redirect(url.pathname.replace(/\/+$/, "") + url.search);
   }
-  if (url.pathname === "/privacy") return null;
+  if (PUBLIC_PATHS.has(url.pathname)) return null;
   const apiUrl = import.meta.env.VITE_API_URL;
   const headers = { "Content-Type": "application/json" };
   const token = url.searchParams.get("token");

@@ -10,7 +10,6 @@ import { Paper } from "@mui/material";
 import { Button } from "@mui/material";
 import { Typography } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import FullCalendar from "@fullcalendar/react";
@@ -24,6 +23,7 @@ import SelectManufacturingPlantsOwn from "@components/SelectManufacturingPlantsO
 import { useUserSessionStore } from "@store";
 import { ROLE_ADMINISTRADOR } from "@shared/constants";
 import GembaWalkAccessGuard from "../_components/GembaWalkAccessGuard";
+import { CALENDAR_BUTTON_HINTS, fullCalendarPalette } from "../_components/fullCalendarPalette";
 import PageHeader from "@shared/components/PageHeader";
 
 const LegendItem = ({ label, color }: { label: string; color: (theme: Theme) => string }) => (
@@ -56,29 +56,8 @@ const STATUS_MARK: Record<GembaWalkScheduleEvent["status"], string> = {
 // optimizar toda la página.
 const calendarSx = (theme: Theme) => ({
   p: 2,
-  "--fc-border-color": theme.palette.divider,
-  "--fc-page-bg-color": theme.palette.background.paper,
-  "--fc-neutral-bg-color": theme.palette.action.hover,
-  "--fc-today-bg-color": alpha(theme.palette.primary.main, 0.12),
-  "--fc-event-bg-color": theme.palette.primary.main,
-  "--fc-event-border-color": theme.palette.primary.main,
-  "--fc-button-bg-color": theme.palette.primary.main,
-  "--fc-button-border-color": theme.palette.primary.main,
-  "--fc-button-hover-bg-color": theme.palette.primary.dark,
-  "--fc-button-hover-border-color": theme.palette.primary.dark,
-  "--fc-button-active-bg-color": theme.palette.primary.dark,
-  "--fc-button-active-border-color": theme.palette.primary.dark,
-  "& .fc": { color: theme.palette.text.primary },
+  ...fullCalendarPalette(theme),
   "& .fc .fc-toolbar-title": { fontSize: "1.25rem" },
-  "& .fc .fc-day-past": {
-    backgroundColor: theme.palette.action.disabledBackground,
-  },
-  "& .fc-event.gw-additional": {
-    backgroundColor: theme.palette.info.main,
-    borderColor: theme.palette.info.main,
-  },
-  "& .fc-event.gw-additional .fc-event-main, & .fc-event.gw-additional .fc-event-title, & .fc-event.gw-additional .fc-event-time":
-    { color: theme.palette.info.contrastText },
   // Vista de lista (celular): el punto lleva el color del tipo y
   // el texto se lee sobre el fondo de la página.
   "& .fc-list-event.gw-additional .fc-list-event-dot": {
@@ -216,6 +195,9 @@ const GembaWalkSchedule = () => {
             plugins={[dayGridPlugin, timeGridPlugin, listPlugin]}
             initialView={isPhone ? "listWeek" : "dayGridMonth"}
             locale={esLocale}
+            // Nombre de las flechas para lectores de pantalla (la traducción
+            // decía "Mes antes").
+            buttonHints={CALENDAR_BUTTON_HINTS}
             // Los recorridos solo tienen hora de inicio: FullCalendar les da 1 h, y
             // uno después de las 23:00 se pintaba también al día siguiente.
             nextDayThreshold="01:00"

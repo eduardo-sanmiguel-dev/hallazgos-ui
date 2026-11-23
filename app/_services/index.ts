@@ -25,6 +25,7 @@ export * from "./gemba-walk-zones.service";
 export * from "./hds.service";
 export * from "./ics.service";
 export * from "./machines.service";
+export * from "./mail-preferences.service";
 export * from "./main-types.service";
 export * from "./manufacturing-plants.service";
 export * from "./nature-of-events.service";

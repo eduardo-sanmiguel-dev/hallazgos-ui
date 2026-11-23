@@ -167,7 +167,7 @@ overrides:
   vitest@*: 5.0.5
 
 patchedDependencies:
-  react-html5-camera-photo@1.5.11: 837e170a2f88d7b25b84fa686622d7f831b2dd619e2714ac3287366b4d91b66e
+  react-html5-camera-photo@1.5.11: 4f8b4e5f0fb23fc67cdebc0ec039cf3deeea0350d9e2618075878e84ad3e7396
 
 importers:
 
@@ -262,7 +262,7 @@ importers:
         version: 19.3.1(react@19.3.1)
       react-html5-camera-photo:
         specifier: ^1.5.11
-        version: 1.5.11(patch_hash=837e170a2f88d7b25b84fa686622d7f831b2dd619e2714ac3287366b4d91b66e)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 1.5.11(patch_hash=4f8b4e5f0fb23fc67cdebc0ec039cf3deeea0350d9e2618075878e84ad3e7396)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react-router-dom:
         specifier: 7.18.5
         version: 7.18.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -4605,7 +4605,7 @@ snapshots:
       react: 19.3.1
       scheduler: 0.28.0
 
-  react-html5-camera-photo@1.5.11(patch_hash=837e170a2f88d7b25b84fa686622d7f831b2dd619e2714ac3287366b4d91b66e)(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
+  react-html5-camera-photo@1.5.11(patch_hash=4f8b4e5f0fb23fc67cdebc0ec039cf3deeea0350d9e2618075878e84ad3e7396)(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
     dependencies:
       jslib-html5-camera-photo: 3.3.4
       react: 19.3.1

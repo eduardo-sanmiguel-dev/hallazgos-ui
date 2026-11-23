@@ -8,7 +8,13 @@ import { trackPageErrors } from "./support/ui";
 test("la política de privacidad no depende de la sesión", async ({ page }) => {
   await page.goto("/privacy");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(/privacidad/i);
-  await expect(page).toHaveTitle("Politica de privacidad | HADA");
+  await expect(page).toHaveTitle("Política de privacidad | HADA");
+});
+
+test("los términos y condiciones no dependen de la sesión", async ({ page }) => {
+  await page.goto("/terms");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Términos y condiciones");
+  await expect(page).toHaveTitle("Términos y condiciones | HADA");
 });
 
 /**

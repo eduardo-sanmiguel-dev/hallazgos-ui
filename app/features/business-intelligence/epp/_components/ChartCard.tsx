@@ -16,6 +16,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import TableRowsOutlinedIcon from "@mui/icons-material/TableRowsOutlined";
 
@@ -40,9 +41,17 @@ interface Props {
 // Opciones comunes: el título vive en el encabezado HTML de la tarjeta,
 // rejilla recesiva y leyenda arriba a la izquierda.
 // Mismo formato numérico que los KPIs (es-MX), sin depender del navegador.
-const baseOptions = (height: number): Highcharts.Options => ({
+/** Texto alternativo de la gráfica: su título y dónde están los datos. */
+export const chartAlt = (title: string) =>
+  `Gráfica: ${title}. Los datos están en la vista de tabla (botón «Ver tabla»).`;
+
+const baseOptions = (height: number, textColor: string, alt: string): Highcharts.Options => ({
   lang: { locale: "es-MX" },
-  title: { text: undefined },
+  // Sin el módulo de accesibilidad, Highcharts marca la gráfica como imagen
+  // con su título de texto alternativo. El título visible está en el
+  // encabezado de la tarjeta: este va oculto y flotante (no ocupa espacio)
+  // solo para nombrar la gráfica; antes quedaba sin nombre.
+  title: { text: alt, floating: true, style: { display: "none" } },
   subtitle: { text: undefined },
   credits: { enabled: false },
   chart: {
@@ -52,6 +61,8 @@ const baseOptions = (height: number): Highcharts.Options => ({
     // Del color de la tarjeta (en oscuro se veía una caja dentro de otra).
     backgroundColor: "transparent",
   },
+  // Sin el módulo (no se carga en esta pantalla): evita su aviso en consola.
+  accessibility: { enabled: false },
   legend: {
     align: "left",
     verticalAlign: "top",
@@ -84,6 +95,9 @@ const baseOptions = (height: number): Highcharts.Options => ({
       pointPadding: 0.06,
       groupPadding: 0.14,
       maxPointWidth: 40,
+      // Etiquetas a la derecha de la barra, sobre la tarjeta: con el color de
+      // texto del tema (Highcharts las ponía negras, ilegibles en oscuro).
+      dataLabels: { style: { color: textColor, textOutline: "none" } },
     },
   },
 });
@@ -100,7 +114,11 @@ export default function ChartCard({
   const [view, setView] = useState<"chart" | "table">("chart");
   const titleId = useId();
 
-  const merged = Highcharts.merge(baseOptions(height), options);
+  const theme = useTheme();
+  const merged = Highcharts.merge(
+    baseOptions(height, theme.palette.text.primary, chartAlt(title)),
+    options,
+  );
 
   return (
     <Paper

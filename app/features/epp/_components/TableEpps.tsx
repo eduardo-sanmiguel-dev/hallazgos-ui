@@ -158,6 +158,10 @@ function useEmployeeHistory({
 
 // Archivo de entregas del colaborador (Excel). Deshabilita el botón mientras
 // se descarga: antes un doble clic lo pedía dos veces.
+/** Texto alternativo de una firma: quién firmó, qué recibió y cuándo. */
+const signatureAlt = (epp: Epp, item: EppHistoryItem) =>
+  `Firma de ${epp.name} al recibir ${item.equipment.name} el ${stringYYYYMMDDToDDMMYYYY(item.deliveryDate)}`;
+
 const useDownloadEppFile = (epp: Epp) =>
   useMutation({
     mutationFn: () => EppService.downloadFile(epp.id, epp.code),
@@ -298,7 +302,7 @@ function Row({ epp, manufacturingPlantId, currentUserId, onHistoryEmptied }: His
                         <StyledTableCell>
                           <Image
                             src={item.signature}
-                            alt="Firma digital"
+                            alt={signatureAlt(epp, item)}
                             // Las firmas se guardan transparentes: con fondo
                             // blanco se leen también en el tema oscuro.
                             style={{
@@ -462,7 +466,7 @@ function EppCard({ epp, manufacturingPlantId, currentUserId, onHistoryEmptied }:
               >
                 <Image
                   src={item.signature}
-                  alt="Firma digital"
+                  alt={signatureAlt(epp, item)}
                   width={96}
                   height={64}
                   style={{

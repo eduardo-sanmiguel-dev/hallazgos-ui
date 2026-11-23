@@ -36,14 +36,18 @@ export default function SignIn() {
         {/* Proporción real del archivo (1536×1024 = 3:2): con 450×350 se
           veía estirado. En pantallas angostas se reduce sin deformarse y
           se carga de inmediato porque es lo primero que se ve. */}
-        <Image
-          src="/images/logo-new.webp"
-          alt=""
-          width={450}
-          height={300}
-          loading="eager"
-          style={{ maxWidth: "100%", height: "auto" }}
-        />
+        {/* El logo es el título de la pantalla (no hay otro encabezado):
+          un lector de pantalla anuncia dónde está. */}
+        <Box component="h1" sx={{ m: 0, lineHeight: 0, maxWidth: "100%" }}>
+          <Image
+            src="/images/logo-new.webp"
+            alt="ComportArte · Hada International"
+            width={450}
+            height={300}
+            loading="eager"
+            style={{ maxWidth: "100%", height: "auto" }}
+          />
+        </Box>
         {token ? (
           <FormRestorePassword />
         ) : !forgotPassword ? (

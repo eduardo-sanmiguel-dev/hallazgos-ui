@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { createBrowserRouter, Outlet, ScrollRestoration, useLocation } from "react-router-dom";
 import MainLayout from "../features/layout";
 import LoadingLinear from "@shared/components/LoadingLinear";
+import CookieNotice from "@shared/components/CookieNotice";
 import { sessionLoader } from "./sessionLoader";
 import RouteError from "./RouteError";
 
@@ -13,14 +14,22 @@ export const featureRoutes = Object.entries(pages).map(([file, load]) => ({
   lazy: async () => ({ Component: (await load()).default }),
 }));
 
+// Páginas públicas con título propio en la pestaña.
+const publicPageTitles: Record<string, string> = {
+  "/privacy": "Política de privacidad | HADA",
+  "/terms": "Términos y condiciones | HADA",
+  "/unsubscribe": "Avisos por correo | HADA",
+};
+
 function RootRoute() {
   const { pathname } = useLocation();
   useEffect(() => {
-    document.title = pathname === "/privacy" ? "Politica de privacidad | HADA" : "HADA";
+    document.title = publicPageTitles[pathname] ?? "HADA";
   }, [pathname]);
   return (
     <>
       <Outlet />
+      <CookieNotice />
       <ScrollRestoration />
     </>
   );
@@ -41,6 +50,15 @@ export const router = createBrowserRouter([
       {
         path: "privacy",
         lazy: async () => ({ Component: (await import("../privacy/page")).default }),
+      },
+      {
+        path: "terms",
+        lazy: async () => ({ Component: (await import("../terms/page")).default }),
+      },
+      {
+        // Enlace de baja de los correos: público, el token identifica al usuario.
+        path: "unsubscribe",
+        lazy: async () => ({ Component: (await import("../unsubscribe/page")).default }),
       },
       {
         element: (

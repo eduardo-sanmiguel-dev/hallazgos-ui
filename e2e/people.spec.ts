@@ -61,6 +61,8 @@ test.describe("Usuarios", () => {
           manufacturingPlantNames: plants,
           zoneNames: zones,
           processNames: processes,
+          // Por omisión recibe los avisos de toda la planta.
+          plantNotifications: true,
         },
       },
     ]);
@@ -192,6 +194,10 @@ test.describe("Usuarios", () => {
     const id = await editFirstRow(page, "/users", "Correo electrónico");
     await expect(page.getByLabel(/^Contraseña/)).toHaveValue("");
     const email = await page.getByLabel("Correo electrónico").inputValue();
+    // La casilla viene del API; el administrador puede apagarla.
+    const plantNotices = page.getByRole("switch", { name: "Recibe los avisos de toda la planta" });
+    const wasOn = await plantNotices.isChecked();
+    await plantNotices.click();
 
     await saveButton(page).click();
     await expect(toast(page, "Usuario actualizado correctamente")).toBeVisible();
@@ -200,7 +206,7 @@ test.describe("Usuarios", () => {
       {
         method: "PATCH",
         path: `/users/${id}`,
-        body: expect.objectContaining({ email, password: "" }),
+        body: expect.objectContaining({ email, password: "", plantNotifications: !wasOn }),
       },
     ]);
     expect(errors).toEqual([]);

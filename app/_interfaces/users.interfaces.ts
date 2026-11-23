@@ -14,6 +14,11 @@ export interface User {
   manufacturingPlants: ManufacturingPlant[];
   zones: Zone[];
   processes: Processes[];
+  /**
+   * Recibe los avisos que se mandan a toda la planta (hallazgo creado o
+   * cancelado). Ausente con un API anterior: se trata como true.
+   */
+  plantNotifications?: boolean;
   /** Solo en el usuario en sesión (get-information-current-user). */
   evidencePermissions?: EvidencePermissions;
   /**
@@ -21,6 +26,13 @@ export interface User {
    * API anterior (se pregunta a GET /gemba-walk/walks/access).
    */
   isGembaWalkObserver?: boolean;
+}
+
+/** POST /mail-preferences(/lookup): la cuenta del enlace de baja. */
+export interface MailPreferences {
+  /** Enmascarado por el API ("p•••••@planta.com"). */
+  email: string;
+  plantNotifications: boolean;
 }
 
 /** Usuario en selectores (GET /users?view=options): sin relaciones. */

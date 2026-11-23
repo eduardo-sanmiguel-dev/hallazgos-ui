@@ -106,7 +106,13 @@ const paletteFor = (appTheme: AppThemeName): ThemeOptions["palette"] =>
         primary: { main: BRAND_PRIMARY },
         ...LIGHT_SEMANTIC_PALETTE,
       }
-    : { mode: "dark", primary: { main: BRAND_PRIMARY } };
+    : {
+        mode: "dark",
+        primary: { main: BRAND_PRIMARY },
+        // Rojo de MUI en oscuro con texto oscuro (5.7:1), como los demás tonos
+        // de este tema: con blanco ("Vencido", botones de eliminar) daba 3.7:1.
+        error: { main: "#f44336", contrastText: "rgba(0, 0, 0, 0.87)" },
+      };
 
 export const createAppTheme = (appTheme: AppThemeName) => {
   const theme = createTheme(appThemeOptions(appTheme));
@@ -192,20 +198,16 @@ const appThemeOptions = (appTheme: AppThemeName): ThemeOptions => ({
               props: { color: "error", variant: "outlined" },
               style: errorTextOnDark({ theme }),
             },
-            // En oscuro, al pasar el mouse el relleno se aclara: oscurecido
-            // (lo de MUI) su texto quedaba en 4.3:1.
-            ...(theme.palette.mode === "dark"
-              ? [
-                  {
-                    props: { color: "primary", variant: "contained" },
-                    style: {
-                      "&:hover": {
-                        backgroundColor: theme.palette.primary.light,
-                      },
-                    },
-                  } as const,
-                ]
-              : []),
+            // Al pasar el mouse el relleno verde se aclara en ambos temas:
+            // oscurecido (lo de MUI) su texto oscuro quedaba en 4.3:1.
+            {
+              props: { color: "primary", variant: "contained" },
+              style: {
+                "&:hover": {
+                  backgroundColor: theme.palette.primary.light,
+                },
+              },
+            },
           ],
         }),
       },

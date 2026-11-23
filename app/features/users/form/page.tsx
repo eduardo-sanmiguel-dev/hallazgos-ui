@@ -15,6 +15,8 @@ import { FormControl } from "@mui/material";
 import { Select, SelectChangeEvent } from "@mui/material";
 import { IconButton } from "@mui/material";
 import { InputAdornment } from "@mui/material";
+import { FormControlLabel } from "@mui/material";
+import { Switch } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
@@ -42,6 +44,7 @@ interface UserForm {
   manufacturingPlantNames: string[];
   zoneNames: string[];
   processNames: string[];
+  plantNotifications: boolean;
 }
 
 const EMPTY_FORM: UserForm = {
@@ -52,6 +55,7 @@ const EMPTY_FORM: UserForm = {
   manufacturingPlantNames: [],
   zoneNames: [],
   processNames: [],
+  plantNotifications: true,
 };
 
 const UsersFormPage = () => {
@@ -85,6 +89,8 @@ const UsersFormPage = () => {
       manufacturingPlantNames: data.manufacturingPlants.map((plant) => plant.name),
       zoneNames,
       processNames,
+      // Un API anterior no la manda: se trata como activa.
+      plantNotifications: data.plantNotifications ?? true,
     };
     setForm(loaded);
     leave.markPristine(loaded);
@@ -143,6 +149,7 @@ const UsersFormPage = () => {
       manufacturingPlantNames: form.manufacturingPlantNames,
       zoneNames: form.rule === "Supervisor" ? form.zoneNames : [],
       processNames: form.rule === "Supervisor" ? form.processNames : [],
+      plantNotifications: form.plantNotifications,
     };
 
     saveMutation.mutate(payload);
@@ -328,6 +335,27 @@ const UsersFormPage = () => {
             </Grid>
           </>
         )}
+      </FormSection>
+      <FormSection
+        title="Avisos por correo"
+        description="Siempre le llegan los avisos de los hallazgos que se le asignen o que reporte. Los de toda la planta los puede apagar aquí o él mismo desde el enlace al pie de esos correos."
+      >
+        <Grid size={12}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={form.plantNotifications}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    plantNotifications: e.target.checked,
+                  })
+                }
+              />
+            }
+            label="Recibe los avisos de toda la planta"
+          />
+        </Grid>
       </FormSection>
       <FormActions
         saveActionName="Guardar usuario"

@@ -22,6 +22,7 @@ import FiltersEmergencyTeams, {
   DEFAULT_FILTERS_EMERGENCY_TEAMS,
   IFiltersEmergencyTeams,
 } from "./_components/FiltersEmergencyTeams";
+import { qrPrintItem } from "./_components/qrPrint";
 
 const EmergencyTeamsPage = () => {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -99,23 +100,7 @@ const EmergencyTeamsPage = () => {
         (pageRows) => `
           <section class="page">
             <div class="grid">
-              ${pageRows
-                .map(
-                  (row) => `
-                    <div class="item">
-                      <div class="qr-box">
-                        <img src="${row.generatedQrCode}" alt="QR equipo ${row.id}" />
-                      </div>
-                      <div class="qr-meta">
-                        <div><strong>Ubicación:</strong> ${row.location || "-"}</div>
-                        <div><strong>No. Extintor:</strong> ${row.extinguisherNumber ?? "-"}</div>
-                        <div><strong>Tipo:</strong> ${row.typeOfExtinguisher || "-"}</div>
-                        <div><strong>Capacidad:</strong> ${row.capacity ?? "-"}</div>
-                      </div>
-                    </div>
-                  `,
-                )
-                .join("")}
+              ${pageRows.map(qrPrintItem).join("")}
             </div>
           </section>
         `,
@@ -203,17 +188,22 @@ const EmergencyTeamsPage = () => {
         </head>
         <body>
           ${pagesHtml}
-          <script>
-            window.onload = function () {
-              window.print();
-              window.close();
-            }
-          </script>
         </body>
       </html>
     `);
 
     printWindow.document.close();
+
+    // Imprime y cierra desde aquí, al terminar de cargar los QR: antes lo
+    // hacía un <script> dentro de la hoja, que la CSP (sin scripts en línea)
+    // bloquea.
+    const printAndClose = () => {
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    };
+    if (printWindow.document.readyState === "complete") printAndClose();
+    else printWindow.addEventListener("load", printAndClose, { once: true });
   };
 
   const printSelectedQrs = () => {

@@ -4,6 +4,7 @@ import { defineConfig, lazyPlugins, loadEnv } from "vite-plus";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
 import manifest from "./app/manifest";
+import { SECURITY_HEADERS_FILE, securityHeaders } from "./scripts/csp.mjs";
 import tsconfig from "./tsconfig.json";
 
 export default defineConfig(({ mode }) => {
@@ -74,6 +75,18 @@ export default defineConfig(({ mode }) => {
             type: "asset",
             fileName: "deployment-version.json",
             source: JSON.stringify({ version }),
+          });
+          // CSP con los orígenes de este ambiente; la envía scripts/serve.mjs.
+          this.emitFile({
+            type: "asset",
+            fileName: SECURITY_HEADERS_FILE,
+            source: JSON.stringify(
+              securityHeaders({
+                apiUrl: publicEnv.VITE_API_URL,
+                apiOrigin: publicEnv.VITE_API_ORIGIN,
+                openObserveSite: publicEnv.VITE_OPENOBSERVE_SITE,
+              }),
+            ),
           });
         },
       },

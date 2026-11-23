@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect } from "react";
 import { Toaster } from "sonner";
 import ThemeRegistry from "./ThemeRegistry";
+import { toastColorsStyle } from "@shared/utils/toastColors";
 import QueryProvider from "@shared/components/QueryProvider";
 import DeploymentUpdates from "@shared/components/DeploymentUpdates";
 import { notify } from "@shared/utils";
@@ -42,6 +43,8 @@ export default function AppProviders({ children }: { children: ReactNode }) {
         expand
         richColors
         closeButton
+        // Textos de colores con contraste AA (ver toastColors).
+        style={toastColorsStyle}
       />
       <PendingLogoutNotice />
     </ThemeRegistry>

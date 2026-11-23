@@ -1,3 +1,4 @@
+import compressionLibUrl from "browser-image-compression/dist/browser-image-compression.js?url";
 // Preparación de fotos de evidencia antes de subirlas.
 //
 // El API acepta JPG, PNG o WEBP de hasta 2 MB y revisa la firma binaria
@@ -42,6 +43,9 @@ export const compressEvidenceImage = async (file: Blob): Promise<File> => {
         maxWidthOrHeight: EVIDENCE_MAX_SIDE_PX,
         fileType: outputType,
         useWebWorker: true,
+        // Desde nuestro dominio: por omisión el worker descargaba la librería
+        // de cdn.jsdelivr.net (código de terceros, bloqueado por la CSP).
+        libURL: new URL(compressionLibUrl, location.href).href,
       },
     );
   } catch {

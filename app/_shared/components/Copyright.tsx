@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link } from "@mui/material";
 import { Typography } from "@mui/material";
 
+import AppLink from "@shared/components/AppLink";
+
 export default function Copyright(props: any) {
   const [year] = useState(() => new Date().getFullYear());
   return (
@@ -20,7 +22,25 @@ export default function Copyright(props: any) {
         Hada international
       </Link>{" "}
       {year}
-      {"."}
+      {". · "}
+      {/* Públicas: se pueden abrir desde el login, antes de iniciar sesión. */}
+      <Link
+        color="inherit"
+        component={AppLink}
+        href="/privacy"
+        data-dd-action-name="Ver política de privacidad"
+      >
+        Política de privacidad
+      </Link>
+      {" · "}
+      <Link
+        color="inherit"
+        component={AppLink}
+        href="/terms"
+        data-dd-action-name="Ver términos y condiciones"
+      >
+        Términos y condiciones
+      </Link>
     </Typography>
   );
 }

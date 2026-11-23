@@ -319,7 +319,18 @@ test.describe("Análisis de datos EPP", () => {
     await openAnalysis(page, false);
     await page.getByRole("tab", { name: "Fuera de rango" }).click();
 
-    await expect(page.getByText("Equipos más entregados fuera de rango")).toBeVisible();
+    // Exacto: el nombre oculto de la gráfica también lo menciona.
+    await expect(
+      page.getByText("Equipos más entregados fuera de rango", { exact: true }),
+    ).toBeVisible();
+    // La gráfica se anuncia con su título y remite a la vista de tabla; ese
+    // nombre no se ve (el título visible es el de la tarjeta).
+    await expect(
+      page.getByRole("img", {
+        name: "Gráfica: Equipos más entregados fuera de rango. Los datos están en la vista de tabla (botón «Ver tabla»).",
+      }),
+    ).toBeVisible();
+    await expect(page.getByText(/^Gráfica: /).first()).toBeHidden();
     const ranking = page.getByRole("region", {
       name: "Colaboradores con más entregas fuera de rango",
     });

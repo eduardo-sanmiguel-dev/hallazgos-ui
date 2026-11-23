@@ -574,7 +574,10 @@ test.describe("EPP: lista de entregas", () => {
       });
       await expect(history).toContainText("E2E Casco");
       await expect(history).toContainText("Talla M");
-      await expect(history.getByAltText("Firma digital")).toBeVisible();
+      // La firma dice quién la hizo, qué recibió y cuándo.
+      await expect(
+        history.getByAltText(/^Firma de .+ al recibir E2E Casco el \d{2}\/\d{2}\/\d{4}$/),
+      ).toBeVisible();
       await expect(
         history.getByRole("button", {
           name: "Eliminar registro del historial",

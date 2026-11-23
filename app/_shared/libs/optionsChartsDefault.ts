@@ -12,10 +12,13 @@ export const optionsChartDefault = {
     downloadPDF: "Descargar documento PDF",
     downloadSVG: "Descargar imagen SVG",
   },
+  // Sin enlace: era una URL `javascript:`, que la política de seguridad de
+  // contenido (CSP) bloquea; Highcharts solo sabe abrir el enlace en la misma
+  // pestaña, lo que sacaba al usuario del dashboard.
   credits: {
     enabled: true,
     text: "Hada international",
-    href: 'javascript:window.open("https://grupohada.com", "_blank")',
+    href: "",
   },
   responsive: {
     rules: [

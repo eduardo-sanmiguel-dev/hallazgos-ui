@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 
 import Image from "@shared/components/AppImage";
 
@@ -30,6 +30,11 @@ import DetailSection, { DetailField, DetailFieldList } from "@shared/components/
 import EvidenceDeadline from "./EvidenceDeadline";
 import EvidenceComments from "./EvidenceComments";
 import EvidencePhotoViewer, { EvidencePhoto } from "./EvidencePhotoViewer";
+import {
+  evidencePhotoAlt,
+  evidencePhotoTitle,
+  type EvidencePhotoKind,
+} from "@routes/hallazgos/_constants/evidencePhotoAlt";
 
 interface Props {
   evidenceCurrent: EvidenceRow;
@@ -41,7 +46,8 @@ function PhotoThumb({ photo, onOpen }: { photo: EvidencePhoto; onOpen: () => voi
   return (
     <ButtonBase
       onClick={onOpen}
-      aria-label={`Ver ${photo.title.toLowerCase()} en grande`}
+      // El nombre del botón reemplaza al de la imagen: lleva su descripción.
+      aria-label={`${photo.alt}. Ver en grande`}
       sx={{
         position: "relative",
         display: "block",
@@ -60,7 +66,7 @@ function PhotoThumb({ photo, onOpen }: { photo: EvidencePhoto; onOpen: () => voi
       <Image
         unoptimized
         src={photo.src}
-        alt={photo.title}
+        alt={photo.alt}
         fill
         sizes="(max-width: 600px) 100vw, 320px"
         // Completa (sin recortar): es evidencia.
@@ -174,27 +180,18 @@ export default function DetailsEvidence({ evidenceCurrent, setRefreshData }: Pro
   const { status, imgEvidence, imgProcess, imgSolution, startProcessDate, solutionDate } =
     evidenceCurrent;
 
-  const photos = useMemo(
-    () =>
-      [
-        imgEvidence && {
-          key: "evidence",
-          src: baseUrlImage(imgEvidence),
-          title: "Foto del hallazgo",
-        },
-        imgProcess && {
-          key: "process",
-          src: baseUrlImage(imgProcess),
-          title: "Foto del progreso",
-        },
-        imgSolution && {
-          key: "solution",
-          src: baseUrlImage(imgSolution),
-          title: "Foto de la solución",
-        },
-      ].filter(Boolean) as (EvidencePhoto & { key: string })[],
-    [imgEvidence, imgProcess, imgSolution],
-  );
+  const photo = (key: EvidencePhotoKind, file: string) => ({
+    key,
+    src: baseUrlImage(file),
+    title: evidencePhotoTitle(key),
+    alt: evidencePhotoAlt(key, evidenceCurrent),
+  });
+
+  const photos = [
+    imgEvidence && photo("evidence", imgEvidence),
+    imgProcess && photo("process", imgProcess),
+    imgSolution && photo("solution", imgSolution),
+  ].filter(Boolean) as (EvidencePhoto & { key: string })[];
 
   const thumb = (key: string) => {
     const index = photos.findIndex((photo) => photo.key === key);

@@ -1,5 +1,11 @@
 import { describe, expect, test } from "vite-plus/test";
-import { decomposeColor, getContrastRatio, lighten, recomposeColor } from "@mui/material/styles";
+import {
+  decomposeColor,
+  getContrastRatio,
+  hslToRgb,
+  lighten,
+  recomposeColor,
+} from "@mui/material/styles";
 
 import {
   BRAND_PRIMARY,
@@ -9,6 +15,8 @@ import {
   primarySoftBackground,
   primaryTextColor,
 } from "../../app/theme";
+import { fullCalendarPalette } from "../../app/features/gemba-walk/_components/fullCalendarPalette";
+import { SONNER_LIGHT_BACKGROUNDS, TOAST_TEXT_COLORS } from "../../app/_shared/utils/toastColors";
 
 // Contraste AA (4.5:1) del tema claro, que es el que se usa al sol en planta
 // (A3 de docs/ux-auditoria.md).
@@ -101,6 +109,71 @@ describe("Encabezados (tablas y barra del detalle de hallazgo)", () => {
       const background = blend(theme.palette.background.paper, primarySoftBackground(theme));
       expect(getContrastRatio(primaryTextColor(theme), background)).toBeGreaterThanOrEqual(AA);
       expect(primaryAccentBorder(theme)).toBe(`2px solid ${theme.palette.primary.main}`);
+    });
+  }
+});
+
+// Texto (posiblemente semitransparente, como el rgba(0,0,0,.87) de MUI) sobre
+// un fondo opaco: el contraste real, componiendo la transparencia.
+const textRatio = (text: string, background: string) =>
+  getContrastRatio(blend(background, text), background);
+
+describe("Rellenos con su texto (chips, botones) en ambos temas", () => {
+  for (const name of ["light", "dark"] as const) {
+    const theme = createAppTheme(name);
+    for (const tone of ["primary", "success", "warning", "info", "error"] as const) {
+      test(`${name}: ${tone} con su texto cumple AA`, () => {
+        const { main, contrastText } = theme.palette[tone];
+        expect(textRatio(contrastText, main)).toBeGreaterThanOrEqual(AA);
+      });
+    }
+
+    test(`${name}: el botón verde con el mouse encima sigue en AA`, () => {
+      const { light: hover, contrastText } = theme.palette.primary;
+      expect(textRatio(contrastText, hover)).toBeGreaterThanOrEqual(AA);
+    });
+  }
+});
+
+describe("Calendario de Gemba Walk (FullCalendar)", () => {
+  for (const name of ["light", "dark"] as const) {
+    const theme = createAppTheme(name);
+    const sx = fullCalendarPalette(theme) as Record<string, unknown>;
+    const css = (key: string) => sx[key] as string;
+    const paper = theme.palette.background.paper;
+
+    test(`${name}: botones y eventos se leen en reposo, con el mouse y en la vista elegida`, () => {
+      const text = css("--fc-button-text-color");
+      expect(textRatio(text, css("--fc-button-bg-color"))).toBeGreaterThanOrEqual(AA);
+      expect(textRatio(text, css("--fc-button-hover-bg-color"))).toBeGreaterThanOrEqual(AA);
+      expect(
+        textRatio(theme.palette.common.white, css("--fc-button-active-bg-color")),
+      ).toBeGreaterThanOrEqual(AA);
+      expect(
+        textRatio(css("--fc-event-text-color"), css("--fc-event-bg-color")),
+      ).toBeGreaterThanOrEqual(AA);
+    });
+
+    test(`${name}: los días de otro mes se leen, también si ya pasaron`, () => {
+      const otherMonth = sx["& .fc .fc-day-other .fc-daygrid-day-top"] as {
+        opacity: number;
+        color: string;
+      };
+      const past = blend(paper, theme.palette.action.disabledBackground);
+      expect(otherMonth.opacity).toBe(1);
+      expect(textRatio(otherMonth.color, paper)).toBeGreaterThanOrEqual(AA);
+      expect(textRatio(otherMonth.color, past)).toBeGreaterThanOrEqual(AA);
+    });
+  }
+});
+
+describe("Avisos (Sonner, siempre claros)", () => {
+  for (const [variable, color] of Object.entries(TOAST_TEXT_COLORS)) {
+    test(`${variable} cumple AA sobre su fondo`, () => {
+      const background = hslToRgb(
+        SONNER_LIGHT_BACKGROUNDS[variable as keyof typeof SONNER_LIGHT_BACKGROUNDS],
+      );
+      expect(getContrastRatio(color, background)).toBeGreaterThanOrEqual(AA);
     });
   }
 });

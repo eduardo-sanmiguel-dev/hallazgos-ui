@@ -26,6 +26,9 @@ const modules: Record<string, string> = {
   "safety-data-files": "HDS",
   auth: "Acceso",
   privacy: "Privacidad",
+  terms: "Términos",
+  unsubscribe: "Baja de correos",
+  "mail-preferences": "Baja de correos",
 };
 const gembaSections: Record<string, string> = {
   calendar: "Calendario",

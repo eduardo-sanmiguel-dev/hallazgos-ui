@@ -1,6 +1,8 @@
 import type Highcharts from "highcharts/esm/highcharts.src.js";
 import type { BiEppOutOfRangeEquipment } from "@interfaces";
 
+import { escapeHtml } from "@shared/utils/escapeHtml";
+
 import ChartCard from "../_components/ChartCard";
 import { formatNumber, formatPercent, useBiColors } from "../_lib/biEpp";
 
@@ -14,7 +16,8 @@ const equipmentTooltip = (top: BiEppOutOfRangeEquipment[]) =>
   function (this: Highcharts.Point) {
     const row = top[this.index];
     return [
-      `<b>${row.equipmentName}</b>`,
+      // Tooltip HTML: el nombre lo captura un usuario, va escapado.
+      `<b>${escapeHtml(row.equipmentName)}</b>`,
       `Fuera de rango: <b>${formatNumber(row.outOfRange)}</b> de ${formatNumber(row.deliveries)} (${formatPercent((row.outOfRange * 100) / row.deliveries)})`,
       `Colaboradores: ${formatNumber(row.employees)}`,
       `Anticipación promedio: ${daysEarly(row.averageDaysEarly)}`,

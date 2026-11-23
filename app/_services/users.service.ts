@@ -10,6 +10,10 @@ interface Payload {
   rule: string;
   manufacturingPlantNames: string[];
   zoneNames: string[];
+  processNames?: string[];
+  // Avisos a toda la planta; el usuario también puede darse de baja desde el
+  // enlace del correo.
+  plantNotifications?: boolean;
 }
 
 const api = axiosWrapper({

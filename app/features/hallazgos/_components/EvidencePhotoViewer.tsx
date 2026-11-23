@@ -13,6 +13,8 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 export interface EvidencePhoto {
   src: string;
   title: string;
+  /** Texto alternativo: etapa, hallazgo, lugar y descripción (ver evidencePhotoAlt). */
+  alt: string;
 }
 
 interface Props {
@@ -131,7 +133,7 @@ export default function EvidencePhotoViewer({ photos, index, onChange }: Props) 
           <Image
             unoptimized
             src={photo.src}
-            alt={photo.title}
+            alt={photo.alt}
             fill
             sizes="100vw"
             style={{ objectFit: "contain" }}
