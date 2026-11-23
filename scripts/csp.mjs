@@ -1,4 +1,5 @@
-// Política de seguridad de contenido (CSP) de la UI: la defensa de fondo
+// Cabeceras de seguridad de la UI (al final del archivo). La principal es la
+// política de seguridad de contenido (CSP): la defensa de fondo
 // contra XSS. Aunque algún texto llegara a insertarse como HTML, el navegador
 // no ejecuta scripts que no sean los archivos de la app (ni en línea, ni
 // `javascript:`, ni atributos `onerror=`), y la página no se puede incrustar
@@ -69,9 +70,46 @@ export const buildCsp = ({ apiUrl, apiOrigin, openObserveSite } = {}) => {
     .join("; ");
 };
 
+/**
+ * HSTS: tras la primera visita por HTTPS, el navegador ya no intenta HTTP con
+ * este dominio durante un año (evita que alguien en la misma red degrade la
+ * conexión). Sin includeSubDomains: obligaría también a cualquier subdominio
+ * de comportarte.com que aún no tenga HTTPS. Por HTTP (localhost) el
+ * navegador la ignora.
+ */
+export const HSTS = "max-age=31536000";
+
+/**
+ * Funciones del navegador: la app solo usa la cámara (fotos de evidencias,
+ * escáner de QR; sin micrófono). Lo demás queda apagado para la app y para
+ * cualquier contenido incrustado, así un script inyectado tampoco podría
+ * pedirlo. Si una pantalla nueva necesita, p. ej., la ubicación, se habilita
+ * aquí con (self).
+ */
+export const PERMISSIONS_POLICY = [
+  "camera=(self)",
+  "fullscreen=(self)",
+  "microphone=()",
+  "geolocation=()",
+  "payment=()",
+  "usb=()",
+  "display-capture=()",
+  "accelerometer=()",
+  "gyroscope=()",
+  "magnetometer=()",
+].join(", ");
+
 /** Cabeceras de seguridad de los documentos de la UI. */
 export const securityHeaders = (env) => ({
   "Content-Security-Policy": buildCsp(env),
-  // Navegadores anteriores a frame-ancestors.
+  "Strict-Transport-Security": HSTS,
+  // Navegadores anteriores a frame-ancestors: no se puede incrustar en iframes.
   "X-Frame-Options": "DENY",
+  // A otros sitios (la API incluida) solo el origen, nunca la ruta: las URL
+  // de restablecer contraseña y de baja de correos llevan un token.
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": PERMISSIONS_POLICY,
+  // Una página de otro sitio abierta desde la app (o que la abra) no recibe
+  // referencia a su ventana. La hoja de impresión es del mismo origen.
+  "Cross-Origin-Opener-Policy": "same-origin",
 });

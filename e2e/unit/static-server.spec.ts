@@ -7,6 +7,8 @@ import { tmpdir } from "node:os";
 import { brotliCompressSync, gzipSync } from "node:zlib";
 import { join, resolve } from "node:path";
 
+import { SECURITY_HEADERS_FILE, securityHeaders } from "../../scripts/csp.mjs";
+
 let child: ChildProcess;
 let directory: string;
 let origin: string;
@@ -41,6 +43,11 @@ beforeAll(async () => {
     join(directory, "deployment-version.json"),
     JSON.stringify({ version: "test-build" }),
   );
+  // Las cabeceras que deja el build (vite.config.ts).
+  await writeFile(
+    join(directory, SECURITY_HEADERS_FILE),
+    JSON.stringify(securityHeaders({ apiOrigin: "https://api.example.test" })),
+  );
   child = spawn(process.execPath, [resolve("scripts/serve.mjs")], {
     env: { ...process.env, UI_DIST_DIR: directory, PORT: "0", HOST: "127.0.0.1" },
     stdio: ["ignore", "pipe", "pipe"],
@@ -73,6 +80,21 @@ test("sirve enlaces directos con parámetros y evita cachear HTML", async () => 
   expect(response.headers.get("content-type")).toContain("text/html");
   expect(response.headers.get("cache-control")).toBe("no-store");
   expect(await response.text()).toContain('id="root"');
+});
+test("envía las cabeceras de seguridad en páginas y archivos", async () => {
+  for (const path of ["/", "/hallazgos", "/assets/main-test.js"]) {
+    const response = await fetch(origin + path);
+    const header = (name: string) => response.headers.get(name);
+    expect(header("content-security-policy"), path).toContain("script-src 'self'");
+    expect(header("content-security-policy"), path).toContain("frame-ancestors 'none'");
+    expect(header("strict-transport-security"), path).toBe("max-age=31536000");
+    expect(header("x-frame-options"), path).toBe("DENY");
+    expect(header("x-content-type-options"), path).toBe("nosniff");
+    expect(header("referrer-policy"), path).toBe("strict-origin-when-cross-origin");
+    expect(header("permissions-policy"), path).toContain("camera=(self)");
+    expect(header("cross-origin-opener-policy"), path).toBe("same-origin");
+    await response.arrayBuffer();
+  }
 });
 test("mantiene el endpoint de versión de pestañas anteriores", async () => {
   for (const path of ["/deployment-version.json", "/api/deployment-version"]) {

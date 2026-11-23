@@ -41,7 +41,7 @@ incorpora al navegador la lista explícita de `vite.config.ts`.
 anteriores `NEXT_PUBLIC_URL_API` y `NEXT_PUBLIC_URL_API_RAW` se aceptan como
 respaldo para `.env` existentes. `VITE_APP_KEY` ya no existe: el API dejó de
 pedir la cabecera `x-app-key` (la protección contra CSRF es la cookie
-`SameSite=Lax` más la revisión del `Origin` en el API).
+`SameSite=Strict` más la revisión del `Origin` y de `Sec-Fetch-Site` en el API).
 
 Variables del entorno de ejecución (no van en `.env`):
 

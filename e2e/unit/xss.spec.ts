@@ -103,6 +103,21 @@ describe("Política de seguridad de contenido (CSP)", () => {
     expect(securityHeaders({})["X-Frame-Options"]).toBe("DENY");
   });
 
+  test("las URL con token no se envían completas a otros sitios", () => {
+    expect(securityHeaders({})["Referrer-Policy"]).toBe("strict-origin-when-cross-origin");
+  });
+
+  test("solo la cámara está disponible; micrófono, ubicación y demás, bloqueados", () => {
+    const policy = securityHeaders({})["Permissions-Policy"];
+    expect(policy).toContain("camera=(self)");
+    for (const blocked of ["microphone=()", "geolocation=()", "payment=()", "usb=()"])
+      expect(policy).toContain(blocked);
+  });
+
+  test("HSTS: solo HTTPS durante un año, sin obligar a los subdominios", () => {
+    expect(securityHeaders({})["Strict-Transport-Security"]).toBe("max-age=31536000");
+  });
+
   test("permite la API (HTTP y WebSocket), sus imágenes y el monitoreo", () => {
     expect(directive("connect-src")).toEqual([
       "'self'",
