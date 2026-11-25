@@ -1,6 +1,12 @@
 import { useMemo, useState } from "react";
 
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useIsFetching,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import dayjs from "dayjs";
 
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
@@ -9,7 +15,15 @@ import AutorenewIcon from "@mui/icons-material/Autorenew";
 import DonutLargeIcon from "@mui/icons-material/DonutLarge";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlineOutlined";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
-import { Box, Button, Grid, Paper, SelectChangeEvent, Skeleton } from "@mui/material";
+import {
+  Box,
+  Button,
+  Grid,
+  LinearProgress,
+  Paper,
+  SelectChangeEvent,
+  Skeleton,
+} from "@mui/material";
 import "dayjs/locale/es";
 import { useRouter } from "@shared/navigation";
 import { toast } from "sonner";
@@ -41,6 +55,7 @@ import AreaRangeLineChart from "./charts/AreaRangeLineChart";
 import PriorityInterventionChart from "./charts/PriorityInterventionChart";
 import RiskLevelChart from "./charts/RiskLevelChart";
 import { DashboardFiltersBar, type DashboardFilters } from "./_components/DashboardFiltersBar";
+import LazyChart, { LAZY_CHART_PENDING } from "./_components/LazyChart";
 import type { DashboardPdfHeader } from "./_lib/dashboardPdf";
 import {
   hasCompleteFilters,
@@ -85,6 +100,25 @@ const exportDashboardPdf = async (charts: HTMLElement[], header: DashboardPdfHea
   }
 };
 
+const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
+/**
+ * Antes de exportar: espera a que las gráficas forzadas (LazyChart) se
+ * monten, a que lleguen sus datos y, si alguna recién se montó, a que
+ * termine su animación de entrada (Highcharts: 1 s), para no capturarla a
+ * medias. Con tope de tiempo: un dato que no llega no bloquea el PDF.
+ */
+const waitForLazyCharts = async (queryClient: QueryClient, newlyMounted: boolean) => {
+  const deadline = Date.now() + 10_000;
+  do await nextFrame();
+  while (
+    (document.querySelector(LAZY_CHART_PENDING) ||
+      queryClient.isFetching({ queryKey: ["dashboard"] }) > 0) &&
+    Date.now() < deadline
+  );
+  if (newlyMounted) await new Promise((resolve) => setTimeout(resolve, 1_100));
+};
+
 const DashboardPage = () => {
   const router = useRouter();
   // Al cambiar de tema se vuelven a crear las gráficas con sus colores.
@@ -119,6 +153,10 @@ const DashboardPage = () => {
   const [isHistoricalView, setIsHistoricalView] = useState(false);
   const [isHeatmapView, setIsHeatmapView] = useState(false);
   const [isDownloadingPdfReport, setIsDownloadingPdfReport] = useState(false);
+  // Las gráficas de abajo se montan al acercarse (LazyChart); el PDF las
+  // necesita todas.
+  const [renderAllCharts, setRenderAllCharts] = useState(false);
+  const queryClient = useQueryClient();
   const shouldHideProjectionCharts =
     filters.areaIds.length > 1 || filters.responsibleIds.length > 1;
 
@@ -172,6 +210,10 @@ const DashboardPage = () => {
             ? "empty"
             : "ready";
   const showCharts = screenState === "ready";
+  // Al cambiar un filtro las gráficas conservan los datos anteriores hasta
+  // tener los nuevos: sin aviso parecía que no pasaba nada y RUM registraba
+  // clics repetidos (p. ej. en "Mes anterior").
+  const isRefreshingCharts = useIsFetching({ queryKey: ["dashboard"] }) > 0 && showCharts;
 
   const clearExtraFilters = () =>
     setFilters((prev) => ({
@@ -440,13 +482,18 @@ const DashboardPage = () => {
       return;
     }
 
+    setIsDownloadingPdfReport(true);
+    const newlyMounted = !!document.querySelector(LAZY_CHART_PENDING);
+    setRenderAllCharts(true);
+    await waitForLazyCharts(queryClient, newlyMounted);
+
     const visibleCharts = visibleDashboardCharts();
     if (!visibleCharts.length) {
       toast.error("No hay gráficas visibles para exportar");
+      setIsDownloadingPdfReport(false);
       return;
     }
 
-    setIsDownloadingPdfReport(true);
     await exportDashboardPdf(visibleCharts, {
       title: "Informe de Dashboard de Hallazgos",
       lines: [
@@ -540,6 +587,10 @@ const DashboardPage = () => {
               handleGoToHallazgos={handleGoToHallazgos}
               handleDownloadDashboardPdf={handleDownloadDashboardPdf}
             />
+            {/* Alto fijo: la barra aparece y desaparece sin mover la página. */}
+            <Box sx={{ height: 4, mt: 1 }} aria-busy={isRefreshingCharts}>
+              {isRefreshingCharts && <LinearProgress aria-label="Actualizando gráficas" />}
+            </Box>
           </Grid>
 
           {!showCharts && (
@@ -703,9 +754,11 @@ const DashboardPage = () => {
               }}
               data-dashboard-export="chart"
             >
-              <Paper sx={{ minHeight: 470, p: 2 }}>
-                <MainTypesChart filters={queryFilters} />
-              </Paper>
+              <LazyChart height={470} force={renderAllCharts}>
+                <Paper sx={{ minHeight: 470, p: 2 }}>
+                  <MainTypesChart filters={queryFilters} />
+                </Paper>
+              </LazyChart>
             </Grid>
           )}
 
@@ -718,9 +771,11 @@ const DashboardPage = () => {
               }}
               data-dashboard-export="chart"
             >
-              <Paper sx={{ minHeight: 470, p: 2 }}>
-                <SolidGaugeMultiKpiChart filters={queryFilters} />
-              </Paper>
+              <LazyChart height={470} force={renderAllCharts}>
+                <Paper sx={{ minHeight: 470, p: 2 }}>
+                  <SolidGaugeMultiKpiChart filters={queryFilters} />
+                </Paper>
+              </LazyChart>
             </Grid>
           )}
 
@@ -733,7 +788,9 @@ const DashboardPage = () => {
               }}
               data-dashboard-export="chart"
             >
-              <PriorityInterventionChart filters={queryFilters} />
+              <LazyChart height={420} force={renderAllCharts}>
+                <PriorityInterventionChart filters={queryFilters} />
+              </LazyChart>
             </Grid>
           )}
 
@@ -746,7 +803,9 @@ const DashboardPage = () => {
               }}
               data-dashboard-export="chart"
             >
-              <RiskLevelChart filters={queryFilters} />
+              <LazyChart height={420} force={renderAllCharts}>
+                <RiskLevelChart filters={queryFilters} />
+              </LazyChart>
             </Grid>
           )}
 
@@ -759,9 +818,11 @@ const DashboardPage = () => {
               }}
               data-dashboard-export="chart"
             >
-              <Paper sx={{ minHeight: 470, p: 2 }}>
-                <AreaRangeLineChart filters={queryFilters} />
-              </Paper>
+              <LazyChart height={470} force={renderAllCharts}>
+                <Paper sx={{ minHeight: 470, p: 2 }}>
+                  <AreaRangeLineChart filters={queryFilters} />
+                </Paper>
+              </LazyChart>
             </Grid>
           )}
 
@@ -774,9 +835,11 @@ const DashboardPage = () => {
               }}
               data-dashboard-export="chart"
             >
-              <Paper sx={{ minHeight: 560, p: 2 }}>
-                <PackedBubbleChart filters={queryFilters} />
-              </Paper>
+              <LazyChart height={560} force={renderAllCharts}>
+                <Paper sx={{ minHeight: 560, p: 2 }}>
+                  <PackedBubbleChart filters={queryFilters} />
+                </Paper>
+              </LazyChart>
             </Grid>
           )}
 
@@ -789,9 +852,11 @@ const DashboardPage = () => {
               }}
               data-dashboard-export="chart"
             >
-              <Paper sx={{ minHeight: 560, p: 2 }}>
-                <SankeyDiagramChart filters={queryFilters} />
-              </Paper>
+              <LazyChart height={560} force={renderAllCharts}>
+                <Paper sx={{ minHeight: 560, p: 2 }}>
+                  <SankeyDiagramChart filters={queryFilters} />
+                </Paper>
+              </LazyChart>
             </Grid>
           )}
 
@@ -804,9 +869,11 @@ const DashboardPage = () => {
               }}
               data-dashboard-export="chart"
             >
-              <Paper sx={{ minHeight: 400, p: 2 }}>
-                <AssignedResponsibleChart filters={queryFilters} />
-              </Paper>
+              <LazyChart height={400} force={renderAllCharts}>
+                <Paper sx={{ minHeight: 400, p: 2 }}>
+                  <AssignedResponsibleChart filters={queryFilters} />
+                </Paper>
+              </LazyChart>
             </Grid>
           )}
         </>

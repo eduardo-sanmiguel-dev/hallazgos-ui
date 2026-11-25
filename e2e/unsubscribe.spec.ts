@@ -21,7 +21,9 @@ const mockPreferences = async (
     (url) => url.pathname.includes("/api/v1/mail-preferences"),
     async (route) => {
       const path = new URL(route.request().url()).pathname.replace(/^.*\/api\/v1/, "");
-      const body = route.request().postDataJSON() as { plantNotifications?: boolean };
+      const body = (route.request().postDataJSON() ?? undefined) as
+        | { plantNotifications?: boolean }
+        | undefined;
       sent.push({ path, body });
       if (status !== 200)
         return route.fulfill({
@@ -33,7 +35,8 @@ const mockPreferences = async (
             error: "Not Found",
           },
         });
-      if (path === "/mail-preferences") current = !!body.plantNotifications;
+      if (path === "/mail-preferences" || route.request().method() === "PATCH")
+        current = !!body?.plantNotifications;
       return route.fulfill({
         status: 200,
         json: { email: "p••••••@planta.com", plantNotifications: current },
@@ -95,12 +98,49 @@ test("baja: un enlace inválido lo dice y no cambia nada", async ({ page }) => {
   expect(sent.map(({ path }) => path)).toEqual(["/mail-preferences/lookup"]);
 });
 
-test("baja: sin token no consulta al API", async ({ page }) => {
+test("baja: sin token y sin sesión pide iniciar sesión y regresa a la página", async ({ page }) => {
   const sent = await mockPreferences(page);
 
   await page.goto("/unsubscribe");
 
-  await expect(page.getByRole("heading", { name: "El enlace no es válido" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Reintentar" })).toHaveCount(0);
+  await expect(page).toHaveURL(/\/\?next=%2Funsubscribe$/);
   expect(sent).toEqual([]);
+});
+
+// Correos actuales: el enlace no lleva token (un mismo correo va a varios
+// destinatarios) y la página usa la sesión.
+test.describe("con sesión", () => {
+  test.use({ storageState: "e2e/.auth/user.json" });
+
+  test("baja: sin token usa la sesión para consultar y cambiar", async ({ page }) => {
+    const errors = trackPageErrors(page);
+    const sent = await mockPreferences(page);
+
+    await page.goto("/unsubscribe");
+    await expect(
+      page.getByRole("heading", { name: "¿Dejar de recibir los avisos de la planta?" }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Dejar de recibir avisos" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Ya no recibes los avisos de la planta" }),
+    ).toBeVisible();
+
+    expect(sent).toEqual([
+      { path: "/mail-preferences/me", body: undefined },
+      { path: "/mail-preferences/me", body: { plantNotifications: false } },
+    ]);
+    expect(errors).toEqual([]);
+  });
+
+  test("baja: si no carga con sesión ofrece reintentar", async ({ page }) => {
+    await mockPreferences(page, { status: 500 });
+
+    await page.goto("/unsubscribe");
+
+    await expect(
+      page.getByRole("heading", { name: "No se pudieron cargar tus avisos" }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Reintentar" })).toBeVisible();
+  });
 });

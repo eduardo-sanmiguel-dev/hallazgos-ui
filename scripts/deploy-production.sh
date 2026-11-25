@@ -124,7 +124,11 @@ main() {
   if [ -f "$STATE_DIR/ui-version.json" ]; then cp "$STATE_DIR/ui-version.json" "$METADATA/previous-ui-version.json"; fi
 
   cd "$RELEASE"
-  echo "Preparando $commit en $RELEASE; la UI anterior sigue activa."
+  # Versión legible: fecha UTC del build + commit (antes un UUID al azar). Es
+  # la que ve el usuario en su menú y la que registra RUM. Solo
+  # [A-Za-z0-9_-]: la API rechaza otras (deployment-updates.service).
+  export VITE_APP_VERSION="$(date -u +%Y%m%d-%H%M)-${commit:0:7}"
+  echo "Preparando $commit en $RELEASE (versión $VITE_APP_VERSION); la UI anterior sigue activa."
   env CI=true pnpm install --frozen-lockfile
   pnpm check
   pnpm test

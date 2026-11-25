@@ -5,8 +5,12 @@ import { getQueryClient } from "@shared/libs/queryClient";
 import { loginPathFor, safeNextPath } from "@shared/utils/nextPath";
 import { networkRetryDelay, retryNetworkErrors } from "@shared/utils/networkRetry";
 
-// Se abren sin sesión: páginas legales y el enlace de baja de los correos.
-const PUBLIC_PATHS = new Set(["/privacy", "/terms", "/unsubscribe"]);
+// Se abren sin sesión: páginas legales y el enlace de baja con token de los
+// correos anteriores. Sin token (correos actuales) la baja pide iniciar sesión.
+const PUBLIC_PATHS = new Set(["/privacy", "/terms"]);
+const isPublic = (url: URL) =>
+  PUBLIC_PATHS.has(url.pathname) ||
+  (url.pathname === "/unsubscribe" && !!url.searchParams.get("token"));
 
 // HttpOnly cookies stay with the browser. Nest validates identity and permissions.
 export async function sessionLoader({ request }: LoaderFunctionArgs) {
@@ -14,7 +18,7 @@ export async function sessionLoader({ request }: LoaderFunctionArgs) {
   if (url.pathname.length > 1 && url.pathname.endsWith("/")) {
     return redirect(url.pathname.replace(/\/+$/, "") + url.search);
   }
-  if (PUBLIC_PATHS.has(url.pathname)) return null;
+  if (isPublic(url)) return null;
   const apiUrl = import.meta.env.VITE_API_URL;
   const headers = { "Content-Type": "application/json" };
   const token = url.searchParams.get("token");

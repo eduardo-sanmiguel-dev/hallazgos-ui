@@ -12,9 +12,11 @@ import LoadingLinear from "@shared/components/LoadingLinear";
 import StatusPage from "@shared/components/StatusPage";
 import { useSearchParams } from "@shared/navigation";
 
-// Página pública del enlace de baja de los correos (sessionLoader no la
-// protege). Nunca da de baja al abrirse: los filtros de correo y antivirus
-// abren los enlaces solos, así que se pide confirmar con un botón.
+// Enlace de baja de los correos. Con token (correos anteriores) es pública
+// y el token identifica al usuario; sin token (correos actuales: un mismo
+// correo va a varios destinatarios) sessionLoader pide iniciar sesión y se
+// usa la del usuario. Nunca da de baja al abrirse: los filtros de correo y
+// antivirus abren los enlaces solos, así que se pide confirmar con un botón.
 const KEEPS =
   "Seguirás recibiendo los avisos de los hallazgos que te asignen o que reportes, y los de tu cuenta.";
 
@@ -27,23 +29,42 @@ const HomeLink = () => (
 export default function UnsubscribePage() {
   const token = useSearchParams().get("token") ?? "";
   const queryClient = useQueryClient();
-  const queryKey = ["mail-preferences", token];
+  const queryKey = ["mail-preferences", token || "me"];
 
   const preferences = useQuery({
     queryKey,
-    queryFn: () => MailPreferencesService.lookup(token),
-    enabled: !!token,
+    queryFn: () =>
+      token ? MailPreferencesService.lookup(token) : MailPreferencesService.findMine(),
     // Un enlace inválido no se arregla reintentando.
     retry: false,
   });
 
   const change = useMutation({
     mutationFn: (plantNotifications: boolean) =>
-      MailPreferencesService.update(token, plantNotifications),
+      token
+        ? MailPreferencesService.update(token, plantNotifications)
+        : MailPreferencesService.updateMine(plantNotifications),
     onSuccess: (data) => queryClient.setQueryData<MailPreferences>(queryKey, data),
   });
 
-  if (!token || preferences.isError) {
+  if (!token && preferences.isError) {
+    return (
+      <main>
+        <StatusPage
+          icon={<LinkOffIcon />}
+          title="No se pudieron cargar tus avisos"
+          description="Revisa tu conexión e intenta de nuevo."
+        >
+          <Button variant="contained" onClick={() => preferences.refetch()}>
+            Reintentar
+          </Button>
+          <HomeLink />
+        </StatusPage>
+      </main>
+    );
+  }
+
+  if (preferences.isError) {
     return (
       <main>
         <StatusPage
@@ -51,11 +72,9 @@ export default function UnsubscribePage() {
           title="El enlace no es válido"
           description="Puede estar incompleto o la cuenta ya no está activa. Si sigues recibiendo avisos de la planta, pide al administrador que los desactive en tu usuario."
         >
-          {!!token && (
-            <Button variant="contained" onClick={() => preferences.refetch()}>
-              Reintentar
-            </Button>
-          )}
+          <Button variant="contained" onClick={() => preferences.refetch()}>
+            Reintentar
+          </Button>
           <HomeLink />
         </StatusPage>
       </main>

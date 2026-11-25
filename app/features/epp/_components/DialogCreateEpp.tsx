@@ -170,44 +170,44 @@ export default function DialogCreateEpp({ open, create }: Props) {
     const { equipment, observations, employee } = form;
 
     if (!employee) return notify("Selecciona un colaborador");
+    // Antes no hacía nada (RUM: clic sin respuesta en "Agregar equipo").
+    if (!equipment) return notify("Selecciona el equipo que vas a agregar");
 
-    if (equipment) {
-      const currentEquipment = equipments.find((eq) => eq.id === Number(equipment));
+    const currentEquipment = equipments.find((eq) => eq.id === Number(equipment));
 
-      if (currentEquipment) {
-        const deliveryFrequency = currentEquipment?.deliveryFrequency || 0;
+    if (currentEquipment) {
+      const deliveryFrequency = currentEquipment?.deliveryFrequency || 0;
 
-        let notCanDeliver = false;
+      let notCanDeliver = false;
 
-        if (deliveryFrequency) {
-          try {
-            const { canDeliver, message } = await validateFrequency.mutateAsync({
-              equipmentId: Number(equipment),
-              employeeId: Number(employee),
-            });
+      if (deliveryFrequency) {
+        try {
+          const { canDeliver, message } = await validateFrequency.mutateAsync({
+            equipmentId: Number(equipment),
+            employeeId: Number(employee),
+          });
 
-            if (!canDeliver) {
-              notify(message);
-              notCanDeliver = true;
-            }
-          } catch {
-            // El error ya lo notifica el servicio; el equipo no se agrega.
-            return;
+          if (!canDeliver) {
+            notify(message);
+            notCanDeliver = true;
           }
+        } catch {
+          // El error ya lo notifica el servicio; el equipo no se agrega.
+          return;
         }
-
-        setEquipmentsNew([
-          ...equipmentsNew,
-          {
-            id: currentEquipment.id,
-            quantity: 1,
-            name: currentEquipment.name,
-            observations: observations.trim() || "",
-            notCanDeliver,
-          },
-        ]);
-        setForm({ ...form, equipment: "", observations: "" });
       }
+
+      setEquipmentsNew([
+        ...equipmentsNew,
+        {
+          id: currentEquipment.id,
+          quantity: 1,
+          name: currentEquipment.name,
+          observations: observations.trim() || "",
+          notCanDeliver,
+        },
+      ]);
+      setForm({ ...form, equipment: "", observations: "" });
     }
   };
 

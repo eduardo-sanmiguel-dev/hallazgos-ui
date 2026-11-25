@@ -35,6 +35,7 @@ import { useInstallApp } from "@hooks";
 import { deleteUserDrafts, listUserDrafts } from "@shared/drafts/draftStore";
 import { useConfirmDialog } from "./ConfirmDialog";
 import { TOUCH_MEDIA } from "../../theme";
+import { appVersionLabel } from "../utils/appVersion";
 
 const appVersion = import.meta.env.VITE_APP_VERSION;
 
@@ -336,7 +337,7 @@ export default function HeaderUserMenu() {
           title={appVersion ? `Versión completa: ${appVersion}` : undefined}
           sx={{ px: 2, pt: 1, pb: 0.5, color: "text.secondary" }}
         >
-          Versión: {appVersion ? appVersion.slice(0, 8) : "desarrollo"}
+          Versión: {appVersionLabel(appVersion)}
         </Typography>
       </Menu>
 

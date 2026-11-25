@@ -151,9 +151,11 @@ test.describe("EPP: entregas", () => {
     expect(params.get("view")).toBe("options");
     expect(params.get("manufacturingPlantId")).toBe(String(plant.id));
 
-    // Sin equipo elegido, Agregar no hace nada.
+    // Sin equipo elegido, Agregar lo pide (antes no hacía nada: RUM lo
+    // registraba como clic sin respuesta).
     const add = dialog.getByRole("button", { name: "Agregar" });
     await add.click();
+    await expect(toast(page, "Selecciona el equipo que vas a agregar")).toBeVisible();
 
     // Con frecuencia de entrega se valida y se marca si no procede.
     await pickOption(page, "Equipo", "E2E Casco");
